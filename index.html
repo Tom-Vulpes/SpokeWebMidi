@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPOKE MIDI Drum Machine</title>
+    <title>SPOKE MIDI Drums</title>
     <style>
         * {
             margin: 0;
@@ -19,170 +19,70 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        /* Animated background grid */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            animation: drift 20s linear infinite;
-            pointer-events: none;
-            z-index: 0;
-        }
-        
-        @keyframes drift {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
+            padding: 20px;
         }
         
         .container {
-            max-width: 1000px;
-            width: 90%;
-            position: relative;
-            z-index: 1;
-            padding: 40px;
+            max-width: 1200px;
+            width: 100%;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 40px;
         }
         
         h1 {
-            font-size: 3.5em;
-            margin-bottom: 15px;
-            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 50%, #ee5a6f 100%);
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-transform: uppercase;
-            letter-spacing: 5px;
+            letter-spacing: 4px;
             font-weight: 900;
-            animation: pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
         }
         
         .subtitle {
-            font-size: 1.2em;
-            color: #a0a0a0;
-            letter-spacing: 3px;
+            font-size: 1em;
+            color: #888;
             text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-        
-        .bpm-display {
-            font-size: 2em;
-            color: #e94560;
-            font-weight: 800;
-            margin-top: 10px;
-            text-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
-        }
-        
-        /* Visualizer */
-        .visualizer {
-            width: 100%;
-            height: 150px;
-            background: rgba(20, 20, 35, 0.8);
-            border-radius: 20px;
-            margin-bottom: 30px;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            gap: 5px;
-            padding: 20px;
-            border: 2px solid #2a2a4a;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .visualizer::before {
-            content: 'VISUALIZER';
-            position: absolute;
-            top: 10px;
-            left: 20px;
-            font-size: 0.7em;
-            color: #555;
             letter-spacing: 2px;
         }
         
-        .bar {
-            width: 20px;
-            background: linear-gradient(180deg, #e94560, #ff6b6b);
-            border-radius: 4px 4px 0 0;
-            transition: height 0.1s ease;
-            box-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
-        }
-        
-        /* Status panel */
-        .status-panel {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        /* Status */
+        .status {
+            display: flex;
             gap: 20px;
+            justify-content: center;
             margin-bottom: 30px;
+            flex-wrap: wrap;
         }
         
         .status-card {
             background: rgba(30, 30, 50, 0.8);
-            padding: 25px;
-            border-radius: 15px;
+            padding: 20px 30px;
+            border-radius: 12px;
             border: 2px solid #2a2a4a;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .status-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #e94560, transparent);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .status-card.active::after {
-            opacity: 1;
-            animation: scanline 2s linear infinite;
-        }
-        
-        @keyframes scanline {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            min-width: 180px;
+            text-align: center;
         }
         
         .status-card.active {
             border-color: #e94560;
-            box-shadow: 0 0 30px rgba(233, 69, 96, 0.4);
-            transform: translateY(-3px);
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
         }
         
         .status-label {
             font-size: 0.75em;
             color: #888;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         
         .status-value {
-            font-size: 1.5em;
+            font-size: 1.3em;
             font-weight: 700;
-            color: #ffffff;
         }
         
         .status-card.active .status-value {
@@ -193,137 +93,40 @@
         .controls {
             background: rgba(30, 30, 50, 0.9);
             padding: 30px;
-            border-radius: 20px;
+            border-radius: 15px;
             border: 2px solid #2a2a4a;
-            backdrop-filter: blur(10px);
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
         
         button {
             background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
             color: white;
             border: none;
-            padding: 18px 40px;
-            border-radius: 12px;
-            font-size: 1.1em;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1em;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 2px;
-            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4);
-            position: relative;
-            overflow: hidden;
             width: 100%;
-        }
-        
-        button::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-        
-        button:hover::before {
-            width: 400px;
-            height: 400px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
         }
         
         button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(233, 69, 96, 0.6);
-        }
-        
-        button:active {
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.5);
         }
         
         button:disabled {
             background: #555;
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
         }
         
-        /* Pattern Grid */
-        .pattern-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .pattern-pad {
-            aspect-ratio: 1;
-            background: linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(15, 52, 96, 0.2) 100%);
-            border: 2px solid rgba(233, 69, 96, 0.3);
-            border-radius: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .pattern-pad::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at center, rgba(233, 69, 96, 0.4) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.1s ease;
-        }
-        
-        .pattern-pad.active::before {
-            opacity: 1;
-            animation: padPulse 0.3s ease;
-        }
-        
-        @keyframes padPulse {
-            0% { transform: scale(0); }
-            50% { transform: scale(1.5); }
-            100% { transform: scale(1); opacity: 0; }
-        }
-        
-        .pattern-pad:hover {
-            background: linear-gradient(135deg, rgba(233, 69, 96, 0.2) 0%, rgba(15, 52, 96, 0.3) 100%);
-            border-color: #e94560;
-            transform: scale(1.05);
-        }
-        
-        .pattern-number {
-            font-size: 2em;
-            font-weight: 900;
-            color: #e94560;
-            margin-bottom: 5px;
-        }
-        
-        .pattern-note {
-            font-size: 0.8em;
-            color: #888;
-            font-weight: 600;
-        }
-        
-        /* Volume Control */
+        /* Volume */
         .volume-control {
-            margin-top: 25px;
-            padding-top: 25px;
-            border-top: 2px solid rgba(233, 69, 96, 0.2);
-        }
-        
-        .volume-row {
             display: flex;
             align-items: center;
             gap: 20px;
@@ -331,18 +134,14 @@
         
         .volume-label {
             font-weight: 700;
-            color: #e94560;
             text-transform: uppercase;
             font-size: 0.9em;
-            letter-spacing: 1px;
-            min-width: 100px;
+            min-width: 80px;
         }
         
         input[type="range"] {
             flex: 1;
-            -webkit-appearance: none;
-            appearance: none;
-            height: 8px;
+            height: 6px;
             border-radius: 5px;
             background: rgba(233, 69, 96, 0.2);
             outline: none;
@@ -350,57 +149,95 @@
         
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            background: #e94560;
             cursor: pointer;
-            box-shadow: 0 0 15px rgba(233, 69, 96, 0.8);
-            transition: all 0.2s ease;
-        }
-        
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-            box-shadow: 0 0 20px rgba(233, 69, 96, 1);
         }
         
         input[type="range"]::-moz-range-thumb {
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            background: #e94560;
             cursor: pointer;
             border: none;
-            box-shadow: 0 0 15px rgba(233, 69, 96, 0.8);
         }
         
         .volume-value {
-            font-size: 1.3em;
+            font-size: 1.2em;
             font-weight: 700;
             color: #e94560;
             min-width: 50px;
             text-align: right;
         }
         
-        /* Loading indicator */
+        /* Pattern Grid */
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+        }
+        
+        .pattern-pad {
+            aspect-ratio: 1;
+            background: rgba(233, 69, 96, 0.1);
+            border: 2px solid rgba(233, 69, 96, 0.3);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .pattern-pad:hover {
+            background: rgba(233, 69, 96, 0.2);
+            border-color: #e94560;
+            transform: scale(1.05);
+        }
+        
+        .pattern-pad.active {
+            background: rgba(233, 69, 96, 0.5);
+            border-color: #ff6b6b;
+            transform: scale(0.95);
+        }
+        
+        .pattern-number {
+            font-size: 1.8em;
+            font-weight: 900;
+            color: #e94560;
+        }
+        
+        .pattern-loaded {
+            font-size: 0.7em;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .pattern-pad.loaded .pattern-loaded {
+            color: #2ed573;
+        }
+        
+        /* Loading */
         .loading {
             text-align: center;
             padding: 20px;
             color: #e94560;
-            font-size: 1.1em;
-            font-weight: 600;
+            font-size: 1em;
         }
         
-        .loading::after {
-            content: '...';
-            animation: dots 1.5s infinite;
-        }
-        
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
+        .error {
+            background: rgba(255, 71, 87, 0.1);
+            border: 2px solid rgba(255, 71, 87, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            color: #ff4757;
+            margin-top: 20px;
+            text-align: center;
         }
     </style>
 </head>
@@ -409,80 +246,57 @@
         <div class="header">
             <h1>SPOKE DRUMS</h1>
             <div class="subtitle">MIDI Pattern Trigger</div>
-            <div class="bpm-display">106 BPM</div>
         </div>
         
-        <!-- Visualizer -->
-        <div class="visualizer" id="visualizer">
-            <div class="bar" style="height: 20px;"></div>
-            <div class="bar" style="height: 20px;"></div>
-            <div class="bar" style="height: 20px;"></div>
-            <div class="bar" style="height: 20px;"></div>
-            <div class="bar" style="height: 20px;"></div>
-            <div class="bar" style="height: 20px;"></div>
-            <div class="bar" style="height: 20px;"></div>
-            <div class="bar" style="height: 20px;"></div>
-            <div class="bar" style="height: 20px;"></div>
-            <div class="bar" style="height: 20px;"></div>
-            <div class="bar" style="height: 20px;"></div>
-            <div class="bar" style="height: 20px;"></div>
-        </div>
-        
-        <!-- Status Panel -->
-        <div class="status-panel">
+        <div class="status">
             <div class="status-card" id="midiStatus">
-                <div class="status-label">MIDI Controller</div>
+                <div class="status-label">MIDI</div>
                 <div class="status-value">Disconnected</div>
             </div>
             <div class="status-card active" id="audioStatus">
-                <div class="status-label">Audio Engine</div>
+                <div class="status-label">Audio</div>
                 <div class="status-value">Ready</div>
             </div>
             <div class="status-card" id="patternStatus">
-                <div class="status-label">Patterns Loaded</div>
-                <div class="status-value">0 / 12</div>
+                <div class="status-label">Patterns</div>
+                <div class="status-value">0 / 33</div>
             </div>
         </div>
         
-        <!-- Controls -->
         <div class="controls">
-            <button id="connectMidi">🎛️ CONNECT MIDI CONTROLLER</button>
+            <button id="connectMidi">CONNECT MIDI CONTROLLER</button>
             
             <div class="volume-control">
-                <div class="volume-row">
-                    <div class="volume-label">VOLUME</div>
-                    <input type="range" id="masterVolume" min="0" max="100" value="80">
-                    <div class="volume-value" id="volumeValue">80%</div>
-                </div>
+                <div class="volume-label">VOLUME</div>
+                <input type="range" id="masterVolume" min="0" max="100" value="80">
+                <div class="volume-value" id="volumeValue">80%</div>
             </div>
             
-            <div id="loadingIndicator" class="loading">Loading patterns</div>
+            <div id="loadingIndicator" class="loading">Loading patterns...</div>
+            <div id="errorMessage" class="error" style="display: none;"></div>
             
-            <!-- Pattern Grid -->
             <div class="pattern-grid" id="patternGrid"></div>
         </div>
     </div>
 
     <script>
-        // Configuration
+        // CONFIGURATION - Change these to match your GitHub repo
         const CONFIG = {
             username: 'Tom-Vulpes',
             repo: 'SpokeWebMidi',
             branch: 'main',
             samplesFolder: 'samples',
-            startingNote: 60,
-            numberOfSamples: 12
+            numberOfSamples: 33
         };
         
-        // Audio context and sample management
+        // Audio
         let audioContext;
         let masterGain;
         const samples = new Map();
         const activeSources = new Map();
         let midiAccess = null;
-        const bars = document.querySelectorAll('.bar');
         
-        // Initialize audio context
+        // Initialize audio
         function initAudio() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -493,8 +307,8 @@
         }
         
         // Update status
-        function updateStatus(statusId, value, active = false) {
-            const card = document.getElementById(statusId);
+        function updateStatus(id, value, active = false) {
+            const card = document.getElementById(id);
             card.querySelector('.status-value').textContent = value;
             if (active) {
                 card.classList.add('active');
@@ -503,88 +317,57 @@
             }
         }
         
-        // Get MIDI note name
-        function getMidiNoteName(noteNumber) {
-            const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-            const octave = Math.floor(noteNumber / 12) - 1;
-            const noteName = notes[noteNumber % 12];
-            return `${noteName}${octave}`;
-        }
-        
-        // Visualizer update
-        function updateVisualizer(noteNumber) {
-            const barIndex = (noteNumber - CONFIG.startingNote) % bars.length;
-            if (barIndex >= 0 && barIndex < bars.length) {
-                const bar = bars[barIndex];
-                bar.style.height = '80px';
-                setTimeout(() => {
-                    bar.style.height = '20px';
-                }, 150);
-            }
-        }
-        
-        // Flash pattern pad
-        function flashPad(noteNumber) {
-            const pad = document.querySelector(`[data-note="${noteNumber}"]`);
-            if (pad) {
-                pad.classList.add('active');
-                setTimeout(() => {
-                    pad.classList.remove('active');
-                }, 300);
-            }
-        }
-        
         // Play sample
-        function playSample(noteNumber, velocity = 127) {
-            if (!samples.has(noteNumber)) return;
+        function playSample(sampleNumber, velocity = 127) {
+            if (!samples.has(sampleNumber)) return;
             
             initAudio();
-            stopSample(noteNumber);
+            
+            // Stop previous instance
+            if (activeSources.has(sampleNumber)) {
+                const { source } = activeSources.get(sampleNumber);
+                source.stop();
+                activeSources.delete(sampleNumber);
+            }
             
             const source = audioContext.createBufferSource();
             const gainNode = audioContext.createGain();
             
-            source.buffer = samples.get(noteNumber);
+            source.buffer = samples.get(sampleNumber);
             gainNode.gain.value = velocity / 127;
             
             source.connect(gainNode);
             gainNode.connect(masterGain);
             source.start(0);
             
-            activeSources.set(noteNumber, { source, gainNode });
+            activeSources.set(sampleNumber, { source, gainNode });
             
             // Visual feedback
-            updateVisualizer(noteNumber);
-            flashPad(noteNumber);
+            const pad = document.querySelector(`[data-sample="${sampleNumber}"]`);
+            if (pad) {
+                pad.classList.add('active');
+                setTimeout(() => pad.classList.remove('active'), 100);
+            }
             
             source.onended = () => {
-                if (activeSources.get(noteNumber)?.source === source) {
-                    activeSources.delete(noteNumber);
+                if (activeSources.get(sampleNumber)?.source === source) {
+                    activeSources.delete(sampleNumber);
                 }
             };
         }
         
-        // Stop sample
-        function stopSample(noteNumber) {
-            if (activeSources.has(noteNumber)) {
-                const { source, gainNode } = activeSources.get(noteNumber);
-                const now = audioContext.currentTime;
-                gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
-                source.stop(now + 0.02);
-                activeSources.delete(noteNumber);
-            }
-        }
-        
         // Handle MIDI message
         function handleMIDIMessage(message) {
-            const [status, note, velocity] = message.data;
+            const [status, midiNote, velocity] = message.data;
             const command = status & 0xf0;
             
+            // Only handle Note On messages
             if (command === 0x90 && velocity > 0) {
-                playSample(note, velocity);
-            } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
-                stopSample(note);
+                // Map MIDI note to sample (1-33, looping)
+                // MIDI note 1 -> sample 1, note 2 -> sample 2, ... note 33 -> sample 33
+                // MIDI note 34 -> sample 1, note 35 -> sample 2, etc.
+                const sampleNumber = ((midiNote - 1) % CONFIG.numberOfSamples) + 1;
+                playSample(sampleNumber, velocity);
             }
         }
         
@@ -596,7 +379,7 @@
                 
                 if (inputs.length === 0) {
                     updateStatus('midiStatus', 'No Devices');
-                    alert('No MIDI devices found. Please connect a MIDI controller and try again.');
+                    alert('No MIDI devices found. Please connect a MIDI controller.');
                     return;
                 }
                 
@@ -604,7 +387,7 @@
                     input.onmidimessage = handleMIDIMessage;
                 });
                 
-                updateStatus('midiStatus', `Connected`, true);
+                updateStatus('midiStatus', 'Connected', true);
                 
                 midiAccess.onstatechange = (event) => {
                     if (event.port.type === 'input') {
@@ -618,19 +401,30 @@
             }
         }
         
-        // Load sample from URL
-        async function loadSample(url, noteNumber) {
+        // Load sample
+        async function loadSample(sampleNumber) {
             initAudio();
+            const url = `https://raw.githubusercontent.com/${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/${sampleNumber}.wav`;
+            
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 
                 const arrayBuffer = await response.arrayBuffer();
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                samples.set(noteNumber, audioBuffer);
+                samples.set(sampleNumber, audioBuffer);
+                
+                // Update pad
+                const pad = document.querySelector(`[data-sample="${sampleNumber}"]`);
+                if (pad) {
+                    pad.classList.add('loaded');
+                }
+                
                 return true;
             } catch (error) {
-                console.error(`Failed to load ${url}:`, error);
+                console.error(`Failed to load sample ${sampleNumber}:`, error.message);
                 return false;
             }
         }
@@ -640,20 +434,18 @@
             const grid = document.getElementById('patternGrid');
             grid.innerHTML = '';
             
-            for (let i = 0; i < CONFIG.numberOfSamples; i++) {
-                const noteNumber = CONFIG.startingNote + i;
+            for (let i = 1; i <= CONFIG.numberOfSamples; i++) {
                 const pad = document.createElement('div');
                 pad.className = 'pattern-pad';
-                pad.dataset.note = noteNumber;
+                pad.dataset.sample = i;
                 pad.innerHTML = `
-                    <div class="pattern-number">${i + 1}</div>
-                    <div class="pattern-note">${getMidiNoteName(noteNumber)}</div>
+                    <div class="pattern-number">${i}</div>
+                    <div class="pattern-loaded">⏳</div>
                 `;
                 
-                // Click to test pattern
                 pad.addEventListener('click', () => {
-                    if (samples.has(noteNumber)) {
-                        playSample(noteNumber, 100);
+                    if (samples.has(i)) {
+                        playSample(i, 100);
                     }
                 });
                 
@@ -661,27 +453,37 @@
             }
         }
         
-        // Auto-load all patterns
+        // Auto-load patterns
         async function autoLoadPatterns() {
             const loadingIndicator = document.getElementById('loadingIndicator');
-            const baseUrl = `https://raw.githubusercontent.com/${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}`;
+            const errorMessage = document.getElementById('errorMessage');
             
             let loadedCount = 0;
+            const failedSamples = [];
             
             for (let i = 1; i <= CONFIG.numberOfSamples; i++) {
-                const url = `${baseUrl}/${i}.wav`;
-                const noteNumber = CONFIG.startingNote + (i - 1);
-                
-                if (await loadSample(url, noteNumber)) {
+                if (await loadSample(i)) {
                     loadedCount++;
-                    updateStatus('patternStatus', `${loadedCount} / ${CONFIG.numberOfSamples}`, loadedCount === CONFIG.numberOfSamples);
+                    updateStatus('patternStatus', `${loadedCount} / ${CONFIG.numberOfSamples}`, false);
+                } else {
+                    failedSamples.push(i);
                 }
             }
             
             loadingIndicator.style.display = 'none';
             
+            if (loadedCount > 0) {
+                updateStatus('patternStatus', `${loadedCount} / ${CONFIG.numberOfSamples}`, loadedCount === CONFIG.numberOfSamples);
+            }
+            
+            if (failedSamples.length > 0) {
+                errorMessage.textContent = `Failed to load ${failedSamples.length} sample(s). Check that files 1.wav through 33.wav exist in: ${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/`;
+                errorMessage.style.display = 'block';
+            }
+            
             if (loadedCount === 0) {
-                alert('Failed to load patterns. Please check your GitHub repository configuration.');
+                errorMessage.textContent = `Could not load any samples. Please check your GitHub repository: https://github.com/${CONFIG.username}/${CONFIG.repo}/tree/${CONFIG.branch}/${CONFIG.samplesFolder}`;
+                errorMessage.style.display = 'block';
             }
         }
         
@@ -705,7 +507,7 @@
         
         // Check browser support
         if (!navigator.requestMIDIAccess) {
-            alert('Web MIDI API not supported in this browser. Please use Chrome, Edge, or Opera.');
+            alert('Web MIDI API not supported. Please use Chrome, Edge, or Opera.');
         }
     </script>
 </body>
