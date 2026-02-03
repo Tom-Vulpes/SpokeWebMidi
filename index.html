@@ -404,29 +404,42 @@
         // Load sample
         async function loadSample(sampleNumber) {
             initAudio();
-            const url = `https://raw.githubusercontent.com/${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/${sampleNumber}.wav`;
             
-            try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            // Try WAV first, then MP3 as fallback
+            const formats = ['wav', 'mp3'];
+            
+            for (const format of formats) {
+                const url = `https://raw.githubusercontent.com/${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/${sampleNumber}.${format}`;
+                
+                try {
+                    console.log(`Attempting to load: ${url}`);
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        console.log(`Sample ${sampleNumber}.${format} not found, trying next format...`);
+                        continue; // Try next format
+                    }
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    samples.set(sampleNumber, audioBuffer);
+                    
+                    console.log(`✓ Sample ${sampleNumber}.${format} loaded successfully`);
+                    
+                    // Update pad
+                    const pad = document.querySelector(`[data-sample="${sampleNumber}"]`);
+                    if (pad) {
+                        pad.classList.add('loaded');
+                    }
+                    
+                    return true;
+                } catch (error) {
+                    console.error(`✗ Failed to load sample ${sampleNumber}.${format}:`, error.message);
+                    // Continue to try next format
                 }
-                
-                const arrayBuffer = await response.arrayBuffer();
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                samples.set(sampleNumber, audioBuffer);
-                
-                // Update pad
-                const pad = document.querySelector(`[data-sample="${sampleNumber}"]`);
-                if (pad) {
-                    pad.classList.add('loaded');
-                }
-                
-                return true;
-            } catch (error) {
-                console.error(`Failed to load sample ${sampleNumber}:`, error.message);
-                return false;
             }
+            
+            console.error(`✗ All formats failed for sample ${sampleNumber}`);
+            return false;
         }
         
         // Create pattern grid
@@ -458,6 +471,7 @@
             const loadingIndicator = document.getElementById('loadingIndicator');
             const errorMessage = document.getElementById('errorMessage');
             
+            console.log('Starting to load patterns...');
             let loadedCount = 0;
             const failedSamples = [];
             
@@ -472,12 +486,26 @@
             
             loadingIndicator.style.display = 'none';
             
-            if (loadedCount > 0) {
-                updateStatus('patternStatus', `${loadedCount} / ${CONFIG.numberOfSamples}`, loadedCount === CONFIG.numberOfSamples);
-            }
+            // Always update the status with loaded count
+            updateStatus('patternStatus', `${loadedCount} / ${CONFIG.numberOfSamples}`, loadedCount > 0);
             
-            if (failedSamples.length > 0) {
-                errorMessage.textContent = `Failed to load ${failedSamples.length} sample(s). Check that files 1.wav through 27.wav exist in: ${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/`;
+            // Show success message if some loaded
+            if (loadedCount > 0 && failedSamples.length > 0) {
+                errorMessage.style.background = 'rgba(46, 213, 115, 0.1)';
+                errorMessage.style.borderColor = 'rgba(46, 213, 115, 0.3)';
+                errorMessage.style.color = '#2ed573';
+                errorMessage.textContent = `✓ ${loadedCount} patterns loaded and ready! Failed samples: ${failedSamples.join(', ')} (these files may be corrupted or in wrong format)`;
+                errorMessage.style.display = 'block';
+            } else if (failedSamples.length > 0) {
+                console.log('Failed samples:', failedSamples);
+                errorMessage.textContent = `Failed to load ${failedSamples.length} sample(s): ${failedSamples.join(', ')}. Open browser console (F12) for details. Check that these files exist: https://github.com/${CONFIG.username}/${CONFIG.repo}/tree/${CONFIG.branch}/${CONFIG.samplesFolder}`;
+                errorMessage.style.display = 'block';
+            } else if (loadedCount === CONFIG.numberOfSamples) {
+                // All loaded successfully
+                errorMessage.style.background = 'rgba(46, 213, 115, 0.1)';
+                errorMessage.style.borderColor = 'rgba(46, 213, 115, 0.3)';
+                errorMessage.style.color = '#2ed573';
+                errorMessage.textContent = `✓ All ${loadedCount} patterns loaded successfully! Ready to play.`;
                 errorMessage.style.display = 'block';
             }
             
@@ -485,6 +513,8 @@
                 errorMessage.textContent = `Could not load any samples. Please check your GitHub repository: https://github.com/${CONFIG.username}/${CONFIG.repo}/tree/${CONFIG.branch}/${CONFIG.samplesFolder}`;
                 errorMessage.style.display = 'block';
             }
+            
+            console.log(`Finished loading: ${loadedCount}/${CONFIG.numberOfSamples} successful`);
         }
         
         // Initialize
