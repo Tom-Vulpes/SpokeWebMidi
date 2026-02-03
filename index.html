@@ -259,7 +259,7 @@
             </div>
             <div class="status-card" id="patternStatus">
                 <div class="status-label">Patterns</div>
-                <div class="status-value">0 / 33</div>
+                <div class="status-value">0 / 27</div>
             </div>
         </div>
         
@@ -286,7 +286,7 @@
             repo: 'SpokeWebMidi',
             branch: 'main',
             samplesFolder: 'samples',
-            numberOfSamples: 33
+            numberOfSamples: 27
         };
         
         // Audio
@@ -477,7 +477,7 @@
             }
             
             if (failedSamples.length > 0) {
-                errorMessage.textContent = `Failed to load ${failedSamples.length} sample(s). Check that files 1.wav through 33.wav exist in: ${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/`;
+                errorMessage.textContent = `Failed to load ${failedSamples.length} sample(s). Check that files 1.wav through 27.wav exist in: ${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/`;
                 errorMessage.style.display = 'block';
             }
             
