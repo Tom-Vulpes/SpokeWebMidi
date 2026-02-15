@@ -76,13 +76,6 @@
             box-shadow: 0 8px 30px rgba(177, 156, 217, 0.5);
         }
         
-        button:disabled {
-            background: #555;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        
         .loading {
             position: fixed;
             top: 50%;
@@ -117,7 +110,7 @@
     
     <div class="ui">
         <div class="status" id="midiStatus">MIDI: Disconnected</div>
-        <div class="status" id="sampleStatus">Samples: 0 / 151</div>
+        <div class="status" id="sampleStatus">Samples: 0 / 100</div>
         <button id="connectMidi">Connect MIDI</button>
     </div>
     
@@ -129,27 +122,23 @@
     </div>
 
     <script>
-        // CONFIGURATION
         const CONFIG = {
             username: 'Tom-Vulpes',
             repo: 'SpokeWebMidi',
             branch: 'main',
             samplesFolder: 'notes',
-            numberOfSamples: 150
+            numberOfSamples: 99
         };
         
         function formatSampleNumber(num) {
             return `note_${String(num).padStart(3, '0')}`;
         }
         
-        // Audio
-        let audioContext;
-        let masterGain;
+        let audioContext, masterGain;
         const samples = new Map();
         const activeSources = new Map();
         let midiAccess = null;
         
-        // Canvas setup
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         let width, height;
@@ -162,38 +151,31 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
         
-        // Node class - shared vertices
         class Node {
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
                 this.baseX = x;
                 this.baseY = y;
-                this.vx = (Math.random() - 0.5) * 0.8;
-                this.vy = (Math.random() - 0.5) * 0.8;
+                this.vx = (Math.random() - 0.5) * 0.6;
+                this.vy = (Math.random() - 0.5) * 0.6;
             }
             
             update() {
-                this.vx += (Math.random() - 0.5) * 0.15;
-                this.vy += (Math.random() - 0.5) * 0.15;
-                this.vx *= 0.92;
-                this.vy *= 0.92;
+                this.vx += (Math.random() - 0.5) * 0.12;
+                this.vy += (Math.random() - 0.5) * 0.12;
+                this.vx *= 0.93;
+                this.vy *= 0.93;
                 this.x += this.vx;
                 this.y += this.vy;
                 
                 const dx = this.baseX - this.x;
                 const dy = this.baseY - this.y;
-                this.x += dx * 0.02;
-                this.y += dy * 0.02;
-                
-                if (this.x < -50) this.x = -50;
-                if (this.x > width + 50) this.x = width + 50;
-                if (this.y < -50) this.y = -50;
-                if (this.y > height + 50) this.y = height + 50;
+                this.x += dx * 0.015;
+                this.y += dy * 0.015;
             }
         }
         
-        // Cell class
         class Cell {
             constructor(noteNumber, nodes) {
                 this.noteNumber = noteNumber;
@@ -203,7 +185,6 @@
                 this.hue = hue;
                 this.saturation = 65;
                 this.lightness = 55;
-                
                 this.active = false;
                 this.activePulse = 0;
                 this.baseAlpha = 0.25;
@@ -282,9 +263,7 @@
                 for (let i = 0, j = this.nodes.length - 1; i < this.nodes.length; j = i++) {
                     const xi = this.nodes[i].x, yi = this.nodes[i].y;
                     const xj = this.nodes[j].x, yj = this.nodes[j].y;
-                    
-                    const intersect = ((yi > y) !== (yj > y))
-                        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
                     if (intersect) inside = !inside;
                 }
                 return inside;
@@ -294,50 +273,60 @@
         const nodes = [];
         const cells = [];
         
-        function createSharedNodeNetwork() {
+        function createHoneycomb() {
+            // Calculate hex size
             const totalCells = CONFIG.numberOfSamples + 1;
-            const cols = Math.ceil(Math.sqrt(totalCells * 1.3));
-            const rows = Math.ceil(totalCells / cols) + 1;
-            const cellWidth = width / (cols - 1);
-            const cellHeight = height / (rows - 1);
+            const hexSize = Math.sqrt((width * height) / (totalCells * 2.5));
             
-            // Create shared node grid
-            const nodeGrid = [];
-            for (let row = 0; row < rows; row++) {
-                nodeGrid[row] = [];
-                for (let col = 0; col < cols; col++) {
-                    const randomOffsetX = (Math.random() - 0.5) * cellWidth * 0.3;
-                    const randomOffsetY = (Math.random() - 0.5) * cellHeight * 0.3;
+            // Hex dimensions
+            const hexHeight = hexSize * 2;
+            const hexWidth = Math.sqrt(3) * hexSize;
+            const vertDist = hexHeight * 0.75;
+            const horizDist = hexWidth;
+            
+            const cols = Math.ceil(width / horizDist) + 2;
+            const rows = Math.ceil(height / vertDist) + 2;
+            
+            // Node lookup
+            const nodeMap = new Map();
+            const getNode = (x, y) => {
+                const key = `${Math.round(x)}_${Math.round(y)}`;
+                if (!nodeMap.has(key)) {
+                    const jitter = hexSize * 0.08;
                     const node = new Node(
-                        col * cellWidth + randomOffsetX,
-                        row * cellHeight + randomOffsetY
+                        x + (Math.random() - 0.5) * jitter,
+                        y + (Math.random() - 0.5) * jitter
                     );
-                    nodeGrid[row][col] = node;
+                    nodeMap.set(key, node);
                     nodes.push(node);
                 }
-            }
+                return nodeMap.get(key);
+            };
             
-            // Create cells - each cell shares nodes with neighbors
+            // Create hexagons
             let cellIndex = 0;
             
-            for (let row = 0; row < rows - 1; row++) {
-                for (let col = 0; col < cols - 1; col++) {
-                    if (cellIndex > CONFIG.numberOfSamples) break;
+            for (let row = 0; row < rows && cellIndex <= CONFIG.numberOfSamples; row++) {
+                for (let col = 0; col < cols && cellIndex <= CONFIG.numberOfSamples; col++) {
+                    const xOffset = (row % 2) * (horizDist / 2);
+                    const cx = col * horizDist + xOffset;
+                    const cy = row * vertDist;
                     
-                    // Each cell is made from 4 corner nodes
-                    // These same nodes are used by adjacent cells
-                    const cellNodes = [
-                        nodeGrid[row][col],
-                        nodeGrid[row][col + 1],
-                        nodeGrid[row + 1][col + 1],
-                        nodeGrid[row + 1][col]
-                    ];
+                    // Create 6 nodes for hexagon (pointy-top orientation)
+                    const hexNodes = [];
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (Math.PI / 3) * i - Math.PI / 2;
+                        const x = cx + hexSize * Math.cos(angle);
+                        const y = cy + hexSize * Math.sin(angle);
+                        hexNodes.push(getNode(x, y));
+                    }
                     
-                    cells.push(new Cell(cellIndex, cellNodes));
+                    cells.push(new Cell(cellIndex, hexNodes));
                     cellIndex++;
                 }
-                if (cellIndex > CONFIG.numberOfSamples) break;
             }
+            
+            console.log(`Created ${cells.length} cells with ${nodes.length} shared nodes`);
         }
         
         function animate() {
@@ -345,7 +334,6 @@
             ctx.fillRect(0, 0, width, height);
             
             nodes.forEach(node => node.update());
-            
             cells.forEach(cell => {
                 cell.update();
                 cell.draw();
@@ -354,17 +342,9 @@
             // Draw nodes
             nodes.forEach(node => {
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+                ctx.arc(node.x, node.y, 2.5, 0, Math.PI * 2);
                 ctx.fillStyle = 'rgba(177, 156, 217, 0.4)';
                 ctx.fill();
-                
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = 'rgba(177, 156, 217, 0.6)';
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, 1.5, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(217, 199, 255, 0.8)';
-                ctx.fill();
-                ctx.shadowBlur = 0;
             });
             
             requestAnimationFrame(animate);
@@ -382,11 +362,8 @@
         function updateStatus(id, text, active = false) {
             const el = document.getElementById(id);
             el.textContent = text;
-            if (active) {
-                el.classList.add('active');
-            } else {
-                el.classList.remove('active');
-            }
+            if (active) el.classList.add('active');
+            else el.classList.remove('active');
         }
         
         function playSample(sampleNumber, velocity = 127) {
@@ -395,10 +372,7 @@
             initAudio();
             
             if (activeSources.has(sampleNumber)) {
-                const { source } = activeSources.get(sampleNumber);
-                try {
-                    source.stop();
-                } catch (e) {}
+                try { activeSources.get(sampleNumber).source.stop(); } catch (e) {}
                 activeSources.delete(sampleNumber);
             }
             
@@ -415,9 +389,7 @@
             activeSources.set(sampleNumber, { source, gainNode });
             
             const cell = cells.find(c => c.noteNumber === sampleNumber);
-            if (cell) {
-                cell.trigger();
-            }
+            if (cell) cell.trigger();
             
             source.onended = () => {
                 if (activeSources.get(sampleNumber)?.source === source) {
@@ -447,10 +419,7 @@
                     return;
                 }
                 
-                inputs.forEach(input => {
-                    input.onmidimessage = handleMIDIMessage;
-                });
-                
+                inputs.forEach(input => input.onmidimessage = handleMIDIMessage);
                 updateStatus('midiStatus', 'MIDI: Connected', true);
                 
                 midiAccess.onstatechange = (event) => {
@@ -481,13 +450,11 @@
                     const arrayBuffer = await response.arrayBuffer();
                     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                     samples.set(sampleNumber, audioBuffer);
-                    
                     return true;
                 } catch (error) {
                     console.error(`Failed ${fileName}.${format}:`, error.message);
                 }
             }
-            
             return false;
         }
         
@@ -499,9 +466,7 @@
             const totalSamples = CONFIG.numberOfSamples + 1;
             
             for (let i = 0; i <= CONFIG.numberOfSamples; i++) {
-                if (await loadSample(i)) {
-                    loadedCount++;
-                }
+                if (await loadSample(i)) loadedCount++;
                 
                 const progress = (i + 1) / totalSamples * 100;
                 progressBar.style.width = progress + '%';
@@ -509,7 +474,6 @@
             }
             
             loadingDiv.style.display = 'none';
-            
             if (loadedCount > 0) {
                 updateStatus('sampleStatus', `Samples: ${loadedCount} / ${totalSamples}`, true);
             }
@@ -521,17 +485,16 @@
             const y = e.clientY - rect.top;
             
             for (let i = cells.length - 1; i >= 0; i--) {
-                const cell = cells[i];
-                if (cell.containsPoint(x, y)) {
-                    if (samples.has(cell.noteNumber)) {
-                        playSample(cell.noteNumber, 100);
+                if (cells[i].containsPoint(x, y)) {
+                    if (samples.has(cells[i].noteNumber)) {
+                        playSample(cells[i].noteNumber, 100);
                         break;
                     }
                 }
             }
         });
         
-        createSharedNodeNetwork();
+        createHoneycomb();
         animate();
         autoLoadSamples();
         
