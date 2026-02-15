@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE MIDI Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #ffffff;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        .header {
+            background: #ffffff;
+            padding: 20px 40px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #000;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .nav a {
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: color 0.3s ease;
+        }
+        
+        .nav a:hover {
+            color: #000;
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+        
+        h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        /* Steps Section */
+        .steps {
+            margin-bottom: 60px;
+        }
+        
+        .step {
+            background: #f8f8f8;
+            padding: 30px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #000;
+        }
+        
+        .step.active {
+            background: #fff;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            border-left-color: #4CAF50;
+        }
+        
+        .step.complete {
+            background: #f1f8f4;
+            border-left-color: #4CAF50;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            background: #000;
+            color: #fff;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-weight: 700;
+            margin-right: 15px;
+        }
+        
+        .step.active .step-number {
+            background: #4CAF50;
+        }
+        
+        .step.complete .step-number {
+            background: #4CAF50;
+        }
+        
+        .step-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .step-description {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        /* SPOKE Board Visualization */
+        .board-section {
+            background: #000;
+            color: #fff;
+            padding: 60px 40px;
+            border-radius: 12px;
+            margin-bottom: 60px;
+        }
+        
+        .board-title {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 40px;
+            font-weight: 600;
+        }
+        
+        #boardCanvas {
+            display: block;
+            margin: 0 auto;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        /* MIDI Log */
+        .midi-log {
+            background: #f8f8f8;
+            padding: 30px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .log-entry {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 8px;
+            margin: 4px 0;
+            background: #fff;
+            border-radius: 4px;
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .log-entry.error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+        
+        /* Connect Button */
+        .connect-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .connect-btn {
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 18px 50px;
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .connect-btn:hover {
+            background: #333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .connect-btn.connected {
+            background: #4CAF50;
+        }
+        
+        .connect-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Status Indicator */
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+        
+        .status-dot.active {
+            background: #4CAF50;
+            box-shadow: 0 0 8px #4CAF50;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 60px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">SPOKE</div>
+        <div class="nav">
+            <a href="https://www.spokeboard.com/">Home</a>
+            <a href="https://www.spokeboard.com/play">Play</a>
+            <a href="https://www.spokeboard.com/code">Code</a>
+            <a href="https://www.spokeboard.com/learning">Learning</a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="container">
+        <h1>SPOKE MIDI Test</h1>
+        <p class="subtitle">Test your SPOKE board's MIDI functionality</p>
+        
+        <!-- Setup Steps -->
+        <div class="steps">
+            <div class="step complete" id="step1">
+                <div class="step-header">
+                    <span class="step-number">1</span>
+                    <span class="step-title">Plug in your SPOKE board</span>
+                </div>
+                <p class="step-description">Connect your SPOKE board to your computer via USB cable</p>
+            </div>
+            
+            <div class="step" id="step2">
+                <div class="step-header">
+                    <span class="step-number">2</span>
+                    <span class="step-title">Wait for the rainbow animation</span>
+                </div>
+                <p class="step-description">The board will display a rainbow animation on the LEDs to indicate it's ready</p>
+            </div>
+            
+            <div class="step" id="step3">
+                <div class="step-header">
+                    <span class="step-number">3</span>
+                    <span class="step-title">Connect MIDI</span>
+                </div>
+                <p class="step-description">Click the button below to connect to your SPOKE board</p>
+            </div>
+            
+            <div class="step" id="step4">
+                <div class="step-header">
+                    <span class="step-number">4</span>
+                    <span class="step-title">Test the pads</span>
+                </div>
+                <p class="step-description">Touch the pads around the board edge - they should light up below and trigger MIDI notes</p>
+            </div>
+        </div>
+        
+        <!-- Connect Button -->
+        <div class="connect-section">
+            <button class="connect-btn" id="connectBtn">Connect MIDI</button>
+            <div class="status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Not Connected</span>
+            </div>
+        </div>
+        
+        <!-- SPOKE Board Visualization -->
+        <div class="board-section">
+            <h2 class="board-title">SPOKE Board Visualization</h2>
+            <canvas id="boardCanvas" width="600" height="600"></canvas>
+        </div>
+        
+        <!-- MIDI Log -->
+        <div class="midi-log">
+            <h3 class="log-title">MIDI Activity Log</h3>
+            <div id="logContent">
+                <div class="log-entry">Waiting for MIDI connection...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        SPOKE - Simplified Touch Sensing for Computer Interaction<br>
+        <a href="mailto:info@vulpeslabs.org" style="color: #666; text-decoration: none;">info@vulpeslabs.org</a>
+    </div>
+
+    <script>
+        // SPOKE Board MIDI Note Configuration
+        const SPOKE_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36];
+        
+        // Canvas setup
+        const canvas = document.getElementById('boardCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width;
+        let height = canvas.height;
+        
+        // MIDI
+        let midiAccess = null;
+        let activePads = new Set();
+        
+        // Pad class for the circular board
+        class Pad {
+            constructor(index, angle, midiNote) {
+                this.index = index;
+                this.angle = angle;
+                this.midiNote = midiNote;
+                this.active = false;
+                this.activePulse = 0;
+                
+                // Position on circle
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const radius = Math.min(width, height) * 0.38;
+                
+                this.x = centerX + Math.cos(angle) * radius;
+                this.y = centerY + Math.sin(angle) * radius;
+                this.size = 25;
+            }
+            
+            update() {
+                if (this.active) {
+                    this.activePulse += 0.15;
+                    if (this.activePulse > Math.PI * 2) {
+                        this.active = false;
+                        this.activePulse = 0;
+                    }
+                }
+            }
+            
+            draw() {
+                // Glow effect when active
+                if (this.active) {
+                    const glowSize = this.size + Math.sin(this.activePulse) * 15;
+                    const gradient = ctx.createRadialGradient(this.x, this.y, this.size * 0.5, this.x, this.y, glowSize);
+                    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, glowSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Main pad circle
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.active ? '#fff' : '#666';
+                ctx.fill();
+                ctx.strokeStyle = this.active ? '#4CAF50' : '#888';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                // Pad number
+                ctx.fillStyle = this.active ? '#000' : '#fff';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.index + 1, this.x, this.y);
+            }
+            
+            trigger() {
+                this.active = true;
+                this.activePulse = 0;
+            }
+        }
+        
+        // Create pads
+        const pads = [];
+        function createPads() {
+            const angleStep = (Math.PI * 2) / SPOKE_NOTES.length;
+            SPOKE_NOTES.forEach((midiNote, index) => {
+                const angle = angleStep * index - Math.PI / 2; // Start at top
+                pads.push(new Pad(index, angle, midiNote));
+            });
+        }
+        
+        // Animation loop
+        function animate() {
+            // Clear with black background
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw board circle
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const boardRadius = Math.min(width, height) * 0.42;
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, boardRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw center logo area
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, boardRadius * 0.3, 0, Math.PI * 2);
+            ctx.fillStyle = '#111';
+            ctx.fill();
+            
+            // SPOKE text in center
+            ctx.fillStyle = '#666';
+            ctx.font = 'bold 32px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('SPOKE', centerX, centerY);
+            
+            // Update and draw pads
+            pads.forEach(pad => {
+                pad.update();
+                pad.draw();
+            });
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // MIDI handling
+        function handleMIDIMessage(message) {
+            const [status, midiNote, velocity] = message.data;
+            const command = status & 0xf0;
+            
+            if (command === 0x90 && velocity > 0) {
+                // Note On
+                const padIndex = SPOKE_NOTES.indexOf(midiNote);
+                if (padIndex !== -1) {
+                    pads[padIndex].trigger();
+                    addLog(`Note ON: Pad ${padIndex + 1} (MIDI ${midiNote}) velocity ${velocity}`);
+                    
+                    // Mark step 4 as complete
+                    document.getElementById('step4').classList.add('complete');
+                }
+            } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+                // Note Off
+                const padIndex = SPOKE_NOTES.indexOf(midiNote);
+                if (padIndex !== -1) {
+                    addLog(`Note OFF: Pad ${padIndex + 1} (MIDI ${midiNote})`);
+                }
+            }
+        }
+        
+        // Connect MIDI
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    addLog('No MIDI devices found. Please check your SPOKE board is connected.', true);
+                    return;
+                }
+                
+                // Connect to all inputs
+                inputs.forEach(input => {
+                    input.onmidimessage = handleMIDIMessage;
+                    addLog(`Connected to: ${input.name}`);
+                });
+                
+                // Update UI
+                document.getElementById('connectBtn').textContent = 'MIDI Connected';
+                document.getElementById('connectBtn').classList.add('connected');
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('statusDot').classList.add('active');
+                document.getElementById('statusText').textContent = 'MIDI Connected';
+                
+                // Mark steps as complete
+                document.getElementById('step2').classList.add('complete');
+                document.getElementById('step3').classList.add('complete');
+                document.getElementById('step4').classList.add('active');
+                
+                addLog('MIDI connection successful! Touch the pads on your SPOKE board.');
+                
+                // Handle device changes
+                midiAccess.onstatechange = (event) => {
+                    if (event.port.type === 'input') {
+                        if (event.port.state === 'connected') {
+                            addLog(`MIDI device connected: ${event.port.name}`);
+                        } else {
+                            addLog(`MIDI device disconnected: ${event.port.name}`, true);
+                        }
+                    }
+                };
+                
+            } catch (error) {
+                addLog(`MIDI Error: ${error.message}`, true);
+                alert('Could not access MIDI. Please use Chrome, Edge, or Opera browser.');
+            }
+        }
+        
+        // Add log entry
+        function addLog(message, isError = false) {
+            const logContent = document.getElementById('logContent');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry' + (isError ? ' error' : '');
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logContent.insertBefore(entry, logContent.firstChild);
+            
+            // Keep only last 20 entries
+            while (logContent.children.length > 20) {
+                logContent.removeChild(logContent.lastChild);
+            }
+        }
+        
+        // Initialize
+        createPads();
+        animate();
+        
+        document.getElementById('connectBtn').addEventListener('click', connectMIDI);
+        
+        // Check browser support
+        if (!navigator.requestMIDIAccess) {
+            addLog('Web MIDI API not supported. Please use Chrome, Edge, or Opera.', true);
+            document.getElementById('connectBtn').disabled = true;
+        }
+        
+        // Mark step 2 as active (waiting for rainbow)
+        document.getElementById('step2').classList.add('active');
+    </script>
+</body>
+</html>
