@@ -275,12 +275,8 @@
         
         function createHoneycomb() {
             // Wicki-Hayden layout parameters
-            // In Wicki-Hayden: each row shifts right, notes go up chromatically
-            // Each hex is 2 semitones higher than the one to its left
-            // Each row is 2 rows up = 7 semitones higher
-            
             const totalCells = CONFIG.numberOfSamples + 1;
-            const hexSize = 50; // Fixed size for consistent Wicki-Hayden spacing
+            const hexSize = 45; // Fixed size for consistent Wicki-Hayden spacing
             
             // Hex dimensions for Wicki-Hayden (pointy-top)
             const hexHeight = hexSize * 2;
@@ -290,11 +286,15 @@
             
             // Calculate how many rows and columns we need
             const cols = 12; // Typical Wicki-Hayden has about 12 columns
-            const rows = Math.ceil(totalCells / cols) + 1;
+            const rows = Math.ceil(totalCells / cols);
             
-            // Center the layout
-            const startX = (width - (cols * horizDist)) / 2;
-            const startY = (height - (rows * vertDist)) / 2;
+            // Calculate actual grid dimensions
+            const gridWidth = (cols - 1) * horizDist + hexWidth;
+            const gridHeight = (rows - 1) * vertDist + hexHeight;
+            
+            // Center the layout properly accounting for the offset rows
+            const startX = (width - gridWidth) / 2 + hexWidth / 2;
+            const startY = (height - gridHeight) / 2 + hexHeight / 2;
             
             // Node lookup
             const nodeMap = new Map();
@@ -322,10 +322,6 @@
                     const xOffset = (row % 2) * (horizDist / 2);
                     const cx = startX + col * horizDist + xOffset;
                     const cy = startY + row * vertDist;
-                    
-                    // Skip if way off screen
-                    if (cx < -hexWidth || cx > width + hexWidth) continue;
-                    if (cy < -hexHeight || cy > height + hexHeight) continue;
                     
                     // Create 6 nodes for hexagon (pointy-top orientation)
                     const hexNodes = [];
