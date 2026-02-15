@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #f5f0ff 0%, #e6d9ff 50%, #d9c7ff 100%);
+            color: #5a4a7d;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        /* Floating particles background */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 3.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #b19cd9 0%, #9b7ec9 50%, #8567b3 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 300;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+        }
+        
+        .subtitle {
+            font-size: 1.1em;
+            color: #8a7ba8;
+            font-style: italic;
+            letter-spacing: 3px;
+        }
+        
+        /* Oscilloscope Canvas */
+        .visualizer-container {
+            width: 100%;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        #oscilloscope {
+            width: 100%;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 15px;
+            border: 2px solid #d9c7ff;
+            box-shadow: 0 8px 32px rgba(149, 117, 205, 0.2);
+        }
+        
+        /* Status */
+        .status {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .status-card {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 20px 35px;
+            border-radius: 15px;
+            border: 2px solid #d9c7ff;
+            backdrop-filter: blur(10px);
+            min-width: 180px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(149, 117, 205, 0.15);
+        }
+        
+        .status-card.active {
+            border-color: #b19cd9;
+            box-shadow: 0 5px 30px rgba(177, 156, 217, 0.4);
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 5px 25px rgba(177, 156, 217, 0.3); }
+            50% { box-shadow: 0 5px 40px rgba(177, 156, 217, 0.6); }
+        }
+        
+        .status-label {
+            font-size: 0.7em;
+            color: #8a7ba8;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+        
+        .status-value {
+            font-size: 1.5em;
+            font-weight: 300;
+            letter-spacing: 1px;
+            color: #5a4a7d;
+        }
+        
+        .status-card.active .status-value {
+            background: linear-gradient(135deg, #b19cd9, #9b7ec9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Controls */
+        .controls {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 35px;
+            border-radius: 20px;
+            border: 2px solid #d9c7ff;
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(149, 117, 205, 0.2);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #b19cd9 0%, #9b7ec9 100%);
+            color: white;
+            border: none;
+            padding: 18px 45px;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            width: 100%;
+            margin-bottom: 25px;
+            transition: all 0.4s ease;
+            box-shadow: 0 5px 25px rgba(177, 156, 217, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 40px rgba(177, 156, 217, 0.5);
+            background: linear-gradient(135deg, #c4b0e6 0%, #ab8fd6 100%);
+        }
+        
+        button:active {
+            transform: translateY(-1px);
+        }
+        
+        button:disabled {
+            background: #c9bfda;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* Volume */
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .volume-label {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 2px;
+            min-width: 90px;
+            color: #8a7ba8;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 5px;
+            background: linear-gradient(90deg, rgba(177, 156, 217, 0.3), rgba(155, 126, 201, 0.4));
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #b19cd9, #9b7ec9);
+            cursor: pointer;
+            box-shadow: 0 3px 15px rgba(177, 156, 217, 0.5);
+            transition: all 0.2s ease;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 5px 25px rgba(177, 156, 217, 0.8);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #b19cd9, #9b7ec9);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 3px 15px rgba(177, 156, 217, 0.5);
+        }
+        
+        .volume-value {
+            font-size: 1.3em;
+            font-weight: 300;
+            background: linear-gradient(135deg, #b19cd9, #9b7ec9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            min-width: 55px;
+            text-align: right;
+        }
+        
+        /* Keys Grid */
+        .keys-container {
+            margin-top: 30px;
+        }
+        
+        .keys-title {
+            font-size: 0.9em;
+            color: #8a7ba8;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .note-keys {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 12px;
+        }
+        
+        .note-keys::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        .note-keys::-webkit-scrollbar-track {
+            background: rgba(217, 199, 255, 0.3);
+            border-radius: 10px;
+        }
+        
+        .note-keys::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #b19cd9, #9b7ec9);
+            border-radius: 10px;
+        }
+        
+        .key {
+            aspect-ratio: 0.6;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(245, 240, 255, 0.9));
+            border: 2px solid #d9c7ff;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            padding-bottom: 8px;
+            box-shadow: 0 4px 10px rgba(149, 117, 205, 0.15);
+        }
+        
+        .key:hover {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(240, 235, 255, 1));
+            border-color: #b19cd9;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(177, 156, 217, 0.3);
+        }
+        
+        .key.active {
+            background: linear-gradient(180deg, rgba(177, 156, 217, 0.8), rgba(155, 126, 201, 0.7));
+            transform: translateY(2px) scale(0.98);
+            box-shadow: 0 2px 5px rgba(149, 117, 205, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        .key-number {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #5a4a7d;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+        }
+        
+        .key.active .key-number {
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+        
+        .key-status {
+            font-size: 0.65em;
+            color: #8a7ba8;
+            margin-top: 3px;
+        }
+        
+        .key.loaded .key-status {
+            color: #7cb342;
+            font-weight: 600;
+        }
+        
+        .key.active .key-status {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #9b7ec9;
+            font-size: 1em;
+            font-style: italic;
+        }
+        
+        .message {
+            padding: 18px;
+            border-radius: 12px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.95em;
+        }
+        
+        .message.success {
+            background: rgba(124, 179, 66, 0.1);
+            border: 2px solid rgba(124, 179, 66, 0.3);
+            color: #7cb342;
+        }
+        
+        .message.error {
+            background: rgba(229, 115, 115, 0.1);
+            border: 2px solid rgba(229, 115, 115, 0.3);
+            color: #e57373;
+        }
+    </style>
+</head>
+<body>
+    <canvas class="particles" id="particles"></canvas>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Notes</h1>
+            <div class="subtitle">One-Shot Collection</div>
+        </div>
+        
+        <!-- Oscilloscope -->
+        <div class="visualizer-container">
+            <canvas id="oscilloscope"></canvas>
+        </div>
+        
+        <div class="status">
+            <div class="status-card" id="midiStatus">
+                <div class="status-label">MIDI</div>
+                <div class="status-value">Disconnected</div>
+            </div>
+            <div class="status-card active" id="audioStatus">
+                <div class="status-label">Audio Engine</div>
+                <div class="status-value">Ready</div>
+            </div>
+            <div class="status-card" id="sampleStatus">
+                <div class="status-label">Samples</div>
+                <div class="status-value">0 / 151</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="connectMidi">Connect MIDI Controller</button>
+            
+            <div class="volume-control">
+                <div class="volume-label">Volume</div>
+                <input type="range" id="masterVolume" min="0" max="100" value="80">
+                <div class="volume-value" id="volumeValue">80%</div>
+            </div>
+            
+            <div id="loadingIndicator" class="loading">Loading samples...</div>
+            <div id="messageBox" style="display: none;"></div>
+            
+            <div class="keys-container">
+                <div class="keys-title">Click to Test</div>
+                <div class="note-keys" id="noteKeys"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION
+        const CONFIG = {
+            username: 'Tom-Vulpes',
+            repo: 'SpokeWebMidi',
+            branch: 'main',
+            samplesFolder: 'notes',
+            numberOfSamples: 150
+        };
+        
+        // Format sample number to match note_001.wav format
+        function formatSampleNumber(num) {
+            return `note_${String(num).padStart(3, '0')}`;
+        }
+        
+        // Audio
+        let audioContext;
+        let masterGain;
+        let analyser;
+        const samples = new Map();
+        const activeSources = new Map();
+        let midiAccess = null;
+        
+        // Oscilloscope
+        const canvas = document.getElementById('oscilloscope');
+        const ctx = canvas.getContext('2d');
+        let animationId;
+        
+        // Particles
+        const particlesCanvas = document.getElementById('particles');
+        const particlesCtx = particlesCanvas.getContext('2d');
+        const particles = [];
+        
+        // Setup canvases
+        function setupCanvases() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            particlesCanvas.width = window.innerWidth;
+            particlesCanvas.height = window.innerHeight;
+        }
+        
+        window.addEventListener('resize', setupCanvases);
+        setupCanvases();
+        
+        // Particle system
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                this.x = Math.random() * particlesCanvas.width;
+                this.y = Math.random() * particlesCanvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = Math.random() * 2 - 1;
+                this.speedY = Math.random() * 2 - 1;
+                this.hue = Math.random() * 40 + 260; // Purple/lilac range
+                this.alpha = Math.random() * 0.4 + 0.2;
+            }
+            
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                
+                if (this.x < 0 || this.x > particlesCanvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > particlesCanvas.height) this.speedY *= -1;
+            }
+            
+            draw() {
+                particlesCtx.fillStyle = `hsla(${this.hue}, 50%, 70%, ${this.alpha})`;
+                particlesCtx.beginPath();
+                particlesCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                particlesCtx.fill();
+            }
+        }
+        
+        // Create particles
+        for (let i = 0; i < 50; i++) {
+            particles.push(new Particle());
+        }
+        
+        function animateParticles() {
+            particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
+            
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+        
+        // Particle burst
+        function particleBurst() {
+            const centerX = particlesCanvas.width / 2;
+            const centerY = particlesCanvas.height / 2;
+            
+            for (let i = 0; i < 5; i++) {
+                const particle = new Particle();
+                particle.x = centerX + (Math.random() - 0.5) * 100;
+                particle.y = centerY + (Math.random() - 0.5) * 100;
+                particle.size = Math.random() * 5 + 2;
+                particle.alpha = 0.6;
+                particles.push(particle);
+            }
+            
+            if (particles.length > 100) {
+                particles.splice(0, 5);
+            }
+        }
+        
+        // Initialize audio
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = 0.8;
+                
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                
+                masterGain.connect(analyser);
+                analyser.connect(audioContext.destination);
+                
+                startOscilloscope();
+            }
+        }
+        
+        // Oscilloscope visualization
+        function startOscilloscope() {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            function draw() {
+                animationId = requestAnimationFrame(draw);
+                
+                analyser.getByteTimeDomainData(dataArray);
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#b19cd9';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#b19cd9';
+                
+                ctx.beginPath();
+                
+                const sliceWidth = canvas.width / bufferLength;
+                let x = 0;
+                
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0;
+                    const y = v * canvas.height / 2;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                    
+                    x += sliceWidth;
+                }
+                
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+            
+            draw();
+        }
+        
+        // Update status
+        function updateStatus(id, value, active = false) {
+            const card = document.getElementById(id);
+            card.querySelector('.status-value').textContent = value;
+            if (active) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        }
+        
+        // Show message
+        function showMessage(text, type = 'success') {
+            const box = document.getElementById('messageBox');
+            box.className = `message ${type}`;
+            box.textContent = text;
+            box.style.display = 'block';
+        }
+        
+        // Play sample
+        function playSample(sampleNumber, velocity = 127) {
+            if (!samples.has(sampleNumber)) return;
+            
+            initAudio();
+            
+            if (activeSources.has(sampleNumber)) {
+                const { source } = activeSources.get(sampleNumber);
+                try {
+                    source.stop();
+                } catch (e) {}
+                activeSources.delete(sampleNumber);
+            }
+            
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            
+            source.buffer = samples.get(sampleNumber);
+            gainNode.gain.value = velocity / 127;
+            
+            source.connect(gainNode);
+            gainNode.connect(masterGain);
+            source.start(0);
+            
+            activeSources.set(sampleNumber, { source, gainNode });
+            
+            const key = document.querySelector(`[data-sample="${sampleNumber}"]`);
+            if (key) {
+                key.classList.add('active');
+                setTimeout(() => key.classList.remove('active'), 150);
+            }
+            
+            particleBurst();
+            
+            source.onended = () => {
+                if (activeSources.get(sampleNumber)?.source === source) {
+                    activeSources.delete(sampleNumber);
+                }
+            };
+        }
+        
+        // Handle MIDI
+        function handleMIDIMessage(message) {
+            const [status, midiNote, velocity] = message.data;
+            const command = status & 0xf0;
+            
+            if (command === 0x90 && velocity > 0) {
+                const sampleNumber = midiNote % (CONFIG.numberOfSamples + 1);
+                playSample(sampleNumber, velocity);
+            }
+        }
+        
+        // Connect MIDI
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    updateStatus('midiStatus', 'No Devices');
+                    alert('No MIDI devices found. Please connect a MIDI controller.');
+                    return;
+                }
+                
+                inputs.forEach(input => {
+                    input.onmidimessage = handleMIDIMessage;
+                });
+                
+                updateStatus('midiStatus', 'Connected', true);
+                
+                midiAccess.onstatechange = (event) => {
+                    if (event.port.type === 'input') {
+                        const currentInputs = Array.from(midiAccess.inputs.values());
+                        updateStatus('midiStatus', currentInputs.length > 0 ? 'Connected' : 'Disconnected', currentInputs.length > 0);
+                    }
+                };
+            } catch (error) {
+                updateStatus('midiStatus', 'Error');
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        // Load sample
+        async function loadSample(sampleNumber) {
+            initAudio();
+            
+            const formats = ['wav', 'mp3'];
+            const fileName = formatSampleNumber(sampleNumber);
+            
+            for (const format of formats) {
+                const url = `https://raw.githubusercontent.com/${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/${fileName}.${format}`;
+                
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) continue;
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    samples.set(sampleNumber, audioBuffer);
+                    
+                    const key = document.querySelector(`[data-sample="${sampleNumber}"]`);
+                    if (key) key.classList.add('loaded');
+                    
+                    return true;
+                } catch (error) {
+                    console.error(`Failed ${fileName}.${format}:`, error.message);
+                }
+            }
+            
+            return false;
+        }
+        
+        // Create keys
+        function createKeys() {
+            const container = document.getElementById('noteKeys');
+            container.innerHTML = '';
+            
+            for (let i = 0; i <= CONFIG.numberOfSamples; i++) {
+                const key = document.createElement('div');
+                key.className = 'key';
+                key.dataset.sample = i;
+                key.innerHTML = `
+                    <div class="key-number">${i}</div>
+                    <div class="key-status">Loading</div>
+                `;
+                
+                key.addEventListener('click', () => {
+                    if (samples.has(i)) {
+                        playSample(i, 100);
+                    }
+                });
+                
+                container.appendChild(key);
+            }
+        }
+        
+        // Auto-load samples
+        async function autoLoadSamples() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            
+            let loadedCount = 0;
+            const failedSamples = [];
+            
+            for (let i = 0; i <= CONFIG.numberOfSamples; i++) {
+                if (await loadSample(i)) {
+                    loadedCount++;
+                    updateStatus('sampleStatus', `${loadedCount} / ${CONFIG.numberOfSamples + 1}`, false);
+                } else {
+                    failedSamples.push(i);
+                }
+            }
+            
+            loadingIndicator.style.display = 'none';
+            updateStatus('sampleStatus', `${loadedCount} / ${CONFIG.numberOfSamples + 1}`, loadedCount > 0);
+            
+            if (loadedCount > 0 && failedSamples.length > 0) {
+                showMessage(`${loadedCount} samples loaded and ready! ${failedSamples.length} failed to load.`, 'success');
+            } else if (loadedCount === CONFIG.numberOfSamples + 1) {
+                showMessage(`All ${loadedCount} samples loaded successfully!`, 'success');
+            } else if (loadedCount === 0) {
+                showMessage(`Could not load any samples. Check: https://github.com/${CONFIG.username}/${CONFIG.repo}/tree/${CONFIG.branch}/${CONFIG.samplesFolder}`, 'error');
+            }
+        }
+        
+        // Initialize
+        createKeys();
+        autoLoadSamples();
+        
+        // Event listeners
+        document.getElementById('connectMidi').addEventListener('click', connectMIDI);
+        
+        const volumeSlider = document.getElementById('masterVolume');
+        const volumeValue = document.getElementById('volumeValue');
+        
+        volumeSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            volumeValue.textContent = value + '%';
+            if (masterGain) {
+                masterGain.gain.value = value / 100;
+            }
+        });
+        
+        if (!navigator.requestMIDIAccess) {
+            alert('Web MIDI API not supported. Please use Chrome, Edge, or Opera.');
+        }
+    </script>
+</body>
+</html>
