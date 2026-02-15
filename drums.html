@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE Drums</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0f;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .ui {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 100;
+        }
+        
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+            letter-spacing: 2px;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="ui">
+        <button id="connectMidi">Connect MIDI</button>
+    </div>
+    
+    <div class="loading" id="loading">Loading...</div>
+
+    <script>
+        const CONFIG = {
+            username: 'Tom-Vulpes',
+            repo: 'SpokeWebMidi',
+            branch: 'main',
+            samplesFolder: 'drums'
+        };
+        
+        const MIDI_MAP = {
+            57: 1, 60: 2,  // Cymbals
+            62: 3, 64: 4, 67: 5, 69: 6,  // Bass
+            72: 7, 74: 8, 76: 9  // Snares
+        };
+        
+        let audioContext, masterGain;
+        const samples = new Map();
+        const activeSources = new Map();
+        let midiAccess = null;
+        
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        // Particle class
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8;
+                this.life = 1;
+                this.decay = 0.02;
+                this.size = Math.random() * 4 + 2;
+                this.color = color;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+                this.life -= this.decay;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `${this.color}${Math.floor(this.life * 255).toString(16).padStart(2, '0')}`;
+                ctx.fill();
+            }
+        }
+        
+        // Wave class - expanding circle
+        class Wave {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = 0;
+                this.maxRadius = 200;
+                this.speed = 8;
+                this.life = 1;
+                this.color = color;
+            }
+            
+            update() {
+                this.radius += this.speed;
+                this.life = 1 - (this.radius / this.maxRadius);
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `${this.color}${Math.floor(this.life * 100).toString(16).padStart(2, '0')}`;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+        }
+        
+        // Circle pad class
+        class CirclePad {
+            constructor(x, y, radius, sampleNumber, label, color) {
+                this.x = x;
+                this.y = y;
+                this.baseRadius = radius;
+                this.radius = radius;
+                this.sampleNumber = sampleNumber;
+                this.label = label;
+                this.color = color;
+                
+                this.active = false;
+                this.pulse = 0;
+                this.targetRadius = radius;
+                this.glow = 0;
+                
+                // Breathing animation
+                this.breathOffset = Math.random() * Math.PI * 2;
+                this.breathSpeed = 0.02;
+            }
+            
+            update() {
+                // Breathing effect
+                const breath = Math.sin(Date.now() * this.breathSpeed + this.breathOffset) * 3;
+                this.targetRadius = this.baseRadius + breath;
+                
+                // Active pulse
+                if (this.active) {
+                    this.pulse += 0.15;
+                    this.glow = Math.sin(this.pulse) * 0.8 + 0.2;
+                    
+                    if (this.pulse > Math.PI * 2) {
+                        this.active = false;
+                        this.pulse = 0;
+                        this.glow = 0;
+                    }
+                } else {
+                    this.glow *= 0.9;
+                }
+                
+                // Smooth radius
+                this.radius += (this.targetRadius - this.radius) * 0.1;
+            }
+            
+            draw() {
+                // Outer glow
+                if (this.glow > 0.1) {
+                    const gradient = ctx.createRadialGradient(this.x, this.y, this.radius * 0.5, this.x, this.y, this.radius * 1.8);
+                    gradient.addColorStop(0, `${this.color}${Math.floor(this.glow * 60).toString(16).padStart(2, '0')}`);
+                    gradient.addColorStop(1, `${this.color}00`);
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius * 1.8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Main circle
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                
+                // Fill
+                const alpha = this.active ? 0.3 : 0.15;
+                ctx.fillStyle = `${this.color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
+                ctx.fill();
+                
+                // Stroke
+                ctx.strokeStyle = this.active ? `${this.color}ff` : `${this.color}88`;
+                ctx.lineWidth = this.active ? 4 : 2;
+                if (this.active) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = this.color;
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                
+                // Label
+                ctx.fillStyle = this.active ? `${this.color}ff` : `${this.color}cc`;
+                ctx.font = this.active ? 'bold 18px Arial' : '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.label, this.x, this.y);
+            }
+            
+            trigger() {
+                this.active = true;
+                this.pulse = 0;
+                this.targetRadius = this.baseRadius * 1.3;
+            }
+            
+            containsPoint(x, y) {
+                const dx = x - this.x;
+                const dy = y - this.y;
+                return Math.sqrt(dx * dx + dy * dy) < this.radius;
+            }
+        }
+        
+        // Create pads
+        const pads = [];
+        const particles = [];
+        const waves = [];
+        
+        function createPads() {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const baseRadius = Math.min(width, height) * 0.08;
+            
+            // Colors for different drum types
+            const cymbalColor = '#ffd700';  // Gold
+            const bassColor = '#e94560';    // Red
+            const snareColor = '#667eea';   // Blue
+            
+            // Layout configuration
+            const configs = [
+                // Cymbals (top)
+                { sample: 1, x: centerX - 200, y: centerY - 180, label: 'C1', color: cymbalColor },
+                { sample: 2, x: centerX + 200, y: centerY - 180, label: 'C2', color: cymbalColor },
+                
+                // Bass (middle ring)
+                { sample: 3, x: centerX - 250, y: centerY, label: 'B1', color: bassColor },
+                { sample: 4, x: centerX - 100, y: centerY - 50, label: 'B2', color: bassColor },
+                { sample: 5, x: centerX + 100, y: centerY - 50, label: 'B3', color: bassColor },
+                { sample: 6, x: centerX + 250, y: centerY, label: 'B4', color: bassColor },
+                
+                // Snares (bottom)
+                { sample: 7, x: centerX - 150, y: centerY + 150, label: 'S1', color: snareColor },
+                { sample: 8, x: centerX, y: centerY + 180, label: 'S2', color: snareColor },
+                { sample: 9, x: centerX + 150, y: centerY + 150, label: 'S3', color: snareColor }
+            ];
+            
+            configs.forEach(config => {
+                pads.push(new CirclePad(
+                    config.x,
+                    config.y,
+                    baseRadius,
+                    config.sample,
+                    config.label,
+                    config.color
+                ));
+            });
+        }
+        
+        // Animation loop
+        function animate() {
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Update and draw waves
+            for (let i = waves.length - 1; i >= 0; i--) {
+                waves[i].update();
+                waves[i].draw();
+                if (waves[i].life <= 0) {
+                    waves.splice(i, 1);
+                }
+            }
+            
+            // Update and draw particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // Update and draw pads
+            pads.forEach(pad => {
+                pad.update();
+                pad.draw();
+            });
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Audio functions
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = 0.8;
+                masterGain.connect(audioContext.destination);
+            }
+        }
+        
+        function playSample(sampleNumber, velocity = 127) {
+            if (!samples.has(sampleNumber)) return;
+            
+            initAudio();
+            
+            if (activeSources.has(sampleNumber)) {
+                try { activeSources.get(sampleNumber).source.stop(); } catch (e) {}
+                activeSources.delete(sampleNumber);
+            }
+            
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            
+            source.buffer = samples.get(sampleNumber);
+            gainNode.gain.value = velocity / 127;
+            
+            source.connect(gainNode);
+            gainNode.connect(masterGain);
+            source.start(0);
+            
+            activeSources.set(sampleNumber, { source, gainNode });
+            
+            // Visual effects
+            const pad = pads.find(p => p.sampleNumber === sampleNumber);
+            if (pad) {
+                pad.trigger();
+                
+                // Create wave
+                waves.push(new Wave(pad.x, pad.y, pad.color));
+                
+                // Create particles
+                for (let i = 0; i < 20; i++) {
+                    particles.push(new Particle(pad.x, pad.y, pad.color));
+                }
+            }
+            
+            source.onended = () => {
+                if (activeSources.get(sampleNumber)?.source === source) {
+                    activeSources.delete(sampleNumber);
+                }
+            };
+        }
+        
+        function handleMIDIMessage(message) {
+            const [status, midiNote, velocity] = message.data;
+            const command = status & 0xf0;
+            
+            if (command === 0x90 && velocity > 0) {
+                const sampleNumber = MIDI_MAP[midiNote];
+                if (sampleNumber) {
+                    playSample(sampleNumber, velocity);
+                }
+            }
+        }
+        
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    alert('No MIDI devices found.');
+                    return;
+                }
+                
+                inputs.forEach(input => input.onmidimessage = handleMIDIMessage);
+                
+                document.getElementById('connectMidi').textContent = 'MIDI Connected';
+                document.getElementById('connectMidi').style.background = 'rgba(46, 213, 115, 0.2)';
+                document.getElementById('connectMidi').style.borderColor = 'rgba(46, 213, 115, 0.5)';
+            } catch (error) {
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        async function loadSample(sampleNumber) {
+            initAudio();
+            
+            const formats = ['wav', 'mp3'];
+            
+            for (const format of formats) {
+                const url = `https://raw.githubusercontent.com/${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/${sampleNumber}.${format}`;
+                
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) continue;
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    samples.set(sampleNumber, audioBuffer);
+                    return true;
+                } catch (error) {
+                    console.error(`Failed ${sampleNumber}.${format}:`, error.message);
+                }
+            }
+            return false;
+        }
+        
+        async function autoLoadSamples() {
+            const loadingDiv = document.getElementById('loading');
+            
+            let loadedCount = 0;
+            for (let i = 1; i <= 9; i++) {
+                if (await loadSample(i)) loadedCount++;
+            }
+            
+            loadingDiv.style.display = 'none';
+            console.log(`Loaded ${loadedCount}/9 samples`);
+        }
+        
+        // Mouse interaction
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            pads.forEach(pad => {
+                if (pad.containsPoint(x, y) && samples.has(pad.sampleNumber)) {
+                    playSample(pad.sampleNumber, 100);
+                }
+            });
+        });
+        
+        // Initialize
+        createPads();
+        animate();
+        autoLoadSamples();
+        
+        document.getElementById('connectMidi').addEventListener('click', connectMIDI);
+        
+        if (!navigator.requestMIDIAccess) {
+            alert('Web MIDI API not supported. Please use Chrome, Edge, or Opera.');
+        }
+    </script>
+</body>
+</html>
