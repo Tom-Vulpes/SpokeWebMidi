@@ -162,76 +162,67 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
         
-        // Node class - represents each vertex in the network
+        // Node class - shared vertices
         class Node {
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
                 this.baseX = x;
                 this.baseY = y;
-                this.vx = (Math.random() - 0.5) * 0.5;
-                this.vy = (Math.random() - 0.5) * 0.5;
-                this.connections = [];
+                this.vx = (Math.random() - 0.5) * 0.8;
+                this.vy = (Math.random() - 0.5) * 0.8;
             }
             
             update() {
-                // Organic movement
-                this.vx += (Math.random() - 0.5) * 0.1;
-                this.vy += (Math.random() - 0.5) * 0.1;
-                
-                // Damping
-                this.vx *= 0.95;
-                this.vy *= 0.95;
-                
-                // Apply velocity
+                this.vx += (Math.random() - 0.5) * 0.15;
+                this.vy += (Math.random() - 0.5) * 0.15;
+                this.vx *= 0.92;
+                this.vy *= 0.92;
                 this.x += this.vx;
                 this.y += this.vy;
                 
-                // Spring back to base position
                 const dx = this.baseX - this.x;
                 const dy = this.baseY - this.y;
-                this.x += dx * 0.01;
-                this.y += dy * 0.01;
+                this.x += dx * 0.02;
+                this.y += dy * 0.02;
                 
-                // Keep in bounds
-                if (this.x < 0) this.x = 0;
-                if (this.x > width) this.x = width;
-                if (this.y < 0) this.y = 0;
-                if (this.y > height) this.y = height;
+                if (this.x < -50) this.x = -50;
+                if (this.x > width + 50) this.x = width + 50;
+                if (this.y < -50) this.y = -50;
+                if (this.y > height + 50) this.y = height + 50;
             }
         }
         
-        // Cell class - represents each note/sample
+        // Cell class
         class Cell {
             constructor(noteNumber, nodes) {
                 this.noteNumber = noteNumber;
-                this.nodes = nodes; // Array of Node references that form this cell
+                this.nodes = nodes;
                 
-                // Color based on note number
                 const hue = (noteNumber / (CONFIG.numberOfSamples + 1)) * 360;
                 this.hue = hue;
-                this.saturation = 60;
-                this.lightness = 50;
+                this.saturation = 65;
+                this.lightness = 55;
                 
                 this.active = false;
                 this.activePulse = 0;
-                this.baseAlpha = 0.2;
+                this.baseAlpha = 0.25;
                 this.alpha = this.baseAlpha;
             }
             
             update() {
                 if (this.active) {
-                    this.activePulse += 0.1;
-                    this.alpha = this.baseAlpha + Math.sin(this.activePulse) * 0.5;
-                    this.saturation = 60 + Math.sin(this.activePulse) * 30;
-                    this.lightness = 50 + Math.sin(this.activePulse) * 20;
+                    this.activePulse += 0.12;
+                    this.alpha = this.baseAlpha + Math.sin(this.activePulse) * 0.6;
+                    this.saturation = 65 + Math.sin(this.activePulse) * 25;
+                    this.lightness = 55 + Math.sin(this.activePulse) * 25;
                     
                     if (this.activePulse > Math.PI * 2) {
                         this.active = false;
                         this.activePulse = 0;
                         this.alpha = this.baseAlpha;
-                        this.saturation = 60;
-                        this.lightness = 50;
+                        this.saturation = 65;
+                        this.lightness = 55;
                     }
                 }
             }
@@ -239,7 +230,6 @@
             draw() {
                 if (this.nodes.length < 3) return;
                 
-                // Draw filled cell
                 ctx.beginPath();
                 ctx.moveTo(this.nodes[0].x, this.nodes[0].y);
                 for (let i = 1; i < this.nodes.length; i++) {
@@ -247,33 +237,39 @@
                 }
                 ctx.closePath();
                 
-                // Fill
                 ctx.fillStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, ${this.alpha})`;
                 ctx.fill();
                 
-                // Stroke
                 if (this.active) {
-                    ctx.strokeStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness + 20}%, 0.8)`;
-                    ctx.lineWidth = 3;
-                    ctx.shadowBlur = 20;
-                    ctx.shadowColor = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, 0.8)`;
+                    ctx.strokeStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness + 25}%, 0.9)`;
+                    ctx.lineWidth = 4;
+                    ctx.shadowBlur = 25;
+                    ctx.shadowColor = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, 1)`;
                 } else {
-                    ctx.strokeStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness + 10}%, 0.4)`;
-                    ctx.lineWidth = 1.5;
-                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness + 15}%, 0.5)`;
+                    ctx.lineWidth = 2;
+                    ctx.shadowBlur = 5;
+                    ctx.shadowColor = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, 0.3)`;
                 }
                 ctx.stroke();
                 ctx.shadowBlur = 0;
                 
-                // Draw note number at center
                 const centerX = this.nodes.reduce((sum, n) => sum + n.x, 0) / this.nodes.length;
                 const centerY = this.nodes.reduce((sum, n) => sum + n.y, 0) / this.nodes.length;
                 
-                ctx.fillStyle = this.active ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)';
-                ctx.font = this.active ? 'bold 14px Georgia' : '12px Georgia';
+                if (this.active) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+                    ctx.font = 'bold 16px Georgia';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+                } else {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.font = '13px Georgia';
+                }
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(this.noteNumber, centerX, centerY);
+                ctx.shadowBlur = 0;
             }
             
             trigger() {
@@ -282,7 +278,6 @@
             }
             
             containsPoint(x, y) {
-                // Ray casting algorithm to check if point is inside polygon
                 let inside = false;
                 for (let i = 0, j = this.nodes.length - 1; i < this.nodes.length; j = i++) {
                     const xi = this.nodes[i].x, yi = this.nodes[i].y;
@@ -296,88 +291,85 @@
             }
         }
         
-        // Create cellular network
         const nodes = [];
         const cells = [];
         
-        function createCellularNetwork() {
+        function createSharedNodeNetwork() {
             const totalCells = CONFIG.numberOfSamples + 1;
+            const cols = Math.ceil(Math.sqrt(totalCells * 1.3));
+            const rows = Math.ceil(totalCells / cols) + 1;
+            const cellWidth = width / (cols - 1);
+            const cellHeight = height / (rows - 1);
             
-            // Create a Voronoi-like structure
-            // We'll create a grid of nodes and then create cells from them
-            const gridSize = Math.ceil(Math.sqrt(totalCells));
-            const cellWidth = width / gridSize;
-            const cellHeight = height / gridSize;
+            // Create shared node grid
+            const nodeGrid = [];
+            for (let row = 0; row < rows; row++) {
+                nodeGrid[row] = [];
+                for (let col = 0; col < cols; col++) {
+                    const randomOffsetX = (Math.random() - 0.5) * cellWidth * 0.3;
+                    const randomOffsetY = (Math.random() - 0.5) * cellHeight * 0.3;
+                    const node = new Node(
+                        col * cellWidth + randomOffsetX,
+                        row * cellHeight + randomOffsetY
+                    );
+                    nodeGrid[row][col] = node;
+                    nodes.push(node);
+                }
+            }
             
+            // Create cells - each cell shares nodes with neighbors
             let cellIndex = 0;
             
-            for (let row = 0; row < gridSize; row++) {
-                for (let col = 0; col < gridSize; col++) {
+            for (let row = 0; row < rows - 1; row++) {
+                for (let col = 0; col < cols - 1; col++) {
                     if (cellIndex > CONFIG.numberOfSamples) break;
                     
-                    // Create 4 nodes for this cell with some randomness
-                    const baseX = col * cellWidth;
-                    const baseY = row * cellHeight;
-                    const randomness = 30;
-                    
+                    // Each cell is made from 4 corner nodes
+                    // These same nodes are used by adjacent cells
                     const cellNodes = [
-                        new Node(
-                            baseX + Math.random() * randomness,
-                            baseY + Math.random() * randomness
-                        ),
-                        new Node(
-                            baseX + cellWidth - Math.random() * randomness,
-                            baseY + Math.random() * randomness
-                        ),
-                        new Node(
-                            baseX + cellWidth - Math.random() * randomness,
-                            baseY + cellHeight - Math.random() * randomness
-                        ),
-                        new Node(
-                            baseX + Math.random() * randomness,
-                            baseY + cellHeight - Math.random() * randomness
-                        )
+                        nodeGrid[row][col],
+                        nodeGrid[row][col + 1],
+                        nodeGrid[row + 1][col + 1],
+                        nodeGrid[row + 1][col]
                     ];
                     
-                    // Add nodes to global array
-                    cellNodes.forEach(n => nodes.push(n));
-                    
-                    // Create cell
                     cells.push(new Cell(cellIndex, cellNodes));
-                    
                     cellIndex++;
                 }
                 if (cellIndex > CONFIG.numberOfSamples) break;
             }
         }
         
-        // Animation loop
         function animate() {
-            // Clear with trail effect
-            ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.12)';
             ctx.fillRect(0, 0, width, height);
             
-            // Update nodes
             nodes.forEach(node => node.update());
             
-            // Update and draw cells
             cells.forEach(cell => {
                 cell.update();
                 cell.draw();
             });
             
-            // Draw connection points (nodes)
-            ctx.fillStyle = 'rgba(177, 156, 217, 0.3)';
+            // Draw nodes
             nodes.forEach(node => {
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, 2, 0, Math.PI * 2);
+                ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(177, 156, 217, 0.4)';
                 ctx.fill();
+                
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = 'rgba(177, 156, 217, 0.6)';
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(217, 199, 255, 0.8)';
+                ctx.fill();
+                ctx.shadowBlur = 0;
             });
             
             requestAnimationFrame(animate);
         }
         
-        // Initialize audio
         function initAudio() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -387,7 +379,6 @@
             }
         }
         
-        // Update status
         function updateStatus(id, text, active = false) {
             const el = document.getElementById(id);
             el.textContent = text;
@@ -398,13 +389,11 @@
             }
         }
         
-        // Play sample
         function playSample(sampleNumber, velocity = 127) {
             if (!samples.has(sampleNumber)) return;
             
             initAudio();
             
-            // Stop previous instance
             if (activeSources.has(sampleNumber)) {
                 const { source } = activeSources.get(sampleNumber);
                 try {
@@ -425,7 +414,6 @@
             
             activeSources.set(sampleNumber, { source, gainNode });
             
-            // Trigger cell animation
             const cell = cells.find(c => c.noteNumber === sampleNumber);
             if (cell) {
                 cell.trigger();
@@ -438,7 +426,6 @@
             };
         }
         
-        // Handle MIDI
         function handleMIDIMessage(message) {
             const [status, midiNote, velocity] = message.data;
             const command = status & 0xf0;
@@ -449,7 +436,6 @@
             }
         }
         
-        // Connect MIDI
         async function connectMIDI() {
             try {
                 midiAccess = await navigator.requestMIDIAccess();
@@ -457,7 +443,7 @@
                 
                 if (inputs.length === 0) {
                     updateStatus('midiStatus', 'MIDI: No Devices');
-                    alert('No MIDI devices found. Please connect a MIDI controller.');
+                    alert('No MIDI devices found.');
                     return;
                 }
                 
@@ -470,11 +456,7 @@
                 midiAccess.onstatechange = (event) => {
                     if (event.port.type === 'input') {
                         const currentInputs = Array.from(midiAccess.inputs.values());
-                        if (currentInputs.length > 0) {
-                            updateStatus('midiStatus', 'MIDI: Connected', true);
-                        } else {
-                            updateStatus('midiStatus', 'MIDI: Disconnected', false);
-                        }
+                        updateStatus('midiStatus', currentInputs.length > 0 ? 'MIDI: Connected' : 'MIDI: Disconnected', currentInputs.length > 0);
                     }
                 };
             } catch (error) {
@@ -483,7 +465,6 @@
             }
         }
         
-        // Load sample
         async function loadSample(sampleNumber) {
             initAudio();
             
@@ -510,7 +491,6 @@
             return false;
         }
         
-        // Auto-load samples
         async function autoLoadSamples() {
             const loadingDiv = document.getElementById('loading');
             const progressBar = document.getElementById('progress');
@@ -535,13 +515,11 @@
             }
         }
         
-        // Mouse interaction - click cells to test
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
-            // Check if click is inside any cell
             for (let i = cells.length - 1; i >= 0; i--) {
                 const cell = cells[i];
                 if (cell.containsPoint(x, y)) {
@@ -553,8 +531,7 @@
             }
         });
         
-        // Initialize
-        createCellularNetwork();
+        createSharedNodeNetwork();
         animate();
         autoLoadSamples();
         
