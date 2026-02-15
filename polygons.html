@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Georgia', serif;
+            background: #0a0a0f;
+            color: #ffffff;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .ui {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        
+        .status {
+            background: rgba(177, 156, 217, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(177, 156, 217, 0.3);
+            font-size: 0.85em;
+            letter-spacing: 1px;
+            color: #d9c7ff;
+        }
+        
+        .status.active {
+            background: rgba(177, 156, 217, 0.3);
+            border-color: #b19cd9;
+            box-shadow: 0 0 20px rgba(177, 156, 217, 0.4);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #b19cd9 0%, #9b7ec9 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(177, 156, 217, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(177, 156, 217, 0.5);
+        }
+        
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2em;
+            color: #b19cd9;
+            text-align: center;
+            z-index: 50;
+        }
+        
+        .loading-bar {
+            width: 300px;
+            height: 4px;
+            background: rgba(177, 156, 217, 0.2);
+            border-radius: 2px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #b19cd9, #9b7ec9);
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(177, 156, 217, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="ui">
+        <div class="status" id="midiStatus">MIDI: Disconnected</div>
+        <div class="status" id="sampleStatus">Samples: 0 / 151</div>
+        <button id="connectMidi">Connect MIDI</button>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div>Loading samples...</div>
+        <div class="loading-bar">
+            <div class="loading-progress" id="progress"></div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION
+        const CONFIG = {
+            username: 'Tom-Vulpes',
+            repo: 'SpokeWebMidi',
+            branch: 'main',
+            samplesFolder: 'notes',
+            numberOfSamples: 150
+        };
+        
+        function formatSampleNumber(num) {
+            return `note_${String(num).padStart(3, '0')}`;
+        }
+        
+        // Audio
+        let audioContext;
+        let masterGain;
+        const samples = new Map();
+        const activeSources = new Map();
+        let midiAccess = null;
+        
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        // Node class - represents each vertex in the network
+        class Node {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.baseX = x;
+                this.baseY = y;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.connections = [];
+            }
+            
+            update() {
+                // Organic movement
+                this.vx += (Math.random() - 0.5) * 0.1;
+                this.vy += (Math.random() - 0.5) * 0.1;
+                
+                // Damping
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+                
+                // Apply velocity
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Spring back to base position
+                const dx = this.baseX - this.x;
+                const dy = this.baseY - this.y;
+                this.x += dx * 0.01;
+                this.y += dy * 0.01;
+                
+                // Keep in bounds
+                if (this.x < 0) this.x = 0;
+                if (this.x > width) this.x = width;
+                if (this.y < 0) this.y = 0;
+                if (this.y > height) this.y = height;
+            }
+        }
+        
+        // Cell class - represents each note/sample
+        class Cell {
+            constructor(noteNumber, nodes) {
+                this.noteNumber = noteNumber;
+                this.nodes = nodes; // Array of Node references that form this cell
+                
+                // Color based on note number
+                const hue = (noteNumber / (CONFIG.numberOfSamples + 1)) * 360;
+                this.hue = hue;
+                this.saturation = 60;
+                this.lightness = 50;
+                
+                this.active = false;
+                this.activePulse = 0;
+                this.baseAlpha = 0.2;
+                this.alpha = this.baseAlpha;
+            }
+            
+            update() {
+                if (this.active) {
+                    this.activePulse += 0.1;
+                    this.alpha = this.baseAlpha + Math.sin(this.activePulse) * 0.5;
+                    this.saturation = 60 + Math.sin(this.activePulse) * 30;
+                    this.lightness = 50 + Math.sin(this.activePulse) * 20;
+                    
+                    if (this.activePulse > Math.PI * 2) {
+                        this.active = false;
+                        this.activePulse = 0;
+                        this.alpha = this.baseAlpha;
+                        this.saturation = 60;
+                        this.lightness = 50;
+                    }
+                }
+            }
+            
+            draw() {
+                if (this.nodes.length < 3) return;
+                
+                // Draw filled cell
+                ctx.beginPath();
+                ctx.moveTo(this.nodes[0].x, this.nodes[0].y);
+                for (let i = 1; i < this.nodes.length; i++) {
+                    ctx.lineTo(this.nodes[i].x, this.nodes[i].y);
+                }
+                ctx.closePath();
+                
+                // Fill
+                ctx.fillStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, ${this.alpha})`;
+                ctx.fill();
+                
+                // Stroke
+                if (this.active) {
+                    ctx.strokeStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness + 20}%, 0.8)`;
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, 0.8)`;
+                } else {
+                    ctx.strokeStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness + 10}%, 0.4)`;
+                    ctx.lineWidth = 1.5;
+                    ctx.shadowBlur = 0;
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                
+                // Draw note number at center
+                const centerX = this.nodes.reduce((sum, n) => sum + n.x, 0) / this.nodes.length;
+                const centerY = this.nodes.reduce((sum, n) => sum + n.y, 0) / this.nodes.length;
+                
+                ctx.fillStyle = this.active ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)';
+                ctx.font = this.active ? 'bold 14px Georgia' : '12px Georgia';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.noteNumber, centerX, centerY);
+            }
+            
+            trigger() {
+                this.active = true;
+                this.activePulse = 0;
+            }
+            
+            containsPoint(x, y) {
+                // Ray casting algorithm to check if point is inside polygon
+                let inside = false;
+                for (let i = 0, j = this.nodes.length - 1; i < this.nodes.length; j = i++) {
+                    const xi = this.nodes[i].x, yi = this.nodes[i].y;
+                    const xj = this.nodes[j].x, yj = this.nodes[j].y;
+                    
+                    const intersect = ((yi > y) !== (yj > y))
+                        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                    if (intersect) inside = !inside;
+                }
+                return inside;
+            }
+        }
+        
+        // Create cellular network
+        const nodes = [];
+        const cells = [];
+        
+        function createCellularNetwork() {
+            const totalCells = CONFIG.numberOfSamples + 1;
+            
+            // Create a Voronoi-like structure
+            // We'll create a grid of nodes and then create cells from them
+            const gridSize = Math.ceil(Math.sqrt(totalCells));
+            const cellWidth = width / gridSize;
+            const cellHeight = height / gridSize;
+            
+            let cellIndex = 0;
+            
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    if (cellIndex > CONFIG.numberOfSamples) break;
+                    
+                    // Create 4 nodes for this cell with some randomness
+                    const baseX = col * cellWidth;
+                    const baseY = row * cellHeight;
+                    const randomness = 30;
+                    
+                    const cellNodes = [
+                        new Node(
+                            baseX + Math.random() * randomness,
+                            baseY + Math.random() * randomness
+                        ),
+                        new Node(
+                            baseX + cellWidth - Math.random() * randomness,
+                            baseY + Math.random() * randomness
+                        ),
+                        new Node(
+                            baseX + cellWidth - Math.random() * randomness,
+                            baseY + cellHeight - Math.random() * randomness
+                        ),
+                        new Node(
+                            baseX + Math.random() * randomness,
+                            baseY + cellHeight - Math.random() * randomness
+                        )
+                    ];
+                    
+                    // Add nodes to global array
+                    cellNodes.forEach(n => nodes.push(n));
+                    
+                    // Create cell
+                    cells.push(new Cell(cellIndex, cellNodes));
+                    
+                    cellIndex++;
+                }
+                if (cellIndex > CONFIG.numberOfSamples) break;
+            }
+        }
+        
+        // Animation loop
+        function animate() {
+            // Clear with trail effect
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Update nodes
+            nodes.forEach(node => node.update());
+            
+            // Update and draw cells
+            cells.forEach(cell => {
+                cell.update();
+                cell.draw();
+            });
+            
+            // Draw connection points (nodes)
+            ctx.fillStyle = 'rgba(177, 156, 217, 0.3)';
+            nodes.forEach(node => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Initialize audio
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = 0.8;
+                masterGain.connect(audioContext.destination);
+            }
+        }
+        
+        // Update status
+        function updateStatus(id, text, active = false) {
+            const el = document.getElementById(id);
+            el.textContent = text;
+            if (active) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+            }
+        }
+        
+        // Play sample
+        function playSample(sampleNumber, velocity = 127) {
+            if (!samples.has(sampleNumber)) return;
+            
+            initAudio();
+            
+            // Stop previous instance
+            if (activeSources.has(sampleNumber)) {
+                const { source } = activeSources.get(sampleNumber);
+                try {
+                    source.stop();
+                } catch (e) {}
+                activeSources.delete(sampleNumber);
+            }
+            
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            
+            source.buffer = samples.get(sampleNumber);
+            gainNode.gain.value = velocity / 127;
+            
+            source.connect(gainNode);
+            gainNode.connect(masterGain);
+            source.start(0);
+            
+            activeSources.set(sampleNumber, { source, gainNode });
+            
+            // Trigger cell animation
+            const cell = cells.find(c => c.noteNumber === sampleNumber);
+            if (cell) {
+                cell.trigger();
+            }
+            
+            source.onended = () => {
+                if (activeSources.get(sampleNumber)?.source === source) {
+                    activeSources.delete(sampleNumber);
+                }
+            };
+        }
+        
+        // Handle MIDI
+        function handleMIDIMessage(message) {
+            const [status, midiNote, velocity] = message.data;
+            const command = status & 0xf0;
+            
+            if (command === 0x90 && velocity > 0) {
+                const sampleNumber = midiNote % (CONFIG.numberOfSamples + 1);
+                playSample(sampleNumber, velocity);
+            }
+        }
+        
+        // Connect MIDI
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    updateStatus('midiStatus', 'MIDI: No Devices');
+                    alert('No MIDI devices found. Please connect a MIDI controller.');
+                    return;
+                }
+                
+                inputs.forEach(input => {
+                    input.onmidimessage = handleMIDIMessage;
+                });
+                
+                updateStatus('midiStatus', 'MIDI: Connected', true);
+                
+                midiAccess.onstatechange = (event) => {
+                    if (event.port.type === 'input') {
+                        const currentInputs = Array.from(midiAccess.inputs.values());
+                        if (currentInputs.length > 0) {
+                            updateStatus('midiStatus', 'MIDI: Connected', true);
+                        } else {
+                            updateStatus('midiStatus', 'MIDI: Disconnected', false);
+                        }
+                    }
+                };
+            } catch (error) {
+                updateStatus('midiStatus', 'MIDI: Error');
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        // Load sample
+        async function loadSample(sampleNumber) {
+            initAudio();
+            
+            const formats = ['wav', 'mp3'];
+            const fileName = formatSampleNumber(sampleNumber);
+            
+            for (const format of formats) {
+                const url = `https://raw.githubusercontent.com/${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/${fileName}.${format}`;
+                
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) continue;
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    samples.set(sampleNumber, audioBuffer);
+                    
+                    return true;
+                } catch (error) {
+                    console.error(`Failed ${fileName}.${format}:`, error.message);
+                }
+            }
+            
+            return false;
+        }
+        
+        // Auto-load samples
+        async function autoLoadSamples() {
+            const loadingDiv = document.getElementById('loading');
+            const progressBar = document.getElementById('progress');
+            
+            let loadedCount = 0;
+            const totalSamples = CONFIG.numberOfSamples + 1;
+            
+            for (let i = 0; i <= CONFIG.numberOfSamples; i++) {
+                if (await loadSample(i)) {
+                    loadedCount++;
+                }
+                
+                const progress = (i + 1) / totalSamples * 100;
+                progressBar.style.width = progress + '%';
+                updateStatus('sampleStatus', `Samples: ${loadedCount} / ${totalSamples}`);
+            }
+            
+            loadingDiv.style.display = 'none';
+            
+            if (loadedCount > 0) {
+                updateStatus('sampleStatus', `Samples: ${loadedCount} / ${totalSamples}`, true);
+            }
+        }
+        
+        // Mouse interaction - click cells to test
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Check if click is inside any cell
+            for (let i = cells.length - 1; i >= 0; i--) {
+                const cell = cells[i];
+                if (cell.containsPoint(x, y)) {
+                    if (samples.has(cell.noteNumber)) {
+                        playSample(cell.noteNumber, 100);
+                        break;
+                    }
+                }
+            }
+        });
+        
+        // Initialize
+        createCellularNetwork();
+        animate();
+        autoLoadSamples();
+        
+        document.getElementById('connectMidi').addEventListener('click', connectMIDI);
+        
+        if (!navigator.requestMIDIAccess) {
+            alert('Web MIDI API not supported. Please use Chrome, Edge, or Opera.');
+        }
+    </script>
+</body>
+</html>
