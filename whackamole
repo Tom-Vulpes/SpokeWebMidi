@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE Whack-a-Mole</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .score-panel {
+            display: flex;
+            gap: 40px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 900;
+            color: #fff;
+        }
+        
+        .timer {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 32px;
+            font-weight: 900;
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        .timer.warning {
+            background: rgba(255, 107, 107, 0.3);
+            animation: pulse 0.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Game Area */
+        .game-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        #gameCanvas {
+            max-width: 90vmin;
+            max-height: 80vh;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Start Screen */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .start-screen.hidden {
+            display: none;
+        }
+        
+        .game-title {
+            font-size: 64px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .game-subtitle {
+            font-size: 18px;
+            color: #999;
+            margin-bottom: 50px;
+            letter-spacing: 2px;
+        }
+        
+        .connect-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: #fff;
+            border: none;
+            padding: 20px 60px;
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(255, 107, 107, 0.4);
+            pointer-events: auto;
+        }
+        
+        .connect-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(255, 107, 107, 0.6);
+        }
+        
+        .connect-btn.connected {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+        
+        .instructions {
+            margin-top: 50px;
+            text-align: center;
+            color: #666;
+            max-width: 500px;
+        }
+        
+        .instruction-line {
+            margin: 12px 0;
+            font-size: 16px;
+        }
+        
+        /* Game Over */
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 60px 80px;
+            border-radius: 20px;
+            border: 3px solid #ff6b6b;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 0 50px rgba(255, 107, 107, 0.5);
+        }
+        
+        .game-over.visible {
+            display: block;
+        }
+        
+        .game-over h2 {
+            font-size: 56px;
+            margin-bottom: 20px;
+            color: #ff6b6b;
+            text-transform: uppercase;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .stat-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .stat-box-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-box-value {
+            font-size: 36px;
+            font-weight: 900;
+            color: #fff;
+        }
+        
+        .restart-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: #fff;
+            border: none;
+            padding: 18px 50px;
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        .restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="score-panel">
+            <div class="stat">
+                <div class="stat-label">Score</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Combo</div>
+                <div class="stat-value" id="combo">0</div>
+            </div>
+        </div>
+        
+        <div class="timer" id="timer">60</div>
+    </div>
+    
+    <!-- Game Area -->
+    <div class="game-area">
+        <canvas id="gameCanvas" width="800" height="800"></canvas>
+    </div>
+    
+    <!-- Start Screen -->
+    <div class="start-screen" id="startScreen">
+        <h1 class="game-title">WHACK-A-MOLE</h1>
+        <p class="game-subtitle">Powered by SPOKE</p>
+        <button class="connect-btn" id="connectBtn">Connect MIDI</button>
+        <div class="instructions">
+            <div class="instruction-line">Touch the pads when moles appear</div>
+            <div class="instruction-line">Hit as many as you can in 60 seconds</div>
+            <div class="instruction-line">Build combos for bonus points!</div>
+        </div>
+    </div>
+    
+    <!-- Game Over Screen -->
+    <div class="game-over" id="gameOver">
+        <h2>TIME'S UP!</h2>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-box-label">Final Score</div>
+                <div class="stat-box-value" id="finalScore">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-box-label">Moles Hit</div>
+                <div class="stat-box-value" id="molesHit">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-box-label">Accuracy</div>
+                <div class="stat-box-value" id="accuracy">0%</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-box-label">Best Combo</div>
+                <div class="stat-box-value" id="bestCombo">0</div>
+            </div>
+        </div>
+        <button class="restart-btn" id="restartBtn">Play Again</button>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        // SPOKE Notes (27 pads)
+        const SPOKE_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36];
+        
+        // Game state
+        let gameRunning = false;
+        let score = 0;
+        let combo = 0;
+        let bestCombo = 0;
+        let hits = 0;
+        let misses = 0;
+        let timeLeft = 60;
+        let gameTimer;
+        let midiAccess = null;
+        
+        // Mole/Hole class
+        class Hole {
+            constructor(index, x, y) {
+                this.index = index;
+                this.x = x;
+                this.y = y;
+                this.radius = 35;
+                this.midiNote = SPOKE_NOTES[index];
+                
+                this.hasMole = false;
+                this.moleTimer = 0;
+                this.moleUpTime = 0;
+                this.moleMaxTime = 2000; // 2 seconds
+                
+                this.hitEffect = 0;
+                this.missEffect = 0;
+            }
+            
+            update(deltaTime) {
+                // Mole timer
+                if (!this.hasMole) {
+                    this.moleTimer += deltaTime;
+                    // Random spawn chance
+                    if (this.moleTimer > 500 && Math.random() < 0.002) {
+                        this.spawnMole();
+                    }
+                } else {
+                    this.moleUpTime += deltaTime;
+                    if (this.moleUpTime > this.moleMaxTime) {
+                        this.hideMole();
+                        misses++;
+                        combo = 0;
+                        this.missEffect = 1;
+                    }
+                }
+                
+                // Effects decay
+                if (this.hitEffect > 0) this.hitEffect -= 0.05;
+                if (this.missEffect > 0) this.missEffect -= 0.05;
+            }
+            
+            spawnMole() {
+                this.hasMole = true;
+                this.moleTimer = 0;
+                this.moleUpTime = 0;
+            }
+            
+            hideMole() {
+                this.hasMole = false;
+                this.moleTimer = 0;
+                this.moleUpTime = 0;
+            }
+            
+            hit() {
+                if (this.hasMole) {
+                    this.hideMole();
+                    hits++;
+                    combo++;
+                    if (combo > bestCombo) bestCombo = combo;
+                    
+                    // Combo multiplier
+                    const comboBonus = Math.floor(combo / 5);
+                    score += 10 + (comboBonus * 5);
+                    
+                    this.hitEffect = 1;
+                    return true;
+                }
+                return false;
+            }
+            
+            draw() {
+                // Hole (dark circle)
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#2c3e50';
+                ctx.fill();
+                ctx.strokeStyle = '#1a252f';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                // Pad number
+                ctx.fillStyle = '#555';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.index + 1, this.x, this.y + this.radius + 15);
+                
+                // Mole
+                if (this.hasMole) {
+                    const moleY = this.y - (this.moleUpTime / this.moleMaxTime) * 10;
+                    
+                    // Mole body
+                    ctx.beginPath();
+                    ctx.arc(this.x, moleY, this.radius * 0.8, 0, Math.PI * 2);
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fill();
+                    ctx.strokeStyle = '#654321';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // Mole face
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(this.x - 10, moleY - 5, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(this.x + 10, moleY - 5, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Nose
+                    ctx.fillStyle = '#FF69B4';
+                    ctx.beginPath();
+                    ctx.arc(this.x, moleY + 5, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Glow effect
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = 'rgba(255, 107, 107, 0.6)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, moleY, this.radius * 0.9, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 107, 107, 0.8)';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+                
+                // Hit effect
+                if (this.hitEffect > 0) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius * (1 + this.hitEffect), 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(76, 175, 80, ${this.hitEffect})`;
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                    
+                    // +10 text
+                    ctx.fillStyle = `rgba(76, 175, 80, ${this.hitEffect})`;
+                    ctx.font = 'bold 20px Arial';
+                    ctx.fillText('+' + (10 + Math.floor(combo / 5) * 5), this.x, this.y - 50);
+                }
+                
+                // Miss effect
+                if (this.missEffect > 0) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius * (1 + this.missEffect), 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(255, 107, 107, ${this.missEffect})`;
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // Create holes in a grid
+        const holes = [];
+        function createHoles() {
+            const rows = 5;
+            const cols = 6;
+            const startX = 100;
+            const startY = 100;
+            const spacingX = 120;
+            const spacingY = 130;
+            
+            let index = 0;
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    if (index >= 27) break;
+                    
+                    const x = startX + col * spacingX;
+                    const y = startY + row * spacingY;
+                    
+                    holes.push(new Hole(index, x, y));
+                    index++;
+                }
+            }
+            
+            // Add last 3 in a partial row
+            for (let col = 0; col < 3; col++) {
+                if (index >= 27) break;
+                const x = startX + col * spacingX;
+                const y = startY + rows * spacingY;
+                holes.push(new Hole(index, x, y));
+                index++;
+            }
+        }
+        
+        // Game loop
+        let lastTime = Date.now();
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            const now = Date.now();
+            const deltaTime = now - lastTime;
+            lastTime = now;
+            
+            // Clear
+            ctx.fillStyle = '#34495e';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Update and draw holes
+            holes.forEach(hole => {
+                hole.update(deltaTime);
+                hole.draw();
+            });
+            
+            // Update UI
+            document.getElementById('score').textContent = score;
+            document.getElementById('combo').textContent = combo + 'x';
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Timer countdown
+        function startTimer() {
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = timeLeft;
+                
+                if (timeLeft <= 10) {
+                    document.getElementById('timer').classList.add('warning');
+                }
+                
+                if (timeLeft <= 0) {
+                    gameOver();
+                }
+            }, 1000);
+        }
+        
+        // MIDI handling
+        function handleMIDIMessage(message) {
+            const [status, midiNote, velocity] = message.data;
+            const command = status & 0xf0;
+            
+            if (command === 0x90 && velocity > 0 && gameRunning) {
+                const holeIndex = SPOKE_NOTES.indexOf(midiNote);
+                if (holeIndex !== -1) {
+                    holes[holeIndex].hit();
+                }
+            }
+        }
+        
+        // Connect MIDI
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    alert('No MIDI devices found');
+                    return;
+                }
+                
+                inputs.forEach(input => input.onmidimessage = handleMIDIMessage);
+                
+                document.getElementById('connectBtn').textContent = 'MIDI Connected - Starting...';
+                document.getElementById('connectBtn').classList.add('connected');
+                
+                setTimeout(startGame, 2000);
+                
+            } catch (error) {
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        // Start game
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            gameRunning = true;
+            
+            // Reset
+            score = 0;
+            combo = 0;
+            bestCombo = 0;
+            hits = 0;
+            misses = 0;
+            timeLeft = 60;
+            document.getElementById('timer').classList.remove('warning');
+            
+            holes.forEach(hole => {
+                hole.hasMole = false;
+                hole.moleTimer = 0;
+                hole.hitEffect = 0;
+                hole.missEffect = 0;
+            });
+            
+            lastTime = Date.now();
+            gameLoop();
+            startTimer();
+        }
+        
+        // Game over
+        function gameOver() {
+            gameRunning = false;
+            clearInterval(gameTimer);
+            
+            const accuracy = hits + misses > 0 ? Math.round((hits / (hits + misses)) * 100) : 0;
+            
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('molesHit').textContent = hits;
+            document.getElementById('accuracy').textContent = accuracy + '%';
+            document.getElementById('bestCombo').textContent = bestCombo + 'x';
+            document.getElementById('gameOver').classList.add('visible');
+        }
+        
+        // Restart
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            document.getElementById('gameOver').classList.remove('visible');
+            startGame();
+        });
+        
+        // Connect button
+        document.getElementById('connectBtn').addEventListener('click', connectMIDI);
+        
+        // Click holes to test
+        canvas.addEventListener('click', (e) => {
+            if (!gameRunning) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (width / rect.width);
+            const y = (e.clientY - rect.top) * (height / rect.height);
+            
+            holes.forEach(hole => {
+                const dx = x - hole.x;
+                const dy = y - hole.y;
+                if (Math.sqrt(dx * dx + dy * dy) < hole.radius) {
+                    hole.hit();
+                }
+            });
+        });
+        
+        // Initialize
+        createHoles();
+        
+        if (!navigator.requestMIDIAccess) {
+            alert('Web MIDI not supported. Please use Chrome, Edge, or Opera.');
+        }
+    </script>
+</body>
+</html>
