@@ -216,9 +216,10 @@
         </div>
         
         <div class="controls-info">
-            <div class="control-item"><span class="control-key">Pad 1-9</span> Rotate Left</div>
-            <div class="control-item"><span class="control-key">Pad 10-18</span> Rotate Right</div>
-            <div class="control-item"><span class="control-key">Pad 19-27</span> Thrust/Shoot</div>
+            <div class="control-item"><span class="control-key">Pad 1-6</span> Rotate Left</div>
+            <div class="control-item"><span class="control-key">Pad 7-13</span> Rotate Right</div>
+            <div class="control-item"><span class="control-key">Pad 14-20</span> Thrust</div>
+            <div class="control-item"><span class="control-key">Pad 21-27</span> Shoot</div>
             <div class="control-item" style="margin-top: 15px; color: #666;">Or use Arrow Keys + Space</div>
         </div>
     </div>
@@ -229,9 +230,10 @@
         <p class="game-subtitle">Powered by SPOKE</p>
         <button class="connect-btn" id="connectBtn">Connect MIDI</button>
         <div class="instructions">
-            <div class="instruction-line">Touch left pads to rotate left</div>
-            <div class="instruction-line">Touch center pads to rotate right</div>
-            <div class="instruction-line">Touch right pads to thrust and shoot</div>
+            <div class="instruction-line">Pads 1-6: Rotate Left</div>
+            <div class="instruction-line">Pads 7-13: Rotate Right</div>
+            <div class="instruction-line">Pads 14-20: Thrust Forward</div>
+            <div class="instruction-line">Pads 21-27: Shoot</div>
         </div>
     </div>
     
@@ -260,10 +262,11 @@
         let lives = 3;
         let midiAccess = null;
         
-        // MIDI Note Groups (27 pads)
-        const LEFT_PADS = [98, 96, 93, 91, 88, 86, 84, 81, 79];  // Pads 1-9
-        const RIGHT_PADS = [76, 74, 72, 69, 67, 64, 62, 60, 57]; // Pads 10-18
-        const THRUST_PADS = [55, 52, 50, 48, 45, 43, 40, 38, 36]; // Pads 19-27
+        // MIDI Note Groups (27 pads divided into 4 zones)
+        const LEFT_PADS = [98, 96, 93, 91, 88, 86];        // Pads 1-6: Rotate Left
+        const RIGHT_PADS = [84, 81, 79, 76, 74, 72, 69];   // Pads 7-13: Rotate Right
+        const THRUST_PADS = [67, 64, 62, 60, 57, 55, 52];  // Pads 14-20: Thrust
+        const SHOOT_PADS = [50, 48, 45, 43, 40, 38, 36];   // Pads 21-27: Shoot
         
         // Input state
         const keys = {
@@ -301,9 +304,9 @@
                 this.vy = 0;
                 this.angle = -Math.PI / 2;
                 this.size = 15;
-                this.thrustPower = 0.3;
-                this.rotationSpeed = 0.08;
-                this.friction = 0.99;
+                this.thrustPower = 0.15;      // Reduced from 0.3
+                this.rotationSpeed = 0.05;     // Reduced from 0.08
+                this.friction = 0.98;          // Increased friction (was 0.99)
             }
             
             update() {
@@ -637,17 +640,17 @@
                     keys.left = true;
                     setTimeout(() => keys.left = false, 100);
                 }
-                if (RIGHT_PADS.includes(midiNote)) {
+                else if (RIGHT_PADS.includes(midiNote)) {
                     keys.right = true;
                     setTimeout(() => keys.right = false, 100);
                 }
-                if (THRUST_PADS.includes(midiNote)) {
+                else if (THRUST_PADS.includes(midiNote)) {
                     keys.thrust = true;
+                    setTimeout(() => keys.thrust = false, 150);
+                }
+                else if (SHOOT_PADS.includes(midiNote)) {
                     keys.shoot = true;
-                    setTimeout(() => {
-                        keys.thrust = false;
-                        keys.shoot = false;
-                    }, 150);
+                    setTimeout(() => keys.shoot = false, 100);
                 }
             }
         }
