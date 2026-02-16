@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE Space Shooter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        
+        /* UI Overlay */
+        .ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .score-panel {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 25px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .score {
+            font-size: 32px;
+            font-weight: 700;
+            color: #4CAF50;
+        }
+        
+        .lives {
+            font-size: 18px;
+            margin-top: 5px;
+            color: #fff;
+        }
+        
+        .controls-info {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 25px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 300px;
+        }
+        
+        .control-item {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        .control-key {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #fff;
+            margin-right: 8px;
+        }
+        
+        /* Start Screen */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .start-screen.hidden {
+            display: none;
+        }
+        
+        .game-title {
+            font-size: 64px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .game-subtitle {
+            font-size: 18px;
+            color: #999;
+            margin-bottom: 50px;
+            letter-spacing: 2px;
+        }
+        
+        .connect-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            padding: 20px 60px;
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+            pointer-events: auto;
+        }
+        
+        .connect-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(102, 126, 234, 0.6);
+        }
+        
+        .connect-btn.connected {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+        
+        .instructions {
+            margin-top: 50px;
+            text-align: center;
+            color: #666;
+            max-width: 500px;
+        }
+        
+        .instruction-line {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        
+        /* Game Over */
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 50px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: none;
+            z-index: 100;
+        }
+        
+        .game-over.visible {
+            display: block;
+        }
+        
+        .game-over h2 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #ff4757;
+        }
+        
+        .final-score {
+            font-size: 32px;
+            margin-bottom: 30px;
+            color: #4CAF50;
+        }
+        
+        .restart-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 30px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- UI Overlay -->
+    <div class="ui">
+        <div class="score-panel">
+            <div class="score" id="score">0</div>
+            <div class="lives" id="lives">❤️ ❤️ ❤️</div>
+        </div>
+        
+        <div class="controls-info">
+            <div class="control-item"><span class="control-key">Pad 1-9</span> Rotate Left</div>
+            <div class="control-item"><span class="control-key">Pad 10-18</span> Rotate Right</div>
+            <div class="control-item"><span class="control-key">Pad 19-27</span> Thrust/Shoot</div>
+            <div class="control-item" style="margin-top: 15px; color: #666;">Or use Arrow Keys + Space</div>
+        </div>
+    </div>
+    
+    <!-- Start Screen -->
+    <div class="start-screen" id="startScreen">
+        <h1 class="game-title">SPACE SHOOTER</h1>
+        <p class="game-subtitle">Powered by SPOKE</p>
+        <button class="connect-btn" id="connectBtn">Connect MIDI</button>
+        <div class="instructions">
+            <div class="instruction-line">Touch left pads to rotate left</div>
+            <div class="instruction-line">Touch center pads to rotate right</div>
+            <div class="instruction-line">Touch right pads to thrust and shoot</div>
+        </div>
+    </div>
+    
+    <!-- Game Over Screen -->
+    <div class="game-over" id="gameOver">
+        <h2>GAME OVER</h2>
+        <div class="final-score">Final Score: <span id="finalScore">0</span></div>
+        <button class="restart-btn" id="restartBtn">Play Again</button>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        // Game state
+        let gameRunning = false;
+        let score = 0;
+        let lives = 3;
+        let midiAccess = null;
+        
+        // MIDI Note Groups (27 pads)
+        const LEFT_PADS = [98, 96, 93, 91, 88, 86, 84, 81, 79];  // Pads 1-9
+        const RIGHT_PADS = [76, 74, 72, 69, 67, 64, 62, 60, 57]; // Pads 10-18
+        const THRUST_PADS = [55, 52, 50, 48, 45, 43, 40, 38, 36]; // Pads 19-27
+        
+        // Input state
+        const keys = {
+            left: false,
+            right: false,
+            thrust: false,
+            shoot: false
+        };
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === 'ArrowRight') keys.right = true;
+            if (e.key === 'ArrowUp') keys.thrust = true;
+            if (e.key === ' ') { keys.shoot = true; e.preventDefault(); }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = false;
+            if (e.key === 'ArrowRight') keys.right = false;
+            if (e.key === 'ArrowUp') keys.thrust = false;
+            if (e.key === ' ') keys.shoot = false;
+        });
+        
+        // Player ship
+        class Ship {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                this.x = canvas.width / 2;
+                this.y = canvas.height / 2;
+                this.vx = 0;
+                this.vy = 0;
+                this.angle = -Math.PI / 2;
+                this.size = 15;
+                this.thrustPower = 0.3;
+                this.rotationSpeed = 0.08;
+                this.friction = 0.99;
+            }
+            
+            update() {
+                // Rotation
+                if (keys.left) this.angle -= this.rotationSpeed;
+                if (keys.right) this.angle += this.rotationSpeed;
+                
+                // Thrust
+                if (keys.thrust) {
+                    this.vx += Math.cos(this.angle) * this.thrustPower;
+                    this.vy += Math.sin(this.angle) * this.thrustPower;
+                }
+                
+                // Apply friction
+                this.vx *= this.friction;
+                this.vy *= this.friction;
+                
+                // Update position
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Wrap around screen
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                
+                // Ship body
+                ctx.beginPath();
+                ctx.moveTo(this.size, 0);
+                ctx.lineTo(-this.size, -this.size * 0.7);
+                ctx.lineTo(-this.size * 0.5, 0);
+                ctx.lineTo(-this.size, this.size * 0.7);
+                ctx.closePath();
+                ctx.strokeStyle = '#4CAF50';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(76, 175, 80, 0.3)';
+                ctx.fill();
+                
+                // Thrust flame
+                if (keys.thrust) {
+                    ctx.beginPath();
+                    ctx.moveTo(-this.size * 0.5, 0);
+                    ctx.lineTo(-this.size * 1.5, -this.size * 0.4);
+                    ctx.lineTo(-this.size * 2, 0);
+                    ctx.lineTo(-this.size * 1.5, this.size * 0.4);
+                    ctx.closePath();
+                    ctx.fillStyle = '#ff6b6b';
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+            }
+        }
+        
+        // Bullet
+        class Bullet {
+            constructor(x, y, angle) {
+                this.x = x;
+                this.y = y;
+                this.vx = Math.cos(angle) * 8;
+                this.vy = Math.sin(angle) * 8;
+                this.life = 60;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+                
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+            }
+        }
+        
+        // Asteroid
+        class Asteroid {
+            constructor(x, y, size = 3) {
+                this.x = x || Math.random() * canvas.width;
+                this.y = y || Math.random() * canvas.height;
+                this.size = size;
+                this.radius = size * 15;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.rotation = 0;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.05;
+                
+                // Create irregular shape
+                this.points = [];
+                const numPoints = 8;
+                for (let i = 0; i < numPoints; i++) {
+                    const angle = (i / numPoints) * Math.PI * 2;
+                    const variance = 0.5 + Math.random() * 0.5;
+                    this.points.push({
+                        angle: angle,
+                        dist: this.radius * variance
+                    });
+                }
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.rotation += this.rotationSpeed;
+                
+                if (this.x < -this.radius) this.x = canvas.width + this.radius;
+                if (this.x > canvas.width + this.radius) this.x = -this.radius;
+                if (this.y < -this.radius) this.y = canvas.height + this.radius;
+                if (this.y > canvas.height + this.radius) this.y = -this.radius;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                
+                ctx.beginPath();
+                this.points.forEach((point, i) => {
+                    const x = Math.cos(point.angle) * point.dist;
+                    const y = Math.sin(point.angle) * point.dist;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.closePath();
+                ctx.strokeStyle = '#667eea';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+            
+            split() {
+                if (this.size > 1) {
+                    return [
+                        new Asteroid(this.x, this.y, this.size - 1),
+                        new Asteroid(this.x, this.y, this.size - 1)
+                    ];
+                }
+                return [];
+            }
+        }
+        
+        // Game objects
+        let ship = new Ship();
+        let bullets = [];
+        let asteroids = [];
+        let particles = [];
+        let shootCooldown = 0;
+        
+        // Particle effect
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.life = 30;
+                this.maxLife = 30;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+            }
+            
+            draw() {
+                const alpha = this.life / this.maxLife;
+                ctx.fillStyle = `rgba(102, 126, 234, ${alpha})`;
+                ctx.fillRect(this.x, this.y, 2, 2);
+            }
+        }
+        
+        // Initialize game
+        function initGame() {
+            score = 0;
+            lives = 3;
+            bullets = [];
+            asteroids = [];
+            particles = [];
+            ship.reset();
+            
+            // Spawn initial asteroids
+            for (let i = 0; i < 5; i++) {
+                let x, y;
+                do {
+                    x = Math.random() * canvas.width;
+                    y = Math.random() * canvas.height;
+                } while (Math.hypot(x - ship.x, y - ship.y) < 150);
+                
+                asteroids.push(new Asteroid(x, y));
+            }
+            
+            updateUI();
+        }
+        
+        // Update UI
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('lives').textContent = '❤️ '.repeat(lives);
+        }
+        
+        // Game loop
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Clear
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Starfield effect
+            for (let i = 0; i < 50; i++) {
+                const x = (i * 137.5) % canvas.width;
+                const y = (i * 271.3) % canvas.height;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillRect(x, y, 1, 1);
+            }
+            
+            // Update ship
+            ship.update();
+            ship.draw();
+            
+            // Shooting
+            if (keys.shoot && shootCooldown === 0) {
+                bullets.push(new Bullet(
+                    ship.x + Math.cos(ship.angle) * ship.size,
+                    ship.y + Math.sin(ship.angle) * ship.size,
+                    ship.angle
+                ));
+                shootCooldown = 15;
+            }
+            if (shootCooldown > 0) shootCooldown--;
+            
+            // Update bullets
+            bullets = bullets.filter(b => b.life > 0);
+            bullets.forEach(bullet => {
+                bullet.update();
+                bullet.draw();
+            });
+            
+            // Update asteroids
+            asteroids.forEach(asteroid => {
+                asteroid.update();
+                asteroid.draw();
+            });
+            
+            // Update particles
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            
+            // Collision detection
+            bullets.forEach((bullet, bi) => {
+                asteroids.forEach((asteroid, ai) => {
+                    const dx = bullet.x - asteroid.x;
+                    const dy = bullet.y - asteroid.y;
+                    if (Math.hypot(dx, dy) < asteroid.radius) {
+                        // Hit!
+                        bullets.splice(bi, 1);
+                        const newAsteroids = asteroid.split();
+                        asteroids.splice(ai, 1);
+                        asteroids.push(...newAsteroids);
+                        
+                        // Particles
+                        for (let i = 0; i < 10; i++) {
+                            particles.push(new Particle(asteroid.x, asteroid.y));
+                        }
+                        
+                        score += asteroid.size * 10;
+                        updateUI();
+                    }
+                });
+            });
+            
+            // Ship-asteroid collision
+            asteroids.forEach((asteroid) => {
+                const dx = ship.x - asteroid.x;
+                const dy = ship.y - asteroid.y;
+                if (Math.hypot(dx, dy) < asteroid.radius + ship.size) {
+                    lives--;
+                    updateUI();
+                    ship.reset();
+                    
+                    if (lives <= 0) {
+                        gameOver();
+                    }
+                }
+            });
+            
+            // Spawn more asteroids
+            if (asteroids.length < 3 + Math.floor(score / 100)) {
+                asteroids.push(new Asteroid());
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Game over
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOver').classList.add('visible');
+        }
+        
+        // MIDI handling
+        function handleMIDIMessage(message) {
+            const [status, midiNote, velocity] = message.data;
+            const command = status & 0xf0;
+            
+            if (command === 0x90 && velocity > 0) {
+                // Note On
+                if (LEFT_PADS.includes(midiNote)) {
+                    keys.left = true;
+                    setTimeout(() => keys.left = false, 100);
+                }
+                if (RIGHT_PADS.includes(midiNote)) {
+                    keys.right = true;
+                    setTimeout(() => keys.right = false, 100);
+                }
+                if (THRUST_PADS.includes(midiNote)) {
+                    keys.thrust = true;
+                    keys.shoot = true;
+                    setTimeout(() => {
+                        keys.thrust = false;
+                        keys.shoot = false;
+                    }, 150);
+                }
+            }
+        }
+        
+        // Connect MIDI
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    alert('No MIDI devices found');
+                    return;
+                }
+                
+                inputs.forEach(input => input.onmidimessage = handleMIDIMessage);
+                
+                document.getElementById('connectBtn').textContent = 'MIDI Connected - Press Any Pad to Start';
+                document.getElementById('connectBtn').classList.add('connected');
+                
+                setTimeout(startGame, 2000);
+                
+            } catch (error) {
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        // Start game
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            gameRunning = true;
+            initGame();
+            gameLoop();
+        }
+        
+        // Restart
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            document.getElementById('gameOver').classList.remove('visible');
+            startGame();
+        });
+        
+        // Connect button
+        document.getElementById('connectBtn').addEventListener('click', connectMIDI);
+        
+        if (!navigator.requestMIDIAccess) {
+            alert('Web MIDI not supported. Please use Chrome, Edge, or Opera.');
+        }
+    </script>
+</body>
+</html>
