@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE Live Sampler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+        }
+        
+        .title {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        
+        /* Main Container */
+        .container {
+            flex: 1;
+            display: flex;
+            gap: 30px;
+            padding: 0 30px 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        /* Recorder Section */
+        .recorder-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .recorder-card {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        /* Recording Controls */
+        .recording-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .record-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .record-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 71, 87, 0.5);
+        }
+        
+        .record-btn.recording {
+            background: #ee5a6f;
+            animation: pulse-red 1.5s infinite;
+        }
+        
+        .record-btn.stopped {
+            background: #4CAF50;
+        }
+        
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+            50% { box-shadow: 0 0 0 15px rgba(255, 71, 87, 0); }
+        }
+        
+        .record-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: white;
+        }
+        
+        .record-btn.recording .record-indicator {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        /* Waveform Visualizer */
+        .waveform-container {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            height: 150px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #waveform {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .waveform-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 14px;
+            pointer-events: none;
+        }
+        
+        /* Slot Assignment */
+        .slot-assignment {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
+        }
+        
+        .slot-btn {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .slot-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .slot-btn.selected {
+            background: #4CAF50;
+            border-color: #4CAF50;
+            transform: scale(1.1);
+        }
+        
+        .slot-btn.has-sample {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4CAF50;
+        }
+        
+        .slot-btn.has-sample::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            background: #4CAF50;
+            border-radius: 50%;
+            box-shadow: 0 0 5px #4CAF50;
+        }
+        
+        /* Board Section */
+        .board-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #boardCanvas {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+        
+        .board-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .control-btn {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .control-btn.active {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4CAF50;
+        }
+        
+        /* Help text */
+        .help-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="title">SPOKE LIVE SAMPLER</h1>
+        <p class="subtitle">Record sounds and play them on your SPOKE board</p>
+    </div>
+    
+    <div class="container">
+        <!-- Recorder Section -->
+        <div class="recorder-section">
+            <!-- Recording Controls -->
+            <div class="recorder-card">
+                <div class="card-title">Record Audio</div>
+                <div class="recording-controls">
+                    <button class="record-btn" id="recordBtn">
+                        <span class="record-indicator"></span>
+                        <span id="recordBtnText">Start Recording</span>
+                    </button>
+                    
+                    <div class="waveform-container">
+                        <canvas id="waveform"></canvas>
+                        <div class="waveform-placeholder" id="waveformPlaceholder">
+                            Waveform appears here during recording
+                        </div>
+                    </div>
+                    
+                    <div class="help-text">
+                        Click to start recording, click again to stop
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slot Assignment -->
+            <div class="recorder-card">
+                <div class="card-title">Assign to Pad</div>
+                <div class="slot-assignment" id="slotGrid"></div>
+                <div class="help-text">
+                    Select a pad number to assign your recording
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="recorder-card">
+                <div class="card-title">Actions</div>
+                <button class="control-btn" id="clearAllBtn" style="width: 100%;">Clear All Samples</button>
+            </div>
+        </div>
+        
+        <!-- Board Section -->
+        <div class="board-section">
+            <canvas id="boardCanvas" width="600" height="600"></canvas>
+            <div class="board-controls">
+                <button class="control-btn" id="connectMidiBtn">Connect MIDI</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SPOKE configuration
+        const SPOKE_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36];
+        const NUM_PADS = 27;
+        
+        // State
+        let audioContext;
+        let masterGain;
+        let mediaRecorder;
+        let mediaStream;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordedBuffer = null;
+        let selectedSlot = null;
+        const sampleBuffers = new Map();
+        const activeSources = new Map();
+        let midiAccess = null;
+        
+        // Waveform visualization
+        let analyser;
+        let animationId;
+        const waveCanvas = document.getElementById('waveform');
+        const waveCtx = waveCanvas.getContext('2d');
+        
+        function resizeWaveform() {
+            const container = waveCanvas.parentElement;
+            waveCanvas.width = container.clientWidth;
+            waveCanvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeWaveform);
+        resizeWaveform();
+        
+        // Initialize audio context
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = 0.8;
+                masterGain.connect(audioContext.destination);
+            }
+        }
+        
+        // Waveform drawing
+        function drawWaveform() {
+            if (!analyser) return;
+            
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteTimeDomainData(dataArray);
+            
+            waveCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            waveCtx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+            
+            waveCtx.lineWidth = 2;
+            waveCtx.strokeStyle = '#4CAF50';
+            waveCtx.beginPath();
+            
+            const sliceWidth = waveCanvas.width / bufferLength;
+            let x = 0;
+            
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * waveCanvas.height / 2;
+                
+                if (i === 0) {
+                    waveCtx.moveTo(x, y);
+                } else {
+                    waveCtx.lineTo(x, y);
+                }
+                
+                x += sliceWidth;
+            }
+            
+            waveCtx.lineTo(waveCanvas.width, waveCanvas.height / 2);
+            waveCtx.stroke();
+            
+            animationId = requestAnimationFrame(drawWaveform);
+        }
+        
+        // Start recording
+        async function startRecording() {
+            try {
+                initAudio();
+                
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Setup analyser for waveform
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                source.connect(analyser);
+                analyser.fftSize = 2048;
+                
+                // Start drawing waveform
+                document.getElementById('waveformPlaceholder').style.display = 'none';
+                drawWaveform();
+                
+                // Setup recorder
+                mediaRecorder = new MediaRecorder(mediaStream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const arrayBuffer = await audioBlob.arrayBuffer();
+                    recordedBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    
+                    // Stop waveform animation
+                    cancelAnimationFrame(animationId);
+                    
+                    // Clear waveform
+                    waveCtx.fillStyle = 'rgba(0, 0, 0, 1)';
+                    waveCtx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+                    
+                    // Show placeholder
+                    document.getElementById('waveformPlaceholder').style.display = 'block';
+                    document.getElementById('waveformPlaceholder').textContent = 'Recording saved! Select a pad to assign it.';
+                    
+                    // Stop media stream
+                    mediaStream.getTracks().forEach(track => track.stop());
+                };
+                
+                mediaRecorder.start();
+                isRecording = true;
+                
+                document.getElementById('recordBtn').classList.add('recording');
+                document.getElementById('recordBtnText').textContent = 'Stop Recording';
+                
+            } catch (error) {
+                alert('Microphone access denied: ' + error.message);
+            }
+        }
+        
+        // Stop recording
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                document.getElementById('recordBtn').classList.remove('recording');
+                document.getElementById('recordBtn').classList.add('stopped');
+                document.getElementById('recordBtnText').textContent = 'Start Recording';
+            }
+        }
+        
+        // Assign recording to slot
+        function assignToSlot(slotIndex) {
+            if (!recordedBuffer) {
+                alert('Please record something first!');
+                return;
+            }
+            
+            sampleBuffers.set(slotIndex, recordedBuffer);
+            recordedBuffer = null;
+            
+            // Update UI
+            updateSlotButtons();
+            document.getElementById('waveformPlaceholder').textContent = 'Waveform appears here during recording';
+            document.getElementById('recordBtn').classList.remove('stopped');
+        }
+        
+        // Play sample
+        function playSample(slotIndex, velocity = 127) {
+            if (!sampleBuffers.has(slotIndex)) return;
+            
+            initAudio();
+            
+            // Stop previous
+            if (activeSources.has(slotIndex)) {
+                try { activeSources.get(slotIndex).source.stop(); } catch (e) {}
+                activeSources.delete(slotIndex);
+            }
+            
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            
+            source.buffer = sampleBuffers.get(slotIndex);
+            gainNode.gain.value = velocity / 127;
+            
+            source.connect(gainNode);
+            gainNode.connect(masterGain);
+            source.start(0);
+            
+            activeSources.set(slotIndex, { source, gainNode });
+            
+            // Visual feedback
+            pads[slotIndex].trigger();
+            
+            source.onended = () => {
+                if (activeSources.get(slotIndex)?.source === source) {
+                    activeSources.delete(slotIndex);
+                }
+            };
+        }
+        
+        // Create slot buttons
+        function createSlotButtons() {
+            const grid = document.getElementById('slotGrid');
+            for (let i = 0; i < NUM_PADS; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'slot-btn';
+                btn.textContent = i + 1;
+                btn.dataset.slot = i;
+                btn.addEventListener('click', () => {
+                    selectedSlot = i;
+                    assignToSlot(i);
+                });
+                grid.appendChild(btn);
+            }
+        }
+        
+        // Update slot button states
+        function updateSlotButtons() {
+            document.querySelectorAll('.slot-btn').forEach((btn, index) => {
+                btn.classList.remove('selected', 'has-sample');
+                if (sampleBuffers.has(index)) {
+                    btn.classList.add('has-sample');
+                }
+                if (index === selectedSlot) {
+                    btn.classList.add('selected');
+                }
+            });
+        }
+        
+        // Clear all samples
+        function clearAllSamples() {
+            if (confirm('Clear all recorded samples?')) {
+                sampleBuffers.clear();
+                updateSlotButtons();
+            }
+        }
+        
+        // SPOKE Board Visualization
+        const canvas = document.getElementById('boardCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        class Pad {
+            constructor(index, angle, midiNote) {
+                this.index = index;
+                this.angle = angle;
+                this.midiNote = midiNote;
+                
+                const radius = Math.min(width, height) * 0.38;
+                this.x = width / 2 + Math.cos(angle) * radius;
+                this.y = height / 2 + Math.sin(angle) * radius;
+                this.size = 22;
+                this.active = false;
+                this.activePulse = 0;
+            }
+            
+            update() {
+                if (this.active) {
+                    this.activePulse += 0.15;
+                    if (this.activePulse > Math.PI * 2) {
+                        this.active = false;
+                        this.activePulse = 0;
+                    }
+                }
+            }
+            
+            draw() {
+                const hasSample = sampleBuffers.has(this.index);
+                
+                // Glow
+                if (this.active) {
+                    const glowSize = this.size + Math.sin(this.activePulse) * 20;
+                    const gradient = ctx.createRadialGradient(this.x, this.y, this.size * 0.3, this.x, this.y, glowSize);
+                    gradient.addColorStop(0, 'rgba(76, 175, 80, 0.8)');
+                    gradient.addColorStop(1, 'rgba(76, 175, 80, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, glowSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Main pad
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.active ? '#4CAF50' : (hasSample ? '#2e7d32' : '#333');
+                ctx.fill();
+                ctx.strokeStyle = this.active ? '#fff' : (hasSample ? '#4CAF50' : '#666');
+                ctx.lineWidth = hasSample ? 3 : 2;
+                ctx.stroke();
+                
+                // Number
+                ctx.fillStyle = this.active ? '#fff' : (hasSample ? '#fff' : '#999');
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.index + 1, this.x, this.y);
+            }
+            
+            trigger() {
+                this.active = true;
+                this.activePulse = 0;
+            }
+        }
+        
+        // Create pads
+        const pads = [];
+        const angleStep = (Math.PI * 2) / NUM_PADS;
+        SPOKE_NOTES.forEach((midiNote, index) => {
+            const angle = angleStep * index - Math.PI / 2;
+            pads.push(new Pad(index, angle, midiNote));
+        });
+        
+        // Draw board
+        function drawBoard() {
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Board circle
+            const boardRadius = Math.min(width, height) * 0.42;
+            ctx.beginPath();
+            ctx.arc(width / 2, height / 2, boardRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Center
+            ctx.beginPath();
+            ctx.arc(width / 2, height / 2, boardRadius * 0.3, 0, Math.PI * 2);
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fill();
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 28px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('SPOKE', width / 2, height / 2);
+            
+            // Pads
+            pads.forEach(pad => {
+                pad.update();
+                pad.draw();
+            });
+        }
+        
+        function animate() {
+            drawBoard();
+            requestAnimationFrame(animate);
+        }
+        
+        // MIDI handling
+        function handleMIDIMessage(message) {
+            const [status, midiNote, velocity] = message.data;
+            const command = status & 0xf0;
+            
+            if (command === 0x90 && velocity > 0) {
+                const padIndex = SPOKE_NOTES.indexOf(midiNote);
+                if (padIndex !== -1) {
+                    playSample(padIndex, velocity);
+                }
+            }
+        }
+        
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    alert('No MIDI devices found');
+                    return;
+                }
+                
+                inputs.forEach(input => input.onmidimessage = handleMIDIMessage);
+                
+                document.getElementById('connectMidiBtn').textContent = 'MIDI Connected';
+                document.getElementById('connectMidiBtn').classList.add('active');
+                
+            } catch (error) {
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        // Click pads to test
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            pads.forEach((pad) => {
+                const dx = x - pad.x;
+                const dy = y - pad.y;
+                if (Math.sqrt(dx * dx + dy * dy) < pad.size) {
+                    playSample(pad.index, 100);
+                }
+            });
+        });
+        
+        // Event listeners
+        document.getElementById('recordBtn').addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+        
+        document.getElementById('connectMidiBtn').addEventListener('click', connectMIDI);
+        document.getElementById('clearAllBtn').addEventListener('click', clearAllSamples);
+        
+        // Initialize
+        createSlotButtons();
+        animate();
+        
+        if (!navigator.requestMIDIAccess) {
+            alert('Web MIDI not supported. Please use Chrome, Edge, or Opera.');
+        }
+    </script>
+</body>
+</html>
