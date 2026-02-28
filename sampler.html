@@ -43,7 +43,7 @@
             flex: 1;
             display: flex;
             gap: 30px;
-            padding: 0 30px 30px;
+            padding: 0 30px 80px; /* Extra bottom padding for disclaimer */
             max-width: 1400px;
             margin: 0 auto;
             width: 100%;
@@ -263,6 +263,74 @@
             text-align: center;
             line-height: 1.6;
         }
+        
+        /* Device Selector */
+        .device-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .device-selector:last-child {
+            margin-bottom: 0;
+        }
+        
+        .device-selector label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .device-select {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+        
+        .device-select:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(0, 0, 0, 0.7);
+        }
+        
+        .device-select:focus {
+            border-color: #4CAF50;
+        }
+        
+        .device-select option {
+            background: #1a1a2e;
+            color: white;
+            padding: 10px;
+        }
+        
+        /* Privacy Disclaimer */
+        .privacy-disclaimer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.5;
+        }
+        
+        .privacy-disclaimer strong {
+            color: #4CAF50;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -310,6 +378,23 @@
                 <div class="card-title">Actions</div>
                 <button class="control-btn" id="clearAllBtn" style="width: 100%;">Clear All Samples</button>
             </div>
+            
+            <!-- Audio Devices -->
+            <div class="recorder-card">
+                <div class="card-title">Audio Devices</div>
+                <div class="device-selector">
+                    <label for="inputDevice">Input (Microphone)</label>
+                    <select id="inputDevice" class="device-select">
+                        <option value="">Loading devices...</option>
+                    </select>
+                </div>
+                <div class="device-selector">
+                    <label for="outputDevice">Output (Speakers)</label>
+                    <select id="outputDevice" class="device-select">
+                        <option value="">Loading devices...</option>
+                    </select>
+                </div>
+            </div>
         </div>
         
         <!-- Board Section -->
@@ -319,6 +404,13 @@
                 <button class="control-btn" id="connectMidiBtn">Connect MIDI</button>
             </div>
         </div>
+    </div>
+    
+    <!-- Privacy Disclaimer -->
+    <div class="privacy-disclaimer">
+        <strong>🔒 Privacy Notice:</strong> All audio is recorded and stored <strong>only in your browser's memory</strong>. 
+        Nothing is uploaded to any server or saved to your device. 
+        Your recordings are automatically deleted when you close this page or refresh.
     </div>
 
     <script>
@@ -338,6 +430,8 @@
         const sampleBuffers = new Map();
         const activeSources = new Map();
         let midiAccess = null;
+        let selectedInputDevice = null;
+        let selectedOutputDevice = null;
         
         // Waveform visualization
         let analyser;
@@ -353,13 +447,86 @@
         window.addEventListener('resize', resizeWaveform);
         resizeWaveform();
         
+        // Enumerate audio devices
+        async function enumerateDevices() {
+            try {
+                // Request permissions first
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                
+                const inputDevices = devices.filter(device => device.kind === 'audioinput');
+                const outputDevices = devices.filter(device => device.kind === 'audiooutput');
+                
+                // Populate input devices
+                const inputSelect = document.getElementById('inputDevice');
+                inputSelect.innerHTML = '';
+                inputDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Microphone ${inputSelect.options.length + 1}`;
+                    inputSelect.appendChild(option);
+                });
+                
+                // Populate output devices
+                const outputSelect = document.getElementById('outputDevice');
+                outputSelect.innerHTML = '';
+                outputDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Speaker ${outputSelect.options.length + 1}`;
+                    outputSelect.appendChild(option);
+                });
+                
+                // Set initial selections
+                if (inputDevices.length > 0) {
+                    selectedInputDevice = inputDevices[0].deviceId;
+                }
+                if (outputDevices.length > 0) {
+                    selectedOutputDevice = outputDevices[0].deviceId;
+                }
+                
+            } catch (error) {
+                console.error('Error enumerating devices:', error);
+                document.getElementById('inputDevice').innerHTML = '<option>Permission denied</option>';
+                document.getElementById('outputDevice').innerHTML = '<option>Default output</option>';
+            }
+        }
+        
+        // Device selection handlers
+        document.getElementById('inputDevice').addEventListener('change', (e) => {
+            selectedInputDevice = e.target.value;
+        });
+        
+        document.getElementById('outputDevice').addEventListener('change', async (e) => {
+            selectedOutputDevice = e.target.value;
+            
+            // Update audio output for all active sources
+            if (audioContext && audioContext.destination && typeof audioContext.destination.setSinkId === 'function') {
+                try {
+                    await audioContext.destination.setSinkId(selectedOutputDevice);
+                } catch (error) {
+                    console.error('Error setting output device:', error);
+                }
+            }
+        });
+        
         // Initialize audio context
-        function initAudio() {
+        async function initAudio() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 masterGain = audioContext.createGain();
                 masterGain.gain.value = 0.8;
                 masterGain.connect(audioContext.destination);
+                
+                // Set output device if supported and selected
+                if (selectedOutputDevice && typeof audioContext.destination.setSinkId === 'function') {
+                    try {
+                        await audioContext.destination.setSinkId(selectedOutputDevice);
+                    } catch (error) {
+                        console.error('Error setting output device:', error);
+                    }
+                }
             }
         }
         
@@ -405,7 +572,12 @@
             try {
                 initAudio();
                 
-                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                // Use selected input device
+                const constraints = {
+                    audio: selectedInputDevice ? { deviceId: { exact: selectedInputDevice } } : true
+                };
+                
+                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
                 
                 // Setup analyser for waveform
                 analyser = audioContext.createAnalyser();
@@ -735,6 +907,7 @@
         // Initialize
         createSlotButtons();
         animate();
+        enumerateDevices();
         
         if (!navigator.requestMIDIAccess) {
             alert('Web MIDI not supported. Please use Chrome, Edge, or Opera.');
