@@ -18,7 +18,28 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        /* Background Scope */
+        #scopeCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.15;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
         
         /* Header */
@@ -45,7 +66,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0 30px 30px;
+            padding: 0 30px 80px; /* Extra bottom padding for footer */
+            min-height: calc(100vh - 150px); /* Account for header */
         }
         
         .board-container {
@@ -238,10 +260,14 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1 class="title">SPOKE HARDWARE SAMPLER</h1>
-        <p class="subtitle">Record and play with touch control</p>
-    </div>
+    <!-- Background Scope -->
+    <canvas id="scopeCanvas"></canvas>
+    
+    <div class="content-wrapper">
+        <div class="header">
+            <h1 class="title">SPOKE HARDWARE SAMPLER</h1>
+            <p class="subtitle">Record and play with touch control</p>
+        </div>
     
     <div class="container">
         <div class="board-container">
@@ -302,6 +328,7 @@
     <div class="privacy-disclaimer">
         <strong>🔒 Privacy:</strong> All audio stored in browser memory only. Nothing saved or uploaded.
     </div>
+    </div>
 
     <script>
         // SPOKE configuration
@@ -324,6 +351,61 @@
         let recordButtonHeld = false;
         let currentRecordingPad = null;
         let isRecording = false;
+        
+        // Scope visualization
+        let scopeAnalyser;
+        let scopeAnimationId;
+        const scopeCanvas = document.getElementById('scopeCanvas');
+        const scopeCtx = scopeCanvas.getContext('2d');
+        
+        function resizeScope() {
+            scopeCanvas.width = window.innerWidth;
+            scopeCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeScope);
+        resizeScope();
+        
+        // Draw scope waveform
+        function drawScope() {
+            if (!scopeAnalyser) {
+                scopeCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                scopeCtx.fillRect(0, 0, scopeCanvas.width, scopeCanvas.height);
+                scopeAnimationId = requestAnimationFrame(drawScope);
+                return;
+            }
+            
+            const bufferLength = scopeAnalyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            scopeAnalyser.getByteTimeDomainData(dataArray);
+            
+            scopeCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            scopeCtx.fillRect(0, 0, scopeCanvas.width, scopeCanvas.height);
+            
+            scopeCtx.lineWidth = 3;
+            scopeCtx.strokeStyle = isRecording ? '#ff6b6b' : '#4CAF50';
+            scopeCtx.beginPath();
+            
+            const sliceWidth = scopeCanvas.width / bufferLength;
+            let x = 0;
+            
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * scopeCanvas.height / 2;
+                
+                if (i === 0) {
+                    scopeCtx.moveTo(x, y);
+                } else {
+                    scopeCtx.lineTo(x, y);
+                }
+                
+                x += sliceWidth;
+            }
+            
+            scopeCtx.lineTo(scopeCanvas.width, scopeCanvas.height / 2);
+            scopeCtx.stroke();
+            
+            scopeAnimationId = requestAnimationFrame(drawScope);
+        }
         
         // Initialize audio
         async function initAudio() {
@@ -359,6 +441,15 @@
                 };
                 
                 mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                // Setup analyser for scope
+                if (!scopeAnalyser) {
+                    scopeAnalyser = audioContext.createAnalyser();
+                    scopeAnalyser.fftSize = 2048;
+                }
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                source.connect(scopeAnalyser);
+                
                 mediaRecorder = new MediaRecorder(mediaStream);
                 audioChunks = [];
                 
@@ -676,6 +767,7 @@
         // Initialize
         animate();
         enumerateDevices();
+        drawScope(); // Start scope animation
         
         document.getElementById('connectMidiBtn').addEventListener('click', connectMIDI);
         
