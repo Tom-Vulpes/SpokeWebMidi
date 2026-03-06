@@ -463,11 +463,34 @@
                 <button class="btn" id="loadMoreBtn">Load More Results</button>
             </div>
         </div>
+        
+        <!-- SPOKE Board Section -->
+        <div class="results-section" id="spokeBoardSection" style="display: none;">
+            <div class="results-header">
+                <div class="results-title">SPOKE Board</div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div class="results-count" id="loadedCount">0 / 27 sounds loaded</div>
+                    <button class="btn" id="connectMidiBtn">Connect MIDI</button>
+                    <button class="btn" id="clearBoardBtn">Clear Board</button>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: center; padding: 20px;">
+                <canvas id="spokeCanvas" width="700" height="700"></canvas>
+            </div>
+            
+            <div class="info-text" style="text-align: center; padding: 10px;">
+                Click "Load to SPOKE" on search results to add sounds to the board (max 27). Connect MIDI to play with your SPOKE controller.
+            </div>
+        </div>
     </div>
 
     <script>
         // Embedded API key
         const API_KEY = 'ENXBH14HDdboFnq4ttqKQGed9tV7xxYJOghOaPbo';
+        
+        // SPOKE configuration
+        const SPOKE_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36];
         
         // State
         let apiKey = API_KEY;
@@ -476,6 +499,14 @@
         let totalResults = 0;
         let audioElements = new Map();
         
+        // SPOKE state
+        let audioContext;
+        let masterGain;
+        let midiAccess = null;
+        const spokeSounds = new Map(); // Map of padIndex -> {buffer, url, name}
+        const activeSources = new Map();
+        let loadedSoundsCount = 0;
+        
         // Elements
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
@@ -483,6 +514,11 @@
         const resultsCount = document.getElementById('resultsCount');
         const loadMoreBtn = document.getElementById('loadMoreBtn');
         const loadMoreContainer = document.getElementById('loadMoreContainer');
+        const spokeBoardSection = document.getElementById('spokeBoardSection');
+        const spokeCanvas = document.getElementById('spokeCanvas');
+        const connectMidiBtn = document.getElementById('connectMidiBtn');
+        const clearBoardBtn = document.getElementById('clearBoardBtn');
+        const loadedCount = document.getElementById('loadedCount');
         
         // Suggested search buttons
         document.querySelectorAll('.suggested-btn').forEach(btn => {
@@ -504,6 +540,10 @@
             currentPage++;
             performSearch(true);
         });
+        
+        // SPOKE Board Controls
+        connectMidiBtn.addEventListener('click', connectMIDI);
+        clearBoardBtn.addEventListener('click', clearBoard);
         
         async function performSearch(append = false) {
             const query = searchInput.value.trim();
@@ -608,6 +648,7 @@
                     </div>
                     <div class="sound-actions">
                         <button class="action-btn play-btn" data-id="${sound.id}">▶ Play</button>
+                        <button class="action-btn load-btn" data-id="${sound.id}" data-url="${sound.previews['preview-hq-mp3']}" data-name="${sound.name}">📥 Load to SPOKE</button>
                         <button class="action-btn" onclick="window.open('https://freesound.org/people/${sound.username}/sounds/${sound.id}/', '_blank')">🔗 View</button>
                     </div>
                 </div>
@@ -616,6 +657,15 @@
             // Add play button functionality
             const playBtn = div.querySelector('.play-btn');
             playBtn.addEventListener('click', () => togglePlay(sound.id, sound.previews['preview-hq-mp3'], playBtn));
+            
+            // Add load to SPOKE button functionality
+            const loadBtn = div.querySelector('.load-btn');
+            loadBtn.addEventListener('click', () => {
+                loadToSpoke(sound.previews['preview-hq-mp3'], sound.name, sound.id);
+                loadBtn.textContent = '✓ Loaded';
+                loadBtn.disabled = true;
+                loadBtn.style.opacity = '0.5';
+            });
             
             return div;
         }
@@ -657,6 +707,290 @@
                 button.classList.remove('playing');
             }
         }
+        
+        // ===== SPOKE BOARD FUNCTIONS =====
+        
+        // Initialize audio context
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = 0.8;
+                masterGain.connect(audioContext.destination);
+            }
+        }
+        
+        // Connect MIDI
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    alert('No MIDI devices found');
+                    return;
+                }
+                
+                inputs.forEach(input => input.onmidimessage = handleMIDIMessage);
+                
+                connectMidiBtn.textContent = 'MIDI Connected ✓';
+                connectMidiBtn.style.background = 'rgba(76, 175, 80, 0.5)';
+                
+            } catch (error) {
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        // Handle MIDI messages
+        function handleMIDIMessage(message) {
+            const [status, midiNote, velocity] = message.data;
+            const command = status & 0xf0;
+            const padIndex = SPOKE_NOTES.indexOf(midiNote);
+            
+            if (padIndex === -1) return;
+            
+            // Note On
+            if (command === 0x90 && velocity > 0) {
+                playSpokeSound(padIndex, velocity);
+            }
+        }
+        
+        // Play SPOKE sound
+        function playSpokeSound(padIndex, velocity = 127) {
+            if (!spokeSounds.has(padIndex)) return;
+            
+            initAudio();
+            
+            // Stop previous
+            if (activeSources.has(padIndex)) {
+                try { activeSources.get(padIndex).source.stop(); } catch (e) {}
+                activeSources.delete(padIndex);
+            }
+            
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            
+            source.buffer = spokeSounds.get(padIndex).buffer;
+            gainNode.gain.value = velocity / 127;
+            
+            source.connect(gainNode);
+            gainNode.connect(masterGain);
+            source.start(0);
+            
+            activeSources.set(padIndex, { source, gainNode });
+            
+            // Visual feedback
+            if (pads[padIndex]) {
+                pads[padIndex].trigger();
+            }
+            
+            source.onended = () => {
+                if (activeSources.get(padIndex)?.source === source) {
+                    activeSources.delete(padIndex);
+                }
+            };
+        }
+        
+        // Load sound to SPOKE board
+        async function loadToSpoke(soundUrl, soundName, soundId) {
+            if (loadedSoundsCount >= 27) {
+                alert('Maximum 27 sounds loaded. Clear the board to add more.');
+                return;
+            }
+            
+            try {
+                initAudio();
+                
+                const response = await fetch(soundUrl);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                const padIndex = loadedSoundsCount;
+                spokeSounds.set(padIndex, {
+                    buffer: audioBuffer,
+                    url: soundUrl,
+                    name: soundName,
+                    id: soundId
+                });
+                
+                loadedSoundsCount++;
+                updateLoadedCount();
+                spokeBoardSection.style.display = 'block';
+                drawBoard();
+                
+            } catch (error) {
+                console.error('Error loading sound:', error);
+                alert('Failed to load sound: ' + error.message);
+            }
+        }
+        
+        // Clear board
+        function clearBoard() {
+            spokeSounds.clear();
+            activeSources.forEach((sourceObj) => {
+                try { sourceObj.source.stop(); } catch (e) {}
+            });
+            activeSources.clear();
+            loadedSoundsCount = 0;
+            updateLoadedCount();
+            drawBoard();
+        }
+        
+        // Update loaded count display
+        function updateLoadedCount() {
+            loadedCount.textContent = `${loadedSoundsCount} / 27 sounds loaded`;
+        }
+        
+        // SPOKE Board Visualization
+        const ctx = spokeCanvas.getContext('2d');
+        const width = spokeCanvas.width;
+        const height = spokeCanvas.height;
+        
+        class Pad {
+            constructor(index, angle, midiNote) {
+                this.index = index;
+                this.angle = angle;
+                this.midiNote = midiNote;
+                
+                const radius = Math.min(width, height) * 0.38;
+                this.x = width / 2 + Math.cos(angle) * radius;
+                this.y = height / 2 + Math.sin(angle) * radius;
+                this.size = 25;
+                this.active = false;
+                this.activePulse = 0;
+            }
+            
+            update() {
+                if (this.active) {
+                    this.activePulse += 0.15;
+                    if (this.activePulse > Math.PI * 2) {
+                        this.active = false;
+                        this.activePulse = 0;
+                    }
+                }
+            }
+            
+            draw() {
+                const hasSound = spokeSounds.has(this.index);
+                
+                let color = '#333';
+                let borderColor = '#666';
+                
+                if (this.active) {
+                    color = '#4CAF50';
+                    borderColor = '#fff';
+                } else if (hasSound) {
+                    color = '#2e7d32';
+                    borderColor = '#4CAF50';
+                }
+                
+                // Glow
+                if (this.active) {
+                    const glowSize = this.size + Math.sin(this.activePulse) * 20;
+                    const gradient = ctx.createRadialGradient(this.x, this.y, this.size * 0.3, this.x, this.y, glowSize);
+                    gradient.addColorStop(0, '#4CAF50cc');
+                    gradient.addColorStop(1, '#4CAF5000');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, glowSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Main pad
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = hasSound ? 3 : 2;
+                ctx.stroke();
+                
+                // Label
+                ctx.fillStyle = '#fff';
+                ctx.font = hasSound ? 'bold 12px Arial' : '11px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.index + 1, this.x, this.y);
+            }
+            
+            trigger() {
+                this.active = true;
+                this.activePulse = 0;
+            }
+            
+            contains(x, y) {
+                const dx = x - this.x;
+                const dy = y - this.y;
+                return Math.sqrt(dx * dx + dy * dy) <= this.size;
+            }
+        }
+        
+        // Create pads
+        const pads = [];
+        const angleStep = (Math.PI * 2) / SPOKE_NOTES.length;
+        SPOKE_NOTES.forEach((midiNote, index) => {
+            const angle = angleStep * index - Math.PI / 2;
+            pads.push(new Pad(index, angle, midiNote));
+        });
+        
+        // Draw board
+        function drawBoard() {
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Board circle
+            const boardRadius = Math.min(width, height) * 0.42;
+            ctx.beginPath();
+            ctx.arc(width / 2, height / 2, boardRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Center
+            ctx.beginPath();
+            ctx.arc(width / 2, height / 2, boardRadius * 0.3, 0, Math.PI * 2);
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fill();
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 32px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('SPOKE', width / 2, height / 2 - 10);
+            
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillText(`${loadedSoundsCount}/27`, width / 2, height / 2 + 20);
+            
+            // Pads
+            pads.forEach(pad => {
+                pad.update();
+                pad.draw();
+            });
+        }
+        
+        function animate() {
+            drawBoard();
+            requestAnimationFrame(animate);
+        }
+        
+        // Click to play
+        spokeCanvas.addEventListener('click', (e) => {
+            const rect = spokeCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            pads.forEach(pad => {
+                if (pad.contains(x, y)) {
+                    playSpokeSound(pad.index);
+                }
+            });
+        });
+        
+        // Start animation
+        animate();
         
         // Popular searches
         const popularSearches = ['bird chirp', 'drum kick', 'piano note', 'synth bass', 'ambient pad'];
