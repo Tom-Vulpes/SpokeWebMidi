@@ -384,22 +384,41 @@
             <p class="subtitle">Search and download sounds for SPOKE</p>
         </div>
         
-        <!-- Suggested Searches -->
-        <div class="api-key-section">
-            <div class="api-key-title">🎵 Popular Sample Categories</div>
-            <div class="suggested-searches">
-                <button class="suggested-btn" data-search="bird chirp">🐦 Bird Chirps</button>
-                <button class="suggested-btn" data-search="drum kick">🥁 Drum Kicks</button>
-                <button class="suggested-btn" data-search="808 bass">🔊 808 Bass</button>
-                <button class="suggested-btn" data-search="piano note">🎹 Piano Notes</button>
-                <button class="suggested-btn" data-search="synth pad">🎛️ Synth Pads</button>
-                <button class="suggested-btn" data-search="clap">👏 Claps</button>
-                <button class="suggested-btn" data-search="snare">🥁 Snares</button>
-                <button class="suggested-btn" data-search="hi-hat">🎶 Hi-Hats</button>
-                <button class="suggested-btn" data-search="ambient drone">🌌 Ambient Drones</button>
-                <button class="suggested-btn" data-search="trumpet">🎺 Trumpet</button>
-                <button class="suggested-btn" data-search="violin">🎻 Violin</button>
-                <button class="suggested-btn" data-search="nature sounds">🌿 Nature Sounds</button>
+        <!-- Top Section: Suggested Searches + SPOKE Board -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+            <!-- Suggested Searches -->
+            <div class="api-key-section">
+                <div class="api-key-title">🎵 Popular Sample Categories</div>
+                <div class="suggested-searches">
+                    <button class="suggested-btn" data-search="bird chirp">🐦 Bird Chirps</button>
+                    <button class="suggested-btn" data-search="drum kick">🥁 Drum Kicks</button>
+                    <button class="suggested-btn" data-search="808 bass">🔊 808 Bass</button>
+                    <button class="suggested-btn" data-search="piano note">🎹 Piano Notes</button>
+                    <button class="suggested-btn" data-search="synth pad">🎛️ Synth Pads</button>
+                    <button class="suggested-btn" data-search="clap">👏 Claps</button>
+                    <button class="suggested-btn" data-search="snare">🥁 Snares</button>
+                    <button class="suggested-btn" data-search="hi-hat">🎶 Hi-Hats</button>
+                    <button class="suggested-btn" data-search="ambient drone">🌌 Ambient Drones</button>
+                    <button class="suggested-btn" data-search="trumpet">🎺 Trumpet</button>
+                    <button class="suggested-btn" data-search="violin">🎻 Violin</button>
+                    <button class="suggested-btn" data-search="nature sounds">🌿 Nature Sounds</button>
+                </div>
+            </div>
+            
+            <!-- SPOKE Board -->
+            <div class="api-key-section">
+                <div class="api-key-title" style="margin-bottom: 10px;">🎛️ SPOKE Board</div>
+                <div style="display: flex; justify-content: center; margin-bottom: 15px;">
+                    <canvas id="spokeCanvas" width="400" height="400"></canvas>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
+                    <button class="btn" id="connectMidiBtn" style="flex: 1;">Connect MIDI</button>
+                    <button class="btn" id="clearBoardBtn" style="flex: 1;">Clear Board</button>
+                </div>
+                <div class="info-text" style="text-align: center;">
+                    <span id="loadedCount">0 / 27 sounds loaded</span><br>
+                    Click pads to test or use MIDI controller
+                </div>
             </div>
         </div>
         
@@ -463,26 +482,6 @@
                 <button class="btn" id="loadMoreBtn">Load More Results</button>
             </div>
         </div>
-        
-        <!-- SPOKE Board Section -->
-        <div class="results-section" id="spokeBoardSection" style="display: none;">
-            <div class="results-header">
-                <div class="results-title">SPOKE Board</div>
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <div class="results-count" id="loadedCount">0 / 27 sounds loaded</div>
-                    <button class="btn" id="connectMidiBtn">Connect MIDI</button>
-                    <button class="btn" id="clearBoardBtn">Clear Board</button>
-                </div>
-            </div>
-            
-            <div style="display: flex; justify-content: center; padding: 20px;">
-                <canvas id="spokeCanvas" width="700" height="700"></canvas>
-            </div>
-            
-            <div class="info-text" style="text-align: center; padding: 10px;">
-                Click "Load to SPOKE" on search results to add sounds to the board (max 27). Connect MIDI to play with your SPOKE controller.
-            </div>
-        </div>
     </div>
 
     <script>
@@ -514,7 +513,6 @@
         const resultsCount = document.getElementById('resultsCount');
         const loadMoreBtn = document.getElementById('loadMoreBtn');
         const loadMoreContainer = document.getElementById('loadMoreContainer');
-        const spokeBoardSection = document.getElementById('spokeBoardSection');
         const spokeCanvas = document.getElementById('spokeCanvas');
         const connectMidiBtn = document.getElementById('connectMidiBtn');
         const clearBoardBtn = document.getElementById('clearBoardBtn');
@@ -555,6 +553,7 @@
             if (!append) {
                 currentPage = 1;
                 currentQuery = query;
+                soundList.innerHTML = ''; // Clear existing results for new search
             }
             
             // Build URL with filters
@@ -815,7 +814,6 @@
                 
                 loadedSoundsCount++;
                 updateLoadedCount();
-                spokeBoardSection.style.display = 'block';
                 drawBoard();
                 
             } catch (error) {
@@ -843,8 +841,8 @@
         
         // SPOKE Board Visualization
         const ctx = spokeCanvas.getContext('2d');
-        const width = spokeCanvas.width;
-        const height = spokeCanvas.height;
+        const width = 400;  // Updated to match new canvas size
+        const height = 400; // Updated to match new canvas size
         
         class Pad {
             constructor(index, angle, midiNote) {
@@ -855,7 +853,7 @@
                 const radius = Math.min(width, height) * 0.38;
                 this.x = width / 2 + Math.cos(angle) * radius;
                 this.y = height / 2 + Math.sin(angle) * radius;
-                this.size = 25;
+                this.size = 18; // Smaller size for compact canvas
                 this.active = false;
                 this.activePulse = 0;
             }
@@ -955,12 +953,12 @@
             ctx.fill();
             
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 32px Arial';
+            ctx.font = 'bold 24px Arial'; // Smaller for compact canvas
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('SPOKE', width / 2, height / 2 - 10);
             
-            ctx.font = '14px Arial';
+            ctx.font = '12px Arial'; // Smaller for compact canvas
             ctx.fillStyle = '#4CAF50';
             ctx.fillText(`${loadedSoundsCount}/27`, width / 2, height / 2 + 20);
             
