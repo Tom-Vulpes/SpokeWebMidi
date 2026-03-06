@@ -389,10 +389,6 @@
             <!-- Suggested Searches -->
             <div class="api-key-section">
                 <div class="api-key-title">🎵 Popular Sample Categories</div>
-                <div style="background: rgba(76, 175, 80, 0.2); border: 1px solid #4CAF50; border-radius: 8px; padding: 10px; margin-bottom: 15px; text-align: center;">
-                    <div style="font-size: 12px; font-weight: 600;">🛡️ SAFE SEARCH ENABLED</div>
-                    <div style="font-size: 11px; opacity: 0.8; margin-top: 3px;">Adult content automatically filtered</div>
-                </div>
                 <div class="suggested-searches">
                     <button class="suggested-btn" data-search="bird chirp">🐦 Bird Chirps</button>
                     <button class="suggested-btn" data-search="drum kick">🥁 Drum Kicks</button>
@@ -528,6 +524,32 @@
         
         // SPOKE configuration
         const SPOKE_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36];
+        
+        // Content safety filters
+        const BLOCKED_TERMS = [
+            'sex', 'sexy', 'porn', 'xxx', 'adult', 'nsfw',
+            'fuck', 'fucking', 'shit', 'bitch', 'ass', 'dick', 'cock',
+            'cum', 'orgasm', 'masturbat', 'breast', 'nude', 'naked',
+            'kill', 'murder', 'death', 'violence', 'blood', 'gore',
+            'drug', 'weed', 'cocaine', 'meth', 'heroin',
+            'damn', 'hell', 'crap', 'piss'
+        ];
+        
+        function containsBlockedContent(text) {
+            const lowerText = text.toLowerCase();
+            return BLOCKED_TERMS.some(term => {
+                // Check for whole word matches or partial matches
+                const regex = new RegExp(`\\b${term}`, 'i');
+                return regex.test(lowerText) || lowerText.includes(term);
+            });
+        }
+        
+        function sanitizeSearchQuery(query) {
+            if (containsBlockedContent(query)) {
+                return null; // Block the search
+            }
+            return query;
+        }
         
         // State
         let apiKey = API_KEY;
@@ -665,6 +687,16 @@
                 return;
             }
             
+            // Check for blocked content
+            if (!append && containsBlockedContent(query)) {
+                soundList.innerHTML = '<div class="error-message">⚠️ This search term is not allowed. Please use appropriate language for educational content.</div>';
+                resultsCount.textContent = '';
+                loadMoreContainer.style.display = 'none';
+                autoLoadBtn.style.display = 'none';
+                currentSearchResults = [];
+                return;
+            }
+            
             if (!append) {
                 currentPage = 1;
                 currentQuery = query;
@@ -678,15 +710,26 @@
             
             let url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(currentQuery)}&page=${currentPage}&page_size=15&token=${apiKey}&fields=id,name,tags,description,username,duration,license,previews`;
             
-            // SAFE SEARCH: Filter out adult content for child safety
-            url += '&filter=is_explicit:false';
+            // SAFE SEARCH: Multiple layers of filtering for child safety
+            let filters = [
+                'is_explicit:false'  // Exclude explicit content
+            ];
+            
+            // Add blocked terms as negative filters
+            const negativeTerms = ['explicit', 'adult', 'nsfw', 'sex', 'porn', 'violence', 'gore'];
+            negativeTerms.forEach(term => {
+                filters.push(`-tag:${term}`);  // Exclude sounds with these tags
+            });
             
             if (licenseFilter) {
-                url += ` license:"${encodeURIComponent(licenseFilter)}"`;
+                filters.push(`license:"${encodeURIComponent(licenseFilter)}"`);
             }
             if (durationFilter) {
-                url += ` duration:${durationFilter}`;
+                filters.push(`duration:${durationFilter}`);
             }
+            
+            url += `&filter=${filters.join(' ')}`;
+            
             if (sortFilter) {
                 url += `&sort=${sortFilter}`;
             }
