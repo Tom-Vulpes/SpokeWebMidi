@@ -430,7 +430,7 @@
                 </div>
                 <div class="info-text" style="text-align: center;">
                     <span id="loadedCount">0 / 27 sounds loaded</span><br>
-                    Click pads to test or use MIDI controller
+                    Left-click: Play • Right-click: Clear
                 </div>
             </div>
         </div>
@@ -960,10 +960,7 @@
         
         // Load sound to SPOKE board
         async function loadToSpoke(soundUrl, soundName, soundId) {
-            if (loadedSoundsCount >= 27) {
-                alert('Maximum 27 sounds loaded. Clear the board to add more.');
-                return;
-            }
+            // Allow overwriting - remove the max check, just use next available or overwrite
             
             try {
                 initAudio();
@@ -972,7 +969,9 @@
                 const arrayBuffer = await response.arrayBuffer();
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                 
-                const padIndex = loadedSoundsCount;
+                // Use the current loadedSoundsCount as pad index (this allows overwriting)
+                const padIndex = loadedSoundsCount % 27; // Wrap around if over 27
+                
                 spokeSounds.set(padIndex, {
                     buffer: audioBuffer,
                     url: soundUrl,
@@ -980,7 +979,11 @@
                     id: soundId
                 });
                 
-                loadedSoundsCount++;
+                // Only increment if we're not full yet
+                if (loadedSoundsCount < 27) {
+                    loadedSoundsCount++;
+                }
+                
                 updateLoadedCount();
                 drawBoard();
                 
@@ -988,6 +991,25 @@
                 console.error('Error loading sound:', error);
                 alert('Failed to load sound: ' + error.message);
             }
+        }
+        
+        // Clear individual pad
+        function clearPad(padIndex) {
+            if (!spokeSounds.has(padIndex)) return;
+            
+            // Stop if playing
+            if (activeSources.has(padIndex)) {
+                try { activeSources.get(padIndex).source.stop(); } catch (e) {}
+                activeSources.delete(padIndex);
+            }
+            
+            // Remove sound
+            spokeSounds.delete(padIndex);
+            
+            // Recalculate loaded count
+            loadedSoundsCount = spokeSounds.size;
+            updateLoadedCount();
+            drawBoard();
         }
         
         // Clear board
@@ -1013,11 +1035,13 @@
         async function autoLoadFirst27() {
             const remainingSlots = 27 - loadedSoundsCount;
             if (remainingSlots === 0) {
-                alert('Board is full! Clear the board first.');
-                return;
+                // Board is full, offer to overwrite
+                if (!confirm('Board is full. Overwrite existing sounds?')) {
+                    return;
+                }
             }
             
-            const soundsToLoad = currentSearchResults.slice(0, remainingSlots);
+            const soundsToLoad = currentSearchResults.slice(0, Math.min(27, currentSearchResults.length));
             
             if (soundsToLoad.length === 0) {
                 alert('No sounds to load!');
@@ -1043,7 +1067,11 @@
             // Re-enable button
             autoLoadBtn.disabled = false;
             autoLoadBtn.textContent = originalText;
-            autoLoadBtn.style.display = 'none'; // Hide after loading
+            
+            // Hide button if board is now full
+            if (loadedSoundsCount >= 27) {
+                autoLoadBtn.style.display = 'none';
+            }
             
             alert(`Successfully loaded ${soundsToLoad.length} sounds!`);
         }
@@ -1119,7 +1147,7 @@
                 
                 // Label
                 ctx.fillStyle = '#fff';
-                ctx.font = hasSound ? 'bold 12px Arial' : '11px Arial';
+                ctx.font = hasSound ? 'bold 10px Arial' : '9px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(this.index + 1, this.x, this.y);
@@ -1197,6 +1225,24 @@
             pads.forEach(pad => {
                 if (pad.contains(x, y)) {
                     playSpokeSound(pad.index);
+                }
+            });
+        });
+        
+        // Right-click to clear individual pad
+        spokeCanvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            
+            const rect = spokeCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            pads.forEach(pad => {
+                if (pad.contains(x, y) && spokeSounds.has(pad.index)) {
+                    const sound = spokeSounds.get(pad.index);
+                    if (confirm(`Clear Pad ${pad.index + 1}?\n\n${sound.name}`)) {
+                        clearPad(pad.index);
+                    }
                 }
             });
         });
