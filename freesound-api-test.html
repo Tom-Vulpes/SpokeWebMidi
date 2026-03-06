@@ -389,6 +389,10 @@
             <!-- Suggested Searches -->
             <div class="api-key-section">
                 <div class="api-key-title">🎵 Popular Sample Categories</div>
+                <div style="background: rgba(76, 175, 80, 0.2); border: 1px solid #4CAF50; border-radius: 8px; padding: 10px; margin-bottom: 15px; text-align: center;">
+                    <div style="font-size: 12px; font-weight: 600;">🛡️ SAFE SEARCH ENABLED</div>
+                    <div style="font-size: 11px; opacity: 0.8; margin-top: 3px;">Adult content automatically filtered</div>
+                </div>
                 <div class="suggested-searches">
                     <button class="suggested-btn" data-search="bird chirp">🐦 Bird Chirps</button>
                     <button class="suggested-btn" data-search="drum kick">🥁 Drum Kicks</button>
@@ -421,6 +425,24 @@
                 <div id="nowPlayingInfo" style="background: rgba(0, 0, 0, 0.5); border-radius: 10px; padding: 12px; margin-bottom: 15px; min-height: 60px; display: flex; align-items: center; justify-content: center;">
                     <div style="text-align: center; opacity: 0.6; font-size: 13px;">
                         No sound playing
+                    </div>
+                </div>
+                
+                <!-- Recording Controls -->
+                <div style="background: rgba(0, 0, 0, 0.5); border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                    <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px; text-align: center;">🎙️ Record Your Own Sound</div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button class="btn" id="startRecordBtn" style="flex: 1;">● Record</button>
+                        <button class="btn" id="stopRecordBtn" style="flex: 1; display: none;">■ Stop</button>
+                    </div>
+                    <div id="recordingStatus" style="text-align: center; font-size: 12px; opacity: 0.7;">
+                        Click Record, then click a pad to assign
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <label style="font-size: 12px; opacity: 0.8;">Microphone:</label>
+                        <select id="micSelect" class="filter-select" style="width: 100%; margin-top: 5px;">
+                            <option>Loading devices...</option>
+                        </select>
                     </div>
                 </div>
                 
@@ -527,6 +549,15 @@
         let scopeAnalyser;
         let scopeAnimationId;
         
+        // Recording state
+        let mediaRecorder;
+        let mediaStream;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordedBuffer = null;
+        let waitingForPadClick = false;
+        let selectedMicDevice = null;
+        
         // Elements
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
@@ -541,6 +572,10 @@
         const clearBoardBtn = document.getElementById('clearBoardBtn');
         const loadedCount = document.getElementById('loadedCount');
         const nowPlayingInfo = document.getElementById('nowPlayingInfo');
+        const startRecordBtn = document.getElementById('startRecordBtn');
+        const stopRecordBtn = document.getElementById('stopRecordBtn');
+        const recordingStatus = document.getElementById('recordingStatus');
+        const micSelect = document.getElementById('micSelect');
         
         // Suggested search buttons
         document.querySelectorAll('.suggested-btn').forEach(btn => {
@@ -589,6 +624,40 @@
         // Auto-load button
         autoLoadBtn.addEventListener('click', autoLoadFirst27);
         
+        // Recording controls
+        startRecordBtn.addEventListener('click', startRecording);
+        stopRecordBtn.addEventListener('click', stopRecording);
+        
+        // Enumerate audio devices
+        async function enumerateMicrophones() {
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const inputDevices = devices.filter(device => device.kind === 'audioinput');
+                
+                micSelect.innerHTML = '';
+                inputDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Microphone ${micSelect.options.length + 1}`;
+                    micSelect.appendChild(option);
+                });
+                
+                if (inputDevices.length > 0) {
+                    selectedMicDevice = inputDevices[0].deviceId;
+                }
+            } catch (error) {
+                micSelect.innerHTML = '<option>Permission denied</option>';
+            }
+        }
+        
+        micSelect.addEventListener('change', (e) => {
+            selectedMicDevice = e.target.value;
+        });
+        
+        // Initialize microphone list
+        enumerateMicrophones();
+        
         async function performSearch(append = false) {
             const query = searchInput.value.trim();
             if (!query && !append) {
@@ -609,11 +678,14 @@
             
             let url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(currentQuery)}&page=${currentPage}&page_size=15&token=${apiKey}&fields=id,name,tags,description,username,duration,license,previews`;
             
+            // SAFE SEARCH: Filter out adult content for child safety
+            url += '&filter=is_explicit:false';
+            
             if (licenseFilter) {
-                url += `&filter=license:"${encodeURIComponent(licenseFilter)}"`;
+                url += ` license:"${encodeURIComponent(licenseFilter)}"`;
             }
             if (durationFilter) {
-                url += `${licenseFilter ? ' ' : '&filter='}duration:${durationFilter}`;
+                url += ` duration:${durationFilter}`;
             }
             if (sortFilter) {
                 url += `&sort=${sortFilter}`;
@@ -774,6 +846,87 @@
                 button.textContent = '▶ Play';
                 button.classList.remove('playing');
             }
+        }
+        
+        // ===== RECORDING FUNCTIONS =====
+        
+        async function startRecording() {
+            try {
+                initAudio();
+                
+                const constraints = {
+                    audio: selectedMicDevice ? { deviceId: { exact: selectedMicDevice } } : true
+                };
+                
+                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                mediaRecorder = new MediaRecorder(mediaStream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const arrayBuffer = await audioBlob.arrayBuffer();
+                    recordedBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    
+                    waitingForPadClick = true;
+                    recordingStatus.innerHTML = '✓ Recording saved! Click a pad to assign it';
+                    recordingStatus.style.color = '#4CAF50';
+                };
+                
+                mediaRecorder.start();
+                isRecording = true;
+                
+                startRecordBtn.style.display = 'none';
+                stopRecordBtn.style.display = 'block';
+                recordingStatus.innerHTML = '🔴 Recording... Click Stop when done';
+                recordingStatus.style.color = '#ff6b6b';
+                
+            } catch (error) {
+                console.error('Recording error:', error);
+                alert('Microphone error: ' + error.message);
+            }
+        }
+        
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                startRecordBtn.style.display = 'block';
+                stopRecordBtn.style.display = 'none';
+            }
+        }
+        
+        function assignRecordingToPad(padIndex) {
+            if (!recordedBuffer) return;
+            
+            spokeSounds.set(padIndex, {
+                buffer: recordedBuffer,
+                url: null,
+                name: `Recording ${padIndex + 1}`,
+                id: `rec_${Date.now()}`
+            });
+            
+            loadedSoundsCount = spokeSounds.size;
+            updateLoadedCount();
+            drawBoard();
+            
+            // Reset recording state
+            recordedBuffer = null;
+            waitingForPadClick = false;
+            recordingStatus.innerHTML = 'Click Record, then click a pad to assign';
+            recordingStatus.style.color = '';
+            
+            // Update now playing
+            updateNowPlaying(padIndex);
+            
+            // Play the recorded sound
+            playSpokeSound(padIndex);
         }
         
         // ===== SPOKE BOARD FUNCTIONS =====
@@ -1221,7 +1374,7 @@
             requestAnimationFrame(animate);
         }
         
-        // Click to play
+        // Click to play OR assign recording
         spokeCanvas.addEventListener('click', (e) => {
             const rect = spokeCanvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -1229,7 +1382,13 @@
             
             pads.forEach(pad => {
                 if (pad.contains(x, y)) {
-                    playSpokeSound(pad.index);
+                    // If waiting to assign recording, assign it
+                    if (waitingForPadClick && recordedBuffer) {
+                        assignRecordingToPad(pad.index);
+                    } else {
+                        // Otherwise play the sound
+                        playSpokeSound(pad.index);
+                    }
                 }
             });
         });
