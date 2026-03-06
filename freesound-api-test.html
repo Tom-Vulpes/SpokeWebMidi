@@ -528,19 +528,45 @@
         // Content safety filters
         const BLOCKED_TERMS = [
             'sex', 'sexy', 'porn', 'xxx', 'adult', 'nsfw',
-            'fuck', 'fucking', 'shit', 'bitch', 'ass', 'dick', 'cock',
+            'fuck', 'fucking', 'shit', 'bitch', 'dick', 'cock',
             'cum', 'orgasm', 'masturbat', 'breast', 'nude', 'naked',
             'kill', 'murder', 'death', 'violence', 'blood', 'gore',
             'drug', 'weed', 'cocaine', 'meth', 'heroin',
             'damn', 'hell', 'crap', 'piss'
         ];
         
+        // Whitelist of legitimate terms that contain blocked substrings
+        const WHITELIST_TERMS = [
+            'bass', 'bassist', 'bassdrum', 'bassoon', 
+            'grass', 'class', 'glass', 'pass', 'mass',
+            'assess', 'classic', 'cassette',
+            'kickass' // as in "kickass beat" - slang but not offensive in music context
+        ];
+        
         function containsBlockedContent(text) {
             const lowerText = text.toLowerCase();
+            
+            // First check if any whitelisted terms are present
+            for (const whitelist of WHITELIST_TERMS) {
+                if (lowerText.includes(whitelist)) {
+                    // Check if the whitelisted term contains any blocked term
+                    const matchedBlocked = BLOCKED_TERMS.find(blocked => whitelist.includes(blocked));
+                    if (matchedBlocked) {
+                        // Remove the whitelisted term temporarily to check the rest
+                        const textWithoutWhitelist = lowerText.replace(new RegExp(whitelist, 'gi'), '');
+                        // Check if blocked term appears elsewhere
+                        const regex = new RegExp(`\\b${matchedBlocked}\\b`, 'i');
+                        if (!regex.test(textWithoutWhitelist)) {
+                            continue; // This blocked term only appears in whitelist, skip it
+                        }
+                    }
+                }
+            }
+            
+            // Check for whole word matches of blocked terms
             return BLOCKED_TERMS.some(term => {
-                // Check for whole word matches or partial matches
-                const regex = new RegExp(`\\b${term}`, 'i');
-                return regex.test(lowerText) || lowerText.includes(term);
+                const regex = new RegExp(`\\b${term}\\b`, 'i');
+                return regex.test(lowerText);
             });
         }
         
