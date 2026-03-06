@@ -960,7 +960,19 @@
         
         // Load sound to SPOKE board
         async function loadToSpoke(soundUrl, soundName, soundId) {
-            // Allow overwriting - remove the max check, just use next available or overwrite
+            // Find first available empty slot
+            let padIndex = -1;
+            for (let i = 0; i < 27; i++) {
+                if (!spokeSounds.has(i)) {
+                    padIndex = i;
+                    break;
+                }
+            }
+            
+            if (padIndex === -1) {
+                alert('Maximum 27 sounds loaded. Clear the board to add more.');
+                return;
+            }
             
             try {
                 initAudio();
@@ -969,9 +981,6 @@
                 const arrayBuffer = await response.arrayBuffer();
                 const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                 
-                // Use the current loadedSoundsCount as pad index (this allows overwriting)
-                const padIndex = loadedSoundsCount % 27; // Wrap around if over 27
-                
                 spokeSounds.set(padIndex, {
                     buffer: audioBuffer,
                     url: soundUrl,
@@ -979,11 +988,7 @@
                     id: soundId
                 });
                 
-                // Only increment if we're not full yet
-                if (loadedSoundsCount < 27) {
-                    loadedSoundsCount++;
-                }
-                
+                loadedSoundsCount = spokeSounds.size;
                 updateLoadedCount();
                 drawBoard();
                 
@@ -1225,6 +1230,42 @@
             pads.forEach(pad => {
                 if (pad.contains(x, y)) {
                     playSpokeSound(pad.index);
+                }
+            });
+        });
+        
+        // Right-click to clear individual pad
+        spokeCanvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const rect = spokeCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            pads.forEach(pad => {
+                if (pad.contains(x, y) && spokeSounds.has(pad.index)) {
+                    if (confirm(`Clear Pad ${pad.index + 1}?`)) {
+                        // Stop if playing
+                        if (activeSources.has(pad.index)) {
+                            try { activeSources.get(pad.index).source.stop(); } catch (e) {}
+                            activeSources.delete(pad.index);
+                        }
+                        
+                        // Remove from map
+                        spokeSounds.delete(pad.index);
+                        loadedSoundsCount = spokeSounds.size;
+                        updateLoadedCount();
+                        drawBoard();
+                        
+                        // Update auto-load button visibility
+                        if (currentSearchResults.length > 0) {
+                            const remainingSlots = 27 - loadedSoundsCount;
+                            if (remainingSlots > 0) {
+                                const loadCount = Math.min(remainingSlots, currentSearchResults.length);
+                                autoLoadBtn.textContent = `⚡ Auto-Load First ${loadCount}`;
+                                autoLoadBtn.style.display = 'block';
+                            }
+                        }
+                    }
                 }
             });
         });
