@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freesound API Test - SPOKE Sampler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .title {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        
+        /* API Key Section */
+        .api-key-section {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .api-key-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .api-key-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .api-key-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .api-key-input:focus {
+            border-color: #4CAF50;
+        }
+        
+        .btn {
+            background: rgba(76, 175, 80, 0.3);
+            border: 2px solid #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: rgba(76, 175, 80, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .info-text {
+            font-size: 13px;
+            opacity: 0.7;
+            line-height: 1.6;
+        }
+        
+        .info-text a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        
+        .info-text a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Suggested Searches */
+        .suggested-searches {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        
+        .suggested-btn {
+            background: rgba(33, 150, 243, 0.2);
+            border: 2px solid rgba(33, 150, 243, 0.4);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+        
+        .suggested-btn:hover {
+            background: rgba(33, 150, 243, 0.4);
+            border-color: #2196F3;
+            transform: translateY(-2px);
+        }
+        
+        /* Search Section */
+        .search-section {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .search-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .search-input:focus {
+            border-color: #4CAF50;
+        }
+        
+        .search-btn {
+            background: rgba(33, 150, 243, 0.3);
+            border: 2px solid #2196F3;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .search-btn:hover {
+            background: rgba(33, 150, 243, 0.5);
+        }
+        
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .filter-group label {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+        
+        .filter-select {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            outline: none;
+        }
+        
+        .filter-select option {
+            background: #1a1a2e;
+        }
+        
+        /* Results */
+        .results-section {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .results-title {
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .results-count {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        
+        .sound-list {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .sound-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .sound-item:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .sound-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .sound-info {
+            flex: 1;
+        }
+        
+        .sound-name {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .sound-user {
+            font-size: 13px;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+        
+        .sound-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .tag {
+            background: rgba(33, 150, 243, 0.3);
+            border: 1px solid rgba(33, 150, 243, 0.5);
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        
+        .sound-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            opacity: 0.6;
+        }
+        
+        .sound-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            background: rgba(76, 175, 80, 0.3);
+            border: 2px solid #4CAF50;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            background: rgba(76, 175, 80, 0.5);
+        }
+        
+        .action-btn.playing {
+            background: rgba(255, 152, 0, 0.3);
+            border-color: #FF9800;
+        }
+        
+        .load-more {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .status-message {
+            text-align: center;
+            padding: 20px;
+            opacity: 0.7;
+            font-size: 14px;
+        }
+        
+        .error-message {
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid #F44336;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        .success-message {
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">FREESOUND API TEST</h1>
+            <p class="subtitle">Search and download sounds for SPOKE</p>
+        </div>
+        
+        <!-- Suggested Searches -->
+        <div class="api-key-section">
+            <div class="api-key-title">🎵 Popular Sample Categories</div>
+            <div class="suggested-searches">
+                <button class="suggested-btn" data-search="bird chirp">🐦 Bird Chirps</button>
+                <button class="suggested-btn" data-search="drum kick">🥁 Drum Kicks</button>
+                <button class="suggested-btn" data-search="808 bass">🔊 808 Bass</button>
+                <button class="suggested-btn" data-search="piano note">🎹 Piano Notes</button>
+                <button class="suggested-btn" data-search="synth pad">🎛️ Synth Pads</button>
+                <button class="suggested-btn" data-search="clap">👏 Claps</button>
+                <button class="suggested-btn" data-search="snare">🥁 Snares</button>
+                <button class="suggested-btn" data-search="hi-hat">🎶 Hi-Hats</button>
+                <button class="suggested-btn" data-search="ambient drone">🌌 Ambient Drones</button>
+                <button class="suggested-btn" data-search="trumpet">🎺 Trumpet</button>
+                <button class="suggested-btn" data-search="violin">🎻 Violin</button>
+                <button class="suggested-btn" data-search="nature sounds">🌿 Nature Sounds</button>
+            </div>
+        </div>
+        
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="search-controls">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="Search for sounds (e.g., 'bird chirp', 'drum kit', 'piano')..."
+                >
+                <button class="search-btn" id="searchBtn">Search</button>
+            </div>
+            
+            <div class="filters">
+                <div class="filter-group">
+                    <label>License:</label>
+                    <select class="filter-select" id="licenseFilter">
+                        <option value="">Any License</option>
+                        <option value="Attribution">CC BY (Attribution)</option>
+                        <option value="Creative Commons 0">CC0 (Public Domain)</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Duration:</label>
+                    <select class="filter-select" id="durationFilter">
+                        <option value="">Any Duration</option>
+                        <option value="[0 TO 2]">0-2 seconds</option>
+                        <option value="[2 TO 5]">2-5 seconds</option>
+                        <option value="[5 TO 10]">5-10 seconds</option>
+                        <option value="[10 TO 30]">10-30 seconds</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Sort by:</label>
+                    <select class="filter-select" id="sortFilter">
+                        <option value="score">Relevance</option>
+                        <option value="rating_desc">Rating (High to Low)</option>
+                        <option value="downloads_desc">Most Downloaded</option>
+                        <option value="created_desc">Newest First</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div class="results-section">
+            <div class="results-header">
+                <div class="results-title">Search Results</div>
+                <div class="results-count" id="resultsCount"></div>
+            </div>
+            
+            <div id="soundList" class="sound-list">
+                <div class="status-message">Enter a search query to find sounds</div>
+            </div>
+            
+            <div class="load-more" id="loadMoreContainer" style="display: none;">
+                <button class="btn" id="loadMoreBtn">Load More Results</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Embedded API key
+        const API_KEY = 'ENXBH14HDdboFnq4ttqKQGed9tV7xxYJOghOaPbo';
+        
+        // State
+        let apiKey = API_KEY;
+        let currentQuery = '';
+        let currentPage = 1;
+        let totalResults = 0;
+        let audioElements = new Map();
+        
+        // Elements
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const soundList = document.getElementById('soundList');
+        const resultsCount = document.getElementById('resultsCount');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        const loadMoreContainer = document.getElementById('loadMoreContainer');
+        
+        // Suggested search buttons
+        document.querySelectorAll('.suggested-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const searchTerm = btn.getAttribute('data-search');
+                searchInput.value = searchTerm;
+                performSearch();
+            });
+        });
+        
+        // Search
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+        
+        // Load more
+        loadMoreBtn.addEventListener('click', () => {
+            currentPage++;
+            performSearch(true);
+        });
+        
+        async function performSearch(append = false) {
+            const query = searchInput.value.trim();
+            if (!query && !append) {
+                soundList.innerHTML = '<div class="status-message">Enter a search query to find sounds</div>';
+                return;
+            }
+            
+            if (!append) {
+                currentPage = 1;
+                currentQuery = query;
+            }
+            
+            // Build URL with filters
+            const licenseFilter = document.getElementById('licenseFilter').value;
+            const durationFilter = document.getElementById('durationFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+            
+            let url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(currentQuery)}&page=${currentPage}&page_size=15&token=${apiKey}&fields=id,name,tags,description,username,duration,license,previews`;
+            
+            if (licenseFilter) {
+                url += `&filter=license:"${encodeURIComponent(licenseFilter)}"`;
+            }
+            if (durationFilter) {
+                url += `${licenseFilter ? ' ' : '&filter='}duration:${durationFilter}`;
+            }
+            if (sortFilter) {
+                url += `&sort=${sortFilter}`;
+            }
+            
+            try {
+                if (!append) {
+                    soundList.innerHTML = '<div class="status-message">Searching...</div>';
+                }
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                totalResults = data.count;
+                
+                if (data.results.length === 0 && !append) {
+                    soundList.innerHTML = '<div class="status-message">No sounds found. Try a different search query.</div>';
+                    resultsCount.textContent = '';
+                    loadMoreContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Display results
+                if (!append) {
+                    soundList.innerHTML = '';
+                }
+                
+                data.results.forEach(sound => {
+                    const soundItem = createSoundItem(sound);
+                    soundList.appendChild(soundItem);
+                });
+                
+                // Update count
+                const displayedCount = soundList.children.length;
+                resultsCount.textContent = `Showing ${displayedCount} of ${totalResults} results`;
+                
+                // Show/hide load more
+                if (data.next) {
+                    loadMoreContainer.style.display = 'block';
+                } else {
+                    loadMoreContainer.style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.error('Search error:', error);
+                soundList.innerHTML = `<div class="error-message">Error: ${error.message}<br>Make sure your API key is valid.</div>`;
+                loadMoreContainer.style.display = 'none';
+            }
+        }
+        
+        function createSoundItem(sound) {
+            const div = document.createElement('div');
+            div.className = 'sound-item';
+            
+            // Format duration
+            const duration = Math.round(sound.duration * 10) / 10;
+            
+            // Get tags (first 5)
+            const tags = sound.tags.slice(0, 5).map(tag => 
+                `<span class="tag">${tag}</span>`
+            ).join('');
+            
+            div.innerHTML = `
+                <div class="sound-header">
+                    <div class="sound-info">
+                        <div class="sound-name">${sound.name}</div>
+                        <div class="sound-user">by ${sound.username}</div>
+                        <div class="sound-meta">
+                            <span>⏱️ ${duration}s</span>
+                            <span>📜 ${sound.license}</span>
+                        </div>
+                        ${tags ? `<div class="sound-tags">${tags}</div>` : ''}
+                    </div>
+                    <div class="sound-actions">
+                        <button class="action-btn play-btn" data-id="${sound.id}">▶ Play</button>
+                        <button class="action-btn" onclick="window.open('https://freesound.org/people/${sound.username}/sounds/${sound.id}/', '_blank')">🔗 View</button>
+                    </div>
+                </div>
+            `;
+            
+            // Add play button functionality
+            const playBtn = div.querySelector('.play-btn');
+            playBtn.addEventListener('click', () => togglePlay(sound.id, sound.previews['preview-hq-mp3'], playBtn));
+            
+            return div;
+        }
+        
+        function togglePlay(soundId, previewUrl, button) {
+            // Stop any currently playing audio
+            audioElements.forEach((audio, id) => {
+                if (id !== soundId && !audio.paused) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    const otherBtn = document.querySelector(`[data-id="${id}"]`);
+                    if (otherBtn) {
+                        otherBtn.textContent = '▶ Play';
+                        otherBtn.classList.remove('playing');
+                    }
+                }
+            });
+            
+            // Toggle current audio
+            if (!audioElements.has(soundId)) {
+                const audio = new Audio(previewUrl);
+                audio.addEventListener('ended', () => {
+                    button.textContent = '▶ Play';
+                    button.classList.remove('playing');
+                });
+                audioElements.set(soundId, audio);
+            }
+            
+            const audio = audioElements.get(soundId);
+            
+            if (audio.paused) {
+                audio.play();
+                button.textContent = '⏸ Pause';
+                button.classList.add('playing');
+            } else {
+                audio.pause();
+                audio.currentTime = 0;
+                button.textContent = '▶ Play';
+                button.classList.remove('playing');
+            }
+        }
+        
+        // Popular searches
+        const popularSearches = ['bird chirp', 'drum kick', 'piano note', 'synth bass', 'ambient pad'];
+        searchInput.placeholder = `Search for sounds (e.g., '${popularSearches[Math.floor(Math.random() * popularSearches.length)]}')...`;
+    </script>
+</body>
+</html>
