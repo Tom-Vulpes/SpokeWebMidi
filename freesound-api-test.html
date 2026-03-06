@@ -484,7 +484,10 @@
         <div class="results-section">
             <div class="results-header">
                 <div class="results-title">Search Results</div>
-                <div class="results-count" id="resultsCount"></div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <button class="btn" id="autoLoadBtn" style="display: none;">⚡ Auto-Load First 27</button>
+                    <div class="results-count" id="resultsCount"></div>
+                </div>
             </div>
             
             <div id="soundList" class="sound-list">
@@ -510,6 +513,7 @@
         let currentPage = 1;
         let totalResults = 0;
         let audioElements = new Map();
+        let currentSearchResults = []; // Track current results for auto-load
         
         // SPOKE state
         let audioContext;
@@ -530,6 +534,7 @@
         const resultsCount = document.getElementById('resultsCount');
         const loadMoreBtn = document.getElementById('loadMoreBtn');
         const loadMoreContainer = document.getElementById('loadMoreContainer');
+        const autoLoadBtn = document.getElementById('autoLoadBtn');
         const spokeCanvas = document.getElementById('spokeCanvas');
         const scopeCanvas = document.getElementById('scopeCanvas');
         const connectMidiBtn = document.getElementById('connectMidiBtn');
@@ -581,6 +586,9 @@
         connectMidiBtn.addEventListener('click', connectMIDI);
         clearBoardBtn.addEventListener('click', clearBoard);
         
+        // Auto-load button
+        autoLoadBtn.addEventListener('click', autoLoadFirst27);
+        
         async function performSearch(append = false) {
             const query = searchInput.value.trim();
             if (!query && !append) {
@@ -629,7 +637,16 @@
                     soundList.innerHTML = '<div class="status-message">No sounds found. Try a different search query.</div>';
                     resultsCount.textContent = '';
                     loadMoreContainer.style.display = 'none';
+                    autoLoadBtn.style.display = 'none';
+                    currentSearchResults = [];
                     return;
+                }
+                
+                // Store results for auto-load
+                if (!append) {
+                    currentSearchResults = data.results;
+                } else {
+                    currentSearchResults = currentSearchResults.concat(data.results);
                 }
                 
                 // Display results
@@ -645,6 +662,20 @@
                 // Update count
                 const displayedCount = soundList.children.length;
                 resultsCount.textContent = `Showing ${displayedCount} of ${totalResults} results`;
+                
+                // Show/hide auto-load button
+                if (currentSearchResults.length > 0) {
+                    const remainingSlots = 27 - loadedSoundsCount;
+                    if (remainingSlots > 0) {
+                        const loadCount = Math.min(remainingSlots, currentSearchResults.length);
+                        autoLoadBtn.textContent = `⚡ Auto-Load First ${loadCount}`;
+                        autoLoadBtn.style.display = 'block';
+                    } else {
+                        autoLoadBtn.style.display = 'none';
+                    }
+                } else {
+                    autoLoadBtn.style.display = 'none';
+                }
                 
                 // Show/hide load more
                 if (data.next) {
@@ -969,6 +1000,52 @@
             loadedSoundsCount = 0;
             updateLoadedCount();
             drawBoard();
+            
+            // Update auto-load button
+            if (currentSearchResults.length > 0) {
+                const loadCount = Math.min(27, currentSearchResults.length);
+                autoLoadBtn.textContent = `⚡ Auto-Load First ${loadCount}`;
+                autoLoadBtn.style.display = 'block';
+            }
+        }
+        
+        // Auto-load first 27 sounds
+        async function autoLoadFirst27() {
+            const remainingSlots = 27 - loadedSoundsCount;
+            if (remainingSlots === 0) {
+                alert('Board is full! Clear the board first.');
+                return;
+            }
+            
+            const soundsToLoad = currentSearchResults.slice(0, remainingSlots);
+            
+            if (soundsToLoad.length === 0) {
+                alert('No sounds to load!');
+                return;
+            }
+            
+            // Disable button and show progress
+            autoLoadBtn.disabled = true;
+            const originalText = autoLoadBtn.textContent;
+            
+            for (let i = 0; i < soundsToLoad.length; i++) {
+                const sound = soundsToLoad[i];
+                autoLoadBtn.textContent = `Loading ${i + 1}/${soundsToLoad.length}...`;
+                
+                try {
+                    await loadToSpoke(sound.previews['preview-hq-mp3'], sound.name, sound.id);
+                } catch (error) {
+                    console.error(`Failed to load sound ${sound.name}:`, error);
+                    // Continue loading other sounds even if one fails
+                }
+            }
+            
+            // Re-enable button
+            autoLoadBtn.disabled = false;
+            autoLoadBtn.textContent = originalText;
+            autoLoadBtn.style.display = 'none'; // Hide after loading
+            
+            alert(`Successfully loaded ${soundsToLoad.length} sounds!`);
         }
         
         // Update loaded count display
