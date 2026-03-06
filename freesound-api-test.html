@@ -411,6 +411,19 @@
                 <div style="display: flex; justify-content: center; margin-bottom: 15px;">
                     <canvas id="spokeCanvas" width="400" height="400"></canvas>
                 </div>
+                
+                <!-- Audio Scope -->
+                <div style="position: relative; height: 80px; margin-bottom: 15px; background: rgba(0, 0, 0, 0.5); border-radius: 10px; overflow: hidden;">
+                    <canvas id="scopeCanvas" width="400" height="80"></canvas>
+                </div>
+                
+                <!-- Now Playing Info -->
+                <div id="nowPlayingInfo" style="background: rgba(0, 0, 0, 0.5); border-radius: 10px; padding: 12px; margin-bottom: 15px; min-height: 60px; display: flex; align-items: center; justify-content: center;">
+                    <div style="text-align: center; opacity: 0.6; font-size: 13px;">
+                        No sound playing
+                    </div>
+                </div>
+                
                 <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
                     <button class="btn" id="connectMidiBtn" style="flex: 1;">Connect MIDI</button>
                     <button class="btn" id="clearBoardBtn" style="flex: 1;">Clear Board</button>
@@ -506,6 +519,10 @@
         const activeSources = new Map();
         let loadedSoundsCount = 0;
         
+        // Scope visualization
+        let scopeAnalyser;
+        let scopeAnimationId;
+        
         // Elements
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
@@ -514,9 +531,11 @@
         const loadMoreBtn = document.getElementById('loadMoreBtn');
         const loadMoreContainer = document.getElementById('loadMoreContainer');
         const spokeCanvas = document.getElementById('spokeCanvas');
+        const scopeCanvas = document.getElementById('scopeCanvas');
         const connectMidiBtn = document.getElementById('connectMidiBtn');
         const clearBoardBtn = document.getElementById('clearBoardBtn');
         const loadedCount = document.getElementById('loadedCount');
+        const nowPlayingInfo = document.getElementById('nowPlayingInfo');
         
         // Suggested search buttons
         document.querySelectorAll('.suggested-btn').forEach(btn => {
@@ -713,10 +732,105 @@
         function initAudio() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Create analyser for scope
+                scopeAnalyser = audioContext.createAnalyser();
+                scopeAnalyser.fftSize = 2048;
+                
                 masterGain = audioContext.createGain();
                 masterGain.gain.value = 0.8;
-                masterGain.connect(audioContext.destination);
+                masterGain.connect(scopeAnalyser);
+                scopeAnalyser.connect(audioContext.destination);
+                
+                // Start scope animation
+                drawScope();
             }
+        }
+        
+        // Draw audio scope
+        function drawScope() {
+            const scopeCtx = scopeCanvas.getContext('2d');
+            const scopeWidth = scopeCanvas.width;
+            const scopeHeight = scopeCanvas.height;
+            
+            if (!scopeAnalyser) {
+                scopeCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                scopeCtx.fillRect(0, 0, scopeWidth, scopeHeight);
+                scopeAnimationId = requestAnimationFrame(drawScope);
+                return;
+            }
+            
+            const bufferLength = scopeAnalyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            scopeAnalyser.getByteTimeDomainData(dataArray);
+            
+            // Check if there's actual audio signal
+            let hasSignal = false;
+            for (let i = 0; i < bufferLength; i++) {
+                if (Math.abs(dataArray[i] - 128) > 2) {
+                    hasSignal = true;
+                    break;
+                }
+            }
+            
+            scopeCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            scopeCtx.fillRect(0, 0, scopeWidth, scopeHeight);
+            
+            scopeCtx.lineWidth = 2;
+            scopeCtx.strokeStyle = hasSignal ? '#4CAF50' : 'rgba(76, 175, 80, 0.3)';
+            scopeCtx.beginPath();
+            
+            const sliceWidth = scopeWidth / bufferLength;
+            let x = 0;
+            
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * scopeHeight / 2;
+                
+                if (i === 0) {
+                    scopeCtx.moveTo(x, y);
+                } else {
+                    scopeCtx.lineTo(x, y);
+                }
+                
+                x += sliceWidth;
+            }
+            
+            scopeCtx.lineTo(scopeWidth, scopeHeight / 2);
+            scopeCtx.stroke();
+            
+            scopeAnimationId = requestAnimationFrame(drawScope);
+        }
+        
+        // Update now playing info
+        function updateNowPlaying(padIndex) {
+            if (spokeSounds.has(padIndex)) {
+                const sound = spokeSounds.get(padIndex);
+                nowPlayingInfo.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="font-size: 16px; font-weight: 700; margin-bottom: 5px;">
+                            🔊 Pad ${padIndex + 1}
+                        </div>
+                        <div style="font-size: 13px; opacity: 0.8;">
+                            ${sound.name}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Clear now playing info after a delay
+        function clearNowPlaying() {
+            setTimeout(() => {
+                // Only clear if no sounds are currently playing
+                if (activeSources.size === 0) {
+                    nowPlayingInfo.innerHTML = `
+                        <div style="text-align: center; opacity: 0.6; font-size: 13px;">
+                            No sound playing
+                        </div>
+                    `;
+                }
+            }, 2000);
         }
         
         // Connect MIDI
@@ -760,6 +874,9 @@
             
             initAudio();
             
+            // Update now playing info
+            updateNowPlaying(padIndex);
+            
             // Stop previous
             if (activeSources.has(padIndex)) {
                 try { activeSources.get(padIndex).source.stop(); } catch (e) {}
@@ -786,6 +903,7 @@
             source.onended = () => {
                 if (activeSources.get(padIndex)?.source === source) {
                     activeSources.delete(padIndex);
+                    clearNowPlaying();
                 }
             };
         }
