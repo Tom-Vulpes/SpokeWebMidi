@@ -552,6 +552,25 @@
             if (e.key === 'Enter') performSearch();
         });
         
+        // Clear results when filters change
+        document.getElementById('licenseFilter').addEventListener('change', () => {
+            if (currentQuery) {
+                soundList.innerHTML = '<div class="status-message">Filter changed - click Search to apply</div>';
+            }
+        });
+        
+        document.getElementById('durationFilter').addEventListener('change', () => {
+            if (currentQuery) {
+                soundList.innerHTML = '<div class="status-message">Filter changed - click Search to apply</div>';
+            }
+        });
+        
+        document.getElementById('sortFilter').addEventListener('change', () => {
+            if (currentQuery) {
+                performSearch(); // Auto-search on sort change
+            }
+        });
+        
         // Load more
         loadMoreBtn.addEventListener('click', () => {
             currentPage++;
@@ -1002,7 +1021,7 @@
                 
                 // Glow
                 if (this.active) {
-                    const glowSize = this.size + Math.sin(this.activePulse) * 20;
+                    const glowSize = Math.max(this.size * 0.5, this.size + Math.sin(this.activePulse) * 20);
                     const gradient = ctx.createRadialGradient(this.x, this.y, this.size * 0.3, this.x, this.y, glowSize);
                     gradient.addColorStop(0, '#4CAF50cc');
                     gradient.addColorStop(1, '#4CAF5000');
