@@ -239,6 +239,32 @@
             background: #1a1a2e;
         }
         
+        /* Loop Toggle */
+        .loop-toggle-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .loop-toggle-label {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .loop-toggle-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .loop-toggle-status {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+        
         /* Privacy Disclaimer */
         .privacy-disclaimer {
             position: fixed;
@@ -305,6 +331,19 @@
             <!-- Board -->
             <canvas id="boardCanvas" width="700" height="700"></canvas>
             
+            <!-- Loop Mode Toggle -->
+            <div class="loop-toggle-container">
+                <div class="loop-toggle-label">
+                    <div class="loop-toggle-title">Playback Mode</div>
+                    <div class="loop-toggle-status" id="loopModeLabel">One-Shot (play once)</div>
+                </div>
+                <label style="position: relative; display: inline-block; width: 60px; height: 30px; cursor: pointer;">
+                    <input type="checkbox" id="loopToggle" style="opacity: 0; width: 0; height: 0;">
+                    <span style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.2); border-radius: 15px; transition: 0.3s;"></span>
+                    <span id="loopToggleSlider" style="position: absolute; content: ''; height: 24px; width: 24px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.3s;"></span>
+                </label>
+            </div>
+            
             <!-- Status Bar -->
             <div class="status-bar">
                 <div class="status-item">
@@ -351,6 +390,9 @@
         let recordButtonHeld = false;
         let currentRecordingPad = null;
         let isRecording = false;
+        
+        // Loop mode state
+        let loopMode = false; // false = one-shot, true = looping
         
         // Scope visualization
         let scopeAnalyser;
@@ -498,7 +540,16 @@
             
             initAudio();
             
-            // Stop previous
+            // If in loop mode and this pad is already playing, stop it
+            if (loopMode && activeSources.has(padIndex)) {
+                try { 
+                    activeSources.get(padIndex).source.stop(); 
+                } catch (e) {}
+                activeSources.delete(padIndex);
+                return; // Exit - this acts as the "stop" toggle
+            }
+            
+            // Stop previous (for non-loop or when starting fresh)
             if (activeSources.has(padIndex)) {
                 try { activeSources.get(padIndex).source.stop(); } catch (e) {}
                 activeSources.delete(padIndex);
@@ -508,6 +559,7 @@
             const gainNode = audioContext.createGain();
             
             source.buffer = sampleBuffers.get(padIndex);
+            source.loop = loopMode; // Enable looping if in loop mode
             gainNode.gain.value = velocity / 127;
             
             source.connect(gainNode);
@@ -663,6 +715,7 @@
                 const hasSample = sampleBuffers.has(this.index);
                 const isRecordButton = this.index === RECORD_PAD;
                 const isRecordingToThis = currentRecordingPad === this.index;
+                const isLooping = loopMode && activeSources.has(this.index);
                 
                 // Special styling for record button (Pad 1)
                 let color = '#333';
@@ -674,6 +727,11 @@
                 } else if (isRecordingToThis) {
                     color = '#ff6b6b';
                     borderColor = '#ff6b6b';
+                } else if (isLooping) {
+                    // Looping pads get pulsing orange color
+                    const pulseIntensity = Math.sin(Date.now() / 500) * 0.3 + 0.7;
+                    color = `rgba(255, 152, 0, ${pulseIntensity})`;
+                    borderColor = '#FF9800';
                 } else if (this.active) {
                     color = '#4CAF50';
                     borderColor = '#fff';
@@ -683,9 +741,14 @@
                 }
                 
                 // Glow
-                if (this.active || isRecordingToThis || (isRecordButton && this.recordMode)) {
-                    const glowSize = this.size + Math.sin(this.activePulse) * 20;
-                    const glowColor = isRecordButton || isRecordingToThis ? '#ff6b6b' : '#4CAF50';
+                if (this.active || isRecordingToThis || (isRecordButton && this.recordMode) || isLooping) {
+                    const glowSize = Math.max(this.size * 0.5, this.size + Math.sin(this.activePulse) * 20);
+                    let glowColor = '#4CAF50';
+                    if (isRecordButton || isRecordingToThis) {
+                        glowColor = '#ff6b6b';
+                    } else if (isLooping) {
+                        glowColor = '#FF9800';
+                    }
                     const gradient = ctx.createRadialGradient(this.x, this.y, this.size * 0.3, this.x, this.y, glowSize);
                     gradient.addColorStop(0, glowColor + 'cc');
                     gradient.addColorStop(1, glowColor + '00');
@@ -701,17 +764,20 @@
                 ctx.fillStyle = color;
                 ctx.fill();
                 ctx.strokeStyle = borderColor;
-                ctx.lineWidth = (hasSample || isRecordButton) ? 3 : 2;
+                ctx.lineWidth = (hasSample || isRecordButton || isLooping) ? 3 : 2;
                 ctx.stroke();
                 
                 // Label
                 ctx.fillStyle = '#fff';
-                ctx.font = isRecordButton ? 'bold 14px Arial' : (hasSample ? 'bold 12px Arial' : '11px Arial');
+                ctx.font = isRecordButton ? 'bold 14px Arial' : (hasSample || isLooping ? 'bold 12px Arial' : '11px Arial');
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
                 if (isRecordButton) {
                     ctx.fillText('REC', this.x, this.y);
+                } else if (isLooping) {
+                    // Show loop icon for looping pads
+                    ctx.fillText('🔁', this.x, this.y);
                 } else {
                     ctx.fillText(this.index + 1, this.x, this.y);
                 }
@@ -776,6 +842,32 @@
         drawScope(); // Start scope animation
         
         document.getElementById('connectMidiBtn').addEventListener('click', connectMIDI);
+        
+        // Loop mode toggle
+        const loopToggle = document.getElementById('loopToggle');
+        const loopToggleSlider = document.getElementById('loopToggleSlider');
+        const loopModeLabel = document.getElementById('loopModeLabel');
+        
+        loopToggle.addEventListener('change', (e) => {
+            loopMode = e.target.checked;
+            
+            if (loopMode) {
+                loopModeLabel.textContent = 'Looping (continuous)';
+                loopToggleSlider.style.transform = 'translateX(30px)';
+                loopToggleSlider.parentElement.previousElementSibling.style.backgroundColor = 'rgba(76, 175, 80, 0.6)';
+            } else {
+                // Switching to one-shot mode - stop all currently playing sounds
+                loopModeLabel.textContent = 'One-Shot (play once)';
+                loopToggleSlider.style.transform = 'translateX(0)';
+                loopToggleSlider.parentElement.previousElementSibling.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                
+                // Stop all active sources
+                activeSources.forEach((sourceObj) => {
+                    try { sourceObj.source.stop(); } catch (e) {}
+                });
+                activeSources.clear();
+            }
+        });
         
         if (!navigator.requestMIDIAccess) {
             alert('Web MIDI not supported. Please use Chrome, Edge, or Opera.');
