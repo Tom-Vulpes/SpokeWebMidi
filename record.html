@@ -304,13 +304,13 @@
                     <div class="instruction-step">
                         <div class="step-number">1</div>
                         <div class="step-text">
-                            <strong>Hold Pad 1</strong> to activate recording mode
+                            <strong>Hold the Record Pad</strong> (red "REC" button) to activate recording mode
                         </div>
                     </div>
                     <div class="instruction-step">
                         <div class="step-number">2</div>
                         <div class="step-text">
-                            <strong>While holding Pad 1</strong>, touch another pad (2-27) to start recording
+                            <strong>While holding Record Pad</strong>, touch another pad to start recording
                         </div>
                     </div>
                     <div class="instruction-step">
@@ -322,7 +322,13 @@
                     <div class="instruction-step">
                         <div class="step-number">4</div>
                         <div class="step-text">
-                            <strong>Touch any pad</strong> (without Pad 1) to play it back
+                            <strong>Touch any pad</strong> (without Record Pad) to play it back
+                        </div>
+                    </div>
+                    <div class="instruction-step">
+                        <div class="step-number">5</div>
+                        <div class="step-text">
+                            <strong>Change Record Pad</strong> in the dropdown below if using different hardware
                         </div>
                     </div>
                 </div>
@@ -352,6 +358,13 @@
                 </div>
                 
                 <div class="device-selector">
+                    <label for="recordPadSelect">Record Pad:</label>
+                    <select id="recordPadSelect" class="device-select">
+                        <option value="0" selected>Pad 1 (Default)</option>
+                    </select>
+                </div>
+                
+                <div class="device-selector">
                     <label for="inputDevice">Mic:</label>
                     <select id="inputDevice" class="device-select">
                         <option>Loading...</option>
@@ -372,8 +385,12 @@
     <script>
         // SPOKE configuration
         const SPOKE_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36];
-        const RECORD_PAD = 0; // Pad 1 (index 0)
-        const RECORD_NOTE = SPOKE_NOTES[RECORD_PAD]; // MIDI note 98
+        let RECORD_PAD = 0; // Pad 1 (index 0) - user configurable
+        
+        // Dynamic getter for RECORD_NOTE based on current RECORD_PAD
+        function getRecordNote() {
+            return SPOKE_NOTES[RECORD_PAD];
+        }
         
         // State
         let audioContext;
@@ -588,13 +605,13 @@
             // Note On
             if (command === 0x90 && velocity > 0) {
                 
-                // Pad 1 pressed - activate record mode
+                // Record pad pressed - activate record mode
                 if (padIndex === RECORD_PAD) {
                     recordButtonHeld = true;
                     updateStatus('Record mode active - touch a pad to record', 'ready');
                     pads[RECORD_PAD].setRecordMode(true);
                 }
-                // Other pad pressed while holding Pad 1 - start recording
+                // Other pad pressed while holding record pad - start recording
                 else if (recordButtonHeld && !isRecording) {
                     startRecordingToPad(padIndex);
                 }
@@ -606,7 +623,7 @@
             // Note Off
             else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
                 
-                // Pad 1 released - stop recording
+                // Record pad released - stop recording
                 if (padIndex === RECORD_PAD) {
                     recordButtonHeld = false;
                     pads[RECORD_PAD].setRecordMode(false);
@@ -840,6 +857,36 @@
         animate();
         enumerateDevices();
         drawScope(); // Start scope animation
+        
+        // Populate record pad selector
+        const recordPadSelect = document.getElementById('recordPadSelect');
+        for (let i = 0; i < 27; i++) {
+            if (i !== 0) { // Skip Pad 1 since it's already the default option
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Pad ${i + 1}`;
+                recordPadSelect.appendChild(option);
+            }
+        }
+        
+        // Handle record pad selection change
+        recordPadSelect.addEventListener('change', (e) => {
+            const oldRecordPad = RECORD_PAD;
+            RECORD_PAD = parseInt(e.target.value);
+            
+            // Clear old record pad styling
+            if (pads[oldRecordPad]) {
+                pads[oldRecordPad].setRecordMode(false);
+            }
+            
+            // If currently in record mode, update new pad
+            if (recordButtonHeld) {
+                recordButtonHeld = false;
+                updateStatus('Record button changed - press new record pad', 'ready');
+            }
+            
+            drawBoard(); // Redraw to show new REC button
+        });
         
         document.getElementById('connectMidiBtn').addEventListener('click', connectMIDI);
         
