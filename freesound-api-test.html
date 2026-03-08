@@ -705,9 +705,17 @@
                 loopToggleSlider.style.transform = 'translateX(24px)';
                 loopToggleSlider.parentElement.previousElementSibling.style.backgroundColor = 'rgba(76, 175, 80, 0.6)';
             } else {
+                // Switching to one-shot mode - stop all currently playing sounds
                 loopModeLabel.textContent = 'One-Shot (play once)';
                 loopToggleSlider.style.transform = 'translateX(0)';
                 loopToggleSlider.parentElement.previousElementSibling.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                
+                // Stop all active sources
+                activeSources.forEach((sourceObj) => {
+                    try { sourceObj.source.stop(); } catch (e) {}
+                });
+                activeSources.clear();
+                clearNowPlaying();
             }
         });
         
