@@ -1393,11 +1393,17 @@
             
             draw() {
                 const hasSound = spokeSounds.has(this.index);
+                const isLooping = loopMode && activeSources.has(this.index);
                 
                 let color = '#333';
                 let borderColor = '#666';
                 
-                if (this.active) {
+                if (isLooping) {
+                    // Looping pads get pulsing orange/yellow color
+                    const pulseIntensity = Math.sin(Date.now() / 500) * 0.3 + 0.7;
+                    color = `rgba(255, 152, 0, ${pulseIntensity})`;
+                    borderColor = '#FF9800';
+                } else if (this.active) {
                     color = '#4CAF50';
                     borderColor = '#fff';
                 } else if (hasSound) {
@@ -1406,11 +1412,12 @@
                 }
                 
                 // Glow
-                if (this.active) {
+                if (this.active || isLooping) {
                     const glowSize = Math.max(this.size * 0.5, this.size + Math.sin(this.activePulse) * 20);
+                    const glowColor = isLooping ? '#FF9800' : '#4CAF50';
                     const gradient = ctx.createRadialGradient(this.x, this.y, this.size * 0.3, this.x, this.y, glowSize);
-                    gradient.addColorStop(0, '#4CAF50cc');
-                    gradient.addColorStop(1, '#4CAF5000');
+                    gradient.addColorStop(0, glowColor + 'cc');
+                    gradient.addColorStop(1, glowColor + '00');
                     ctx.fillStyle = gradient;
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, glowSize, 0, Math.PI * 2);
@@ -1423,15 +1430,22 @@
                 ctx.fillStyle = color;
                 ctx.fill();
                 ctx.strokeStyle = borderColor;
-                ctx.lineWidth = hasSound ? 3 : 2;
+                ctx.lineWidth = (hasSound || isLooping) ? 3 : 2;
                 ctx.stroke();
                 
                 // Label
                 ctx.fillStyle = '#fff';
-                ctx.font = hasSound ? 'bold 10px Arial' : '9px Arial';
+                ctx.font = (hasSound || isLooping) ? 'bold 10px Arial' : '9px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(this.index + 1, this.x, this.y);
+                
+                if (isLooping) {
+                    // Show loop icon instead of number
+                    ctx.font = '12px Arial';
+                    ctx.fillText('🔁', this.x, this.y);
+                } else {
+                    ctx.fillText(this.index + 1, this.x, this.y);
+                }
             }
             
             trigger() {
