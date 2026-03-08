@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE DAW - Digital Audio Workstation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Top Menu Bar */
+        .menu-bar {
+            background: #2d2d2d;
+            border-bottom: 1px solid #000;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            height: 45px;
+        }
+        
+        .logo {
+            font-weight: 900;
+            font-size: 16px;
+            color: #4CAF50;
+            letter-spacing: 1px;
+        }
+        
+        .menu-item {
+            font-size: 13px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 3px;
+        }
+        
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Transport Bar */
+        .transport-bar {
+            background: #252525;
+            border-bottom: 1px solid #000;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            height: 60px;
+        }
+        
+        .transport-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .transport-btn {
+            width: 36px;
+            height: 36px;
+            background: #3a3a3a;
+            border: none;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .transport-btn:hover {
+            background: #4a4a4a;
+        }
+        
+        .transport-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .transport-btn.record {
+            background: #d32f2f;
+        }
+        
+        .bpm-display {
+            background: #2d2d2d;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .timeline-position {
+            background: #2d2d2d;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        /* Left Sidebar - Browser */
+        .browser-panel {
+            width: 300px;
+            background: #252525;
+            border-right: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-header {
+            background: #2d2d2d;
+            padding: 10px 15px;
+            border-bottom: 1px solid #000;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .search-box {
+            padding: 10px;
+            border-bottom: 1px solid #000;
+        }
+        
+        .search-input {
+            width: 100%;
+            background: #1e1e1e;
+            border: 1px solid #3a3a3a;
+            color: #e0e0e0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+        }
+        
+        .search-input:focus {
+            border-color: #4CAF50;
+        }
+        
+        .browser-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px;
+        }
+        
+        .browser-item {
+            background: #2d2d2d;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .browser-item:hover {
+            background: #3a3a3a;
+        }
+        
+        .browser-item-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        
+        .browser-item-meta {
+            font-size: 11px;
+            opacity: 0.6;
+        }
+        
+        /* Center - Sequencer */
+        .sequencer-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1a1a1a;
+        }
+        
+        .timeline-ruler {
+            height: 30px;
+            background: #252525;
+            border-bottom: 1px solid #000;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ruler-marks {
+            height: 100%;
+            display: flex;
+            position: relative;
+        }
+        
+        .ruler-mark {
+            flex: 1;
+            border-right: 1px solid #3a3a3a;
+            font-size: 10px;
+            padding: 5px;
+            color: #808080;
+        }
+        
+        .ruler-mark.beat {
+            border-right: 1px solid #555;
+        }
+        
+        .playhead {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            background: #4CAF50;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .tracks-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .track {
+            height: 80px;
+            display: flex;
+            border-bottom: 1px solid #000;
+        }
+        
+        .track-header {
+            width: 200px;
+            background: #252525;
+            border-right: 1px solid #000;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .track-name {
+            font-size: 13px;
+            font-weight: 600;
+            background: #1e1e1e;
+            padding: 5px 8px;
+            border-radius: 3px;
+        }
+        
+        .track-controls {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .track-btn {
+            flex: 1;
+            padding: 4px;
+            background: #3a3a3a;
+            border: none;
+            border-radius: 3px;
+            color: #e0e0e0;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        
+        .track-btn:hover {
+            background: #4a4a4a;
+        }
+        
+        .track-btn.active {
+            background: #d32f2f;
+        }
+        
+        .track-timeline {
+            flex: 1;
+            background: #1a1a1a;
+            position: relative;
+            cursor: crosshair;
+        }
+        
+        .grid-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+        }
+        
+        .grid-line {
+            flex: 1;
+            border-right: 1px solid #2a2a2a;
+        }
+        
+        .grid-line.beat {
+            border-right: 1px solid #353535;
+        }
+        
+        .clip {
+            position: absolute;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            border: 1px solid #66BB6A;
+            border-radius: 3px;
+            padding: 5px;
+            font-size: 11px;
+            cursor: move;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+        
+        .clip:hover {
+            border-color: #81C784;
+        }
+        
+        .clip-waveform {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30%;
+            opacity: 0.3;
+        }
+        
+        /* Right Sidebar - Mixer & SPOKE */
+        .right-panel {
+            width: 350px;
+            background: #252525;
+            border-left: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .mixer-section {
+            height: 50%;
+            border-bottom: 1px solid #000;
+            overflow-y: auto;
+        }
+        
+        .mixer-channel {
+            padding: 15px;
+            border-bottom: 1px solid #1a1a1a;
+        }
+        
+        .mixer-channel-name {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .fader-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .fader {
+            flex: 1;
+            height: 60px;
+            position: relative;
+        }
+        
+        .fader-track {
+            width: 100%;
+            height: 4px;
+            background: #1e1e1e;
+            border-radius: 2px;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            transform-origin: center;
+            width: 60px;
+            left: 50%;
+            margin-left: -30px;
+        }
+        
+        .fader-thumb {
+            width: 20px;
+            height: 30px;
+            background: #4CAF50;
+            border-radius: 3px;
+            position: absolute;
+            top: 50%;
+            left: 70%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+        }
+        
+        .meter {
+            width: 8px;
+            height: 60px;
+            background: #1e1e1e;
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .meter-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, #4CAF50, #FFC107, #f44336);
+            height: 0%;
+            transition: height 0.1s;
+        }
+        
+        .spoke-section {
+            height: 50%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .spoke-canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .spoke-controls {
+            padding: 15px;
+            border-top: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .daw-btn {
+            background: #3a3a3a;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .daw-btn:hover {
+            background: #4a4a4a;
+        }
+        
+        .daw-btn.primary {
+            background: #4CAF50;
+        }
+        
+        .daw-btn.primary:hover {
+            background: #45a049;
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+    </style>
+</head>
+<body>
+    <!-- Menu Bar -->
+    <div class="menu-bar">
+        <div class="logo">SPOKE DAW</div>
+        <div class="menu-item">File</div>
+        <div class="menu-item">Edit</div>
+        <div class="menu-item">View</div>
+        <div class="menu-item">Project</div>
+        <div class="menu-item">Help</div>
+    </div>
+    
+    <!-- Transport Bar -->
+    <div class="transport-bar">
+        <div class="transport-controls">
+            <button class="transport-btn" id="playBtn" title="Play">▶</button>
+            <button class="transport-btn" id="stopBtn" title="Stop">■</button>
+            <button class="transport-btn record" id="recBtn" title="Record">●</button>
+        </div>
+        <div class="timeline-position" id="timeDisplay">0:00.000</div>
+        <div class="bpm-display">120 BPM</div>
+        <button class="transport-btn" id="loopBtn" title="Loop">🔁</button>
+        <button class="transport-btn" id="metronomeBtn" title="Metronome">⏱️</button>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Left Panel - Browser -->
+        <div class="browser-panel">
+            <div class="panel-header">🔍 Freesound Browser</div>
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search sounds...">
+            </div>
+            <div class="browser-list" id="browserList">
+                <div style="padding: 20px; text-align: center; opacity: 0.5; font-size: 12px;">
+                    Search for sounds to begin
+                </div>
+            </div>
+        </div>
+        
+        <!-- Center Panel - Sequencer -->
+        <div class="sequencer-panel">
+            <div class="timeline-ruler">
+                <div class="ruler-marks" id="rulerMarks"></div>
+                <div class="playhead" id="playhead"></div>
+            </div>
+            <div class="tracks-container" id="tracksContainer">
+                <!-- Tracks will be added here dynamically -->
+            </div>
+        </div>
+        
+        <!-- Right Panel - Mixer & SPOKE -->
+        <div class="right-panel">
+            <div class="mixer-section">
+                <div class="panel-header">🎚️ Mixer</div>
+                <div id="mixerChannels"></div>
+            </div>
+            <div class="spoke-section">
+                <div class="panel-header">🎛️ SPOKE Controller</div>
+                <div class="spoke-canvas-container">
+                    <canvas id="spokeCanvas" width="280" height="280"></canvas>
+                </div>
+                <div class="spoke-controls">
+                    <button class="daw-btn primary" id="connectMidiBtn">Connect MIDI</button>
+                    <button class="daw-btn" id="clearAllBtn">Clear All Tracks</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Freesound API configuration
+        const API_KEY = 'ENXBH14HDdboFnq4ttqKQGed9tV7xxYJOghOaPbo';
+        
+        // SPOKE configuration
+        const SPOKE_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36];
+        
+        // DAW State
+        let audioContext;
+        let masterGain;
+        let isPlaying = false;
+        let currentTime = 0;
+        let startTime = 0;
+        let bpm = 120;
+        let beatsPerBar = 4;
+        let pixelsPerBeat = 80;
+        let tracks = [];
+        let nextTrackId = 1;
+        
+        // SPOKE state
+        let midiAccess = null;
+        const spokePadSamples = new Map(); // Map pad index to sample buffer
+        
+        // Initialize
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = 0.8;
+                masterGain.connect(audioContext.destination);
+            }
+        }
+        
+        // Create initial tracks
+        function createTrack(name, color = '#4CAF50') {
+            const track = {
+                id: nextTrackId++,
+                name: name,
+                color: color,
+                clips: [],
+                muted: false,
+                solo: false,
+                volume: 0.8
+            };
+            tracks.push(track);
+            renderTrack(track);
+            renderMixerChannel(track);
+            return track;
+        }
+        
+        // Render track in sequencer
+        function renderTrack(track) {
+            const container = document.getElementById('tracksContainer');
+            const trackEl = document.createElement('div');
+            trackEl.className = 'track';
+            trackEl.dataset.trackId = track.id;
+            
+            trackEl.innerHTML = `
+                <div class="track-header">
+                    <div class="track-name">${track.name}</div>
+                    <div class="track-controls">
+                        <button class="track-btn mute-btn" data-track="${track.id}">M</button>
+                        <button class="track-btn solo-btn" data-track="${track.id}">S</button>
+                    </div>
+                </div>
+                <div class="track-timeline" data-track="${track.id}">
+                    <div class="grid-lines">
+                        ${Array(32).fill().map((_, i) => `<div class="grid-line ${i % 4 === 0 ? 'beat' : ''}"></div>`).join('')}
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(trackEl);
+            
+            // Add click handler for timeline
+            const timeline = trackEl.querySelector('.track-timeline');
+            timeline.addEventListener('click', (e) => handleTimelineClick(e, track));
+        }
+        
+        // Render mixer channel
+        function renderMixerChannel(track) {
+            const container = document.getElementById('mixerChannels');
+            const channelEl = document.createElement('div');
+            channelEl.className = 'mixer-channel';
+            channelEl.innerHTML = `
+                <div class="mixer-channel-name">${track.name}</div>
+                <div class="fader-container">
+                    <div class="fader">
+                        <div class="fader-track"></div>
+                        <div class="fader-thumb" data-track="${track.id}"></div>
+                    </div>
+                    <div class="meter">
+                        <div class="meter-fill"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(channelEl);
+        }
+        
+        // Handle timeline click to place clips
+        function handleTimelineClick(e, track) {
+            if (!track.selectedSample) {
+                alert('Please select a sound from the browser first, then assign it to a SPOKE pad, then click here to place it');
+                return;
+            }
+            
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const beat = Math.floor(x / pixelsPerBeat);
+            
+            addClip(track, beat, track.selectedSample);
+        }
+        
+        // Add clip to track
+        function addClip(track, startBeat, sample) {
+            const clip = {
+                id: Date.now(),
+                startBeat: startBeat,
+                duration: 1, // 1 beat
+                sample: sample
+            };
+            
+            track.clips.push(clip);
+            renderClip(track, clip);
+        }
+        
+        // Render clip visual
+        function renderClip(track, clip) {
+            const timeline = document.querySelector(`.track-timeline[data-track="${track.id}"]`);
+            const clipEl = document.createElement('div');
+            clipEl.className = 'clip';
+            clipEl.style.left = (clip.startBeat * pixelsPerBeat) + 'px';
+            clipEl.style.width = (clip.duration * pixelsPerBeat) + 'px';
+            clipEl.style.background = `linear-gradient(135deg, ${track.color} 0%, ${adjustColor(track.color, -20)} 100%)`;
+            clipEl.textContent = clip.sample.name.substring(0, 20);
+            
+            clipEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                playClip(clip);
+            });
+            
+            timeline.appendChild(clipEl);
+        }
+        
+        // Play individual clip
+        function playClip(clip) {
+            initAudio();
+            const source = audioContext.createBufferSource();
+            source.buffer = clip.sample.buffer;
+            source.connect(masterGain);
+            source.start(0);
+        }
+        
+        // Freesound search
+        document.getElementById('searchInput').addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (query) {
+                    await searchFreesound(query);
+                }
+            }
+        });
+        
+        async function searchFreesound(query) {
+            const list = document.getElementById('browserList');
+            list.innerHTML = '<div style="padding: 20px; text-align: center;">Searching...</div>';
+            
+            try {
+                const url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(query)}&page_size=20&token=${API_KEY}&fields=id,name,username,duration,previews&filter=is_explicit:false`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                list.innerHTML = '';
+                data.results.forEach(sound => {
+                    const item = document.createElement('div');
+                    item.className = 'browser-item';
+                    item.innerHTML = `
+                        <div class="browser-item-name">${sound.name}</div>
+                        <div class="browser-item-meta">by ${sound.username} • ${Math.round(sound.duration)}s</div>
+                    `;
+                    
+                    item.addEventListener('click', () => loadSample(sound));
+                    list.appendChild(item);
+                });
+            } catch (error) {
+                console.error('Search error:', error);
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: #f44336;">Error searching</div>';
+            }
+        }
+        
+        // Load sample from Freesound
+        async function loadSample(sound) {
+            initAudio();
+            try {
+                const response = await fetch(sound.previews['preview-hq-mp3']);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                const sample = {
+                    id: sound.id,
+                    name: sound.name,
+                    buffer: audioBuffer,
+                    url: sound.previews['preview-hq-mp3']
+                };
+                
+                // Ask user to assign to SPOKE pad
+                const padIndex = prompt(`Sample loaded: ${sound.name}\n\nEnter SPOKE pad number (1-27) to assign:`);
+                if (padIndex && padIndex >= 1 && padIndex <= 27) {
+                    const index = parseInt(padIndex) - 1;
+                    spokePadSamples.set(index, sample);
+                    
+                    // Create track if needed
+                    if (tracks.length === 0 || !tracks[index]) {
+                        createTrack(`Track ${index + 1}`, getRandomColor());
+                    }
+                    tracks[index].selectedSample = sample;
+                    
+                    alert(`Sample assigned to Pad ${padIndex}!\nClick on the track timeline to place it.`);
+                    drawSpokeBoard();
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+                alert('Failed to load sample');
+            }
+        }
+        
+        // SPOKE MIDI
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    alert('No MIDI devices found');
+                    return;
+                }
+                
+                inputs.forEach(input => input.onmidimessage = handleMIDIMessage);
+                
+                document.getElementById('connectMidiBtn').textContent = 'MIDI Connected ✓';
+                document.getElementById('connectMidiBtn').style.background = '#4CAF50';
+            } catch (error) {
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        function handleMIDIMessage(message) {
+            const [status, midiNote, velocity] = message.data;
+            const command = status & 0xf0;
+            const padIndex = SPOKE_NOTES.indexOf(midiNote);
+            
+            if (padIndex === -1 || command !== 0x90 || velocity === 0) return;
+            
+            if (spokePadSamples.has(padIndex)) {
+                const sample = spokePadSamples.get(padIndex);
+                initAudio();
+                const source = audioContext.createBufferSource();
+                source.buffer = sample.buffer;
+                source.connect(masterGain);
+                source.start(0);
+            }
+        }
+        
+        // SPOKE visualization
+        const spokeCanvas = document.getElementById('spokeCanvas');
+        const spokeCtx = spokeCanvas.getContext('2d');
+        
+        function drawSpokeBoard() {
+            const width = spokeCanvas.width;
+            const height = spokeCanvas.height;
+            
+            spokeCtx.fillStyle = '#1a1a1a';
+            spokeCtx.fillRect(0, 0, width, height);
+            
+            // Draw circle
+            const radius = width * 0.35;
+            spokeCtx.beginPath();
+            spokeCtx.arc(width / 2, height / 2, radius, 0, Math.PI * 2);
+            spokeCtx.strokeStyle = '#3a3a3a';
+            spokeCtx.lineWidth = 2;
+            spokeCtx.stroke();
+            
+            // Draw pads
+            const angleStep = (Math.PI * 2) / 27;
+            for (let i = 0; i < 27; i++) {
+                const angle = angleStep * i - Math.PI / 2;
+                const x = width / 2 + Math.cos(angle) * radius;
+                const y = height / 2 + Math.sin(angle) * radius;
+                
+                const hasSample = spokePadSamples.has(i);
+                
+                spokeCtx.beginPath();
+                spokeCtx.arc(x, y, 12, 0, Math.PI * 2);
+                spokeCtx.fillStyle = hasSample ? '#4CAF50' : '#2d2d2d';
+                spokeCtx.fill();
+                spokeCtx.strokeStyle = hasSample ? '#66BB6A' : '#3a3a3a';
+                spokeCtx.lineWidth = 2;
+                spokeCtx.stroke();
+                
+                spokeCtx.fillStyle = '#e0e0e0';
+                spokeCtx.font = '9px Arial';
+                spokeCtx.textAlign = 'center';
+                spokeCtx.textBaseline = 'middle';
+                spokeCtx.fillText(i + 1, x, y);
+            }
+        }
+        
+        // Transport controls
+        document.getElementById('playBtn').addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                startTime = audioContext.currentTime - currentTime;
+                updatePlayhead();
+            }
+        });
+        
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            isPlaying = false;
+            currentTime = 0;
+            updateTimeDisplay();
+        });
+        
+        function updatePlayhead() {
+            if (!isPlaying) return;
+            
+            currentTime = audioContext.currentTime - startTime;
+            const beats = (currentTime / 60) * bpm;
+            const position = beats * pixelsPerBeat;
+            
+            document.getElementById('playhead').style.left = position + 'px';
+            updateTimeDisplay();
+            
+            requestAnimationFrame(updatePlayhead);
+        }
+        
+        function updateTimeDisplay() {
+            const minutes = Math.floor(currentTime / 60);
+            const seconds = Math.floor(currentTime % 60);
+            const ms = Math.floor((currentTime % 1) * 1000);
+            document.getElementById('timeDisplay').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+        }
+        
+        // Ruler
+        function renderRuler() {
+            const ruler = document.getElementById('rulerMarks');
+            for (let i = 0; i < 32; i++) {
+                const mark = document.createElement('div');
+                mark.className = `ruler-mark ${i % 4 === 0 ? 'beat' : ''}`;
+                mark.textContent = i % 4 === 0 ? (i / 4 + 1) : '';
+                ruler.appendChild(mark);
+            }
+        }
+        
+        // Utility functions
+        function adjustColor(color, percent) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255))
+                .toString(16).slice(1);
+        }
+        
+        function getRandomColor() {
+            const colors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+        
+        // Initialize
+        document.getElementById('connectMidiBtn').addEventListener('click', connectMIDI);
+        document.getElementById('clearAllBtn').addEventListener('click', () => {
+            tracks = [];
+            spokePadSamples.clear();
+            document.getElementById('tracksContainer').innerHTML = '';
+            document.getElementById('mixerChannels').innerHTML = '';
+            drawSpokeBoard();
+        });
+        
+        renderRuler();
+        drawSpokeBoard();
+        
+        // Create initial tracks
+        for (let i = 0; i < 4; i++) {
+            createTrack(`Track ${i + 1}`, getRandomColor());
+        }
+    </script>
+</body>
+</html>
