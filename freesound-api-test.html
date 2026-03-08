@@ -431,9 +431,25 @@
                         <button class="btn" id="startRecordBtn" style="flex: 1;">● Record</button>
                         <button class="btn" id="stopRecordBtn" style="flex: 1; display: none;">■ Stop</button>
                     </div>
-                    <div id="recordingStatus" style="text-align: center; font-size: 12px; opacity: 0.7;">
+                    <div id="recordingStatus" style="text-align: center; font-size: 12px; opacity: 0.7; margin-bottom: 10px;">
                         Click Record, then click a pad to assign
                     </div>
+                    
+                    <!-- Loop Mode Toggle -->
+                    <div style="background: rgba(0, 0, 0, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 13px; font-weight: 600;">Playback Mode</div>
+                                <div style="font-size: 11px; opacity: 0.7; margin-top: 2px;" id="loopModeLabel">One-Shot (play once)</div>
+                            </div>
+                            <label style="position: relative; display: inline-block; width: 50px; height: 26px; cursor: pointer;">
+                                <input type="checkbox" id="loopToggle" style="opacity: 0; width: 0; height: 0;">
+                                <span style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.2); border-radius: 13px; transition: 0.3s;"></span>
+                                <span id="loopToggleSlider" style="position: absolute; content: ''; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.3s;"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
                     <div style="margin-top: 10px;">
                         <label style="font-size: 12px; opacity: 0.8;">Microphone:</label>
                         <select id="micSelect" class="filter-select" style="width: 100%; margin-top: 5px;">
@@ -605,6 +621,7 @@
         let recordedBuffer = null;
         let waitingForPadClick = false;
         let selectedMicDevice = null;
+        let loopMode = false; // false = one-shot, true = looping
         
         // Elements
         const searchInput = document.getElementById('searchInput');
@@ -624,6 +641,9 @@
         const stopRecordBtn = document.getElementById('stopRecordBtn');
         const recordingStatus = document.getElementById('recordingStatus');
         const micSelect = document.getElementById('micSelect');
+        const loopToggle = document.getElementById('loopToggle');
+        const loopToggleSlider = document.getElementById('loopToggleSlider');
+        const loopModeLabel = document.getElementById('loopModeLabel');
         
         // Suggested search buttons
         document.querySelectorAll('.suggested-btn').forEach(btn => {
@@ -675,6 +695,21 @@
         // Recording controls
         startRecordBtn.addEventListener('click', startRecording);
         stopRecordBtn.addEventListener('click', stopRecording);
+        
+        // Loop mode toggle
+        loopToggle.addEventListener('change', (e) => {
+            loopMode = e.target.checked;
+            
+            if (loopMode) {
+                loopModeLabel.textContent = 'Looping (continuous)';
+                loopToggleSlider.style.transform = 'translateX(24px)';
+                loopToggleSlider.parentElement.previousElementSibling.style.backgroundColor = 'rgba(76, 175, 80, 0.6)';
+            } else {
+                loopModeLabel.textContent = 'One-Shot (play once)';
+                loopToggleSlider.style.transform = 'translateX(0)';
+                loopToggleSlider.parentElement.previousElementSibling.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+            }
+        });
         
         // Enumerate audio devices
         async function enumerateMicrophones() {
@@ -1149,7 +1184,17 @@
             // Update now playing info
             updateNowPlaying(padIndex);
             
-            // Stop previous
+            // If in loop mode and this pad is already playing, stop it
+            if (loopMode && activeSources.has(padIndex)) {
+                try { 
+                    activeSources.get(padIndex).source.stop(); 
+                } catch (e) {}
+                activeSources.delete(padIndex);
+                clearNowPlaying();
+                return; // Exit - this acts as the "stop" toggle
+            }
+            
+            // Stop previous (for non-loop or when starting fresh)
             if (activeSources.has(padIndex)) {
                 try { activeSources.get(padIndex).source.stop(); } catch (e) {}
                 activeSources.delete(padIndex);
@@ -1159,6 +1204,7 @@
             const gainNode = audioContext.createGain();
             
             source.buffer = spokeSounds.get(padIndex).buffer;
+            source.loop = loopMode; // Enable looping if in loop mode
             gainNode.gain.value = velocity / 127;
             
             source.connect(gainNode);
