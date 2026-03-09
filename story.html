@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE Story Creator | Interactive Narrative with Sound</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e1a;
+            color: #e8eaed;
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .site-header {
+            background: #12182b;
+            border-bottom: 1px solid rgba(255, 122, 69, 0.2);
+            padding: 20px 0;
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 900;
+            color: #ff7a45;
+            letter-spacing: -0.5px;
+        }
+        
+        .page-title {
+            font-size: 18px;
+            color: #b8bec9;
+            font-weight: 600;
+        }
+        
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 65px);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Left Panel - Story */
+        .story-panel {
+            width: 50%;
+            background: #12182b;
+            border-right: 1px solid rgba(255, 122, 69, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .story-header {
+            padding: 30px;
+            border-bottom: 1px solid rgba(255, 122, 69, 0.15);
+        }
+        
+        .story-header h1 {
+            font-size: 36px;
+            font-weight: 900;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+        
+        .story-subtitle {
+            color: #b8bec9;
+            font-size: 16px;
+        }
+        
+        .story-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
+        
+        .story-chapter {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 122, 69, 0.15);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+        }
+        
+        .chapter-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff7a45, #ff9e70);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .chapter-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+        
+        .chapter-text {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #d1d5db;
+            margin-bottom: 25px;
+        }
+        
+        .sound-trigger {
+            display: inline;
+            background: rgba(255, 122, 69, 0.15);
+            color: #ff7a45;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .sound-trigger:hover {
+            background: rgba(255, 122, 69, 0.25);
+        }
+        
+        .sound-trigger.assigned {
+            background: rgba(76, 175, 80, 0.15);
+            color: #4caf50;
+        }
+        
+        .sound-trigger.playing {
+            animation: pulse 0.5s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .craft-instruction {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .craft-instruction h4 {
+            color: #3b82f6;
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .craft-instruction p {
+            font-size: 14px;
+            color: #b8bec9;
+            line-height: 1.6;
+        }
+        
+        /* Right Panel - Sound Designer */
+        .designer-panel {
+            width: 50%;
+            background: #0a0e1a;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .designer-header {
+            padding: 30px;
+            border-bottom: 1px solid rgba(255, 122, 69, 0.15);
+        }
+        
+        .designer-header h2 {
+            font-size: 28px;
+            font-weight: 900;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+        
+        .designer-subtitle {
+            color: #b8bec9;
+            font-size: 14px;
+        }
+        
+        .designer-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            padding: 20px 20px 0 20px;
+            border-bottom: 2px solid rgba(255, 122, 69, 0.15);
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: #7a8395;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: #b8bec9;
+        }
+        
+        .tab.active {
+            background: rgba(255, 122, 69, 0.15);
+            color: #ff7a45;
+        }
+        
+        .tab-content {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Sound Browser */
+        .sound-browser {
+            padding: 20px;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            width: 100%;
+            background: #12182b;
+            border: 2px solid rgba(255, 122, 69, 0.2);
+            color: #e8eaed;
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .search-input:focus {
+            border-color: #ff7a45;
+        }
+        
+        .category-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .category-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #b8bec9;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .category-btn:hover {
+            background: rgba(255, 122, 69, 0.15);
+            border-color: #ff7a45;
+            color: #ff7a45;
+        }
+        
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .sound-item {
+            background: #12182b;
+            border: 1px solid rgba(255, 122, 69, 0.15);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        
+        .sound-item:hover {
+            background: rgba(255, 122, 69, 0.05);
+            border-color: rgba(255, 122, 69, 0.3);
+        }
+        
+        .sound-info {
+            flex: 1;
+        }
+        
+        .sound-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+        
+        .sound-meta {
+            font-size: 12px;
+            color: #7a8395;
+        }
+        
+        .sound-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .sound-btn {
+            background: rgba(255, 122, 69, 0.15);
+            border: 1px solid #ff7a45;
+            color: #ff7a45;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .sound-btn:hover {
+            background: rgba(255, 122, 69, 0.25);
+        }
+        
+        .sound-btn.play {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+        
+        .sound-btn.play:hover {
+            background: rgba(59, 130, 246, 0.25);
+        }
+        
+        /* SPOKE Board */
+        .spoke-board-section {
+            padding: 20px;
+        }
+        
+        .midi-connect-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #ff7a45, #ff9e70);
+            border: none;
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 25px;
+            transition: all 0.3s;
+        }
+        
+        .midi-connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 122, 69, 0.4);
+        }
+        
+        .midi-connect-btn.connected {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+        }
+        
+        .spoke-visual {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .pad-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 8px;
+            margin-top: 20px;
+        }
+        
+        .pad {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .pad:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .pad.assigned {
+            background: rgba(76, 175, 80, 0.15);
+            border-color: #4caf50;
+        }
+        
+        .pad.active {
+            background: rgba(255, 122, 69, 0.3);
+            border-color: #ff7a45;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 122, 69, 0.5);
+        }
+        
+        .pad-number {
+            font-size: 18px;
+            font-weight: 900;
+            color: #ffffff;
+        }
+        
+        .pad-label {
+            font-size: 9px;
+            color: #7a8395;
+            margin-top: 4px;
+            text-align: center;
+            line-height: 1.2;
+        }
+        
+        /* Craft Guide */
+        .craft-guide {
+            padding: 20px;
+        }
+        
+        .craft-card {
+            background: #12182b;
+            border: 1px solid rgba(255, 122, 69, 0.15);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .craft-card h3 {
+            color: #ff7a45;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .craft-card p {
+            color: #d1d5db;
+            font-size: 14px;
+            line-height: 1.7;
+            margin-bottom: 15px;
+        }
+        
+        .craft-card ul {
+            margin-left: 20px;
+            color: #d1d5db;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        
+        .craft-card li {
+            margin-bottom: 10px;
+        }
+        
+        .materials-list {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+        
+        .materials-list h4 {
+            color: #3b82f6;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        
+        /* Assignment Panel */
+        .assignment-panel {
+            background: rgba(255, 122, 69, 0.1);
+            border: 2px solid #ff7a45;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px;
+        }
+        
+        .assignment-panel h3 {
+            color: #ff7a45;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .assignment-panel p {
+            color: #d1d5db;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .assignment-status {
+            font-size: 13px;
+            color: #b8bec9;
+        }
+        
+        .assignment-status strong {
+            color: #ff7a45;
+        }
+        
+        /* Play Story Button */
+        .play-story-container {
+            padding: 20px;
+            border-top: 2px solid rgba(255, 122, 69, 0.15);
+        }
+        
+        .play-story-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+            border: none;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .play-story-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.4);
+        }
+        
+        .play-story-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #0a0e1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #ff7a45;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff9e70;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="site-header">
+        <div class="header-content">
+            <div class="logo">SPOKE</div>
+            <div class="page-title">📖 Story Creator - Interactive Sound Narratives</div>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Panel - Story -->
+        <div class="story-panel">
+            <div class="story-header">
+                <h1>🌲 The Forest Adventure</h1>
+                <p class="story-subtitle">Create your own sound effects for this interactive story</p>
+            </div>
+            
+            <div class="story-content" id="storyContent">
+                <!-- Chapter 1 -->
+                <div class="story-chapter">
+                    <span class="chapter-number">Chapter 1</span>
+                    <h3 class="chapter-title">The Journey Begins</h3>
+                    <p class="chapter-text">
+                        It was a bright morning when Alex set out on their adventure. As they walked through the village, 
+                        they could hear the <span class="sound-trigger" data-sound="footsteps">footsteps</span> on the cobblestone path. 
+                        In the distance, a <span class="sound-trigger" data-sound="bell">church bell</span> rang out across the town.
+                    </p>
+                    <p class="chapter-text">
+                        The village soon gave way to rolling hills, where <span class="sound-trigger" data-sound="birds">birds chirped</span> 
+                        happily in the trees. A gentle <span class="sound-trigger" data-sound="wind">wind</span> rustled through the grass.
+                    </p>
+                    <div class="craft-instruction">
+                        <h4>🎨 Craft Challenge #1: Make Touch Sensors</h4>
+                        <p>Create 4 different touch sensors using aluminum foil, copper tape, or conductive fabric. Connect them to SPOKE pads 1-4 with crocodile clips. Try making shapes like leaves, stones, or clouds!</p>
+                    </div>
+                </div>
+                
+                <!-- Chapter 2 -->
+                <div class="story-chapter">
+                    <span class="chapter-number">Chapter 2</span>
+                    <h3 class="chapter-title">Into the Forest</h3>
+                    <p class="chapter-text">
+                        The path led into a dense forest where sunlight filtered through the canopy. Every so often, 
+                        a <span class="sound-trigger" data-sound="twig">twig would snap</span> underfoot. Deep in the woods, 
+                        Alex heard the distant call of an <span class="sound-trigger" data-sound="owl">owl</span>.
+                    </p>
+                    <p class="chapter-text">
+                        A small <span class="sound-trigger" data-sound="stream">stream bubbled</span> nearby, its water crystal clear. 
+                        Suddenly, <span class="sound-trigger" data-sound="thunder">thunder rumbled</span> in the distance, 
+                        followed by the patter of <span class="sound-trigger" data-sound="rain">rain</span> on the leaves above.
+                    </p>
+                    <div class="craft-instruction">
+                        <h4>🎨 Craft Challenge #2: Weather Sensors</h4>
+                        <p>Create touch pads for weather sounds! Use cotton wool for clouds (rain), aluminum foil in zigzag for lightning (thunder), and blue fabric for water (stream). Connect to pads 5-8.</p>
+                    </div>
+                </div>
+                
+                <!-- Chapter 3 -->
+                <div class="story-chapter">
+                    <span class="chapter-number">Chapter 3</span>
+                    <h3 class="chapter-title">The Mysterious Cave</h3>
+                    <p class="chapter-text">
+                        Taking shelter from the rain, Alex discovered a <span class="sound-trigger" data-sound="cave">cave entrance</span>. 
+                        Their voice <span class="sound-trigger" data-sound="echo">echoed</span> as they called out. 
+                        <span class="sound-trigger" data-sound="drip">Water dripped</span> from stalactites high above.
+                    </p>
+                    <p class="chapter-text">
+                        In the darkness, Alex struck a <span class="sound-trigger" data-sound="match">match</span>, creating a small flame. 
+                        The light revealed ancient <span class="sound-trigger" data-sound="writing">inscriptions</span> on the walls. 
+                        A mysterious <span class="sound-trigger" data-sound="magic">magical glow</span> began to emanate from deeper within.
+                    </p>
+                    <div class="craft-instruction">
+                        <h4>🎨 Craft Challenge #3: Cave Elements</h4>
+                        <p>Make dark, mysterious sensors using black paper, rock-shaped foil, or grey felt. Create a "water drop" sensor with a blue dot. Connect to pads 9-12.</p>
+                    </div>
+                </div>
+                
+                <!-- Chapter 4 -->
+                <div class="story-chapter">
+                    <span class="chapter-number">Chapter 4</span>
+                    <h3 class="chapter-title">The Treasure Chamber</h3>
+                    <p class="chapter-text">
+                        Following the glow, Alex entered a grand chamber. In the center sat an ancient 
+                        <span class="sound-trigger" data-sound="chest">treasure chest</span>. The rusty hinges 
+                        <span class="sound-trigger" data-sound="creak">creaked</span> as it opened, revealing 
+                        <span class="sound-trigger" data-sound="coins">golden coins</span> that jingled and sparkled.
+                    </p>
+                    <p class="chapter-text">
+                        But wait! A loud <span class="sound-trigger" data-sound="roar">dragon roar</span> echoed through the chamber! 
+                        Alex quickly grabbed a magical <span class="sound-trigger" data-sound="sword">sword</span> from the chest. 
+                        With a brave shout and a <span class="sound-trigger" data-sound="victory">triumphant fanfare</span>, 
+                        the dragon was defeated!
+                    </p>
+                    <div class="craft-instruction">
+                        <h4>🎨 Craft Challenge #4: Treasure & Action</h4>
+                        <p>Create exciting sensors! Use gold/yellow paper for treasure, red/orange for the dragon, silver foil for the sword. Make them big and dramatic! Connect to pads 13-18.</p>
+                    </div>
+                </div>
+                
+                <!-- Chapter 5 -->
+                <div class="story-chapter">
+                    <span class="chapter-number">Chapter 5</span>
+                    <h3 class="chapter-title">The Journey Home</h3>
+                    <p class="chapter-text">
+                        With treasure in hand, Alex emerged from the cave. The rain had stopped, and a beautiful 
+                        <span class="sound-trigger" data-sound="rainbow">rainbow</span> appeared in the sky. 
+                        <span class="sound-trigger" data-sound="celebration">Celebration music</span> seemed to fill the air.
+                    </p>
+                    <p class="chapter-text">
+                        As the sun set, creating a <span class="sound-trigger" data-sound="sunset">peaceful ambiance</span>, 
+                        Alex walked back through the forest. The journey home was peaceful, with only the sound of 
+                        <span class="sound-trigger" data-sound="crickets">crickets</span> and a distant 
+                        <span class="sound-trigger" data-sound="lullaby">lullaby</span> carried on the breeze.
+                    </p>
+                    <p class="chapter-text">
+                        And so, the adventure came to an end. <span class="sound-trigger" data-sound="end">The End</span>.
+                    </p>
+                    <div class="craft-instruction">
+                        <h4>🎨 Craft Challenge #5: Happy Ending</h4>
+                        <p>Create colorful, happy sensors! Use rainbow colors, glitter, stars, suns, and hearts. Make them celebrate the hero's victory! Connect to the remaining pads.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="play-story-container">
+                <button class="play-story-btn" id="playStoryBtn">▶ Play Interactive Story</button>
+            </div>
+        </div>
+        
+        <!-- Right Panel - Designer -->
+        <div class="designer-panel">
+            <div class="designer-header">
+                <h2>🎨 Sound Designer Studio</h2>
+                <p class="designer-subtitle">Find sounds and assign them to your crafted touch sensors</p>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('sounds')">🔍 Find Sounds</button>
+                <button class="tab" onclick="switchTab('spoke')">🎛️ SPOKE Board</button>
+                <button class="tab" onclick="switchTab('craft')">✂️ Craft Guide</button>
+            </div>
+            
+            <div class="designer-content">
+                <!-- Sounds Tab -->
+                <div class="tab-content active" id="soundsTab">
+                    <div class="sound-browser">
+                        <div class="search-box">
+                            <input type="text" class="search-input" id="searchInput" placeholder="Search for sounds... (try: footsteps, birds, thunder)">
+                        </div>
+                        
+                        <div class="category-buttons">
+                            <button class="category-btn" onclick="searchCategory('footsteps')">🚶 Footsteps</button>
+                            <button class="category-btn" onclick="searchCategory('nature')">🌿 Nature</button>
+                            <button class="category-btn" onclick="searchCategory('water')">💧 Water</button>
+                            <button class="category-btn" onclick="searchCategory('thunder')">⚡ Thunder</button>
+                            <button class="category-btn" onclick="searchCategory('bell')">🔔 Bells</button>
+                            <button class="category-btn" onclick="searchCategory('magic')">✨ Magic</button>
+                            <button class="category-btn" onclick="searchCategory('treasure')">💰 Treasure</button>
+                            <button class="category-btn" onclick="searchCategory('dragon')">🐉 Dragon</button>
+                            <button class="category-btn" onclick="searchCategory('celebration')">🎉 Celebrate</button>
+                        </div>
+                        
+                        <div class="results-list" id="resultsList">
+                            <p style="text-align: center; color: #7a8395; padding: 40px;">
+                                Search for sounds using the categories above or type your own search term
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SPOKE Tab -->
+                <div class="tab-content" id="spokeTab">
+                    <div class="spoke-board-section">
+                        <button class="midi-connect-btn" id="midiConnectBtn" onclick="connectMIDI()">
+                            🎹 Connect SPOKE Board
+                        </button>
+                        
+                        <div class="assignment-panel">
+                            <h3>📌 Assignment Mode</h3>
+                            <p>Click a sound's "Assign" button, then touch your crafted sensor to assign that sound to it!</p>
+                            <div class="assignment-status" id="assignmentStatus">
+                                No sound selected for assignment
+                            </div>
+                        </div>
+                        
+                        <div class="spoke-visual">
+                            <canvas id="spokeCanvas" width="400" height="400"></canvas>
+                            
+                            <div class="pad-grid" id="padGrid">
+                                <!-- 27 pads will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Craft Tab -->
+                <div class="tab-content" id="craftTab">
+                    <div class="craft-guide">
+                        <div class="craft-card">
+                            <h3>✂️ How to Make Touch Sensors</h3>
+                            <p>Touch sensors work by detecting electrical conductivity. When you touch a conductive material, you complete a circuit!</p>
+                            
+                            <div class="materials-list">
+                                <h4>📦 Materials You'll Need:</h4>
+                                <ul>
+                                    <li>Aluminum foil (great for any shape!)</li>
+                                    <li>Copper tape (sticky and conductive)</li>
+                                    <li>Conductive fabric or thread</li>
+                                    <li>Cardboard or thick paper (base)</li>
+                                    <li>Crocodile clips (to connect to SPOKE)</li>
+                                    <li>Scissors, glue, decorations</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="craft-card">
+                            <h3>🎨 Basic Touch Sensor Design</h3>
+                            <p><strong>Step 1:</strong> Cut your cardboard into a fun shape (leaf, star, cloud, rock, etc.)</p>
+                            <p><strong>Step 2:</strong> Cover it with aluminum foil or copper tape</p>
+                            <p><strong>Step 3:</strong> Attach a crocodile clip to the foil/tape</p>
+                            <p><strong>Step 4:</strong> Connect the other end to a SPOKE pad</p>
+                            <p><strong>Step 5:</strong> Decorate! (but keep the conductive part accessible)</p>
+                        </div>
+                        
+                        <div class="craft-card">
+                            <h3>💡 Creative Ideas</h3>
+                            <ul>
+                                <li><strong>Footsteps:</strong> Cut out shoe shapes from foil</li>
+                                <li><strong>Rain:</strong> Make cloud shapes with cotton and foil backing</li>
+                                <li><strong>Birds:</strong> Create bird silhouettes with wings spread</li>
+                                <li><strong>Dragon:</strong> Cut fierce dragon shape from red/orange paper + foil</li>
+                                <li><strong>Treasure:</strong> Make gold coin shapes or a treasure chest</li>
+                                <li><strong>Magic:</strong> Star shapes with glitter (foil inside)</li>
+                                <li><strong>Water:</strong> Wavy blue shapes representing streams</li>
+                                <li><strong>Thunder:</strong> Lightning bolt zigzag shapes</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="craft-card">
+                            <h3>🔌 Connecting to SPOKE</h3>
+                            <p>Each SPOKE pad has a small hole or connection point. Here's how to connect:</p>
+                            <ul>
+                                <li>Attach one crocodile clip to your sensor's foil</li>
+                                <li>Attach the other end to the SPOKE pad connection</li>
+                                <li>Make sure the connection is secure!</li>
+                                <li>Test by touching your sensor - it should trigger the pad</li>
+                            </ul>
+                            <p><strong>Tip:</strong> Label your sensors so you remember which is which!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = 'ENXBH14HDdboFnq4ttqKQGed9tV7xxYJOghOaPbo';
+        const SPOKE_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36];
+        
+        let audioContext;
+        let midiAccess = null;
+        let soundAssignments = {}; // Maps pad index to {sound, buffer, label}
+        let currentAssignmentSound = null;
+        let currentAudio = null;
+        
+        // Blocked search terms for child safety
+        const BLOCKED_TERMS = ['sex', 'sexy', 'porn', 'fuck', 'shit', 'bitch', 'dick', 'cock', 'cum', 'orgasm', 'masturbat', 'breast', 'nude', 'naked', 'kill', 'murder', 'death', 'violence', 'blood', 'gore', 'drug', 'weed', 'cocaine', 'meth', 'heroin', 'damn', 'hell', 'crap', 'piss'];
+        const WHITELIST = ['bass', 'bassist', 'bassdrum', 'bassoon', 'grass', 'class', 'glass', 'pass', 'mass', 'assess', 'classic', 'cassette'];
+        
+        // Initialize audio context
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+        
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+        
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (query) await searchFreesound(query);
+            }
+        });
+        
+        async function searchCategory(category) {
+            document.getElementById('searchInput').value = category;
+            await searchFreesound(category);
+        }
+        
+        function isBlocked(query) {
+            const lower = query.toLowerCase();
+            for (const term of BLOCKED_TERMS) {
+                const regex = new RegExp(`\\b${term}\\w*\\b`, 'i');
+                if (regex.test(lower)) {
+                    let isWhitelisted = false;
+                    for (const wl of WHITELIST) {
+                        if (lower.includes(wl)) {
+                            isWhitelisted = true;
+                            break;
+                        }
+                    }
+                    if (!isWhitelisted) return true;
+                }
+            }
+            return false;
+        }
+        
+        async function searchFreesound(query) {
+            if (isBlocked(query)) {
+                document.getElementById('resultsList').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ff7a45;">
+                        <p>❌ This search term is not allowed.</p>
+                        <p style="font-size: 14px; color: #b8bec9; margin-top: 10px;">Please use appropriate language for educational content.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const list = document.getElementById('resultsList');
+            list.innerHTML = '<p style="text-align: center; color: #b8bec9; padding: 40px;">Searching...</p>';
+            
+            try {
+                const filter = 'is_explicit:false -tag:explicit -tag:adult -tag:nsfw -tag:sex -tag:porn -tag:violence -tag:gore';
+                const url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(query)}&page_size=15&token=${API_KEY}&fields=id,name,username,duration,previews&filter=${encodeURIComponent(filter)}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                list.innerHTML = '';
+                if (data.results.length === 0) {
+                    list.innerHTML = '<p style="text-align: center; color: #7a8395; padding: 40px;">No sounds found. Try a different search term.</p>';
+                    return;
+                }
+                
+                data.results.forEach(sound => {
+                    const item = document.createElement('div');
+                    item.className = 'sound-item';
+                    item.innerHTML = `
+                        <div class="sound-info">
+                            <div class="sound-name">${sound.name}</div>
+                            <div class="sound-meta">by ${sound.username} • ${Math.round(sound.duration)}s</div>
+                        </div>
+                        <div class="sound-actions">
+                            <button class="sound-btn play" onclick="previewSound('${sound.previews['preview-hq-mp3']}')">▶ Play</button>
+                            <button class="sound-btn" onclick="assignSound(${sound.id}, '${sound.name.replace(/'/g, "\\'")}', '${sound.previews['preview-hq-mp3']}')">Assign to Pad</button>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch (error) {
+                console.error('Search error:', error);
+                list.innerHTML = '<p style="text-align: center; color: #ff7a45; padding: 40px;">Error searching. Please try again.</p>';
+            }
+        }
+        
+        // Preview sound
+        async function previewSound(url) {
+            if (currentAudio) {
+                currentAudio.pause();
+            }
+            currentAudio = new Audio(url);
+            currentAudio.play();
+        }
+        
+        // Assign sound to pad
+        async function assignSound(id, name, url) {
+            initAudio();
+            try {
+                const response = await fetch(url);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                currentAssignmentSound = {
+                    id: id,
+                    name: name,
+                    buffer: audioBuffer,
+                    url: url
+                };
+                
+                document.getElementById('assignmentStatus').innerHTML = `
+                    <strong>Ready to assign:</strong> "${name}"<br>
+                    Touch any crafted sensor connected to SPOKE to assign this sound!
+                `;
+                
+                // Switch to SPOKE tab
+                switchTab('spoke');
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                
+            } catch (error) {
+                console.error('Load error:', error);
+                alert('Failed to load sound. Please try again.');
+            }
+        }
+        
+        // MIDI Connection
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    alert('No MIDI devices found. Please connect your SPOKE board!');
+                    return;
+                }
+                
+                inputs.forEach(input => input.onmidimessage = handleMIDI);
+                
+                const btn = document.getElementById('midiConnectBtn');
+                btn.textContent = '✓ SPOKE Board Connected';
+                btn.classList.add('connected');
+                
+            } catch (error) {
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        // Handle MIDI messages
+        function handleMIDI(message) {
+            const [status, note, velocity] = message.data;
+            const command = status & 0xf0;
+            const padIndex = SPOKE_NOTES.indexOf(note);
+            
+            if (padIndex === -1) return;
+            
+            if (command === 0x90 && velocity > 0) {
+                // Note On
+                if (currentAssignmentSound) {
+                    // Assignment mode
+                    soundAssignments[padIndex] = currentAssignmentSound;
+                    updatePadDisplay(padIndex);
+                    
+                    document.getElementById('assignmentStatus').innerHTML = `
+                        <strong>✓ Assigned!</strong> "${currentAssignmentSound.name}" → Pad ${padIndex + 1}<br>
+                        You can assign another sound or start your story!
+                    `;
+                    
+                    currentAssignmentSound = null;
+                    
+                } else if (soundAssignments[padIndex]) {
+                    // Play assigned sound
+                    playSound(padIndex);
+                    highlightPad(padIndex);
+                }
+            }
+        }
+        
+        // Play sound
+        function playSound(padIndex) {
+            if (!soundAssignments[padIndex]) return;
+            
+            initAudio();
+            const source = audioContext.createBufferSource();
+            source.buffer = soundAssignments[padIndex].buffer;
+            source.connect(audioContext.destination);
+            source.start(0);
+        }
+        
+        // Update pad display
+        function updatePadDisplay(padIndex) {
+            const pad = document.querySelectorAll('.pad')[padIndex];
+            if (pad && soundAssignments[padIndex]) {
+                pad.classList.add('assigned');
+                const label = pad.querySelector('.pad-label');
+                if (label) {
+                    label.textContent = soundAssignments[padIndex].name.substring(0, 15);
+                }
+            }
+        }
+        
+        // Highlight pad when triggered
+        function highlightPad(padIndex) {
+            const pad = document.querySelectorAll('.pad')[padIndex];
+            if (pad) {
+                pad.classList.add('active');
+                setTimeout(() => pad.classList.remove('active'), 300);
+            }
+        }
+        
+        // Draw SPOKE board
+        const canvas = document.getElementById('spokeCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function drawSpokeBoard() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = width * 0.35;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw circle outline
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 122, 69, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw pads
+            const angleStep = (Math.PI * 2) / 27;
+            for (let i = 0; i < 27; i++) {
+                const angle = angleStep * i - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                
+                const isAssigned = soundAssignments[i];
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 10, 0, Math.PI * 2);
+                ctx.fillStyle = isAssigned ? 'rgba(76, 175, 80, 0.5)' : 'rgba(255, 255, 255, 0.1)';
+                ctx.fill();
+                ctx.strokeStyle = isAssigned ? '#4caf50' : 'rgba(255, 122, 69, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw pad number
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px Inter';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(i + 1, x, y);
+            }
+        }
+        
+        // Generate pad grid
+        function generatePadGrid() {
+            const grid = document.getElementById('padGrid');
+            for (let i = 0; i < 27; i++) {
+                const pad = document.createElement('div');
+                pad.className = 'pad';
+                pad.innerHTML = `
+                    <div class="pad-number">${i + 1}</div>
+                    <div class="pad-label">Empty</div>
+                `;
+                grid.appendChild(pad);
+            }
+        }
+        
+        // Play story mode
+        document.getElementById('playStoryBtn').addEventListener('click', () => {
+            alert('🎭 Story Play Mode!\n\nRead through the story and touch your crafted sensors to play the sounds at the right moments!\n\nThe highlighted words show where sounds can be triggered. Have fun!');
+        });
+        
+        // Initialize
+        drawSpokeBoard();
+        generatePadGrid();
+        setInterval(drawSpokeBoard, 1000);
+    </script>
+</body>
+</html>
