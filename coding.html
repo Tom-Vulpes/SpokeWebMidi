@@ -767,59 +767,62 @@
                         </div>
                         
                         <div class="step-section">
-                            <h2>📋 What We'll Do</h2>
+                            <h2>What We'll Do</h2>
                             <p>In this lesson, you'll:</p>
                             <ol>
-                                <li>Copy some ready-made code</li>
-                                <li>Put it on your SPOKE board</li>
+                                <li>Connect your SPOKE board to this website</li>
+                                <li>Load some ready-made code</li>
                                 <li>Touch Pad 1 and watch it light up GREEN!</li>
                             </ol>
                             <p><strong>Don't worry about understanding everything yet - we'll explain it step by step!</strong></p>
                         </div>
                         
                         <div class="info-box">
-                            <h3>🎯 Your Goal</h3>
+                            <h3>Your Goal</h3>
                             <p>When you <strong>touch Pad 1</strong>, a green light appears.</p>
                             <p>When you <strong>let go</strong>, the light turns off.</p>
                             <p>That's it! Simple.</p>
                         </div>
                         
                         <div class="step-section">
-                            <h2>🚀 Step-by-Step Instructions</h2>
+                            <h2>Step-by-Step Instructions</h2>
                             
-                            <h3>Step 1: Get the Code</h3>
-                            <p>Click the big orange <strong>"Load Code"</strong> button below. The code will appear in the editor on the right.</p>
-                            
-                            <h3>Step 2: Connect Your SPOKE</h3>
+                            <h3>Step 1: Connect Your SPOKE</h3>
                             <ol>
                                 <li>Plug your SPOKE into your computer with a USB cable</li>
                                 <li>A drive called <strong>CIRCUITPY</strong> should appear (like a USB stick)</li>
                                 <li>Click the <strong>"Setup SPOKE"</strong> button at the top of this page</li>
                                 <li>Find the CIRCUITPY drive and open the file called <strong>code.py</strong></li>
+                                <li>The website will connect to your SPOKE automatically</li>
                             </ol>
+                            
+                            <h3>Step 2: Load the Lesson Code</h3>
+                            <p>Click the big orange <strong>"Load Code"</strong> button below. The lesson code will replace whatever is in the editor.</p>
                             
                             <h3>Step 3: Save and Test!</h3>
                             <ol>
                                 <li>Click <strong>"Save & Run"</strong> at the top</li>
                                 <li>Your SPOKE will restart (the lights might flash)</li>
                                 <li>Now <strong>touch Pad 1</strong> with your finger</li>
-                                <li>Watch it light up GREEN! ✨</li>
+                                <li>Watch it light up GREEN!</li>
                             </ol>
                         </div>
                         
                         <div class="success-box">
-                            <h3>✅ Did it work?</h3>
+                            <h3>Did it work?</h3>
                             <p>If you see a <strong>green light</strong> when you touch Pad 1, congratulations! You just ran your first program!</p>
                             <p>If nothing happened, check:</p>
                             <ul>
                                 <li>Is SPOKE plugged in?</li>
+                                <li>Did you click "Setup SPOKE" first?</li>
+                                <li>Did you click "Load Code" to get the lesson code?</li>
                                 <li>Did you click "Save & Run"?</li>
                                 <li>Are you touching Pad 1 (the first circular pad)?</li>
                             </ul>
                         </div>
                         
                         <div class="step-section">
-                            <h2>📖 Understanding the Code (Don't Worry, It's Simple!)</h2>
+                            <h2>Understanding the Code (Don't Worry, It's Simple!)</h2>
                             
                             <p>Let's look at what the code does, line by line. You don't need to memorize this - just read through it.</p>
                             
@@ -862,19 +865,19 @@ import neopixel</div>
                         </div>
                         
                         <div class="info-box">
-                            <h3>🎨 What Does (0, 255, 0) Mean?</h3>
+                            <h3>What Does (0, 255, 0) Mean?</h3>
                             <p>Colors on computers use three numbers: <strong>(Red, Green, Blue)</strong></p>
                             <p>Each number goes from 0 (none) to 255 (maximum).</p>
                             <ul>
-                                <li><code>(0, 255, 0)</code> = No red, lots of green, no blue = <span style="color: #00ff00;">GREEN</span></li>
-                                <li><code>(255, 0, 0)</code> = Lots of red, no green, no blue = <span style="color: #ff0000;">RED</span></li>
-                                <li><code>(0, 0, 255)</code> = No red, no green, lots of blue = <span style="color: #0066ff;">BLUE</span></li>
+                                <li><code>(0, 255, 0)</code> = No red, lots of green, no blue = GREEN</li>
+                                <li><code>(255, 0, 0)</code> = Lots of red, no green, no blue = RED</li>
+                                <li><code>(0, 0, 255)</code> = No red, no green, lots of blue = BLUE</li>
                                 <li><code>(0, 0, 0)</code> = No colors = OFF (black)</li>
                             </ul>
                         </div>
                         
                         <div class="challenge-box">
-                            <h3>🎯 Try These Easy Changes!</h3>
+                            <h3>Try These Easy Changes!</h3>
                             <p>Now that the code is working, let's make some changes. Don't worry - you can always click "Load Code" again to get the original back!</p>
                             
                             <p><strong>Challenge 1: Change the Color to Red</strong></p>
@@ -891,10 +894,10 @@ import neopixel</div>
                             <p>Purple is made by mixing red and blue. Try: <code>(255, 0, 255)</code></p>
                         </div>
                         
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">📥 Load Code</button>
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
                         
                         <div class="nav-buttons">
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">I Did It! Next Lesson →</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">I Did It! Next Lesson</button>
                         </div>
                     `,
                     code: `# Lesson 1: Your First Program
@@ -936,7 +939,7 @@ while True:
                         </div>
                         
                         <div class="step-section">
-                            <h2>📋 What We'll Do</h2>
+                            <h2>What We'll Do</h2>
                             <p>In Lesson 1, you made one pad light up. Now let's make THREE pads work!</p>
                             <ul>
                                 <li>Pad 1 = RED light</li>
@@ -946,15 +949,15 @@ while True:
                         </div>
                         
                         <div class="info-box">
-                            <h3>🎯 Your Goal</h3>
-                            <p>Touch <strong>Pad 1</strong> → RED light appears</p>
-                            <p>Touch <strong>Pad 2</strong> → GREEN light appears</p>
-                            <p>Touch <strong>Pad 3</strong> → BLUE light appears</p>
-                            <p>Try touching two pads at once - what happens? 😊</p>
+                            <h3>Your Goal</h3>
+                            <p>Touch <strong>Pad 1</strong> and a RED light appears</p>
+                            <p>Touch <strong>Pad 2</strong> and a GREEN light appears</p>
+                            <p>Touch <strong>Pad 3</strong> and a BLUE light appears</p>
+                            <p>Try touching two pads at once - what happens?</p>
                         </div>
                         
                         <div class="step-section">
-                            <h2>🚀 Quick Start</h2>
+                            <h2>Quick Start</h2>
                             <ol>
                                 <li>Click the <strong>"Load Code"</strong> button below</li>
                                 <li>Click <strong>"Save & Run"</strong> at the top</li>
@@ -963,7 +966,7 @@ while True:
                         </div>
                         
                         <div class="step-section">
-                            <h2>📖 What's Different From Lesson 1?</h2>
+                            <h2>What's Different From Lesson 1?</h2>
                             
                             <p>In Lesson 1, we had this for ONE pad:</p>
                             <div class="code-block">touch1 = touchio.TouchIn(board.GP1)</div>
@@ -999,7 +1002,7 @@ else:
                         </div>
                         
                         <div class="info-box">
-                            <h3>💡 Understanding Sequencing</h3>
+                            <h3>Understanding Sequencing</h3>
                             <p>The computer checks the pads in order:</p>
                             <ol>
                                 <li>First, check Pad 1</li>
@@ -1012,7 +1015,7 @@ else:
                         </div>
                         
                         <div class="challenge-box">
-                            <h3>🎯 Easy Edit Challenges</h3>
+                            <h3>Easy Edit Challenges</h3>
                             
                             <p><strong>Challenge 1: Swap Two Colors</strong></p>
                             <p>Can you make Pad 1 BLUE and Pad 3 RED?</p>
@@ -1031,7 +1034,7 @@ pixels[2] = (0, 0, 255)  # Change this to (255, 0, 0)</div>
                         </div>
                         
                         <div class="success-box">
-                            <h3>✅ Test Your Understanding</h3>
+                            <h3>Test Your Understanding</h3>
                             <p>Try touching different combinations:</p>
                             <ul>
                                 <li>Touch Pad 1 only - see RED</li>
@@ -1041,11 +1044,11 @@ pixels[2] = (0, 0, 255)  # Change this to (255, 0, 0)</div>
                             <p>This shows how the code checks EACH pad independently.</p>
                         </div>
                         
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">📥 Load Code</button>
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
                         
                         <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">← Back to Lesson 1</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Got It! Next Lesson →</button>
+                            <button class="nav-btn" onclick="prevLesson()">Back to Lesson 1</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Got It! Next Lesson</button>
                         </div>
                     `,
                     code: `# Lesson 2: Three Colorful Pads
@@ -1088,6 +1091,106 @@ while True:
     
     # Update all the lights
     pixels.show()`
+                },
+                
+                3: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Data Representation</div>
+                            <h1>Lesson 3: Mixing Colors</h1>
+                            <p>Learn how to create any color you want</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>What We'll Do</h2>
+                            <p>You've used RED, GREEN, and BLUE. Now let's mix them to make new colors!</p>
+                            <ul>
+                                <li>Create YELLOW, CYAN, and MAGENTA</li>
+                                <li>Make colors brighter or dimmer</li>
+                                <li>Understand how computer screens show millions of colors</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>Color Mixing Guide</h3>
+                            <p>Remember: Colors are <code>(Red, Green, Blue)</code> from 0-255</p>
+                            <ul>
+                                <li>RED + GREEN = YELLOW</li>
+                                <li>GREEN + BLUE = CYAN (light blue)</li>
+                                <li>RED + BLUE = MAGENTA (pink/purple)</li>
+                                <li>RED + GREEN + BLUE = WHITE</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>Try This Code</h2>
+                            <p>This code shows different colors on three pads:</p>
+                            <ul>
+                                <li>Pad 1 = YELLOW <code>(255, 255, 0)</code></li>
+                                <li>Pad 2 = CYAN <code>(0, 255, 255)</code></li>
+                                <li>Pad 3 = MAGENTA <code>(255, 0, 255)</code></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="challenge-box">
+                            <h3>Challenges</h3>
+                            <p><strong>Challenge 1: Make Orange</strong></p>
+                            <p>Orange is mostly red with some green. Try <code>(255, 100, 0)</code></p>
+                            
+                            <p><strong>Challenge 2: Make Pink</strong></p>
+                            <p>Pink is light red. Try <code>(255, 100, 150)</code></p>
+                            
+                            <p><strong>Challenge 3: Make Your Favorite Color</strong></p>
+                            <p>Experiment! Mix different amounts. What happens with <code>(128, 0, 128)</code>?</p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Lesson 3: Mixing Colors
+# Create yellow, cyan, and magenta by mixing!
+
+import board
+import touchio
+import neopixel
+
+# Set up three touch sensors
+touch1 = touchio.TouchIn(board.GP1)
+touch2 = touchio.TouchIn(board.GP2)
+touch3 = touchio.TouchIn(board.GP3)
+
+# Set up the lights
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+print("Touch pads to see mixed colors!")
+print("Pad 1 = YELLOW | Pad 2 = CYAN | Pad 3 = MAGENTA")
+
+# Keep doing this forever:
+while True:
+    # Pad 1: YELLOW (Red + Green)
+    if touch1.value:
+        pixels[0] = (255, 255, 0)  # YELLOW
+    else:
+        pixels[0] = (0, 0, 0)
+    
+    # Pad 2: CYAN (Green + Blue)
+    if touch2.value:
+        pixels[1] = (0, 255, 255)  # CYAN
+    else:
+        pixels[1] = (0, 0, 0)
+    
+    # Pad 3: MAGENTA (Red + Blue)
+    if touch3.value:
+        pixels[2] = (255, 0, 255)  # MAGENTA
+    else:
+        pixels[2] = (0, 0, 0)
+    
+    # Update all the lights
+    pixels.show()`
                 }
             };
             
@@ -1102,3 +1205,49 @@ while True:
     </script>
 </body>
 </html>
+,
+                
+                4: {
+                    content: `Lesson 4 content coming soon`,
+                    code: `# Lesson 4 code`
+                },
+                5: {
+                    content: `Lesson 5 content coming soon`,
+                    code: `# Lesson 5 code`
+                },
+                6: {
+                    content: `Lesson 6 content coming soon`,
+                    code: `# Lesson 6 code`
+                },
+                7: {
+                    content: `Lesson 7 content coming soon`,
+                    code: `# Lesson 7 code`
+                },
+                8: {
+                    content: `Lesson 8 content coming soon`,
+                    code: `# Lesson 8 code`
+                },
+                9: {
+                    content: `Lesson 9 content coming soon`,
+                    code: `# Lesson 9 code`
+                },
+                10: {
+                    content: `Lesson 10 content coming soon`,
+                    code: `# Lesson 10 code`
+                },
+                11: {
+                    content: `Lesson 11 content coming soon`,
+                    code: `# Lesson 11 code`
+                },
+                12: {
+                    content: `Lesson 12 content coming soon`,
+                    code: `# Lesson 12 code`
+                },
+                13: {
+                    content: `Lesson 13 content coming soon`,
+                    code: `# Lesson 13 code`
+                },
+                14: {
+                    content: `Lesson 14 content coming soon`,
+                    code: `# Lesson 14 code`
+                }
