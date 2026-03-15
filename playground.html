@@ -400,6 +400,7 @@
         </div>
         <div class="header-actions">
             <button class="header-btn" id="openBtn" onclick="openFile()">Open code.py</button>
+            <button class="header-btn" id="serialBtn" onclick="connectSerial()">Connect Serial</button>
             <button class="header-btn success" id="saveBtn" onclick="saveFile()" disabled>Save to Board</button>
         </div>
     </div>
@@ -473,7 +474,7 @@
                     <button class="header-btn" style="padding: 4px 10px; font-size: 11px;" onclick="clearConsole()">Clear</button>
                 </div>
                 <div class="console-content" id="consoleContent">
-                    <div class="console-line info">Ready to edit CircuitPython code. Connect your SPOKE board to begin.</div>
+                    <div class="console-line info">Ready to edit CircuitPython code. Open code.py and connect serial to see board output.</div>
                 </div>
             </div>
         </div>
@@ -488,11 +489,14 @@
                 <p><strong>2. Open code.py</strong><br>
                 Click "Open code.py" and navigate to your CIRCUITPY drive, then select code.py file.</p>
                 
-                <p><strong>3. Edit Code</strong><br>
+                <p><strong>3. Connect Serial (Optional)</strong><br>
+                Click "Connect Serial" to see errors and print() output from your board in real-time.</p>
+                
+                <p><strong>4. Edit Code</strong><br>
                 Make your changes in the editor.</p>
                 
-                <p><strong>4. Save to Board</strong><br>
-                Click "Save to Board" to write changes. The board will restart automatically.</p>
+                <p><strong>5. Save to Board</strong><br>
+                Click "Save to Board" to write changes. The board will restart automatically and you'll see output in the console!</p>
             </div>
             
             <div class="info-section">
@@ -518,7 +522,8 @@
                 <ul>
                     <li>Use <span class="kbd">Ctrl+S</span> (Windows) or <span class="kbd">Cmd+S</span> (Mac) to save</li>
                     <li>The board restarts automatically after saving</li>
-                    <li>Check the Output panel for errors</li>
+                    <li>Connect Serial to see errors and print() statements</li>
+                    <li>Red text in console = errors, Blue = info</li>
                     <li>Test your code with a MIDI monitor</li>
                 </ul>
             </div>
@@ -544,7 +549,7 @@
             <div class="info-section">
                 <div class="warning-box">
                     <strong>Browser Compatibility:</strong><br>
-                    This editor uses the File System Access API. Works best in Chrome, Edge, or Opera. Not supported in Firefox or Safari.
+                    This editor uses the File System Access API and Web Serial API. Works best in Chrome, Edge, or Opera. Not supported in Firefox or Safari.
                 </div>
             </div>
         </div>
@@ -554,6 +559,9 @@
         let fileHandle = null;
         let directoryHandle = null;
         let currentCode = '';
+        let serialPort = null;
+        let reader = null;
+        let isReading = false;
         
         // Keyboard shortcuts
         document.addEventListener('keydown', async (e) => {
@@ -639,6 +647,100 @@
             } catch (error) {
                 logConsole('Error saving file: ' + error.message, 'error');
             }
+        }
+        
+        // Connect to Serial Port for reading output/errors
+        async function connectSerial() {
+            try {
+                // Check if Web Serial API is supported
+                if (!('serial' in navigator)) {
+                    logConsole('Web Serial API not supported in this browser. Use Chrome, Edge, or Opera.', 'error');
+                    alert('Web Serial API Not Supported\n\nPlease use Chrome, Edge, or Opera browser.');
+                    return;
+                }
+                
+                // Request a serial port
+                serialPort = await navigator.serial.requestPort();
+                
+                // Open the port at 115200 baud (CircuitPython default)
+                await serialPort.open({ baudRate: 115200 });
+                
+                // Update UI
+                document.getElementById('serialBtn').textContent = 'Serial Connected';
+                document.getElementById('serialBtn').style.background = '#0e8a16';
+                
+                logConsole('Serial port connected! Now reading board output...', 'success');
+                
+                // Start reading from serial
+                readSerial();
+                
+            } catch (error) {
+                if (error.name !== 'NotFoundError') {
+                    logConsole('Serial Error: ' + error.message, 'error');
+                }
+            }
+        }
+        
+        // Read from serial port continuously
+        async function readSerial() {
+            if (!serialPort) return;
+            
+            isReading = true;
+            
+            try {
+                const decoder = new TextDecoderStream();
+                serialPort.readable.pipeTo(decoder.writable);
+                reader = decoder.readable.getReader();
+                
+                while (isReading) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    if (value) {
+                        // Check if it's an error message
+                        const isError = value.includes('Traceback') || 
+                                       value.includes('Error:') || 
+                                       value.includes('Exception:');
+                        
+                        const type = isError ? 'error' : 'info';
+                        
+                        // Split by lines and log each
+                        const lines = value.split('\n');
+                        lines.forEach(line => {
+                            if (line.trim()) {
+                                logConsole(line.trim(), type);
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                if (isReading) {
+                    logConsole('Serial read error: ' + error.message, 'error');
+                }
+            }
+        }
+        
+        // Disconnect serial
+        async function disconnectSerial() {
+            isReading = false;
+            
+            if (reader) {
+                try {
+                    await reader.cancel();
+                } catch (e) {}
+                reader = null;
+            }
+            
+            if (serialPort) {
+                try {
+                    await serialPort.close();
+                } catch (e) {}
+                serialPort = null;
+            }
+            
+            document.getElementById('serialBtn').textContent = 'Connect Serial';
+            document.getElementById('serialBtn').style.background = '#0e639c';
+            logConsole('Serial port disconnected', 'info');
         }
         
         // Console logging
