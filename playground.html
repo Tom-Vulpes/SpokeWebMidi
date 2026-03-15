@@ -399,7 +399,7 @@
             <span class="file-path" id="currentFile">No file open</span>
         </div>
         <div class="header-actions">
-            <button class="header-btn" id="openBtn" onclick="openFile()">Open CIRCUITPY</button>
+            <button class="header-btn" id="openBtn" onclick="openFile()">Open code.py</button>
             <button class="header-btn success" id="saveBtn" onclick="saveFile()" disabled>Save to Board</button>
         </div>
     </div>
@@ -409,22 +409,11 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-section">
-                <div class="sidebar-header">CIRCUITPY Files</div>
-                <div class="sidebar-content">
-                    <ul class="file-list" id="fileList">
-                        <li style="padding: 20px; text-align: center; color: #858585; font-size: 12px;">
-                            Connect to CIRCUITPY drive to see files
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="sidebar-section">
                 <div class="sidebar-header">Code Templates</div>
                 <div class="sidebar-content">
                     <div class="template-item" onclick="loadTemplate('basic')">
                         <div class="template-name">Basic SPOKE</div>
-                        <div class="template-desc">Simple MIDI example</div>
+                        <div class="template-desc">Default 27-pad MIDI</div>
                     </div>
                     <div class="template-item" onclick="loadTemplate('drums')">
                         <div class="template-name">Drum Pads</div>
@@ -436,7 +425,21 @@
                     </div>
                     <div class="template-item" onclick="loadTemplate('sequencer')">
                         <div class="template-name">Step Sequencer</div>
-                        <div class="template-desc">Loop patterns</div>
+                        <div class="template-desc">16-step loop</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-header">Quick Actions</div>
+                <div class="sidebar-content">
+                    <div class="template-item" onclick="openFile()">
+                        <div class="template-name">Open File</div>
+                        <div class="template-desc">Select code.py from SPOKE</div>
+                    </div>
+                    <div class="template-item" onclick="saveFile()" style="opacity: 0.5;" id="saveTemplate">
+                        <div class="template-name">Save to Board</div>
+                        <div class="template-desc">Write code to SPOKE</div>
                     </div>
                 </div>
             </div>
@@ -452,8 +455,8 @@
                 <div class="welcome-screen" id="welcomeScreen">
                     <div class="welcome-content">
                         <h2>SPOKE CircuitPython Editor</h2>
-                        <p>Edit code.py directly on your SPOKE board.<br>Connect your board and click "Open CIRCUITPY" to begin.</p>
-                        <button class="welcome-btn" onclick="openFile()">Connect to SPOKE Board</button>
+                        <p>Edit code.py directly on your SPOKE board.<br>Connect your board and select code.py to begin.</p>
+                        <button class="welcome-btn" onclick="openFile()">Select code.py from SPOKE</button>
                     </div>
                 </div>
                 <textarea class="code-editor" id="codeEditor" spellcheck="false" style="display: none;"></textarea>
@@ -478,8 +481,8 @@
                 <p><strong>1. Connect SPOKE Board</strong><br>
                 Plug in your SPOKE board via USB. It should appear as "CIRCUITPY" drive.</p>
                 
-                <p><strong>2. Open File</strong><br>
-                Click "Open CIRCUITPY" and select your code.py file.</p>
+                <p><strong>2. Open code.py</strong><br>
+                Click "Open code.py" and navigate to your CIRCUITPY drive, then select code.py file.</p>
                 
                 <p><strong>3. Edit Code</strong><br>
                 Make your changes in the editor.</p>
@@ -491,13 +494,13 @@
             <div class="info-section">
                 <h3>SPOKE Pin Mapping</h3>
                 <div class="info-box">
-                    <strong>26 Touch Pads:</strong><br>
-                    GP0, GP1, GP2, GP3, GP4, GP5, GP6, GP7, GP8, GP9, GP10, GP11, GP12, GP13, GP14, GP15, GP16, GP17, GP18, GP19, GP20, GP21, GP22, GP26, GP27, GP28
+                    <strong>27 Touch Pads:</strong><br>
+                    GP0, GP1, GP2, GP3, GP4, GP5, GP6, GP7, GP8, GP9, GP10, GP11, GP12, GP13, GP14, GP15, GP16, GP17, GP18, GP19, GP20, GP21, GP22, GP26, GP27, GP28, A0
                 </div>
                 
                 <div class="info-box">
-                    <strong>MIDI Notes:</strong><br>
-                    [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85]
+                    <strong>Default MIDI Notes:</strong><br>
+                    [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
                 </div>
             </div>
             
@@ -518,8 +521,14 @@
                     <li><strong>touchio</strong> - Capacitive touch</li>
                     <li><strong>usb_midi</strong> - MIDI over USB</li>
                     <li><strong>adafruit_midi</strong> - MIDI messages</li>
+                    <li><strong>neopixel</strong> - LED control (27 LEDs)</li>
                     <li><strong>time</strong> - Delays and timing</li>
                 </ul>
+                
+                <div class="info-box">
+                    <strong>NeoPixels:</strong><br>
+                    SPOKE has 27 RGB LEDs (one per pad) on board.NEOPIXEL. Use neopixel library for visual feedback!
+                </div>
             </div>
             
             <div class="info-section">
@@ -550,53 +559,29 @@
         async function openFile() {
             try {
                 // Check if File System Access API is supported
-                if (!('showDirectoryPicker' in window)) {
+                if (!('showOpenFilePicker' in window)) {
                     logConsole('Your browser does not support the File System Access API. Please use Chrome, Edge, or Opera.', 'error');
                     alert('Browser Not Supported\n\nThis feature requires the File System Access API.\nPlease use Chrome, Edge, or Opera browser.');
                     return;
                 }
                 
-                // Open directory picker
-                directoryHandle = await window.showDirectoryPicker();
-                logConsole('Connected to: ' + directoryHandle.name, 'success');
+                // Open file picker for .py files
+                const [handle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'Python Files',
+                        accept: {'text/x-python': ['.py']}
+                    }],
+                    multiple: false
+                });
                 
-                // List files in directory
-                await listFiles();
+                fileHandle = handle;
+                await loadFileContent();
                 
-                // Try to open code.py automatically
-                try {
-                    fileHandle = await directoryHandle.getFileHandle('code.py');
-                    await loadFileContent();
-                } catch (e) {
-                    logConsole('code.py not found. Please select a file from the sidebar.', 'warning');
-                }
+                logConsole('Connected to: ' + handle.name, 'success');
                 
             } catch (error) {
                 if (error.name !== 'AbortError') {
-                    logConsole('Error opening directory: ' + error.message, 'error');
-                }
-            }
-        }
-        
-        // List files in CIRCUITPY directory
-        async function listFiles() {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '';
-            
-            for await (const entry of directoryHandle.values()) {
-                if (entry.kind === 'file' && entry.name.endsWith('.py')) {
-                    const item = document.createElement('li');
-                    item.className = 'file-item';
-                    item.textContent = entry.name;
-                    item.onclick = async () => {
-                        fileHandle = await directoryHandle.getFileHandle(entry.name);
-                        await loadFileContent();
-                        
-                        // Update active state
-                        document.querySelectorAll('.file-item').forEach(f => f.classList.remove('active'));
-                        item.classList.add('active');
-                    };
-                    fileList.appendChild(item);
+                    logConsole('Error opening file: ' + error.message, 'error');
                 }
             }
         }
@@ -611,6 +596,9 @@
                 document.getElementById('codeEditor').value = contents;
                 document.getElementById('currentFile').textContent = file.name;
                 document.getElementById('saveBtn').disabled = false;
+                
+                // Enable save in sidebar too
+                document.getElementById('saveTemplate').style.opacity = '1';
                 
                 // Hide welcome screen, show editor
                 document.getElementById('welcomeScreen').style.display = 'none';
@@ -681,23 +669,28 @@ import usb_midi
 import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
+import neopixel
 import time
 
 # Initialize MIDI
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
 
-# SPOKE-mini touch pins (26 pads)
+# Initialize NeoPixels (27 LEDs)
+pixels = neopixel.NeoPixel(board.NEOPIXEL, 27, brightness=0.3, auto_write=False)
+
+# SPOKE board touch pins (27 pads)
 touch_pins = [
     board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
     board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
     board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
     board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26,
-    board.GP27, board.GP28
+    board.GP27, board.GP28, board.A0
 ]
 
-# MIDI notes (chromatic scale starting from C4)
-midi_notes = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
-              73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85]
+# Default SPOKE MIDI notes (circular arrangement)
+midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72,
+              69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43,
+              40, 38, 36]
 
 # Initialize touch inputs
 touches = []
@@ -710,9 +703,17 @@ for pin in touch_pins:
         touches.append(None)
 
 # Track touched state
-touched = [False] * 26
+touched = [False] * 27
 
-print("SPOKE-mini ready!")
+# Colors
+COLOR_ON = (0, 255, 0)    # Green when touched
+COLOR_OFF = (0, 0, 0)     # Off when not touched
+
+# Turn off all pixels initially
+pixels.fill(COLOR_OFF)
+pixels.show()
+
+print("SPOKE board ready with NeoPixels!")
 
 while True:
     for i, touch in enumerate(touches):
@@ -722,15 +723,18 @@ while True:
         if touch.value and not touched[i]:
             # Pad touched
             midi.send(NoteOn(midi_notes[i], 127))
+            pixels[i] = COLOR_ON
             touched[i] = True
-            print(f"Pad {i+1} ON")
+            print(f"Pad {i+1} ON - Note {midi_notes[i]}")
         
         elif not touch.value and touched[i]:
             # Pad released
             midi.send(NoteOff(midi_notes[i], 0))
+            pixels[i] = COLOR_OFF
             touched[i] = False
             print(f"Pad {i+1} OFF")
     
+    pixels.show()
     time.sleep(0.01)
 `,
                 
@@ -740,12 +744,16 @@ import usb_midi
 import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
+import neopixel
 import time
 
-# Initialize MIDI
-midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=9)  # Channel 10 for drums
+# Initialize MIDI on channel 10 (drums)
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=9)
 
-# First 9 pads only for drums
+# Initialize NeoPixels
+pixels = neopixel.NeoPixel(board.NEOPIXEL, 27, brightness=0.3, auto_write=False)
+
+# First 9 pads for drums
 touch_pins = [
     board.GP0, board.GP1, board.GP2, board.GP3, board.GP4,
     board.GP5, board.GP6, board.GP7, board.GP8
@@ -764,6 +772,19 @@ drum_notes = [
     37   # Rimshot
 ]
 
+# Different color for each drum type
+drum_colors = [
+    (255, 0, 0),    # Kick - Red
+    (0, 0, 255),    # Snare - Blue
+    (255, 255, 0),  # Hi-hat closed - Yellow
+    (255, 128, 0),  # Hi-hat open - Orange
+    (128, 0, 255),  # Tom 1 - Purple
+    (255, 0, 255),  # Tom 2 - Magenta
+    (0, 255, 255),  # Crash - Cyan
+    (0, 255, 128),  # Ride - Teal
+    (255, 255, 255) # Rimshot - White
+]
+
 touches = []
 for pin in touch_pins:
     try:
@@ -775,7 +796,11 @@ for pin in touch_pins:
 
 touched = [False] * 9
 
-print("Drum pads ready!")
+# Turn off all pixels
+pixels.fill((0, 0, 0))
+pixels.show()
+
+print("Drum pads ready with color feedback!")
 
 while True:
     for i, touch in enumerate(touches):
@@ -784,13 +809,16 @@ while True:
         
         if touch.value and not touched[i]:
             midi.send(NoteOn(drum_notes[i], 127))
+            pixels[i] = drum_colors[i]
             touched[i] = True
             print(f"Drum {i+1}")
         
         elif not touch.value and touched[i]:
             midi.send(NoteOff(drum_notes[i], 0))
+            pixels[i] = (0, 0, 0)
             touched[i] = False
     
+    pixels.show()
     time.sleep(0.01)
 `,
                 
@@ -800,24 +828,42 @@ import usb_midi
 import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
+import neopixel
 import time
 
 # Initialize MIDI
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
 
-# All 26 pads
+# Initialize NeoPixels
+pixels = neopixel.NeoPixel(board.NEOPIXEL, 27, brightness=0.3, auto_write=False)
+
+# All 27 pads
 touch_pins = [
     board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
     board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
     board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
     board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26,
-    board.GP27, board.GP28
+    board.GP27, board.GP28, board.A0
 ]
 
-# Piano notes - C Major scale across 26 pads
-# C4, D4, E4, F4, G4, A4, B4, C5, etc.
-piano_notes = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81,
-               83, 84, 86, 88, 89, 91, 93, 95, 96, 98, 100, 101, 103]
+# Piano notes - chromatic scale from C4 to D6
+piano_notes = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
+               73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86]
+
+# Rainbow colors for each note
+def wheel(pos):
+    # Generate rainbow colors across the spectrum
+    if pos < 85:
+        return (pos * 3, 255 - pos * 3, 0)
+    elif pos < 170:
+        pos -= 85
+        return (255 - pos * 3, 0, pos * 3)
+    else:
+        pos -= 170
+        return (0, pos * 3, 255 - pos * 3)
+
+# Assign rainbow colors to all pads
+note_colors = [wheel(int(i * 256 / 27)) for i in range(27)]
 
 touches = []
 for pin in touch_pins:
@@ -828,9 +874,13 @@ for pin in touch_pins:
     except:
         touches.append(None)
 
-touched = [False] * 26
+touched = [False] * 27
 
-print("Piano ready!")
+# Turn off all pixels
+pixels.fill((0, 0, 0))
+pixels.show()
+
+print("Piano ready! 27 chromatic notes with rainbow colors")
 
 while True:
     for i, touch in enumerate(touches):
@@ -839,13 +889,16 @@ while True:
         
         if touch.value and not touched[i]:
             midi.send(NoteOn(piano_notes[i], 100))
+            pixels[i] = note_colors[i]
             touched[i] = True
             print(f"Note {piano_notes[i]}")
         
         elif not touch.value and touched[i]:
             midi.send(NoteOff(piano_notes[i], 0))
+            pixels[i] = (0, 0, 0)
             touched[i] = False
     
+    pixels.show()
     time.sleep(0.01)
 `,
                 
@@ -855,10 +908,14 @@ import usb_midi
 import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
+import neopixel
 import time
 
 # Initialize MIDI
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# Initialize NeoPixels
+pixels = neopixel.NeoPixel(board.NEOPIXEL, 27, brightness=0.3, auto_write=False)
 
 # First 16 pads for 16-step sequencer
 touch_pins = [
@@ -880,23 +937,48 @@ for pin in touch_pins:
 sequence = [False] * 16  # Which steps are active
 current_step = 0
 note = 60  # C4
+last_touched = [False] * 16
+
+# Colors
+COLOR_ACTIVE_STEP = (0, 100, 255)    # Blue - step is programmed
+COLOR_PLAYING = (0, 255, 0)          # Green - currently playing
+COLOR_OFF = (0, 0, 0)                # Off
+
+# Initialize display
+pixels.fill(COLOR_OFF)
+pixels.show()
 
 print("Step sequencer ready!")
 print("Touch pads to toggle steps")
 
 # Main loop
 last_step_time = time.monotonic()
-step_interval = 0.25  # 240 BPM (quarter note)
+step_interval = 0.25  # 240 BPM
 
 while True:
     # Check for pad touches to toggle steps
     for i, touch in enumerate(touches):
         if touch is None:
             continue
-        if touch.value:
+        
+        # Detect new touch (rising edge)
+        if touch.value and not last_touched[i]:
             sequence[i] = not sequence[i]
             print(f"Step {i+1}: {'ON' if sequence[i] else 'OFF'}")
-            time.sleep(0.2)  # Debounce
+            last_touched[i] = True
+        elif not touch.value:
+            last_touched[i] = False
+    
+    # Update LED display
+    for i in range(16):
+        if i == current_step:
+            pixels[i] = COLOR_PLAYING  # Current step is green
+        elif sequence[i]:
+            pixels[i] = COLOR_ACTIVE_STEP  # Programmed step is blue
+        else:
+            pixels[i] = COLOR_OFF
+    
+    pixels.show()
     
     # Advance sequencer
     current_time = time.monotonic()
