@@ -388,6 +388,41 @@
             background: rgba(255, 122, 69, 0.2);
             border-color: #ff7a45;
         }
+        
+        .scale-pad-item {
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 6px;
+            padding: 12px;
+        }
+        
+        .scale-pad-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #cccccc;
+            margin-bottom: 8px;
+        }
+        
+        .scale-pad-select {
+            width: 100%;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+        }
+        
+        .scale-pad-select:hover {
+            border-color: #ff7a45;
+        }
+        
+        .scale-pad-select:focus {
+            outline: none;
+            border-color: #ff7a45;
+        }
     </style>
 </head>
 <body>
@@ -419,6 +454,10 @@
                     <div class="template-item" onclick="loadTemplate('sensitivity')">
                         <div class="template-name">Sensitivity Controls</div>
                         <div class="template-desc">Adjustable pad sensitivity</div>
+                    </div>
+                    <div class="template-item" onclick="openScaleBuilder()">
+                        <div class="template-name">Custom Scale Builder</div>
+                        <div class="template-desc">Choose notes for each pad</div>
                     </div>
                     <div class="template-item" onclick="loadTemplate('drums')">
                         <div class="template-name">Drum Pads</div>
@@ -551,6 +590,39 @@
                     <strong>Browser Compatibility:</strong><br>
                     This editor uses the File System Access API and Web Serial API. Works best in Chrome, Edge, or Opera. Not supported in Firefox or Safari.
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scale Builder Modal -->
+    <div class="modal-overlay" id="scaleBuilderModal">
+        <div class="modal" style="max-width: 900px;">
+            <div class="modal-header">
+                <div class="modal-title">Custom Scale Builder</div>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 10px;">Quick Presets</h3>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="wizard-btn secondary" onclick="applyPreset('chromatic')">Chromatic Scale</button>
+                        <button class="wizard-btn secondary" onclick="applyPreset('major')">C Major Scale</button>
+                        <button class="wizard-btn secondary" onclick="applyPreset('minor')">C Minor Scale</button>
+                        <button class="wizard-btn secondary" onclick="applyPreset('pentatonic')">Pentatonic Scale</button>
+                        <button class="wizard-btn secondary" onclick="applyPreset('blues')">Blues Scale</button>
+                        <button class="wizard-btn secondary" onclick="applyPreset('default')">SPOKE Default</button>
+                    </div>
+                </div>
+                
+                <h3 style="font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 15px;">Customize Each Pad (27 notes)</h3>
+                <p style="font-size: 13px; color: #858585; margin-bottom: 20px;">Select the MIDI note for each pad. Changes will be reflected in the generated code.</p>
+                
+                <div id="scaleBuilderGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="wizard-btn secondary" onclick="closeScaleBuilder()">Cancel</button>
+                <button class="wizard-btn primary" onclick="generateScaleCode()">Generate Code</button>
             </div>
         </div>
     </div>
@@ -756,6 +828,167 @@
         
         function clearConsole() {
             document.getElementById('consoleContent').innerHTML = '';
+        }
+        
+        // Scale Builder
+        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        let customNotes = Array(27).fill(60); // Default to C4
+        
+        function openScaleBuilder() {
+            document.getElementById('scaleBuilderModal').classList.add('active');
+            buildScaleGrid();
+        }
+        
+        function closeScaleBuilder() {
+            document.getElementById('scaleBuilderModal').classList.remove('active');
+        }
+        
+        function buildScaleGrid() {
+            const grid = document.getElementById('scaleBuilderGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 27; i++) {
+                const item = document.createElement('div');
+                item.className = 'scale-pad-item';
+                
+                const label = document.createElement('div');
+                label.className = 'scale-pad-label';
+                label.textContent = `Pad ${i + 1}`;
+                
+                const select = document.createElement('select');
+                select.className = 'scale-pad-select';
+                select.id = `note-select-${i}`;
+                
+                // Create options for MIDI notes 21 (A0) to 108 (C8)
+                for (let note = 21; note <= 108; note++) {
+                    const option = document.createElement('option');
+                    const octave = Math.floor(note / 12) - 1;
+                    const noteName = noteNames[note % 12];
+                    option.value = note;
+                    option.textContent = `${noteName}${octave} (${note})`;
+                    if (note === customNotes[i]) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                }
+                
+                select.onchange = function() {
+                    customNotes[i] = parseInt(this.value);
+                };
+                
+                item.appendChild(label);
+                item.appendChild(select);
+                grid.appendChild(item);
+            }
+        }
+        
+        function applyPreset(preset) {
+            const presets = {
+                'chromatic': [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86],
+                'major': [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84, 86, 88, 89, 91, 93, 95, 96, 98, 100, 101, 103, 105],
+                'minor': [60, 62, 63, 65, 67, 68, 70, 72, 74, 75, 77, 79, 80, 82, 84, 86, 87, 89, 91, 92, 94, 96, 98, 99, 101, 103, 104],
+                'pentatonic': [60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96, 98, 100, 103, 105, 108, 110, 112, 115, 117, 120, 122],
+                'blues': [60, 63, 65, 66, 67, 70, 72, 75, 77, 78, 79, 82, 84, 87, 89, 90, 91, 94, 96, 99, 101, 102, 103, 106, 108, 111, 113],
+                'default': [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
+            };
+            
+            if (presets[preset]) {
+                customNotes = [...presets[preset]];
+                buildScaleGrid();
+            }
+        }
+        
+        function generateScaleCode() {
+            const notesArray = '[' + customNotes.join(', ') + ']';
+            
+            const code = `# Custom Scale - Generated by SPOKE Scale Builder
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+import neopixel
+from rainbowio import colorwheel
+
+# YOUR CUSTOM MIDI NOTES
+midi_notes = ${notesArray}
+
+# Define the touch pins
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,
+    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,
+    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
+    board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# State tracking
+note_played = [False] * len(touch_pins)
+
+# NeoPixel setup
+num_pixels = len(touch_sensors)
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Fill all pixels blue
+def all_blue():
+    pixels.fill((0, 0, 255))
+    pixels.show()
+
+# Start
+rainbow(0.01, 2, step_size=10)
+all_blue()
+
+print("Custom scale loaded!")
+print(f"Notes: {midi_notes}")
+
+# Main loop
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(midi_notes[i], 120))
+                note_played[i] = True
+                pixels[i] = (255, 0, 255)
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(midi_notes[i], 120))
+                note_played[i] = False
+                pixels[i] = (0, 0, 255)
+`;
+            
+            document.getElementById('codeEditor').value = code;
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('codeEditor').style.display = 'block';
+            closeScaleBuilder();
+            
+            logConsole('Custom scale code generated!', 'success');
+            logConsole('Click "Save to Board" to write to SPOKE.', 'warning');
         }
         
         // Load template into editor
