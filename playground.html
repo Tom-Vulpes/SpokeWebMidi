@@ -459,6 +459,10 @@
                         <div class="template-name">Custom Scale Builder</div>
                         <div class="template-desc">Choose notes for each pad</div>
                     </div>
+                    <div class="template-item" onclick="loadTemplate('neopixel')">
+                        <div class="template-name">NeoPixel Playground</div>
+                        <div class="template-desc">27 light effects</div>
+                    </div>
                     <div class="template-item" onclick="loadTemplate('drums')">
                         <div class="template-name">Drum Pads</div>
                         <div class="template-desc">9 drum sounds</div>
@@ -1363,6 +1367,297 @@ while True:
             midi.send(NoteOff(midi_notes[i], 120))
             note_played[i] = False
             pixels[i] = COLOR_IDLE
+`,
+                
+                'neopixel': `# NeoPixel Playground - 27 Visual Effects!
+# Each pad triggers a different light show
+import time
+import board
+import touchio
+import neopixel
+from rainbowio import colorwheel
+import random
+
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,
+    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,
+    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
+    board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        pass
+
+num_pixels = len(touch_sensors)
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.15, auto_write=False)
+last_touched = [False] * num_pixels
+
+print("NeoPixel Playground! Touch pads for light shows:")
+print("1-3:Rainbow | 4-6:Waves | 7-9:Sparkle | 10-12:Pulse")
+print("13-15:Chase | 16-18:Strobe | 19-21:Fire | 22-24:Water | 25-27:Random")
+
+def sine(x):
+    x = x % 6.28
+    return x - (x**3)/6 if x < 3.14 else -(x-6.28) + ((x-6.28)**3)/6
+
+# 27 EFFECTS - One per pad!
+def rainbow_cycle(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel(int((i*256/num_pixels + time.monotonic()*50)) % 256)
+        pixels.show()
+
+def rainbow_chase(d=2.5):
+    s, o = time.monotonic(), 0
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel((i*10 + o) % 256)
+        pixels.show()
+        o = (o + 8) % 256
+        time.sleep(0.04)
+
+def rainbow_sparkle(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel(random.randint(0,255)) if random.random()>0.6 else (0,0,0)
+        pixels.show()
+        time.sleep(0.1)
+
+def red_wave(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = (int((1+sine(i*0.5+time.monotonic()*3))*100),0,0)
+        pixels.show()
+
+def blue_wave(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = (0,0,int((1+sine(i*0.5+time.monotonic()*3))*100))
+        pixels.show()
+
+def green_wave(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = (0,int((1+sine(i*0.5+time.monotonic()*3))*100),0)
+        pixels.show()
+
+def white_sparkle(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,0))
+        for _ in range(5):
+            pixels[random.randint(0,num_pixels-1)] = (200,200,200)
+        pixels.show()
+        time.sleep(0.1)
+
+def color_sparkle(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,0))
+        for _ in range(5):
+            pixels[random.randint(0,num_pixels-1)] = colorwheel(random.randint(0,255))
+        pixels.show()
+        time.sleep(0.1)
+
+def gold_sparkle(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,0))
+        for _ in range(5):
+            pixels[random.randint(0,num_pixels-1)] = (200,150,0)
+        pixels.show()
+        time.sleep(0.1)
+
+def red_pulse(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        v = int((1+sine(time.monotonic()*4))*100)
+        pixels.fill((v,0,0))
+        pixels.show()
+
+def blue_pulse(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        v = int((1+sine(time.monotonic()*4))*100)
+        pixels.fill((0,0,v))
+        pixels.show()
+
+def purple_pulse(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        v = int((1+sine(time.monotonic()*4))*100)
+        pixels.fill((v,0,v))
+        pixels.show()
+
+def red_chase(d=2.5):
+    s, p = time.monotonic(), 0
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,0))
+        for i in range(5):
+            pixels[(p+i)%num_pixels] = (200,0,0)
+        pixels.show()
+        p = (p+1) % num_pixels
+        time.sleep(0.04)
+
+def rainbow_smooth(d=2.5):
+    s, p = time.monotonic(), 0
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel((i+p)*256//num_pixels % 256)
+        pixels.show()
+        p = (p+2) % 256
+        time.sleep(0.04)
+
+def comet(d=2.5):
+    s, p = time.monotonic(), 0
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,0))
+        pixels[p] = (200,200,200)
+        pixels[(p-1)%num_pixels] = (80,80,80)
+        pixels[(p-2)%num_pixels] = (20,20,20)
+        pixels.show()
+        p = (p+1) % num_pixels
+        time.sleep(0.04)
+
+def white_strobe(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill((200,200,200))
+        pixels.show()
+        time.sleep(0.05)
+        pixels.fill((0,0,0))
+        pixels.show()
+        time.sleep(0.05)
+
+def color_strobe(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill(colorwheel(random.randint(0,255)))
+        pixels.show()
+        time.sleep(0.1)
+        pixels.fill((0,0,0))
+        pixels.show()
+        time.sleep(0.1)
+
+def alternate(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = (200,0,0) if i%2==0 else (0,0,200)
+        pixels.show()
+        time.sleep(0.1)
+        for i in range(num_pixels):
+            pixels[i] = (0,0,200) if i%2==0 else (200,0,0)
+        pixels.show()
+        time.sleep(0.1)
+
+def fire(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            f = random.randint(80,200)
+            pixels[i] = (f,int(f*0.3),0)
+        pixels.show()
+        time.sleep(0.06)
+
+def lava(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            v = int((1+sine(i*0.4+time.monotonic()*2))*80)
+            pixels[i] = (v,0,int(v*0.4))
+        pixels.show()
+
+def embers(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            v = random.randint(50,150)
+            pixels[i] = (v,int(v*0.2),0)
+        pixels.show()
+        time.sleep(0.1)
+
+def ocean(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            v = int((1+sine(i*0.3+time.monotonic()*2))*70)
+            pixels[i] = (0,v,int(v*1.5))
+        pixels.show()
+
+def bubbles(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,40))
+        for _ in range(4):
+            pixels[random.randint(0,num_pixels-1)] = (80,150,200)
+        pixels.show()
+        time.sleep(0.15)
+
+def aqua(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = (0,200,200) if random.random()>0.7 else (0,30,60)
+        pixels.show()
+        time.sleep(0.1)
+
+def random_fill(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill(colorwheel(random.randint(0,255)))
+        pixels.show()
+        time.sleep(0.2)
+
+def random_all(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel(random.randint(0,255))
+        pixels.show()
+        time.sleep(0.1)
+
+def disco(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel(random.randint(0,255)) if random.random()>0.5 else (0,0,0)
+        pixels.show()
+        time.sleep(0.05)
+
+effects = [rainbow_cycle, rainbow_chase, rainbow_sparkle, red_wave, blue_wave, green_wave,
+           white_sparkle, color_sparkle, gold_sparkle, red_pulse, blue_pulse, purple_pulse,
+           red_chase, rainbow_smooth, comet, white_strobe, color_strobe, alternate,
+           fire, lava, embers, ocean, bubbles, aqua, random_fill, random_all, disco]
+
+# Startup
+for j in range(0,256,10):
+    for i in range(num_pixels):
+        pixels[i] = colorwheel((i*256//num_pixels+j)%256)
+    pixels.show()
+pixels.fill((0,0,0))
+pixels.show()
+
+while True:
+    for i, ts in enumerate(touch_sensors):
+        if ts.value and not last_touched[i]:
+            print(f"Pad {i+1}")
+            effects[i]()
+            pixels.fill((0,0,0))
+            pixels.show()
+            last_touched[i] = True
+        elif not ts.value:
+            last_touched[i] = False
+    time.sleep(0.01)
 `,
                 
                 'drums': `import board
