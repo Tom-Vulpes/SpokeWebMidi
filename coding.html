@@ -1138,6 +1138,60 @@ while True:
                             <p>Orange is mostly red with some green. Try <code>(255, 100, 0)</code></p>
                             
                             <p><strong>Challenge 2: Make Pink</strong></p>
+                            <p>Pink is light red. Try <code>(255, 100, 150)</code></p>
+                            
+                            <p><strong>Challenge 3: Make Your Favorite Color</strong></p>
+                            <p>Experiment! Mix different amounts. What happens with <code>(128, 0, 128)</code>?</p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Lesson 3: Mixing Colors
+# Create yellow, cyan, and magenta by mixing!
+
+import board
+import touchio
+import neopixel
+
+# Set up three touch sensors
+touch1 = touchio.TouchIn(board.GP1)
+touch2 = touchio.TouchIn(board.GP2)
+touch3 = touchio.TouchIn(board.GP3)
+
+# Set up the lights
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+print("Touch pads to see mixed colors!")
+print("Pad 1 = YELLOW | Pad 2 = CYAN | Pad 3 = MAGENTA")
+
+# Keep doing this forever:
+while True:
+    # Pad 1: YELLOW (Red + Green)
+    if touch1.value:
+        pixels[0] = (255, 255, 0)  # YELLOW
+    else:
+        pixels[0] = (0, 0, 0)
+    
+    # Pad 2: CYAN (Green + Blue)
+    if touch2.value:
+        pixels[1] = (0, 255, 255)  # CYAN
+    else:
+        pixels[1] = (0, 0, 0)
+    
+    # Pad 3: MAGENTA (Red + Blue)
+    if touch3.value:
+        pixels[2] = (255, 0, 255)  # MAGENTA
+    else:
+        pixels[2] = (0, 0, 0)
+    
+    # Update all the lights
+    pixels.show()`
+                }
             };
             
             return lessons[lessonNum] || {
