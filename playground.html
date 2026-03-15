@@ -516,6 +516,64 @@
                     <div class="console-line info">Ready to edit CircuitPython code. Open code.py and connect serial to see board output.</div>
                 </div>
             </div>
+            
+            <!-- Scale Builder Panel -->
+            <div id="scaleBuilderPanel" style="display: none; height: 350px; background: #1e1e1e; border-top: 1px solid #3e3e42;">
+                <div style="background: #2d2d30; padding: 8px 16px; font-size: 12px; font-weight: 600; color: #cccccc; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #3e3e42;">
+                    <span>Custom Scale Builder</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="preview-btn" onclick="generateScaleCode()">Generate Code</button>
+                        <button class="preview-btn" onclick="hideScaleBuilder()">Close</button>
+                    </div>
+                </div>
+                <div style="display: flex; height: calc(100% - 40px);">
+                    <!-- Left side: Controls -->
+                    <div style="width: 250px; background: #252526; border-right: 1px solid #3e3e42; padding: 16px; overflow-y: auto;">
+                        <h3 style="font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 12px;">Quick Presets</h3>
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px;">
+                            <button class="template-item" style="margin: 0; cursor: pointer;" onclick="applyPreset('chromatic')">
+                                <div class="template-name">Chromatic Scale</div>
+                            </button>
+                            <button class="template-item" style="margin: 0; cursor: pointer;" onclick="applyPreset('major')">
+                                <div class="template-name">C Major</div>
+                            </button>
+                            <button class="template-item" style="margin: 0; cursor: pointer;" onclick="applyPreset('minor')">
+                                <div class="template-name">C Minor</div>
+                            </button>
+                            <button class="template-item" style="margin: 0; cursor: pointer;" onclick="applyPreset('pentatonic')">
+                                <div class="template-name">Pentatonic</div>
+                            </button>
+                            <button class="template-item" style="margin: 0; cursor: pointer;" onclick="applyPreset('blues')">
+                                <div class="template-name">Blues Scale</div>
+                            </button>
+                            <button class="template-item" style="margin: 0; cursor: pointer;" onclick="applyPreset('default')">
+                                <div class="template-name">SPOKE Default</div>
+                            </button>
+                        </div>
+                        
+                        <h3 style="font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 12px;">Scale Info</h3>
+                        <div style="font-size: 11px; color: #858585; line-height: 1.5;">
+                            <p>Click a pad on the SPOKE circle to select its MIDI note.</p>
+                            <p style="margin-top: 8px;">Selected pad: <span id="selectedPadInfo" style="color: #ff7a45; font-weight: 600;">None</span></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Right side: Circular SPOKE Board -->
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative;">
+                        <svg id="spokeCircle" width="300" height="300" viewBox="0 0 300 300">
+                            <!-- Will be populated by JavaScript -->
+                        </svg>
+                        
+                        <!-- Note selector dropdown (appears when pad clicked) -->
+                        <div id="noteSelector" style="display: none; position: absolute; background: #2d2d30; border: 2px solid #ff7a45; border-radius: 8px; padding: 12px; z-index: 100;">
+                            <div style="font-size: 12px; font-weight: 600; color: #cccccc; margin-bottom: 8px;" id="noteSelectorTitle">Pad 1</div>
+                            <select id="noteSelect" class="scale-pad-select" style="width: 200px;" onchange="updatePadNote()">
+                                <!-- Populated by JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Info Panel -->
@@ -590,39 +648,6 @@
                     <strong>Browser Compatibility:</strong><br>
                     This editor uses the File System Access API and Web Serial API. Works best in Chrome, Edge, or Opera. Not supported in Firefox or Safari.
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Scale Builder Modal -->
-    <div class="modal-overlay" id="scaleBuilderModal">
-        <div class="modal" style="max-width: 900px;">
-            <div class="modal-header">
-                <div class="modal-title">Custom Scale Builder</div>
-            </div>
-            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                <div style="margin-bottom: 20px;">
-                    <h3 style="font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 10px;">Quick Presets</h3>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="wizard-btn secondary" onclick="applyPreset('chromatic')">Chromatic Scale</button>
-                        <button class="wizard-btn secondary" onclick="applyPreset('major')">C Major Scale</button>
-                        <button class="wizard-btn secondary" onclick="applyPreset('minor')">C Minor Scale</button>
-                        <button class="wizard-btn secondary" onclick="applyPreset('pentatonic')">Pentatonic Scale</button>
-                        <button class="wizard-btn secondary" onclick="applyPreset('blues')">Blues Scale</button>
-                        <button class="wizard-btn secondary" onclick="applyPreset('default')">SPOKE Default</button>
-                    </div>
-                </div>
-                
-                <h3 style="font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 15px;">Customize Each Pad (27 notes)</h3>
-                <p style="font-size: 13px; color: #858585; margin-bottom: 20px;">Select the MIDI note for each pad. Changes will be reflected in the generated code.</p>
-                
-                <div id="scaleBuilderGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="wizard-btn secondary" onclick="closeScaleBuilder()">Cancel</button>
-                <button class="wizard-btn primary" onclick="generateScaleCode()">Generate Code</button>
             </div>
         </div>
     </div>
@@ -832,54 +857,137 @@
         
         // Scale Builder
         const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        let customNotes = Array(27).fill(60); // Default to C4
+        let customNotes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]; // SPOKE default
+        let selectedPad = null;
         
         function openScaleBuilder() {
-            document.getElementById('scaleBuilderModal').classList.add('active');
-            buildScaleGrid();
+            document.getElementById('scaleBuilderPanel').style.display = 'block';
+            buildSpokeCircle();
+            populateNoteSelector();
         }
         
-        function closeScaleBuilder() {
-            document.getElementById('scaleBuilderModal').classList.remove('active');
+        function hideScaleBuilder() {
+            document.getElementById('scaleBuilderPanel').style.display = 'none';
+            document.getElementById('noteSelector').style.display = 'none';
+            selectedPad = null;
         }
         
-        function buildScaleGrid() {
-            const grid = document.getElementById('scaleBuilderGrid');
-            grid.innerHTML = '';
+        function buildSpokeCircle() {
+            const svg = document.getElementById('spokeCircle');
+            svg.innerHTML = '';
             
+            const centerX = 150;
+            const centerY = 150;
+            const radius = 110;
+            
+            // Draw outer circle
+            const outerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            outerCircle.setAttribute('cx', centerX);
+            outerCircle.setAttribute('cy', centerY);
+            outerCircle.setAttribute('r', radius);
+            outerCircle.setAttribute('fill', 'none');
+            outerCircle.setAttribute('stroke', '#3e3e42');
+            outerCircle.setAttribute('stroke-width', '2');
+            svg.appendChild(outerCircle);
+            
+            // Draw 27 pads in a circle
             for (let i = 0; i < 27; i++) {
-                const item = document.createElement('div');
-                item.className = 'scale-pad-item';
+                const angle = (i * 360 / 27) - 90; // Start at top
+                const radian = angle * Math.PI / 180;
+                const x = centerX + radius * Math.cos(radian);
+                const y = centerY + radius * Math.sin(radian);
                 
-                const label = document.createElement('div');
-                label.className = 'scale-pad-label';
-                label.textContent = `Pad ${i + 1}`;
+                // Pad circle
+                const pad = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                pad.setAttribute('cx', x);
+                pad.setAttribute('cy', y);
+                pad.setAttribute('r', '12');
+                pad.setAttribute('fill', '#2d2d30');
+                pad.setAttribute('stroke', '#3e3e42');
+                pad.setAttribute('stroke-width', '2');
+                pad.setAttribute('class', 'spoke-pad');
+                pad.setAttribute('data-pad', i);
+                pad.style.cursor = 'pointer';
                 
-                const select = document.createElement('select');
-                select.className = 'scale-pad-select';
-                select.id = `note-select-${i}`;
+                pad.addEventListener('click', function() {
+                    selectPad(i, x, y);
+                });
                 
-                // Create options for MIDI notes 21 (A0) to 108 (C8)
-                for (let note = 21; note <= 108; note++) {
-                    const option = document.createElement('option');
-                    const octave = Math.floor(note / 12) - 1;
-                    const noteName = noteNames[note % 12];
-                    option.value = note;
-                    option.textContent = `${noteName}${octave} (${note})`;
-                    if (note === customNotes[i]) {
-                        option.selected = true;
+                pad.addEventListener('mouseenter', function() {
+                    pad.setAttribute('fill', '#ff7a45');
+                });
+                
+                pad.addEventListener('mouseleave', function() {
+                    if (selectedPad !== i) {
+                        pad.setAttribute('fill', '#2d2d30');
                     }
-                    select.appendChild(option);
-                }
+                });
                 
-                select.onchange = function() {
-                    customNotes[i] = parseInt(this.value);
-                };
+                svg.appendChild(pad);
                 
-                item.appendChild(label);
-                item.appendChild(select);
-                grid.appendChild(item);
+                // Pad number
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x);
+                text.setAttribute('y', y + 4);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', '#cccccc');
+                text.setAttribute('font-size', '10');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('pointer-events', 'none');
+                text.textContent = i + 1;
+                svg.appendChild(text);
             }
+        }
+        
+        function selectPad(padIndex, x, y) {
+            selectedPad = padIndex;
+            
+            // Update visual selection
+            const pads = document.querySelectorAll('.spoke-pad');
+            pads.forEach((pad, idx) => {
+                if (idx === padIndex) {
+                    pad.setAttribute('fill', '#ff7a45');
+                } else {
+                    pad.setAttribute('fill', '#2d2d30');
+                }
+            });
+            
+            // Show note selector
+            const selector = document.getElementById('noteSelector');
+            const noteSelect = document.getElementById('noteSelect');
+            
+            selector.style.display = 'block';
+            selector.style.left = (x + 170) + 'px'; // Offset for SVG position
+            selector.style.top = (y + 60) + 'px';
+            
+            document.getElementById('noteSelectorTitle').textContent = `Pad ${padIndex + 1}`;
+            noteSelect.value = customNotes[padIndex];
+            
+            document.getElementById('selectedPadInfo').textContent = `Pad ${padIndex + 1}`;
+        }
+        
+        function populateNoteSelector() {
+            const select = document.getElementById('noteSelect');
+            select.innerHTML = '';
+            
+            // Create options for MIDI notes 21 (A0) to 108 (C8)
+            for (let note = 21; note <= 108; note++) {
+                const option = document.createElement('option');
+                const octave = Math.floor(note / 12) - 1;
+                const noteName = noteNames[note % 12];
+                option.value = note;
+                option.textContent = `${noteName}${octave} (${note})`;
+                select.appendChild(option);
+            }
+        }
+        
+        function updatePadNote() {
+            if (selectedPad === null) return;
+            
+            const noteSelect = document.getElementById('noteSelect');
+            customNotes[selectedPad] = parseInt(noteSelect.value);
+            
+            logConsole(`Pad ${selectedPad + 1} set to MIDI note ${customNotes[selectedPad]}`, 'info');
         }
         
         function applyPreset(preset) {
@@ -894,7 +1002,12 @@
             
             if (presets[preset]) {
                 customNotes = [...presets[preset]];
-                buildScaleGrid();
+                logConsole(`Applied ${preset} scale preset`, 'success');
+                
+                // Update note selector if a pad is selected
+                if (selectedPad !== null) {
+                    document.getElementById('noteSelect').value = customNotes[selectedPad];
+                }
             }
         }
         
@@ -985,7 +1098,6 @@ while True:
             document.getElementById('codeEditor').value = code;
             document.getElementById('welcomeScreen').style.display = 'none';
             document.getElementById('codeEditor').style.display = 'block';
-            closeScaleBuilder();
             
             logConsole('Custom scale code generated!', 'success');
             logConsole('Click "Save to Board" to write to SPOKE.', 'warning');
