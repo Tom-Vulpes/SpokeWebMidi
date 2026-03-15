@@ -415,6 +415,10 @@
                         <div class="template-name">Basic SPOKE</div>
                         <div class="template-desc">Default 27-pad MIDI</div>
                     </div>
+                    <div class="template-item" onclick="loadTemplate('sensitivity')">
+                        <div class="template-name">Sensitivity Controls</div>
+                        <div class="template-desc">Adjustable pad sensitivity</div>
+                    </div>
                     <div class="template-item" onclick="loadTemplate('drums')">
                         <div class="template-name">Drum Pads</div>
                         <div class="template-desc">9 drum sounds</div>
@@ -741,12 +745,177 @@ while True:
             if not note_played[i]:
                 midi.send(NoteOn(midi_notes[i], 120))
                 note_played[i] = True
-                pixels[i] = (255, 0, 255)  # Magenta when touched
+                pixels[i] = (255, 0, 255)
         else:
             if note_played[i]:
                 midi.send(NoteOff(midi_notes[i], 120))
                 note_played[i] = False
-                pixels[i] = (0, 0, 255)  # Blue when idle
+                pixels[i] = (0, 0, 255)
+`,
+                
+                'sensitivity': `# ============================================================================
+# SPOKE BOARD - WITH SENSITIVITY CONTROLS
+# ============================================================================
+# This code sets up 27 touch pads as MIDI controllers with NeoPixel feedback
+# Edit the settings below to customize sensitivity and behavior
+# ============================================================================
+
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+import neopixel
+from rainbowio import colorwheel
+
+
+# ============================================================================
+# SENSITIVITY SETTINGS - ADJUST THESE TO FIX TRIGGERING ISSUES
+# ============================================================================
+
+# GLOBAL SENSITIVITY
+# Higher number = less sensitive (harder to trigger)
+# Lower number = more sensitive (easier to trigger)
+# Recommended range: 1.0 (very sensitive) to 3.0 (hard to trigger)
+SENSITIVITY_MULTIPLIER = 1.5
+
+# PER-PAD SENSITIVITY (fine-tune individual pads)
+# Each number adjusts that specific pad ON TOP of the global setting
+# 1.0 = normal | 2.0 = twice as hard to trigger | 0.5 = twice as easy
+# Raise values for pads that false-trigger too easily
+
+pin_sensitivity = [
+    # Pads 1-9
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    
+    # Pads 10-18
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    
+    # Pads 19-27
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+]
+
+# DEBOUNCE TIME (prevents rapid re-triggering)
+# How long a pad must stay touched/released before sending MIDI
+# Higher = more stable but less responsive
+# Recommended range: 0.02 to 0.1 seconds
+DEBOUNCE_TIME = 0.05
+
+
+# ============================================================================
+# MIDI NOTE MAPPING
+# ============================================================================
+# These are the MIDI notes sent when each pad is touched
+# Change these to customize your note layout
+
+midi_notes = [
+    98, 96, 93, 91, 88, 86, 84, 81, 79,  # Pads 1-9
+    76, 74, 72, 69, 67, 64, 62, 60,      # Pads 10-17
+    57, 55, 52, 50, 48, 45, 43, 40,      # Pads 18-25
+    38, 36                                # Pads 26-27
+]
+
+
+# ============================================================================
+# NEOPIXEL COLORS
+# ============================================================================
+# Change these RGB values to customize your colors
+# Format: (Red, Green, Blue) - each value 0-255
+
+COLOR_IDLE = (0, 0, 255)      # Blue when not touched
+COLOR_TOUCHED = (255, 0, 255)  # Magenta when touched
+
+
+# ============================================================================
+# HARDWARE SETUP - DON'T EDIT BELOW HERE UNLESS YOU KNOW WHAT YOU'RE DOING
+# ============================================================================
+
+# Touch pin definitions
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,
+    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,
+    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
+    board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+# Initialize touch sensors with sensitivity settings
+touch_sensors = []
+for idx, pin in enumerate(touch_pins):
+    try:
+        sensor = touchio.TouchIn(pin)
+        combined = SENSITIVITY_MULTIPLIER * pin_sensitivity[idx]
+        sensor.threshold = int(sensor.threshold * combined)
+        print(f"Pad {idx+1} threshold: {sensor.threshold} (x{combined:.2f})")
+        touch_sensors.append(sensor)
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# State tracking for debouncing
+note_played = [False] * len(touch_sensors)
+last_change_time = [0.0] * len(touch_sensors)
+pending_state = [False] * len(touch_sensors)
+
+# NeoPixel setup
+num_pixels = len(touch_sensors)
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# Rainbow startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Show startup animation and set idle color
+rainbow(0.01, 2, step_size=10)
+pixels.fill(COLOR_IDLE)
+pixels.show()
+
+print("SPOKE board ready!")
+print(f"Sensitivity: {SENSITIVITY_MULTIPLIER}x | Debounce: {DEBOUNCE_TIME}s")
+
+
+# ============================================================================
+# MAIN LOOP
+# ============================================================================
+
+while True:
+    now = time.monotonic()
+    
+    for i, touch_sensor in enumerate(touch_sensors):
+        raw = touch_sensor.value
+        
+        # Detect state changes
+        if raw != pending_state[i]:
+            pending_state[i] = raw
+            last_change_time[i] = now
+        
+        # Only trigger after state has been stable for debounce time
+        stable = (now - last_change_time[i]) >= DEBOUNCE_TIME
+        
+        # Pad touched
+        if stable and raw and not note_played[i]:
+            midi.send(NoteOn(midi_notes[i], 120))
+            note_played[i] = True
+            pixels[i] = COLOR_TOUCHED
+        
+        # Pad released
+        elif stable and not raw and note_played[i]:
+            midi.send(NoteOff(midi_notes[i], 120))
+            note_played[i] = False
+            pixels[i] = COLOR_IDLE
 `,
                 
                 'drums': `import board
