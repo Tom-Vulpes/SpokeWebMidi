@@ -762,109 +762,168 @@
                     content: `
                         <div class="lesson-header">
                             <div class="curriculum-badge">UK National Curriculum KS3 - First Programs</div>
-                            <h1>Light Up a Pad</h1>
-                            <p>Your first program with immediate visual feedback</p>
+                            <h1>Lesson 1: Your First Program</h1>
+                            <p>Make a light turn on when you touch SPOKE</p>
                         </div>
                         
                         <div class="step-section">
-                            <h2>What You'll Learn</h2>
+                            <h2>📋 What We'll Do</h2>
+                            <p>In this lesson, you'll:</p>
+                            <ol>
+                                <li>Copy some ready-made code</li>
+                                <li>Put it on your SPOKE board</li>
+                                <li>Touch Pad 1 and watch it light up GREEN!</li>
+                            </ol>
+                            <p><strong>Don't worry about understanding everything yet - we'll explain it step by step!</strong></p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>🎯 Your Goal</h3>
+                            <p>When you <strong>touch Pad 1</strong>, a green light appears.</p>
+                            <p>When you <strong>let go</strong>, the light turns off.</p>
+                            <p>That's it! Simple.</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>🚀 Step-by-Step Instructions</h2>
+                            
+                            <h3>Step 1: Get the Code</h3>
+                            <p>Click the big orange <strong>"Load Code"</strong> button below. The code will appear in the editor on the right.</p>
+                            
+                            <h3>Step 2: Connect Your SPOKE</h3>
+                            <ol>
+                                <li>Plug your SPOKE into your computer with a USB cable</li>
+                                <li>A drive called <strong>CIRCUITPY</strong> should appear (like a USB stick)</li>
+                                <li>Click the <strong>"Setup SPOKE"</strong> button at the top of this page</li>
+                                <li>Find the CIRCUITPY drive and open the file called <strong>code.py</strong></li>
+                            </ol>
+                            
+                            <h3>Step 3: Save and Test!</h3>
+                            <ol>
+                                <li>Click <strong>"Save & Run"</strong> at the top</li>
+                                <li>Your SPOKE will restart (the lights might flash)</li>
+                                <li>Now <strong>touch Pad 1</strong> with your finger</li>
+                                <li>Watch it light up GREEN! ✨</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="success-box">
+                            <h3>✅ Did it work?</h3>
+                            <p>If you see a <strong>green light</strong> when you touch Pad 1, congratulations! You just ran your first program!</p>
+                            <p>If nothing happened, check:</p>
                             <ul>
-                                <li>Write your first CircuitPython program</li>
-                                <li>Control a NeoPixel LED with touch</li>
-                                <li>Understand input (touch) and output (light)</li>
-                                <li>See your code work instantly</li>
+                                <li>Is SPOKE plugged in?</li>
+                                <li>Did you click "Save & Run"?</li>
+                                <li>Are you touching Pad 1 (the first circular pad)?</li>
                             </ul>
                         </div>
                         
                         <div class="step-section">
-                            <h2>The Goal</h2>
-                            <p>When you touch Pad 1, it lights up GREEN. When you release it, it turns OFF.</p>
+                            <h2>📖 Understanding the Code (Don't Worry, It's Simple!)</h2>
                             
-                            <div class="info-box">
-                                <h3>Physical Computing</h3>
-                                <p>This is <strong>physical computing</strong> - your code controls real hardware! You'll touch a pad and immediately see a light respond.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>Understanding the Code</h2>
+                            <p>Let's look at what the code does, line by line. You don't need to memorize this - just read through it.</p>
                             
-                            <h3>1. Import Libraries</h3>
-                            <p>We need three libraries to make this work:</p>
+                            <h3>Lines 1-3: Getting Ready</h3>
+                            <div class="code-block">import board
+import touchio
+import neopixel</div>
+                            <p>These lines load some tools we need. Think of it like getting ingredients before cooking:</p>
                             <ul>
-                                <li><code>board</code> - Access SPOKE's pins</li>
-                                <li><code>touchio</code> - Detect touch</li>
-                                <li><code>neopixel</code> - Control LEDs</li>
+                                <li><code>board</code> = Access to SPOKE's pads</li>
+                                <li><code>touchio</code> = Ability to detect touch</li>
+                                <li><code>neopixel</code> = Control the lights</li>
                             </ul>
                             
-                            <h3>2. Set Up the Touch Sensor</h3>
-                            <p><code>touch1 = touchio.TouchIn(board.GP1)</code></p>
-                            <p>This creates a touch sensor on pin GP1 (Pad 1).</p>
+                            <h3>Line 6: Setting Up Pad 1</h3>
+                            <div class="code-block">touch1 = touchio.TouchIn(board.GP1)</div>
+                            <p>This tells the computer: "Pay attention to Pad 1, I want to know when someone touches it."</p>
                             
-                            <h3>3. Set Up the NeoPixels</h3>
-                            <p><code>pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1)</code></p>
-                            <p>This controls all 27 LEDs. Brightness is 10% so they're not too bright.</p>
+                            <h3>Line 9: Setting Up the Lights</h3>
+                            <div class="code-block">pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1)</div>
+                            <p>This says: "There are 27 lights on SPOKE. Make them not too bright (10%)."</p>
                             
-                            <h3>4. The Main Loop</h3>
-                            <p>The <code>while True:</code> loop runs forever, constantly checking if the pad is touched.</p>
+                            <h3>Lines 14-22: The Main Loop (The Important Bit!)</h3>
+                            <div class="code-block">while True:
+    if touch1.value:
+        pixels[0] = (0, 255, 0)
+    else:
+        pixels[0] = (0, 0, 0)
+    pixels.show()</div>
+                            
+                            <p>Let's break this down in plain English:</p>
+                            <ul>
+                                <li><code>while True:</code> = "Keep doing this forever"</li>
+                                <li><code>if touch1.value:</code> = "If someone is touching Pad 1..."</li>
+                                <li><code>pixels[0] = (0, 255, 0)</code> = "...turn the first light GREEN"</li>
+                                <li><code>else:</code> = "Otherwise (if they're not touching)..."</li>
+                                <li><code>pixels[0] = (0, 0, 0)</code> = "...turn the light OFF"</li>
+                                <li><code>pixels.show()</code> = "Update the lights!"</li>
+                            </ul>
                         </div>
                         
-                        <div class="step-section">
-                            <h2>RGB Colors</h2>
-                            <p>Colors use RGB values (Red, Green, Blue). Each is 0-255:</p>
+                        <div class="info-box">
+                            <h3>🎨 What Does (0, 255, 0) Mean?</h3>
+                            <p>Colors on computers use three numbers: <strong>(Red, Green, Blue)</strong></p>
+                            <p>Each number goes from 0 (none) to 255 (maximum).</p>
                             <ul>
-                                <li><code>(255, 0, 0)</code> = Red</li>
-                                <li><code>(0, 255, 0)</code> = Green</li>
-                                <li><code>(0, 0, 255)</code> = Blue</li>
-                                <li><code>(0, 0, 0)</code> = Off</li>
+                                <li><code>(0, 255, 0)</code> = No red, lots of green, no blue = <span style="color: #00ff00;">GREEN</span></li>
+                                <li><code>(255, 0, 0)</code> = Lots of red, no green, no blue = <span style="color: #ff0000;">RED</span></li>
+                                <li><code>(0, 0, 255)</code> = No red, no green, lots of blue = <span style="color: #0066ff;">BLUE</span></li>
+                                <li><code>(0, 0, 0)</code> = No colors = OFF (black)</li>
                             </ul>
                         </div>
                         
                         <div class="challenge-box">
-                            <h3>Try This!</h3>
-                            <p><strong>Challenge 1:</strong> Change the color from green to red</p>
-                            <p><strong>Challenge 2:</strong> Make it blue instead</p>
-                            <p><strong>Challenge 3:</strong> Make it yellow (hint: mix red and green!)</p>
+                            <h3>🎯 Try These Easy Changes!</h3>
+                            <p>Now that the code is working, let's make some changes. Don't worry - you can always click "Load Code" again to get the original back!</p>
+                            
+                            <p><strong>Challenge 1: Change the Color to Red</strong></p>
+                            <p>Find this line in your code:</p>
+                            <div class="code-block">pixels[0] = (0, 255, 0)  # GREEN</div>
+                            <p>Change it to:</p>
+                            <div class="code-block">pixels[0] = (255, 0, 0)  # RED</div>
+                            <p>Click "Save & Run" and touch Pad 1. Is it red now?</p>
+                            
+                            <p><strong>Challenge 2: Make it Blue</strong></p>
+                            <p>Can you make it blue? Hint: <code>(0, 0, 255)</code></p>
+                            
+                            <p><strong>Challenge 3: Make it Purple</strong></p>
+                            <p>Purple is made by mixing red and blue. Try: <code>(255, 0, 255)</code></p>
                         </div>
                         
-                        <div class="success-box">
-                            <h3>How to Test</h3>
-                            <ol>
-                                <li>Click "Setup SPOKE" and select your code.py file</li>
-                                <li>Click "Load Code" below to get the lesson code</li>
-                                <li>Click "Save & Run" to test it on your board</li>
-                                <li>Touch Pad 1 and watch it light up GREEN!</li>
-                            </ol>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0;">Load Code</button>
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">📥 Load Code</button>
                         
                         <div class="nav-buttons">
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Complete & Next →</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">I Did It! Next Lesson →</button>
                         </div>
                     `,
-                    code: `import board
+                    code: `# Lesson 1: Your First Program
+# This code makes Pad 1 light up green when you touch it!
+
+import board
 import touchio
 import neopixel
 
-# Set up pad 1 as a touch sensor
+# Set up Pad 1 to detect touch
 touch1 = touchio.TouchIn(board.GP1)
 
-# Set up the NeoPixels (27 LEDs)
+# Set up the lights (27 LEDs, not too bright)
 pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
 
-print("Touch pad 1 to light it up!")
+print("Touch Pad 1 to see the green light!")
 
-# Main loop - runs forever
+# Keep doing this forever:
 while True:
+    # Check if Pad 1 is being touched
     if touch1.value:
-        # Pad is touched - turn LED GREEN
+        # YES! Turn the light GREEN
         pixels[0] = (0, 255, 0)
         print("Pad 1 touched!")
     else:
-        # Pad not touched - turn LED OFF
+        # NO! Turn the light OFF
         pixels[0] = (0, 0, 0)
     
+    # Update the lights
     pixels.show()`
                 },
                 
@@ -872,87 +931,142 @@ while True:
                     content: `
                         <div class="lesson-header">
                             <div class="curriculum-badge">UK National Curriculum KS3 - Sequencing</div>
-                            <h1>Multiple Pads</h1>
-                            <p>Control three pads at once - understanding sequencing in code</p>
+                            <h1>Lesson 2: Three Colorful Pads</h1>
+                            <p>Make three pads work with different colors</p>
                         </div>
                         
                         <div class="step-section">
-                            <h2>What You'll Learn</h2>
+                            <h2>📋 What We'll Do</h2>
+                            <p>In Lesson 1, you made one pad light up. Now let's make THREE pads work!</p>
                             <ul>
-                                <li>Control multiple inputs and outputs</li>
-                                <li>Understand how code executes in sequence</li>
-                                <li>Use different colors for different pads</li>
-                                <li>See pattern in your code structure</li>
+                                <li>Pad 1 = RED light</li>
+                                <li>Pad 2 = GREEN light</li>
+                                <li>Pad 3 = BLUE light</li>
                             </ul>
                         </div>
                         
-                        <div class="step-section">
-                            <h2>The Goal</h2>
-                            <p>Make three pads work, each with a different color:</p>
-                            <ul>
-                                <li>Pad 1 = RED</li>
-                                <li>Pad 2 = GREEN</li>
-                                <li>Pad 3 = BLUE</li>
-                            </ul>
+                        <div class="info-box">
+                            <h3>🎯 Your Goal</h3>
+                            <p>Touch <strong>Pad 1</strong> → RED light appears</p>
+                            <p>Touch <strong>Pad 2</strong> → GREEN light appears</p>
+                            <p>Touch <strong>Pad 3</strong> → BLUE light appears</p>
+                            <p>Try touching two pads at once - what happens? 😊</p>
                         </div>
                         
                         <div class="step-section">
-                            <h2>Sequencing Matters</h2>
-                            <p>The code checks pad 1, then pad 2, then pad 3, in order. This happens so fast it seems instant!</p>
-                            
-                            <div class="info-box">
-                                <h3>Key Concept: Sequential Execution</h3>
-                                <p>Computers execute code <strong>line by line</strong>, from top to bottom. The order matters!</p>
-                            </div>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>Pattern Recognition</h2>
-                            <p>Notice the pattern in the code:</p>
+                            <h2>🚀 Quick Start</h2>
                             <ol>
-                                <li>Create touch sensor</li>
-                                <li>Check if touched</li>
-                                <li>Set LED color</li>
-                                <li>Repeat for next pad</li>
+                                <li>Click the <strong>"Load Code"</strong> button below</li>
+                                <li>Click <strong>"Save & Run"</strong> at the top</li>
+                                <li>Touch Pads 1, 2, and 3 to see different colors!</li>
                             </ol>
-                            <p>This is how programmers work - find patterns and reuse them!</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>📖 What's Different From Lesson 1?</h2>
+                            
+                            <p>In Lesson 1, we had this for ONE pad:</p>
+                            <div class="code-block">touch1 = touchio.TouchIn(board.GP1)</div>
+                            
+                            <p>Now we have THREE pads:</p>
+                            <div class="code-block">touch1 = touchio.TouchIn(board.GP1)
+touch2 = touchio.TouchIn(board.GP2)
+touch3 = touchio.TouchIn(board.GP3)</div>
+                            
+                            <p>We just added two more lines! <code>touch2</code> and <code>touch3</code>.</p>
+                            
+                            <h3>The Pattern</h3>
+                            <p>Look at the main loop. See the pattern? It repeats three times:</p>
+                            <div class="code-block"># Check Pad 1
+if touch1.value:
+    pixels[0] = (255, 0, 0)  # RED
+else:
+    pixels[0] = (0, 0, 0)    # OFF
+
+# Check Pad 2
+if touch2.value:
+    pixels[1] = (0, 255, 0)  # GREEN
+else:
+    pixels[1] = (0, 0, 0)    # OFF
+
+# Check Pad 3
+if touch3.value:
+    pixels[2] = (0, 0, 255)  # BLUE
+else:
+    pixels[2] = (0, 0, 0)    # OFF</div>
+                            
+                            <p>It's the SAME pattern, just repeated for each pad!</p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>💡 Understanding Sequencing</h3>
+                            <p>The computer checks the pads in order:</p>
+                            <ol>
+                                <li>First, check Pad 1</li>
+                                <li>Then, check Pad 2</li>
+                                <li>Then, check Pad 3</li>
+                                <li>Update the lights</li>
+                                <li>Start again from step 1!</li>
+                            </ol>
+                            <p>This happens <strong>super fast</strong> - hundreds of times per second! So it feels instant.</p>
                         </div>
                         
                         <div class="challenge-box">
-                            <h3>Challenges</h3>
-                            <p><strong>Easy:</strong> Swap the colors - make Pad 1 blue and Pad 3 red</p>
-                            <p><strong>Medium:</strong> Add Pad 4 with yellow color</p>
-                            <p><strong>Hard:</strong> Make the colors change (red when touched, blue when not touched)</p>
+                            <h3>🎯 Easy Edit Challenges</h3>
+                            
+                            <p><strong>Challenge 1: Swap Two Colors</strong></p>
+                            <p>Can you make Pad 1 BLUE and Pad 3 RED?</p>
+                            <p>Hint: Find these lines and change the numbers:</p>
+                            <div class="code-block">pixels[0] = (255, 0, 0)  # Change this to (0, 0, 255)
+pixels[2] = (0, 0, 255)  # Change this to (255, 0, 0)</div>
+                            
+                            <p><strong>Challenge 2: Add Yellow</strong></p>
+                            <p>Make Pad 2 turn YELLOW instead of green.</p>
+                            <p>Hint: Yellow = Red + Green = <code>(255, 255, 0)</code></p>
+                            <div class="code-block">pixels[1] = (255, 255, 0)  # YELLOW!</div>
+                            
+                            <p><strong>Challenge 3: Different "Off" Color</strong></p>
+                            <p>Right now, when you're not touching a pad, it turns OFF <code>(0, 0, 0)</code>.</p>
+                            <p>Can you make it dim blue when not touched? Try <code>(0, 0, 50)</code></p>
                         </div>
                         
                         <div class="success-box">
-                            <h3>Test Your Code</h3>
-                            <p>Touch each pad one at a time. Can you touch two at once? What happens?</p>
+                            <h3>✅ Test Your Understanding</h3>
+                            <p>Try touching different combinations:</p>
+                            <ul>
+                                <li>Touch Pad 1 only - see RED</li>
+                                <li>Touch Pad 1 AND Pad 2 at the same time - see RED and GREEN!</li>
+                                <li>Touch all three - see a rainbow!</li>
+                            </ul>
+                            <p>This shows how the code checks EACH pad independently.</p>
                         </div>
                         
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0;">Load Code</button>
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">📥 Load Code</button>
                         
                         <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">← Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Complete & Next →</button>
+                            <button class="nav-btn" onclick="prevLesson()">← Back to Lesson 1</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Got It! Next Lesson →</button>
                         </div>
                     `,
-                    code: `import board
+                    code: `# Lesson 2: Three Colorful Pads
+# This makes three pads light up with different colors!
+
+import board
 import touchio
 import neopixel
 
-# Set up three touch sensors
+# Set up THREE touch sensors (one for each pad)
 touch1 = touchio.TouchIn(board.GP1)
 touch2 = touchio.TouchIn(board.GP2)
 touch3 = touchio.TouchIn(board.GP3)
 
-# Set up the NeoPixels
+# Set up the lights
 pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
 
-print("Touch pads 1, 2, or 3!")
+print("Touch the pads to see colors!")
 print("Pad 1 = RED | Pad 2 = GREEN | Pad 3 = BLUE")
 
-# Main loop
+# Keep doing this forever:
 while True:
     # Check Pad 1
     if touch1.value:
@@ -972,6 +1086,7 @@ while True:
     else:
         pixels[2] = (0, 0, 0)    # OFF
     
+    # Update all the lights
     pixels.show()`
                 }
             };
