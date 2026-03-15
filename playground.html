@@ -495,12 +495,17 @@
                 <h3>SPOKE Pin Mapping</h3>
                 <div class="info-box">
                     <strong>27 Touch Pads:</strong><br>
-                    GP0, GP1, GP2, GP3, GP4, GP5, GP6, GP7, GP8, GP9, GP10, GP11, GP12, GP13, GP14, GP15, GP16, GP17, GP18, GP19, GP20, GP21, GP22, GP26, GP27, GP28, A0
+                    GP1, GP2, GP3, GP4, GP5, GP6, GP7, GP8, GP9, GP10, GP11, GP12, GP13, GP14, GP15, GP16, GP17, GP18, GP19, GP20, GP21, GP22, GP23, GP24, GP25, GP28, VOLTAGE_MONITOR
                 </div>
                 
                 <div class="info-box">
                     <strong>Default MIDI Notes:</strong><br>
                     [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
+                </div>
+                
+                <div class="info-box">
+                    <strong>NeoPixels:</strong><br>
+                    27 RGB LEDs on GP0. Rainbow animation plays on startup!
                 </div>
             </div>
             
@@ -521,13 +526,14 @@
                     <li><strong>touchio</strong> - Capacitive touch</li>
                     <li><strong>usb_midi</strong> - MIDI over USB</li>
                     <li><strong>adafruit_midi</strong> - MIDI messages</li>
-                    <li><strong>neopixel</strong> - LED control (27 LEDs)</li>
+                    <li><strong>neopixel</strong> - LED control (27 LEDs on GP0)</li>
+                    <li><strong>rainbowio</strong> - colorwheel() for rainbow effects</li>
                     <li><strong>time</strong> - Delays and timing</li>
                 </ul>
                 
                 <div class="info-box">
                     <strong>NeoPixels:</strong><br>
-                    SPOKE has 27 RGB LEDs (one per pad) on board.NEOPIXEL. Use neopixel library for visual feedback!
+                    SPOKE has 27 RGB LEDs (one per pad) on GP0. All templates include rainbow startup animation!
                 </div>
             </div>
             
@@ -663,79 +669,84 @@
         // CircuitPython Templates
         function getTemplates() {
             return {
-                'basic': `import board
+                'basic': `# This is the default code for the main SPOKE board
+# Sets up touch pins as capacitive touch sensors and NeoPixels
+# MIDI-out is polyphonic on/off
+import time
+import board
 import touchio
+import digitalio
 import usb_midi
 import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
 import neopixel
-import time
+from rainbowio import colorwheel
 
-# Initialize MIDI
-midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+# MIDI note numbers corresponding to each touch pin
+midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
 
-# Initialize NeoPixels (27 LEDs)
-pixels = neopixel.NeoPixel(board.NEOPIXEL, 27, brightness=0.3, auto_write=False)
-
-# SPOKE board touch pins (27 pads)
+# Define the touch pins
 touch_pins = [
-    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
-    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
-    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
-    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26,
-    board.GP27, board.GP28, board.A0
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,
+    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,
+    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
+    board.GP25, board.GP28, board.VOLTAGE_MONITOR
 ]
 
-# Default SPOKE MIDI notes (circular arrangement)
-midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72,
-              69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43,
-              40, 38, 36]
-
-# Initialize touch inputs
-touches = []
+# Initialize touch sensors
+touch_sensors = []
 for pin in touch_pins:
     try:
-        touch = touchio.TouchIn(pin)
-        touch.threshold = 2000
-        touches.append(touch)
-    except:
-        touches.append(None)
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
 
-# Track touched state
-touched = [False] * 27
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
 
-# Colors
-COLOR_ON = (0, 255, 0)    # Green when touched
-COLOR_OFF = (0, 0, 0)     # Off when not touched
+# State tracking
+note_played = [False] * len(touch_pins)
 
-# Turn off all pixels initially
-pixels.fill(COLOR_OFF)
-pixels.show()
+# NeoPixel setup
+num_pixels = len(touch_sensors)
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
 
-print("SPOKE board ready with NeoPixels!")
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
 
-while True:
-    for i, touch in enumerate(touches):
-        if touch is None:
-            continue
-        
-        if touch.value and not touched[i]:
-            # Pad touched
-            midi.send(NoteOn(midi_notes[i], 127))
-            pixels[i] = COLOR_ON
-            touched[i] = True
-            print(f"Pad {i+1} ON - Note {midi_notes[i]}")
-        
-        elif not touch.value and touched[i]:
-            # Pad released
-            midi.send(NoteOff(midi_notes[i], 0))
-            pixels[i] = COLOR_OFF
-            touched[i] = False
-            print(f"Pad {i+1} OFF")
-    
+# Fill all pixels blue
+def all_blue():
+    pixels.fill((0, 0, 255))
     pixels.show()
-    time.sleep(0.01)
+
+# Start
+rainbow(0.01, 2, step_size=10)
+all_blue()
+
+# Main loop
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(midi_notes[i], 120))
+                note_played[i] = True
+                pixels[i] = (255, 0, 255)  # Magenta when touched
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(midi_notes[i], 120))
+                note_played[i] = False
+                pixels[i] = (0, 0, 255)  # Blue when idle
 `,
                 
                 'drums': `import board
@@ -745,18 +756,20 @@ import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
 import neopixel
+from rainbowio import colorwheel
 import time
 
 # Initialize MIDI on channel 10 (drums)
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=9)
 
 # Initialize NeoPixels
-pixels = neopixel.NeoPixel(board.NEOPIXEL, 27, brightness=0.3, auto_write=False)
+num_pixels = 27
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
 
 # First 9 pads for drums
 touch_pins = [
-    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4,
-    board.GP5, board.GP6, board.GP7, board.GP8
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9
 ]
 
 # General MIDI drum notes
@@ -785,41 +798,48 @@ drum_colors = [
     (255, 255, 255) # Rimshot - White
 ]
 
-touches = []
+touch_sensors = []
 for pin in touch_pins:
     try:
-        touch = touchio.TouchIn(pin)
-        touch.threshold = 2000
-        touches.append(touch)
-    except:
-        touches.append(None)
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
 
-touched = [False] * 9
+note_played = [False] * 9
 
-# Turn off all pixels
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Start
+rainbow(0.01, 2, step_size=10)
 pixels.fill((0, 0, 0))
 pixels.show()
 
 print("Drum pads ready with color feedback!")
 
 while True:
-    for i, touch in enumerate(touches):
-        if touch is None:
-            continue
-        
-        if touch.value and not touched[i]:
-            midi.send(NoteOn(drum_notes[i], 127))
-            pixels[i] = drum_colors[i]
-            touched[i] = True
-            print(f"Drum {i+1}")
-        
-        elif not touch.value and touched[i]:
-            midi.send(NoteOff(drum_notes[i], 0))
-            pixels[i] = (0, 0, 0)
-            touched[i] = False
-    
-    pixels.show()
-    time.sleep(0.01)
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(drum_notes[i], 127))
+                pixels[i] = drum_colors[i]
+                note_played[i] = True
+                print(f"Drum {i+1}")
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(drum_notes[i], 0))
+                pixels[i] = (0, 0, 0)
+                note_played[i] = False
 `,
                 
                 'piano': `import board
@@ -829,21 +849,23 @@ import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
 import neopixel
+from rainbowio import colorwheel
 import time
 
 # Initialize MIDI
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
 
 # Initialize NeoPixels
-pixels = neopixel.NeoPixel(board.NEOPIXEL, 27, brightness=0.3, auto_write=False)
+num_pixels = 27
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
 
 # All 27 pads
 touch_pins = [
-    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
-    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
-    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
-    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26,
-    board.GP27, board.GP28, board.A0
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6,
+    board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, board.GP12,
+    board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18,
+    board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
+    board.GP25, board.GP28, board.VOLTAGE_MONITOR
 ]
 
 # Piano notes - chromatic scale from C4 to D6
@@ -865,41 +887,48 @@ def wheel(pos):
 # Assign rainbow colors to all pads
 note_colors = [wheel(int(i * 256 / 27)) for i in range(27)]
 
-touches = []
+touch_sensors = []
 for pin in touch_pins:
     try:
-        touch = touchio.TouchIn(pin)
-        touch.threshold = 2000
-        touches.append(touch)
-    except:
-        touches.append(None)
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
 
-touched = [False] * 27
+note_played = [False] * 27
 
-# Turn off all pixels
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Start
+rainbow(0.01, 2, step_size=10)
 pixels.fill((0, 0, 0))
 pixels.show()
 
 print("Piano ready! 27 chromatic notes with rainbow colors")
 
 while True:
-    for i, touch in enumerate(touches):
-        if touch is None:
-            continue
-        
-        if touch.value and not touched[i]:
-            midi.send(NoteOn(piano_notes[i], 100))
-            pixels[i] = note_colors[i]
-            touched[i] = True
-            print(f"Note {piano_notes[i]}")
-        
-        elif not touch.value and touched[i]:
-            midi.send(NoteOff(piano_notes[i], 0))
-            pixels[i] = (0, 0, 0)
-            touched[i] = False
-    
-    pixels.show()
-    time.sleep(0.01)
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(piano_notes[i], 100))
+                pixels[i] = note_colors[i]
+                note_played[i] = True
+                print(f"Note {piano_notes[i]}")
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(piano_notes[i], 0))
+                pixels[i] = (0, 0, 0)
+                note_played[i] = False
 `,
                 
                 'sequencer': `import board
@@ -909,29 +938,29 @@ import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
 import neopixel
+from rainbowio import colorwheel
 import time
 
 # Initialize MIDI
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
 
 # Initialize NeoPixels
-pixels = neopixel.NeoPixel(board.NEOPIXEL, 27, brightness=0.3, auto_write=False)
+num_pixels = 27
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
 
 # First 16 pads for 16-step sequencer
 touch_pins = [
-    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
-    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
-    board.GP12, board.GP13, board.GP14, board.GP15
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6,
+    board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, board.GP12,
+    board.GP13, board.GP14, board.GP15, board.GP16
 ]
 
-touches = []
+touch_sensors = []
 for pin in touch_pins:
     try:
-        touch = touchio.TouchIn(pin)
-        touch.threshold = 2000
-        touches.append(touch)
-    except:
-        touches.append(None)
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
 
 # Sequencer state
 sequence = [False] * 16  # Which steps are active
@@ -944,7 +973,21 @@ COLOR_ACTIVE_STEP = (0, 100, 255)    # Blue - step is programmed
 COLOR_PLAYING = (0, 255, 0)          # Green - currently playing
 COLOR_OFF = (0, 0, 0)                # Off
 
-# Initialize display
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Start
+rainbow(0.01, 2, step_size=10)
 pixels.fill(COLOR_OFF)
 pixels.show()
 
@@ -957,16 +1000,13 @@ step_interval = 0.25  # 240 BPM
 
 while True:
     # Check for pad touches to toggle steps
-    for i, touch in enumerate(touches):
-        if touch is None:
-            continue
-        
+    for i, touch_sensor in enumerate(touch_sensors):
         # Detect new touch (rising edge)
-        if touch.value and not last_touched[i]:
+        if touch_sensor.value and not last_touched[i]:
             sequence[i] = not sequence[i]
             print(f"Step {i+1}: {'ON' if sequence[i] else 'OFF'}")
             last_touched[i] = True
-        elif not touch.value:
+        elif not touch_sensor.value:
             last_touched[i] = False
     
     # Update LED display
