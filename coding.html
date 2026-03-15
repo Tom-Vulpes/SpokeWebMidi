@@ -1138,3 +1138,16 @@ while True:
                             <p>Orange is mostly red with some green. Try <code>(255, 100, 0)</code></p>
                             
                             <p><strong>Challenge 2: Make Pink</strong></p>
+            };
+            
+            return lessons[lessonNum] || {
+                content: '<p>Lesson coming soon!</p>',
+                code: '# Lesson code will appear here'
+            };
+        }
+        
+        // Load first lesson on startup
+        loadLesson(1);
+    </script>
+</body>
+</html>
