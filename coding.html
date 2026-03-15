@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE Learn - Physical Computing Education</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #252526;
+            border-bottom: 1px solid #3e3e42;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            height: 50px;
+        }
+        
+        .logo {
+            font-size: 18px;
+            font-weight: 900;
+            color: #ff7a45;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #cccccc;
+        }
+        
+        .header-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .header-btn {
+            background: #0e639c;
+            border: none;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .header-btn:hover {
+            background: #1177bb;
+        }
+        
+        .header-btn.success {
+            background: #0e8a16;
+        }
+        
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: #252526;
+            border-right: 1px solid #3e3e42;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .sidebar-section {
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        .sidebar-header {
+            padding: 12px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #858585;
+            background: #2d2d30;
+        }
+        
+        .lesson-item {
+            padding: 12px 16px;
+            margin: 6px 8px;
+            background: #2d2d30;
+            border: 2px solid #3e3e42;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .lesson-item:hover {
+            background: #37373d;
+            border-color: #ff7a45;
+        }
+        
+        .lesson-item.active {
+            border-color: #ff7a45;
+            background: rgba(255, 122, 69, 0.1);
+        }
+        
+        .lesson-item.completed {
+            border-color: #0e8a16;
+        }
+        
+        .lesson-number {
+            font-size: 11px;
+            color: #858585;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .lesson-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+        
+        .lesson-desc {
+            font-size: 11px;
+            color: #a0a0a0;
+            line-height: 1.4;
+        }
+        
+        .lesson-badge {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 3px 8px;
+            background: #0e8a16;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            border-radius: 10px;
+        }
+        
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .lesson-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px 40px;
+        }
+        
+        .lesson-header {
+            margin-bottom: 30px;
+        }
+        
+        .curriculum-badge {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .lesson-header h1 {
+            font-size: 32px;
+            font-weight: 900;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+        
+        .lesson-header p {
+            font-size: 16px;
+            color: #a0a0a0;
+            line-height: 1.6;
+        }
+        
+        .step-section {
+            margin-bottom: 40px;
+        }
+        
+        .step-section h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ff7a45;
+            margin-bottom: 16px;
+        }
+        
+        .step-section h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 20px 0 12px 0;
+        }
+        
+        .step-section p {
+            font-size: 14px;
+            color: #d4d4d4;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+        
+        .step-section ul, .step-section ol {
+            margin-left: 24px;
+            margin-bottom: 12px;
+        }
+        
+        .step-section li {
+            font-size: 14px;
+            color: #d4d4d4;
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+        
+        .code-block {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 16px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        
+        .code-comment {
+            color: #6a9955;
+        }
+        
+        .challenge-box {
+            background: rgba(255, 122, 69, 0.1);
+            border-left: 4px solid #ff7a45;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        
+        .challenge-box h3 {
+            color: #ff7a45;
+            margin-top: 0;
+        }
+        
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        
+        .success-box {
+            background: rgba(14, 138, 22, 0.1);
+            border-left: 4px solid #0e8a16;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        
+        .test-panel {
+            background: #252526;
+            border-top: 1px solid #3e3e42;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .test-btn {
+            background: #ff7a45;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .test-btn:hover {
+            background: #ff8f5f;
+            transform: translateY(-2px);
+        }
+        
+        .test-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .console {
+            height: 200px;
+            background: #1e1e1e;
+            border-top: 1px solid #3e3e42;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .console-header {
+            background: #2d2d30;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #cccccc;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .console-content {
+            flex: 1;
+            padding: 10px 16px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        .console-line {
+            margin-bottom: 4px;
+        }
+        
+        .console-line.error {
+            color: #f48771;
+        }
+        
+        .console-line.success {
+            color: #89d185;
+        }
+        
+        .console-line.info {
+            color: #75beff;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: #3e3e42;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff7a45, #ff9e70);
+            transition: width 0.3s;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #3e3e42;
+        }
+        
+        .nav-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #3e3e42;
+            background: #2d2d30;
+            color: #cccccc;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .nav-btn:hover {
+            border-color: #ff7a45;
+            background: #37373d;
+        }
+        
+        .nav-btn.primary {
+            background: #ff7a45;
+            border-color: #ff7a45;
+            color: white;
+        }
+        
+        .nav-btn.primary:hover {
+            background: #ff8f5f;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">SPOKE</div>
+        <div class="header-title">Learn - Physical Computing Education</div>
+        <div class="progress-bar" style="flex: 1; max-width: 200px; margin-left: 20px;">
+            <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" id="serialBtn" onclick="connectSerial()">Connect Serial</button>
+            <button class="header-btn" id="saveBtn" onclick="downloadCode()" disabled>Download Code</button>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-header">Module 1: Algorithms & Sequencing</div>
+                <div class="lesson-item active" onclick="loadLesson(1)">
+                    <div class="lesson-number">Lesson 1</div>
+                    <div class="lesson-title">What is an Algorithm?</div>
+                    <div class="lesson-desc">Understanding instructions and sequences</div>
+                </div>
+                <div class="lesson-item" onclick="loadLesson(2)">
+                    <div class="lesson-number">Lesson 2</div>
+                    <div class="lesson-title">First Program</div>
+                    <div class="lesson-desc">Make a pad light up when touched</div>
+                </div>
+                <div class="lesson-item" onclick="loadLesson(3)">
+                    <div class="lesson-number">Lesson 3</div>
+                    <div class="lesson-title">Sequencing</div>
+                    <div class="lesson-desc">Order matters - creating patterns</div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-header">Module 2: Selection & Logic</div>
+                <div class="lesson-item" onclick="loadLesson(4)">
+                    <div class="lesson-number">Lesson 4</div>
+                    <div class="lesson-title">IF Statements</div>
+                    <div class="lesson-desc">Making decisions in code</div>
+                </div>
+                <div class="lesson-item" onclick="loadLesson(5)">
+                    <div class="lesson-number">Lesson 5</div>
+                    <div class="lesson-title">Boolean Logic</div>
+                    <div class="lesson-desc">True, False, AND, OR, NOT</div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-header">Module 3: Iteration (Loops)</div>
+                <div class="lesson-item" onclick="loadLesson(6)">
+                    <div class="lesson-number">Lesson 6</div>
+                    <div class="lesson-title">While Loops</div>
+                    <div class="lesson-desc">Repeating actions</div>
+                </div>
+                <div class="lesson-item" onclick="loadLesson(7)">
+                    <div class="lesson-number">Lesson 7</div>
+                    <div class="lesson-title">For Loops</div>
+                    <div class="lesson-desc">Counting and iterating</div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-header">Module 4: Variables & Data</div>
+                <div class="lesson-item" onclick="loadLesson(8)">
+                    <div class="lesson-number">Lesson 8</div>
+                    <div class="lesson-title">Variables</div>
+                    <div class="lesson-desc">Storing and using information</div>
+                </div>
+                <div class="lesson-item" onclick="loadLesson(9)">
+                    <div class="lesson-number">Lesson 9</div>
+                    <div class="lesson-title">Lists & Arrays</div>
+                    <div class="lesson-desc">Storing multiple values</div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-header">Module 5: Debugging</div>
+                <div class="lesson-item" onclick="loadLesson(10)">
+                    <div class="lesson-number">Lesson 10</div>
+                    <div class="lesson-title">Finding Bugs</div>
+                    <div class="lesson-desc">Testing and fixing errors</div>
+                </div>
+                <div class="lesson-item" onclick="loadLesson(11)">
+                    <div class="lesson-number">Lesson 11</div>
+                    <div class="lesson-title">Using Print Statements</div>
+                    <div class="lesson-desc">Debugging with output</div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-header">Module 6: Physical Computing Projects</div>
+                <div class="lesson-item" onclick="loadLesson(12)">
+                    <div class="lesson-number">Project 1</div>
+                    <div class="lesson-title">Musical Instrument</div>
+                    <div class="lesson-desc">Build your own MIDI controller</div>
+                </div>
+                <div class="lesson-item" onclick="loadLesson(13)">
+                    <div class="lesson-number">Project 2</div>
+                    <div class="lesson-title">Light Show</div>
+                    <div class="lesson-desc">Create visual patterns</div>
+                </div>
+                <div class="lesson-item" onclick="loadLesson(14)">
+                    <div class="lesson-number">Project 3</div>
+                    <div class="lesson-title">Interactive Game</div>
+                    <div class="lesson-desc">Build a reaction game</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-area">
+            <div class="lesson-content" id="lessonContent">
+                <!-- Lesson content loaded here -->
+            </div>
+            
+            <div class="console">
+                <div class="console-header">
+                    SPOKE Board Output
+                    <button class="header-btn" style="padding: 4px 10px; font-size: 11px;" onclick="clearConsole()">Clear</button>
+                </div>
+                <div class="console-content" id="consoleContent">
+                    <div class="console-line info">Connect your SPOKE board and click "Connect Serial" to see output</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let serialPort = null;
+        let reader = null;
+        let isReading = false;
+        let currentLesson = 1;
+        let completedLessons = [];
+        
+        // Serial connection
+        async function connectSerial() {
+            try {
+                if (!('serial' in navigator)) {
+                    alert('Web Serial API not supported. Use Chrome, Edge, or Opera.');
+                    return;
+                }
+                
+                serialPort = await navigator.serial.requestPort();
+                await serialPort.open({ baudRate: 115200 });
+                
+                document.getElementById('serialBtn').textContent = 'Serial Connected';
+                document.getElementById('serialBtn').style.background = '#0e8a16';
+                
+                logConsole('Connected to SPOKE board!', 'success');
+                readSerial();
+                
+            } catch (error) {
+                if (error.name !== 'NotFoundError') {
+                    logConsole('Serial Error: ' + error.message, 'error');
+                }
+            }
+        }
+        
+        async function readSerial() {
+            if (!serialPort) return;
+            
+            isReading = true;
+            
+            try {
+                const decoder = new TextDecoderStream();
+                serialPort.readable.pipeTo(decoder.writable);
+                reader = decoder.readable.getReader();
+                
+                while (isReading) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    if (value) {
+                        const isError = value.includes('Traceback') || value.includes('Error:');
+                        const type = isError ? 'error' : 'success';
+                        
+                        const lines = value.split('\n');
+                        lines.forEach(line => {
+                            if (line.trim()) {
+                                logConsole(line.trim(), type);
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                if (isReading) {
+                    logConsole('Serial read error: ' + error.message, 'error');
+                }
+            }
+        }
+        
+        function logConsole(message, type = 'info') {
+            const console = document.getElementById('consoleContent');
+            const line = document.createElement('div');
+            line.className = `console-line ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            line.textContent = `[${timestamp}] ${message}`;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+        
+        function clearConsole() {
+            document.getElementById('consoleContent').innerHTML = '';
+        }
+        
+        function downloadCode() {
+            const code = document.getElementById('currentCode').textContent;
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `spoke-lesson-${currentLesson}.py`;
+            a.click();
+        }
+        
+        function loadLesson(lessonNum) {
+            currentLesson = lessonNum;
+            
+            // Update sidebar
+            document.querySelectorAll('.lesson-item').forEach((item, index) => {
+                item.classList.remove('active');
+                if (index + 1 === lessonNum) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Load lesson content
+            const content = getLessonContent(lessonNum);
+            document.getElementById('lessonContent').innerHTML = content;
+            
+            // Update progress
+            updateProgress();
+            
+            // Enable download if there's code
+            document.getElementById('saveBtn').disabled = !document.getElementById('currentCode');
+        }
+        
+        function markComplete() {
+            if (!completedLessons.includes(currentLesson)) {
+                completedLessons.push(currentLesson);
+                
+                const items = document.querySelectorAll('.lesson-item');
+                if (items[currentLesson - 1]) {
+                    items[currentLesson - 1].classList.add('completed');
+                    items[currentLesson - 1].innerHTML += '<span class="lesson-badge">COMPLETED</span>';
+                }
+                
+                updateProgress();
+                logConsole(`Lesson ${currentLesson} completed!`, 'success');
+            }
+        }
+        
+        function updateProgress() {
+            const totalLessons = 14;
+            const progress = (completedLessons.length / totalLessons) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+        
+        function nextLesson() {
+            if (currentLesson < 14) {
+                loadLesson(currentLesson + 1);
+            }
+        }
+        
+        function prevLesson() {
+            if (currentLesson > 1) {
+                loadLesson(currentLesson - 1);
+            }
+        }
+        
+        function getLessonContent(lessonNum) {
+            const lessons = {
+                1: `
+                    <div class="lesson-header">
+                        <div class="curriculum-badge">UK National Curriculum KS3 - Algorithms</div>
+                        <h1>Lesson 1: What is an Algorithm?</h1>
+                        <p>Understanding instructions, sequences, and how computers follow precise steps</p>
+                    </div>
+                    
+                    <div class="step-section">
+                        <h2>Learning Objectives</h2>
+                        <ul>
+                            <li>Define what an algorithm is</li>
+                            <li>Understand that computers follow precise instructions</li>
+                            <li>Write a simple sequence of steps</li>
+                            <li>See algorithms in action with physical feedback</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="step-section">
+                        <h2>What is an Algorithm?</h2>
+                        <p>An <strong>algorithm</strong> is a set of step-by-step instructions to solve a problem or complete a task. Algorithms are everywhere:</p>
+                        <ul>
+                            <li>A recipe for baking a cake</li>
+                            <li>Directions to get to school</li>
+                            <li>The steps to tie your shoelaces</li>
+                            <li>A computer program</li>
+                        </ul>
+                        
+                        <div class="info-box">
+                            <h3>Key Concept: Precision Matters</h3>
+                            <p>Computers are very literal - they do exactly what you tell them, nothing more, nothing less. If your instructions aren't clear, the computer won't know what to do!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step-section">
+                        <h2>Activity: Human Algorithm</h2>
+                        <p>Before we code, let's think algorithmically:</p>
+                        
+                        <div class="challenge-box">
+                            <h3>Challenge: Write the Algorithm</h3>
+                            <p>Write step-by-step instructions for making a cup of tea. Be as precise as possible!</p>
+                            <p><strong>Think about:</strong></p>
+                            <ul>
+                                <li>What is the first step?</li>
+                                <li>What order do things need to happen in?</li>
+                                <li>What would happen if you swapped step 2 and step 5?</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="step-section">
+                        <h2>Your First SPOKE Algorithm</h2>
+                        <p>Now let's create a simple algorithm for your SPOKE board. This program will print a message when it starts:</p>
+                        
+                        <div class="code-block" id="currentCode">print("Hello from SPOKE!")
+print("Algorithm running...")
+print("Touch a pad to see what happens!")</div>
+                        
+                        <div class="info-box">
+                            <h3>How it Works</h3>
+                            <ol>
+                                <li><strong>Line 1:</strong> Print a greeting message</li>
+                                <li><strong>Line 2:</strong> Print status message</li>
+                                <li><strong>Line 3:</strong> Print instruction</li>
+                            </ol>
+                            <p>The computer executes these instructions in <strong>sequence</strong> - one after another, from top to bottom.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step-section">
+                        <h2>Try It Out!</h2>
+                        <ol>
+                            <li>Connect your SPOKE board</li>
+                            <li>Click "Connect Serial" above</li>
+                            <li>Click "Download Code" to get this program</li>
+                            <li>Save it as <code>code.py</code> on your CIRCUITPY drive</li>
+                            <li>Watch the Serial Output below!</li>
+                        </ol>
+                        
+                        <div class="success-box">
+                            <h3>Success!</h3>
+                            <p>If you see the three messages appear in the output console, congratulations! You've just run your first algorithm on SPOKE.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="challenge-box">
+                        <h3>Extension Challenge</h3>
+                        <p>Can you add more print statements? Try:</p>
+                        <ul>
+                            <li>Add your name to the greeting</li>
+                            <li>Add a countdown: "3... 2... 1... Go!"</li>
+                            <li>Print a fun fact about yourself</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="nav-buttons">
+                        <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Mark Complete & Next Lesson</button>
+                    </div>
+                `,
+                
+                2: `
+                    <div class="lesson-header">
+                        <div class="curriculum-badge">UK National Curriculum KS3 - Programming</div>
+                        <h1>Lesson 2: Your First Interactive Program</h1>
+                        <p>Making a pad light up when touched - your first physical computing program!</p>
+                    </div>
+                    
+                    <div class="step-section">
+                        <h2>Learning Objectives</h2>
+                        <ul>
+                            <li>Understand input and output</li>
+                            <li>Write a program that responds to touch</li>
+                            <li>Control NeoPixel LEDs</li>
+                            <li>See immediate visual feedback from your code</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="step-section">
+                        <h2>Input and Output</h2>
+                        <p>Programs need to interact with the world. They do this through:</p>
+                        <ul>
+                            <li><strong>INPUT:</strong> Information coming IN (like touching a pad)</li>
+                            <li><strong>OUTPUT:</strong> Information going OUT (like lighting up an LED)</li>
+                        </ul>
+                        
+                        <div class="info-box">
+                            <h3>SPOKE's Input & Output</h3>
+                            <p><strong>Inputs:</strong> 27 touch pads you can press</p>
+                            <p><strong>Outputs:</strong> 27 NeoPixel LEDs that can show any color!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step-section">
+                        <h2>The Code</h2>
+                        <p>Here's a complete program that lights up a NeoPixel when you touch pad 1:</p>
+                        
+                        <div class="code-block" id="currentCode">import board
+import touchio
+import neopixel
+
+<span class="code-comment"># Set up pad 1 as a touch sensor</span>
+touch1 = touchio.TouchIn(board.GP1)
+
+<span class="code-comment"># Set up the NeoPixels (27 LEDs)</span>
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1)
+
+print("Touch pad 1 to light it up!")
+
+<span class="code-comment"># Main loop - runs forever</span>
+while True:
+    if touch1.value:
+        <span class="code-comment"># Pad is touched - turn LED GREEN</span>
+        pixels[0] = (0, 255, 0)
+        print("Pad 1 touched!")
+    else:
+        <span class="code-comment"># Pad not touched - turn LED OFF</span>
+        pixels[0] = (0, 0, 0)
+    
+    pixels.show()</div>
+                    </div>
+                    
+                    <div class="step-section">
+                        <h2>Understanding Each Line</h2>
+                        
+                        <h3>1. Import Libraries</h3>
+                        <div class="code-block">import board
+import touchio
+import neopixel</div>
+                        <p>Libraries are collections of pre-written code. We're using:</p>
+                        <ul>
+                            <li><strong>board:</strong> Access to the SPOKE's pins</li>
+                            <li><strong>touchio:</strong> Detect touch on pads</li>
+                            <li><strong>neopixel:</strong> Control the colored LEDs</li>
+                        </ul>
+                        
+                        <h3>2. Set Up Touch Sensor</h3>
+                        <div class="code-block">touch1 = touchio.TouchIn(board.GP1)</div>
+                        <p>This creates a touch sensor on pin GP1 (pad 1). Now we can check if it's being touched!</p>
+                        
+                        <h3>3. Set Up NeoPixels</h3>
+                        <div class="code-block">pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1)</div>
+                        <p>This sets up all 27 LEDs. The brightness is set to 10% so they're not too bright.</p>
+                        
+                        <h3>4. The Main Loop</h3>
+                        <div class="code-block">while True:
+    if touch1.value:
+        pixels[0] = (0, 255, 0)
+    else:
+        pixels[0] = (0, 0, 0)
+    pixels.show()</div>
+                        <p><code>while True:</code> means "keep doing this forever"</p>
+                        <p><code>if touch1.value:</code> checks if the pad is being touched</p>
+                        <p><code>pixels[0]</code> is the first LED (for pad 1)</p>
+                        <p><code>(0, 255, 0)</code> is a color in RGB format: (Red, Green, Blue)</p>
+                    </div>
+                    
+                    <div class="info-box">
+                        <h3>Understanding Colors (RGB)</h3>
+                        <p>Colors are made by mixing Red, Green, and Blue light. Each value is 0-255:</p>
+                        <ul>
+                            <li><code>(255, 0, 0)</code> = Red</li>
+                            <li><code>(0, 255, 0)</code> = Green</li>
+                            <li><code>(0, 0, 255)</code> = Blue</li>
+                            <li><code>(255, 255, 0)</code> = Yellow</li>
+                            <li><code>(255, 0, 255)</code> = Magenta</li>
+                            <li><code>(0, 0, 0)</code> = Off (black)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="challenge-box">
+                        <h3>Challenges</h3>
+                        <p><strong>Easy:</strong> Change the color from green to red</p>
+                        <p><strong>Medium:</strong> Make it turn blue when touched, yellow when not touched</p>
+                        <p><strong>Hard:</strong> Set up pad 2 (GP2) to control the second LED (pixels[1])</p>
+                    </div>
+                    
+                    <div class="success-box">
+                        <h3>What You've Learned</h3>
+                        <ul>
+                            <li>How to detect input (touch)</li>
+                            <li>How to create output (light)</li>
+                            <li>How to use IF statements to make decisions</li>
+                            <li>How RGB colors work</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="nav-buttons">
+                        <button class="nav-btn" onclick="prevLesson()">Previous Lesson</button>
+                        <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Mark Complete & Next</button>
+                    </div>
+                `
+            };
+            
+            return lessons[lessonNum] || '<p>Lesson content coming soon!</p>';
+        }
+        
+        // Load first lesson on startup
+        loadLesson(1);
+    </script>
+</body>
+</html>
