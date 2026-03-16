@@ -304,7 +304,7 @@
                     <div class="instruction-step">
                         <div class="step-number">1</div>
                         <div class="step-text">
-                            <strong>Click "Start Recording"</strong> below
+                            <strong>Click the center "REC" button</strong> to enable recording mode
                         </div>
                     </div>
                     <div class="instruction-step">
@@ -320,16 +320,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Record Control Buttons -->
-            <div class="status-bar" style="margin-bottom: 20px;">
-                <button class="control-btn" id="recordModeBtn" style="font-size: 16px; padding: 15px 40px;">
-                    🔴 Start Recording
-                </button>
-                <button class="control-btn" id="stopRecordingBtn" style="display: none; font-size: 16px; padding: 15px 40px; background: rgba(244, 67, 54, 0.3); border-color: #f44336;">
-                    ⏹ Stop Recording
-                </button>
             </div>
             
             <!-- Board -->
@@ -828,17 +818,61 @@
             ctx.lineWidth = 3;
             ctx.stroke();
             
-            // Center
+            // Center - Interactive Record Button
+            const centerRadius = boardRadius * 0.3;
             ctx.beginPath();
-            ctx.arc(width / 2, height / 2, boardRadius * 0.3, 0, Math.PI * 2);
-            ctx.fillStyle = '#0a0a0f';
+            ctx.arc(width / 2, height / 2, centerRadius, 0, Math.PI * 2);
+            
+            // Different styling based on record mode
+            if (webRecordMode) {
+                // Active recording mode - pulsing red
+                const pulseIntensity = Math.sin(Date.now() / 300) * 0.3 + 0.7;
+                ctx.fillStyle = `rgba(255, 107, 107, ${pulseIntensity})`;
+                
+                // Glow effect
+                const gradient = ctx.createRadialGradient(width / 2, height / 2, centerRadius * 0.3, width / 2, height / 2, centerRadius * 1.5);
+                gradient.addColorStop(0, 'rgba(255, 107, 107, 0.6)');
+                gradient.addColorStop(1, 'rgba(255, 107, 107, 0)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, width, height);
+                
+                ctx.beginPath();
+                ctx.arc(width / 2, height / 2, centerRadius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 107, 107, ${pulseIntensity})`;
+            } else {
+                // Inactive - dark with subtle highlight
+                ctx.fillStyle = '#2a2a2a';
+            }
             ctx.fill();
             
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 32px Arial';
+            // Border
+            if (webRecordMode) {
+                ctx.strokeStyle = '#ff6b6b';
+                ctx.lineWidth = 4;
+            } else {
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 3;
+            }
+            ctx.stroke();
+            
+            // Text
+            ctx.fillStyle = webRecordMode ? '#fff' : '#999';
+            ctx.font = webRecordMode ? 'bold 28px Arial' : 'bold 24px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('SPOKE', width / 2, height / 2);
+            
+            if (webRecordMode) {
+                // Show "REC" and recording icon when active
+                ctx.fillText('⏺ REC', width / 2, height / 2 - 8);
+                ctx.font = '12px Arial';
+                ctx.fillText('ACTIVE', width / 2, height / 2 + 15);
+            } else {
+                // Show "REC" when inactive
+                ctx.fillText('REC', width / 2, height / 2 - 5);
+                ctx.font = '11px Arial';
+                ctx.fillStyle = '#666';
+                ctx.fillText('click to enable', width / 2, height / 2 + 12);
+            }
             
             // Pads
             pads.forEach(pad => {
@@ -857,24 +891,6 @@
         enumerateDevices();
         drawScope(); // Start scope animation
         
-        // Click-to-record mode buttons
-        document.getElementById('recordModeBtn').addEventListener('click', () => {
-            webRecordMode = true;
-            document.getElementById('recordModeBtn').style.display = 'none';
-            document.getElementById('stopRecordingBtn').style.display = 'block';
-            updateStatus('Click and hold a pad to record', 'ready');
-        });
-        
-        document.getElementById('stopRecordingBtn').addEventListener('click', () => {
-            if (isRecording) {
-                stopRecording();
-            }
-            webRecordMode = false;
-            document.getElementById('recordModeBtn').style.display = 'block';
-            document.getElementById('stopRecordingBtn').style.display = 'none';
-            updateStatus('Ready', 'ready');
-        });
-        
         // Canvas mouse handlers for hold-to-record
         canvas.addEventListener('mousedown', (e) => {
             const rect = canvas.getBoundingClientRect();
@@ -886,6 +902,26 @@
             const scaleY = canvas.height / rect.height;
             const clickX = x * scaleX;
             const clickY = y * scaleY;
+            
+            // Check if clicking center REC button
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const centerRadius = Math.min(width, height) * 0.42 * 0.3;
+            const distToCenter = Math.sqrt((clickX - centerX) ** 2 + (clickY - centerY) ** 2);
+            
+            if (distToCenter < centerRadius) {
+                // Toggle record mode
+                webRecordMode = !webRecordMode;
+                if (webRecordMode) {
+                    updateStatus('Recording mode active - hold a pad to record', 'ready');
+                } else {
+                    if (isRecording) {
+                        stopRecording();
+                    }
+                    updateStatus('Ready', 'ready');
+                }
+                return;
+            }
             
             // Find clicked pad
             for (let i = 0; i < pads.length; i++) {
