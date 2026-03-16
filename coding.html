@@ -1191,12 +1191,1134 @@ while True:
     
     # Update all the lights
     pixels.show()`
+                },
+                
+                
+                4: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Selection</div>
+                            <h1>Lesson 4: Making Decisions with IF</h1>
+                            <p>Understanding how your code makes choices</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>What We'll Learn</h2>
+                            <p>You've been using IF statements in every lesson! Now let's understand them properly.</p>
+                            <p>An <strong>IF statement</strong> lets your program make decisions:</p>
+                            <ul>
+                                <li>IF something is true, do this action</li>
+                                <li>IF something else is true, do a different action</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>How IF Works</h3>
+                            <div class="code-block">if touch1.value:
+    # This code ONLY runs if Pad 1 is touched
+    pixels[0] = (255, 0, 0)</div>
+                            <p>The computer asks: "Is touch1.value TRUE?"</p>
+                            <p>If YES: Run the indented code below</p>
+                            <p>If NO: Skip it and move on</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>This Lesson's Code</h2>
+                            <p>Each pad will print a different message and show a different color!</p>
+                            <p>Watch the console to see which IF statements are running.</p>
+                        </div>
+                        
+                        <div class="challenge-box">
+                            <h3>Challenges</h3>
+                            <p><strong>Challenge 1: Add a Fourth Pad</strong></p>
+                            <p>Copy the pattern and make Pad 4 turn purple when touched.</p>
+                            
+                            <p><strong>Challenge 2: Make It Stay On</strong></p>
+                            <p>Remove the <code>else:</code> part from Pad 1. What happens? The light stays on!</p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Lesson 4: Making Decisions with IF
+# Each pad makes a different decision!
+
+import board
+import touchio
+import neopixel
+
+# Set up pads
+touch1 = touchio.TouchIn(board.GP1)
+touch2 = touchio.TouchIn(board.GP2)
+touch3 = touchio.TouchIn(board.GP3)
+
+# Set up lights
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+print("Touch pads to see IF statements in action!")
+
+while True:
+    # IF Pad 1 is touched:
+    if touch1.value:
+        pixels[0] = (255, 0, 0)  # RED
+        print("IF: Pad 1 is touched - turning RED")
+    else:
+        pixels[0] = (0, 0, 0)
+    
+    # IF Pad 2 is touched:
+    if touch2.value:
+        pixels[1] = (0, 255, 0)  # GREEN
+        print("IF: Pad 2 is touched - turning GREEN")
+    else:
+        pixels[1] = (0, 0, 0)
+    
+    # IF Pad 3 is touched:
+    if touch3.value:
+        pixels[2] = (0, 0, 255)  # BLUE
+        print("IF: Pad 3 is touched - turning BLUE")
+    else:
+        pixels[2] = (0, 0, 0)
+    
+    pixels.show()`
+                },
+                5: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Boolean Logic</div>
+                            <h1>Lesson 5: IF-ELSE Choices</h1>
+                            <p>Choose between two options: do this OR do that</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>What We'll Learn</h2>
+                            <p>Sometimes you want the computer to choose between TWO options:</p>
+                            <ul>
+                                <li>IF the pad is touched, do this</li>
+                                <li>ELSE (otherwise), do that</li>
+                            </ul>
+                            <p>This is called an <strong>IF-ELSE</strong> statement.</p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>IF-ELSE in Action</h3>
+                            <div class="code-block">if touch1.value:
+    # Do this when touched
+    pixels[0] = (255, 0, 0)
+else:
+    # Do this when NOT touched
+    pixels[0] = (20, 0, 0)</div>
+                            <p>The computer ALWAYS does one of these two things - never both, never neither!</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>This Lesson's Code</h2>
+                            <p>The pads will ALWAYS glow - but they change brightness when touched:</p>
+                            <ul>
+                                <li>Touched = Bright color</li>
+                                <li>Not touched = Dim color</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="challenge-box">
+                            <h3>Challenge</h3>
+                            <p><strong>Make them change color instead of brightness</strong></p>
+                            <p>Change Pad 1 to be RED when touched, BLUE when not touched.</p>
+                            <p>Hint: Change the else to <code>pixels[0] = (0, 0, 255)</code></p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Lesson 5: IF-ELSE Choices
+# Pads always glow, but change brightness when touched!
+
+import board
+import touchio
+import neopixel
+
+touch1 = touchio.TouchIn(board.GP1)
+touch2 = touchio.TouchIn(board.GP2)
+touch3 = touchio.TouchIn(board.GP3)
+
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+print("Pads glow dim, bright when touched!")
+
+while True:
+    # Pad 1: Bright red OR dim red
+    if touch1.value:
+        pixels[0] = (255, 0, 0)    # Bright RED
+    else:
+        pixels[0] = (30, 0, 0)     # Dim RED
+    
+    # Pad 2: Bright green OR dim green
+    if touch2.value:
+        pixels[1] = (0, 255, 0)    # Bright GREEN
+    else:
+        pixels[1] = (0, 30, 0)     # Dim GREEN
+    
+    # Pad 3: Bright blue OR dim blue
+    if touch3.value:
+        pixels[2] = (0, 0, 255)    # Bright BLUE
+    else:
+        pixels[2] = (0, 0, 30)     # Dim BLUE
+    
+    pixels.show()`
+                },
+                6: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Iteration</div>
+                            <h1>Lesson 6: FOR Loops - Doing Things Multiple Times</h1>
+                            <p>Avoid copying the same code 27 times!</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>The Problem</h2>
+                            <p>SPOKE has 27 pads. Imagine writing code for each one separately:</p>
+                            <div class="code-block">pixels[0] = (255, 0, 0)
+pixels[1] = (255, 0, 0)
+pixels[2] = (255, 0, 0)
+# ... 24 more lines! That's terrible!</div>
+                            <p>There's a better way: <strong>FOR loops</strong></p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>How FOR Loops Work</h3>
+                            <div class="code-block">for i in range(27):
+    pixels[i] = (255, 0, 0)</div>
+                            <p>This means: "For each number from 0 to 26:</p>
+                            <ul>
+                                <li>First time: i = 0, so pixels[0] becomes red</li>
+                                <li>Second time: i = 1, so pixels[1] becomes red</li>
+                                <li>Third time: i = 2, so pixels[2] becomes red</li>
+                                <li>...and so on until i = 26</li>
+                            </ul>
+                            <p>3 lines of code instead of 27!</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>This Lesson's Code</h2>
+                            <p>Touch Pad 1 to light up ALL 27 pads at once with a FOR loop!</p>
+                        </div>
+                        
+                        <div class="challenge-box">
+                            <h3>Challenges</h3>
+                            <p><strong>Challenge 1: Light Only Half</strong></p>
+                            <p>Change <code>range(27)</code> to <code>range(14)</code> - only 14 pads light up!</p>
+                            
+                            <p><strong>Challenge 2: Different Color</strong></p>
+                            <p>Make all the pads turn purple instead of green.</p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Lesson 6: FOR Loops
+# Light up all 27 pads with just a few lines!
+
+import board
+import touchio
+import neopixel
+
+# Just set up Pad 1 for now
+touch1 = touchio.TouchIn(board.GP1)
+
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+print("Touch Pad 1 to light up ALL pads!")
+
+while True:
+    if touch1.value:
+        # FOR loop: Do this for each number from 0 to 26
+        for i in range(27):
+            pixels[i] = (0, 255, 0)  # Set each pixel to GREEN
+        print("All 27 pads are on!")
+    else:
+        # Turn them all off with another FOR loop
+        for i in range(27):
+            pixels[i] = (0, 0, 0)  # Set each pixel to OFF
+    
+    pixels.show()`
+                },
+                7: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Iteration</div>
+                            <h1>Lesson 7: Creating Patterns with Loops</h1>
+                            <p>Use the loop counter to make different colors</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>What We'll Learn</h2>
+                            <p>The variable <code>i</code> in a FOR loop changes each time through:</p>
+                            <div class="code-block">for i in range(27):
+    # First time: i = 0
+    # Second time: i = 1
+    # Third time: i = 2
+    # ... and so on</div>
+                            <p>We can use this changing number to create patterns!</p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>Making a Rainbow</h3>
+                            <div class="code-block">for i in range(27):
+    if i < 9:
+        pixels[i] = (255, 0, 0)  # First 9: RED
+    elif i < 18:
+        pixels[i] = (0, 255, 0)  # Next 9: GREEN
+    else:
+        pixels[i] = (0, 0, 255)  # Last 9: BLUE</div>
+                            <p><code>elif</code> means "else if" - another choice to check!</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>This Lesson's Code</h2>
+                            <p>Touch Pad 1 to see a rainbow pattern across all pads!</p>
+                        </div>
+                        
+                        <div class="challenge-box">
+                            <h3>Challenges</h3>
+                            <p><strong>Challenge 1: Change the Pattern</strong></p>
+                            <p>Make the first 14 pads yellow, last 13 pads cyan.</p>
+                            
+                            <p><strong>Challenge 2: Alternating Colors</strong></p>
+                            <p>Can you make every other pad a different color?</p>
+                            <p>Hint: Use <code>if i % 2 == 0:</code> (% means "remainder")</p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Lesson 7: Creating Patterns
+# Make a rainbow across all pads!
+
+import board
+import touchio
+import neopixel
+
+touch1 = touchio.TouchIn(board.GP1)
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+print("Touch Pad 1 for a rainbow!")
+
+while True:
+    if touch1.value:
+        # Create a rainbow pattern
+        for i in range(27):
+            # Use i to decide which color
+            if i < 9:
+                pixels[i] = (255, 0, 0)    # First 9 pads: RED
+            elif i < 18:
+                pixels[i] = (0, 255, 0)    # Next 9 pads: GREEN
+            else:
+                pixels[i] = (0, 0, 255)    # Last 9 pads: BLUE
+    else:
+        # Turn all off
+        for i in range(27):
+            pixels[i] = (0, 0, 0)
+    
+    pixels.show()`
+                },
+                8: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Variables</div>
+                            <h1>Lesson 8: Variables - Remembering Information</h1>
+                            <p>Count how many times you've touched a pad</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>What Are Variables?</h2>
+                            <p>A <strong>variable</strong> is like a box with a label that stores information.</p>
+                            <p>You can:</p>
+                            <ul>
+                                <li>Put information in the box (create and set)</li>
+                                <li>Look at what's in the box (read)</li>
+                                <li>Change what's in the box (update)</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>Using Variables</h3>
+                            <div class="code-block">count = 0              # Create variable, set to 0
+count = count + 1      # Add 1 to it
+print(count)           # Show what's in it (prints 1)</div>
+                            <p><code>count = count + 1</code> means:</p>
+                            <ul>
+                                <li>Take the current value of count</li>
+                                <li>Add 1 to it</li>
+                                <li>Put the new value back in count</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>This Lesson's Code</h2>
+                            <p>Count how many times you touch Pad 1!</p>
+                            <p>Watch the console to see the count go up.</p>
+                        </div>
+                        
+                        <div class="challenge-box">
+                            <h3>Challenge</h3>
+                            <p><strong>Add a Reset Button</strong></p>
+                            <p>Make Pad 2 reset the count back to 0.</p>
+                            <p>Hint: Add <code>if touch2.value: count = 0</code></p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Lesson 8: Variables - Counting Touches
+# Remember how many times you touched the pad!
+
+import board
+import touchio
+import neopixel
+import time
+
+touch1 = touchio.TouchIn(board.GP1)
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+# Create a variable to store the count
+count = 0
+
+# Track if we already counted this touch
+was_touched = False
+
+print("Touch Pad 1 to count!")
+print("Count:", count)
+
+while True:
+    if touch1.value:
+        # Only count once per touch (not every loop)
+        if not was_touched:
+            count = count + 1  # Add 1 to count
+            print("Count:", count)
+            was_touched = True
+        
+        # Flash the light
+        pixels[0] = (0, 255, 0)
+    else:
+        was_touched = False
+        pixels[0] = (0, 0, 0)
+    
+    pixels.show()`
+                },
+                9: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Data Structures</div>
+                            <h1>Lesson 9: Lists - Multiple Values in One Variable</h1>
+                            <p>Store 27 colors without 27 variables!</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>What Are Lists?</h2>
+                            <p>A <strong>list</strong> is a variable that holds multiple values in order.</p>
+                            <p>Instead of:</p>
+                            <div class="code-block">color1 = (255, 0, 0)
+color2 = (0, 255, 0)
+color3 = (0, 0, 255)
+# ... 24 more!</div>
+                            <p>You can do:</p>
+                            <div class="code-block">colors = [(255,0,0), (0,255,0), (0,0,255)]</div>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>How Lists Work</h3>
+                            <div class="code-block">colors = [(255,0,0), (0,255,0), (0,0,255)]
+# colors[0] is (255,0,0) - RED
+# colors[1] is (0,255,0) - GREEN  
+# colors[2] is (0,0,255) - BLUE</div>
+                            <p>Lists use <strong>square brackets [ ]</strong></p>
+                            <p>Numbers start at 0! (0 is first, 1 is second, etc.)</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>This Lesson's Code</h2>
+                            <p>A list of 27 different colors - one for each pad!</p>
+                            <p>Touch Pad 1 to see a full rainbow.</p>
+                        </div>
+                        
+                        <div class="challenge-box">
+                            <h3>Challenge</h3>
+                            <p><strong>Change the Rainbow</strong></p>
+                            <p>Edit the colors in the list to create your own color scheme!</p>
+                            <p>Maybe all shades of blue? Or alternating red and green?</p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Lesson 9: Lists of Colors
+# Store 27 different colors in one list!
+
+import board
+import touchio
+import neopixel
+
+touch1 = touchio.TouchIn(board.GP1)
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+# A list of 27 different colors - a full rainbow!
+colors = [
+    (255, 0, 0),    (255, 50, 0),   (255, 100, 0),  # Reds/Oranges
+    (255, 150, 0),  (255, 200, 0),  (255, 255, 0),  # Yellows
+    (200, 255, 0),  (150, 255, 0),  (100, 255, 0),  # Yellow-greens
+    (50, 255, 0),   (0, 255, 0),    (0, 255, 50),   # Greens
+    (0, 255, 100),  (0, 255, 150),  (0, 255, 200),  # Cyans
+    (0, 255, 255),  (0, 200, 255),  (0, 150, 255),  # Blues
+    (0, 100, 255),  (0, 50, 255),   (0, 0, 255),    # Deep blues
+    (50, 0, 255),   (100, 0, 255),  (150, 0, 255),  # Purples
+    (200, 0, 255),  (255, 0, 255),  (255, 0, 200)   # Magentas
+]
+
+print("Touch Pad 1 for a full rainbow!")
+
+while True:
+    if touch1.value:
+        # Use the list with a FOR loop
+        for i in range(27):
+            pixels[i] = colors[i]  # Get color from list
+    else:
+        for i in range(27):
+            pixels[i] = (0, 0, 0)
+    
+    pixels.show()`
+                },
+                10: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Debugging</div>
+                            <h1>Lesson 10: Finding and Fixing Bugs</h1>
+                            <p>This code has bugs - can you fix them?</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>What Are Bugs?</h2>
+                            <p>A <strong>bug</strong> is a mistake in code that makes it not work.</p>
+                            <p><strong>Debugging</strong> means finding and fixing these mistakes.</p>
+                            <p>ALL programmers spend lots of time debugging - it's completely normal!</p>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>Common Bugs</h3>
+                            <ul>
+                                <li><strong>Typos:</strong> <code>pixles</code> instead of <code>pixels</code></li>
+                                <li><strong>Wrong numbers:</strong> <code>pixels[27]</code> when there's no pixel 27</li>
+                                <li><strong>Missing brackets:</strong> <code>(255, 0, 0</code> missing the closing )</li>
+                                <li><strong>Wrong indentation:</strong> Code not lined up properly</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>This Code Has THREE Bugs!</h2>
+                            <p>When you load this code, it won't work. Your job:</p>
+                            <ol>
+                                <li>Click "Load Code" and "Save & Run"</li>
+                                <li>Look at the error messages in the console</li>
+                                <li>Find and fix the THREE bugs</li>
+                                <li>When all bugs are fixed, Pad 1 will turn RED!</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="success-box">
+                            <h3>Hints</h3>
+                            <p>Bug 1: Look at line 8 - is "pixles" spelled correctly?</p>
+                            <p>Bug 2: Look at line 14 - count the brackets!</p>
+                            <p>Bug 3: Look at line 19 - what should "shaw" be?</p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Buggy Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Lesson 10: Finding Bugs
+# This code has 3 bugs! Can you find and fix them?
+
+import board
+import touchio
+import neopixel
+
+# BUG 1: "pixles" should be "pixels"
+pixles = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+touch1 = touchio.TouchIn(board.GP1)
+
+print("Touch Pad 1 - if you can fix the bugs!")
+
+while True:
+    if touch1.value:
+        # BUG 2: Missing closing bracket
+        pixels[0] = (255, 0, 0
+    else:
+        pixels[0] = (0, 0, 0)
+    
+    # BUG 3: "shaw" should be "show"
+    pixels.shaw()`
+                },
+                11: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Debugging</div>
+                            <h1>Lesson 11: Debugging with Print</h1>
+                            <p>Use print() to see what your code is doing</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>The Best Debugging Tool</h2>
+                            <p>The <code>print()</code> function is your best friend for debugging!</p>
+                            <p>Use it to see:</p>
+                            <ul>
+                                <li>What values variables have</li>
+                                <li>Which parts of your code are running</li>
+                                <li>How many times a loop repeats</li>
+                                <li>When IF statements are true or false</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>Print Everything!</h3>
+                            <div class="code-block">count = 0
+print("Starting count:", count)
+
+count = count + 1
+print("After adding 1:", count)
+
+if count > 5:
+    print("Count is bigger than 5!")</div>
+                            <p>The console shows you exactly what's happening!</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>This Lesson's Code</h2>
+                            <p>This code has LOTS of print statements.</p>
+                            <p>Watch the console as you touch different pads!</p>
+                        </div>
+                        
+                        <div class="challenge-box">
+                            <h3>Challenge</h3>
+                            <p><strong>Add More Print Statements</strong></p>
+                            <p>Add prints to show:</p>
+                            <ul>
+                                <li>The color value being set</li>
+                                <li>A message every 500 loops</li>
+                                <li>When ALL pads are not touched</li>
+                            </ul>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Lesson 11: Debugging with Print
+# Watch the console to see what's happening!
+
+import board
+import touchio
+import neopixel
+
+touch1 = touchio.TouchIn(board.GP1)
+touch2 = touchio.TouchIn(board.GP2)
+touch3 = touchio.TouchIn(board.GP3)
+
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+print("=== Program Started ===")
+print("Touch pads 1, 2, or 3")
+print("")
+
+loop_count = 0
+
+while True:
+    loop_count = loop_count + 1
+    
+    # Print every 100 loops so console doesn't get too full
+    if loop_count % 100 == 0:
+        print("Main loop count:", loop_count)
+    
+    # Check each pad and print when touched
+    if touch1.value:
+        print("  -> Pad 1 TOUCHED! Setting to RED")
+        pixels[0] = (255, 0, 0)
+    else:
+        pixels[0] = (0, 0, 0)
+    
+    if touch2.value:
+        print("  -> Pad 2 TOUCHED! Setting to GREEN")
+        pixels[1] = (0, 255, 0)
+    else:
+        pixels[1] = (0, 0, 0)
+    
+    if touch3.value:
+        print("  -> Pad 3 TOUCHED! Setting to BLUE")
+        pixels[2] = (0, 0, 255)
+    else:
+        pixels[2] = (0, 0, 0)
+    
+    pixels.show()`
+                },
+                12: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Project</div>
+                            <h1>Project 1: Memory Game</h1>
+                            <p>Build a Simon Says style game!</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>How the Game Works</h2>
+                            <ol>
+                                <li>SPOKE shows you a sequence of lights</li>
+                                <li>Remember the order!</li>
+                                <li>Touch the pads in the same order</li>
+                                <li>Each round adds one more light</li>
+                                <li>Make a mistake and game over!</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>What You'll Use</h3>
+                            <p>This project combines EVERYTHING you've learned:</p>
+                            <ul>
+                                <li>Variables (to store the score)</li>
+                                <li>Lists (to store the sequence)</li>
+                                <li>FOR loops (to show the sequence)</li>
+                                <li>IF statements (to check answers)</li>
+                                <li>The time library (to add delays)</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>How to Play</h2>
+                            <p>Touch Pad 1 to start a new game!</p>
+                            <p>Watch the sequence carefully, then repeat it.</p>
+                            <p>The game uses Pads 1-4.</p>
+                        </div>
+                        
+                        <div class="challenge-box">
+                            <h3>Challenges</h3>
+                            <p><strong>Make it harder:</strong> Speed up the lights</p>
+                            <p><strong>Make it easier:</strong> Use only 3 pads instead of 4</p>
+                            <p><strong>Add features:</strong> Show the current level number</p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Project 1: Memory Game (Simon Says)
+# Watch the pattern, then repeat it!
+
+import board
+import touchio
+import neopixel
+import time
+import random
+
+# Set up 4 pads for the game
+touches = [
+    touchio.TouchIn(board.GP1),
+    touchio.TouchIn(board.GP2),
+    touchio.TouchIn(board.GP3),
+    touchio.TouchIn(board.GP4)
+]
+
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+# Colors for each pad
+colors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0)]
+
+# Game variables
+sequence = []
+level = 0
+
+print("=== MEMORY GAME ===")
+print("Touch Pad 1 to start!")
+
+def flash_pad(pad_num, duration=0.5):
+    """Light up a pad briefly"""
+    pixels[pad_num] = colors[pad_num]
+    pixels.show()
+    time.sleep(duration)
+    pixels[pad_num] = (0,0,0)
+    pixels.show()
+
+def show_sequence():
+    """Show the current sequence"""
+    time.sleep(0.5)
+    for pad_num in sequence:
+        flash_pad(pad_num)
+        time.sleep(0.2)
+
+def wait_for_touch():
+    """Wait for player to touch a pad"""
+    while True:
+        for i in range(4):
+            if touches[i].value:
+                flash_pad(i, 0.3)
+                while touches[i].value:  # Wait for release
+                    time.sleep(0.01)
+                return i
+
+# Main game loop
+while True:
+    # Wait for start
+    if touches[0].value:
+        print("New game starting!")
+        sequence = []
+        level = 0
+        
+        # Play game
+        while True:
+            level += 1
+            print(f"Level {level}")
+            
+            # Add random pad to sequence
+            sequence.append(random.randint(0, 3))
+            
+            # Show sequence
+            show_sequence()
+            
+            # Get player input
+            correct = True
+            for expected in sequence:
+                player_choice = wait_for_touch()
+                if player_choice != expected:
+                    correct = False
+                    break
+            
+            if not correct:
+                print(f"Game Over! Score: {level - 1}")
+                # Flash all red
+                for _ in range(3):
+                    for j in range(4):
+                        pixels[j] = (255,0,0)
+                    pixels.show()
+                    time.sleep(0.2)
+                    for j in range(4):
+                        pixels[j] = (0,0,0)
+                    pixels.show()
+                    time.sleep(0.2)
+                break
+            else:
+                print("Correct!")
+                time.sleep(0.5)
+    
+    time.sleep(0.1)`
+                },
+                13: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Project</div>
+                            <h1>Project 2: Reaction Timer</h1>
+                            <p>How fast are your reflexes?</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>How It Works</h2>
+                            <ol>
+                                <li>Touch Pad 1 to start</li>
+                                <li>Wait for a random pad to light up</li>
+                                <li>Touch it as FAST as you can!</li>
+                                <li>Your reaction time shows in the console</li>
+                                <li>Try to beat your best time!</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>Real-World Application</h3>
+                            <p>This is physical computing in action!</p>
+                            <ul>
+                                <li>Using time to measure speed</li>
+                                <li>Random numbers for unpredictability</li>
+                                <li>Converting digital data (time) to useful information</li>
+                            </ul>
+                            <p>Professional reaction testers work exactly like this!</p>
+                        </div>
+                        
+                        <div class="challenge-box">
+                            <h3>Challenges</h3>
+                            <p><strong>Add difficulty levels:</strong> Make the light dimmer for hard mode</p>
+                            <p><strong>Track best score:</strong> Remember and show the fastest time</p>
+                            <p><strong>Wrong pad penalty:</strong> Add time if you touch the wrong pad</p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
+                        </div>
+                    `,
+                    code: `# Project 2: Reaction Timer
+# How fast are your reflexes?
+
+import board
+import touchio
+import neopixel
+import time
+import random
+
+# Set up first 10 pads
+touches = [touchio.TouchIn(pin) for pin in [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10
+]]
+
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+print("=== REACTION TIMER ===")
+print("Touch Pad 1 to start!")
+
+while True:
+    # Wait for Pad 1 to start
+    if touches[0].value:
+        print("Get ready...")
+        
+        # Random delay between 1-3 seconds
+        delay = random.uniform(1, 3)
+        time.sleep(delay)
+        
+        # Pick a random pad (not pad 1)
+        target_pad = random.randint(1, 9)
+        
+        # Light it up!
+        pixels[target_pad] = (0, 255, 0)
+        pixels.show()
+        print("GO!")
+        
+        # Start timing
+        start_time = time.monotonic()
+        
+        # Wait for player to touch it
+        touched_correct = False
+        while not touched_correct:
+            if touches[target_pad].value:
+                # Calculate reaction time
+                reaction_time = time.monotonic() - start_time
+                print(f"Reaction time: {reaction_time:.3f} seconds")
+                
+                # Flash the pad
+                for _ in range(3):
+                    pixels[target_pad] = (0, 0, 0)
+                    pixels.show()
+                    time.sleep(0.1)
+                    pixels[target_pad] = (0, 255, 0)
+                    pixels.show()
+                    time.sleep(0.1)
+                
+                pixels[target_pad] = (0, 0, 0)
+                pixels.show()
+                touched_correct = True
+            
+            # Check if wrong pad touched
+            for i in range(1, 10):
+                if i != target_pad and touches[i].value:
+                    print("Wrong pad! Try again.")
+                    pixels[target_pad] = (0, 0, 0)
+                    pixels[i] = (255, 0, 0)
+                    pixels.show()
+                    time.sleep(0.5)
+                    pixels[i] = (0, 0, 0)
+                    pixels.show()
+                    touched_correct = True
+                    break
+        
+        print("Touch Pad 1 to play again!")
+        print("")
+        
+        # Wait for Pad 1 release
+        while touches[0].value:
+            time.sleep(0.01)
+    
+    time.sleep(0.01)`
+                },
+                14: {
+                    content: `
+                        <div class="lesson-header">
+                            <div class="curriculum-badge">UK National Curriculum KS3 - Project</div>
+                            <h1>Project 3: Light Sequencer</h1>
+                            <p>Record and play back your own light shows!</p>
+                        </div>
+                        
+                        <div class="step-section">
+                            <h2>How It Works</h2>
+                            <ol>
+                                <li>Touch pads 1-9 to "record" colors into a sequence</li>
+                                <li>Touch Pad 10 to "play" your sequence back</li>
+                                <li>Touch Pad 11 to "clear" and start over</li>
+                                <li>Create your own light shows and patterns!</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3>Skills Used</h3>
+                            <p>This project uses EVERYTHING:</p>
+                            <ul>
+                                <li>Lists to store the sequence</li>
+                                <li>FOR loops to play it back</li>
+                                <li>Variables to track state</li>
+                                <li>IF statements for each button</li>
+                                <li>Time delays for playback</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="success-box">
+                            <h3>Congratulations!</h3>
+                            <p>You've completed all 14 lessons of SPOKE Learn!</p>
+                            <p>You now know:</p>
+                            <ul>
+                                <li>How to use variables, lists, and loops</li>
+                                <li>How to make decisions with IF statements</li>
+                                <li>How to debug your code</li>
+                                <li>How to build real interactive projects</li>
+                                <li>The fundamentals of physical computing!</li>
+                            </ul>
+                            <p><strong>Keep experimenting and building amazing things with SPOKE!</strong></p>
+                        </div>
+                        
+                        <div class="challenge-box">
+                            <h3>Final Challenges</h3>
+                            <p><strong>Add features:</strong> Make Pad 12 play in reverse</p>
+                            <p><strong>Save patterns:</strong> Use different pads for different saved sequences</p>
+                            <p><strong>Create music:</strong> Combine this with MIDI output!</p>
+                        </div>
+                        
+                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
+                            <button class="nav-btn primary" onclick="markComplete();">Complete Course!</button>
+                        </div>
+                    `,
+                    code: `# Project 3: Light Sequencer
+# Record and play back light sequences!
+
+import board
+import touchio
+import neopixel
+import time
+
+# Set up pads
+touches = [touchio.TouchIn(pin) for pin in [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11
+]]
+
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+
+# Different colors for pads 1-9
+colors = [
+    (255,0,0), (255,100,0), (255,255,0), (0,255,0), (0,255,255),
+    (0,0,255), (100,0,255), (255,0,255), (255,0,100)
+]
+
+# Store the sequence
+sequence = []
+last_touched = [False] * 11
+
+print("=== LIGHT SEQUENCER ===")
+print("Pads 1-9: Record colors")
+print("Pad 10: Play sequence")
+print("Pad 11: Clear sequence")
+print("")
+
+while True:
+    # Check pads 1-9 for recording
+    for i in range(9):
+        if touches[i].value and not last_touched[i]:
+            # Add to sequence
+            sequence.append(i)
+            print(f"Recorded pad {i+1}. Length: {len(sequence)}")
+            
+            # Flash the pad
+            pixels[i] = colors[i]
+            pixels.show()
+            time.sleep(0.2)
+            pixels[i] = (0,0,0)
+            pixels.show()
+            
+            last_touched[i] = True
+        elif not touches[i].value:
+            last_touched[i] = False
+    
+    # Pad 10: Play sequence
+    if touches[9].value and not last_touched[9]:
+        if len(sequence) > 0:
+            print("Playing sequence...")
+            for pad_num in sequence:
+                pixels[pad_num] = colors[pad_num]
+                pixels.show()
+                time.sleep(0.3)
+                pixels[pad_num] = (0,0,0)
+                pixels.show()
+                time.sleep(0.1)
+            print("Done!")
+        else:
+            print("Sequence is empty! Record something first.")
+        last_touched[9] = True
+    elif not touches[9].value:
+        last_touched[9] = False
+    
+    # Pad 11: Clear sequence
+    if touches[10].value and not last_touched[10]:
+        sequence = []
+        print("Sequence cleared!")
+        
+        # Flash all recording pads
+        for i in range(9):
+            pixels[i] = colors[i]
+        pixels.show()
+        time.sleep(0.3)
+        for i in range(9):
+            pixels[i] = (0,0,0)
+        pixels.show()
+        
+        last_touched[10] = True
+    elif not touches[10].value:
+        last_touched[10] = False
+    
+    time.sleep(0.01)`
                 }
             };
             
             return lessons[lessonNum] || {
-                content: '<p>Lesson coming soon!</p>',
-                code: '# Lesson code will appear here'
+                content: '<p>Lesson not found!</p>',
+                code: '# No code available'
             };
         }
         
