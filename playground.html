@@ -591,6 +591,25 @@
         <!-- Info Panel -->
         <div class="info-panel">
             <div class="info-section">
+                <h3>MIDI Audio Output</h3>
+                <button class="header-btn" id="midiConnectBtn" onclick="connectMIDI()" style="width: 100%; margin-bottom: 12px;">Connect MIDI</button>
+                
+                <div id="midiStatus" style="font-size: 11px; color: #858585; margin-bottom: 12px; display: none;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #0e8a16;" id="midiIndicator"></div>
+                        <span id="midiStatusText">MIDI Connected</span>
+                    </div>
+                </div>
+                
+                <div style="font-size: 11px; color: #858585; margin-bottom: 8px;">
+                    <span id="sampleStatus">Samples: Loading...</span>
+                </div>
+                
+                <!-- Audio Scope -->
+                <canvas id="audioScope" width="300" height="80" style="width: 100%; height: 80px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px;"></canvas>
+            </div>
+            
+            <div class="info-section">
                 <h3>Quick Start</h3>
                 <p><strong>1. Connect SPOKE Board</strong><br>
                 Plug in your SPOKE board via USB. It should appear as "CIRCUITPY" drive.</p>
@@ -671,6 +690,243 @@
         let serialPort = null;
         let reader = null;
         let isReading = false;
+        
+        // Audio system (from polygons page)
+        const CONFIG = {
+            username: 'Tom-Vulpes',
+            repo: 'SpokeWebMidi',
+            branch: 'main',
+            samplesFolder: 'notes',
+            numberOfSamples: 99
+        };
+        
+        function formatSampleNumber(num) {
+            return `note_${String(num).padStart(3, '0')}`;
+        }
+        
+        let audioContext, masterGain, analyser;
+        const samples = new Map();
+        const activeSources = new Map();
+        let midiAccess = null;
+        
+        // Audio scope
+        let scopeCanvas, scopeCtx, scopeAnimationId;
+        
+        function initAudioScope() {
+            scopeCanvas = document.getElementById('audioScope');
+            if (!scopeCanvas) return;
+            
+            scopeCtx = scopeCanvas.getContext('2d');
+            scopeCanvas.width = 300;
+            scopeCanvas.height = 80;
+            
+            drawScope();
+        }
+        
+        function drawScope() {
+            if (!scopeCtx || !analyser) {
+                scopeCtx.fillStyle = '#1e1e1e';
+                scopeCtx.fillRect(0, 0, scopeCanvas.width, scopeCanvas.height);
+                scopeAnimationId = requestAnimationFrame(drawScope);
+                return;
+            }
+            
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteTimeDomainData(dataArray);
+            
+            scopeCtx.fillStyle = '#1e1e1e';
+            scopeCtx.fillRect(0, 0, scopeCanvas.width, scopeCanvas.height);
+            
+            scopeCtx.lineWidth = 2;
+            scopeCtx.strokeStyle = '#ff7a45';
+            scopeCtx.beginPath();
+            
+            const sliceWidth = scopeCanvas.width / bufferLength;
+            let x = 0;
+            
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * scopeCanvas.height / 2;
+                
+                if (i === 0) {
+                    scopeCtx.moveTo(x, y);
+                } else {
+                    scopeCtx.lineTo(x, y);
+                }
+                
+                x += sliceWidth;
+            }
+            
+            scopeCtx.lineTo(scopeCanvas.width, scopeCanvas.height / 2);
+            scopeCtx.stroke();
+            
+            scopeAnimationId = requestAnimationFrame(drawScope);
+        }
+        
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = 0.8;
+                
+                // Create analyser for scope
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                masterGain.connect(analyser);
+                analyser.connect(audioContext.destination);
+                
+                logConsole('Audio context initialized', 'success');
+            }
+        }
+        
+        function playSample(sampleNumber, velocity = 127) {
+            if (!samples.has(sampleNumber)) {
+                logConsole(`Sample ${sampleNumber} not loaded`, 'warning');
+                return;
+            }
+            
+            initAudio();
+            
+            // Stop existing playback for this sample
+            if (activeSources.has(sampleNumber)) {
+                try { 
+                    activeSources.get(sampleNumber).source.stop(); 
+                } catch (e) {}
+                activeSources.delete(sampleNumber);
+            }
+            
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            
+            source.buffer = samples.get(sampleNumber);
+            gainNode.gain.value = velocity / 127;
+            
+            source.connect(gainNode);
+            gainNode.connect(masterGain);
+            source.start(0);
+            
+            activeSources.set(sampleNumber, { source, gainNode });
+            
+            source.onended = () => {
+                if (activeSources.get(sampleNumber)?.source === source) {
+                    activeSources.delete(sampleNumber);
+                }
+            };
+            
+            logConsole(`Playing sample ${sampleNumber} (velocity: ${velocity})`, 'info');
+        }
+        
+        function handleMIDIMessage(message) {
+            const [status, midiNote, velocity] = message.data;
+            const command = status & 0xf0;
+            
+            if (command === 0x90 && velocity > 0) {
+                // Map MIDI note to sample number (0-99)
+                const sampleNumber = midiNote % (CONFIG.numberOfSamples + 1);
+                playSample(sampleNumber, velocity);
+            }
+        }
+        
+        async function connectMIDI() {
+            try {
+                if (!navigator.requestMIDIAccess) {
+                    logConsole('Web MIDI API not supported. Use Chrome, Edge, or Opera.', 'error');
+                    alert('Web MIDI API Not Supported\n\nPlease use Chrome, Edge, or Opera browser.');
+                    return;
+                }
+                
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    logConsole('No MIDI input devices found', 'warning');
+                    document.getElementById('midiStatusText').textContent = 'No MIDI Devices';
+                    document.getElementById('midiStatus').style.display = 'block';
+                    return;
+                }
+                
+                // Connect all MIDI inputs
+                inputs.forEach(input => {
+                    input.onmidimessage = handleMIDIMessage;
+                    logConsole('Connected to MIDI: ' + input.name, 'success');
+                });
+                
+                // Update UI
+                document.getElementById('midiConnectBtn').textContent = 'MIDI Connected';
+                document.getElementById('midiConnectBtn').style.background = '#0e8a16';
+                document.getElementById('midiStatus').style.display = 'block';
+                document.getElementById('midiStatusText').textContent = `Connected (${inputs.length} device${inputs.length > 1 ? 's' : ''})`;
+                
+                // Monitor device changes
+                midiAccess.onstatechange = (event) => {
+                    if (event.port.type === 'input') {
+                        const currentInputs = Array.from(midiAccess.inputs.values());
+                        if (currentInputs.length === 0) {
+                            document.getElementById('midiStatusText').textContent = 'MIDI Disconnected';
+                            document.getElementById('midiIndicator').style.background = '#f48771';
+                            logConsole('All MIDI devices disconnected', 'warning');
+                        }
+                    }
+                };
+                
+            } catch (error) {
+                logConsole('MIDI Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadSample(sampleNumber) {
+            initAudio();
+            
+            const formats = ['wav', 'mp3'];
+            const fileName = formatSampleNumber(sampleNumber);
+            
+            for (const format of formats) {
+                const url = `https://raw.githubusercontent.com/${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/${fileName}.${format}`;
+                
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) continue;
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    samples.set(sampleNumber, audioBuffer);
+                    return true;
+                } catch (error) {
+                    console.error(`Failed ${fileName}.${format}:`, error.message);
+                }
+            }
+            return false;
+        }
+        
+        async function autoLoadSamples() {
+            let loadedCount = 0;
+            const totalSamples = CONFIG.numberOfSamples + 1;
+            
+            document.getElementById('sampleStatus').textContent = 'Samples: Loading...';
+            
+            for (let i = 0; i <= CONFIG.numberOfSamples; i++) {
+                if (await loadSample(i)) loadedCount++;
+                
+                if (i % 10 === 0) {
+                    document.getElementById('sampleStatus').textContent = `Samples: ${loadedCount} / ${totalSamples}`;
+                }
+            }
+            
+            document.getElementById('sampleStatus').textContent = `Samples: ${loadedCount} / ${totalSamples}`;
+            
+            if (loadedCount > 0) {
+                logConsole(`Loaded ${loadedCount} audio samples from GitHub`, 'success');
+            } else {
+                logConsole('No samples could be loaded', 'error');
+            }
+        }
+        
+        // Initialize audio scope on page load
+        window.addEventListener('load', () => {
+            initAudioScope();
+            autoLoadSamples();
+        });
         
         // Keyboard shortcuts
         document.addEventListener('keydown', async (e) => {
