@@ -451,37 +451,33 @@
                         <div class="template-name">SPOKE Default</div>
                         <div class="template-desc">Default 27-pad MIDI</div>
                     </div>
-                    <div class="template-item" onclick="loadTemplate('sensitivity')">
-                        <div class="template-name">Sensitivity Controls</div>
-                        <div class="template-desc">Adjustable pad sensitivity</div>
-                    </div>
-                    <div class="template-item" onclick="openScaleBuilder()">
-                        <div class="template-name">Custom Scale Builder</div>
-                        <div class="template-desc">Choose notes for each pad</div>
-                    </div>
-                    <div class="template-item" onclick="loadTemplate('neopixel')">
-                        <div class="template-name">NeoPixel Playground</div>
-                        <div class="template-desc">27 light effects</div>
-                    </div>
                     <div class="template-item" onclick="loadTemplate('drums')">
                         <div class="template-name">Drum Pads</div>
                         <div class="template-desc">9 drum sounds</div>
                     </div>
-                    <div class="template-item" onclick="loadTemplate('piano')">
-                        <div class="template-name">Piano Keys</div>
-                        <div class="template-desc">27-note keyboard</div>
+                    <div class="template-item" onclick="openScaleBuilder()">
+                        <div class="template-name">Scale Builder</div>
+                        <div class="template-desc">Choose notes for each pad</div>
+                    </div>
+                    <div class="template-item" onclick="loadTemplate('arpeggiator')">
+                        <div class="template-name">Arpeggiator</div>
+                        <div class="template-desc">Loop notes in tempo</div>
+                    </div>
+                    <div class="template-item" onclick="loadTemplate('sequences')">
+                        <div class="template-name">Sequencer</div>
+                        <div class="template-desc">Loop arpeggios while held</div>
+                    </div>
+                    <div class="template-item" onclick="loadTemplate('sensitivity')">
+                        <div class="template-name">Sensitivity</div>
+                        <div class="template-desc">Adjustable pad sensitivity</div>
+                    </div>
+                    <div class="template-item" onclick="loadTemplate('neopixel')">
+                        <div class="template-name">NeoPixel</div>
+                        <div class="template-desc">27 light effects</div>
                     </div>
                     <div class="template-item" onclick="loadTemplate('sequencer')">
                         <div class="template-name">Step Sequencer</div>
                         <div class="template-desc">16-step loop</div>
-                    </div>
-                    <div class="template-item" onclick="loadTemplate('sequences')">
-                        <div class="template-name">Sequence Player</div>
-                        <div class="template-desc">Loop arpeggios while held</div>
-                    </div>
-                    <div class="template-item" onclick="loadTemplate('arpeggiator')">
-                        <div class="template-name">BPM Arpeggiator</div>
-                        <div class="template-desc">Loop notes in tempo</div>
                     </div>
                 </div>
             </div>
@@ -1941,40 +1937,40 @@ midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=9)
 num_pixels = 27
 pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
 
-# First 9 pads for drums - matching web-drum layout
+# SPOKE default notes: [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, ...]
+# Drum notes are at specific positions in this sequence:
+# Pad 10 (76), Pad 11 (74), Pad 12 (72), Pad 13 (69), Pad 14 (67), Pad 15 (64), Pad 16 (62), Pad 17 (60), Pad 18 (57)
+
+# Use pads 10-18 for drums
 touch_pins = [
-    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
-    board.GP6, board.GP7, board.GP8, board.GP9
+    board.GP10,  # Pad 10 - Note 76 - Snare 3
+    board.GP11,  # Pad 11 - Note 74 - Snare 2
+    board.GP12,  # Pad 12 - Note 72 - Snare 1
+    board.GP13,  # Pad 13 - Note 69 - Bass 4
+    board.GP14,  # Pad 14 - Note 67 - Bass 3
+    board.GP15,  # Pad 15 - Note 64 - Bass 2
+    board.GP16,  # Pad 16 - Note 62 - Bass 1
+    board.GP17,  # Pad 17 - Note 60 - Cymbal 2
+    board.GP18   # Pad 18 - Note 57 - Cymbal 1
 ]
 
-# MIDI notes matching web-drum page
-# Cymbals: 57, 60 (samples 1-2)
-# Bass: 62, 64, 67, 69 (samples 3-6)
-# Snares: 72, 74, 76 (samples 7-9)
-drum_notes = [
-    57,  # Pad 1 - Cymbal 1
-    60,  # Pad 2 - Cymbal 2
-    62,  # Pad 3 - Bass 1
-    64,  # Pad 4 - Bass 2
-    67,  # Pad 5 - Bass 3
-    69,  # Pad 6 - Bass 4
-    72,  # Pad 7 - Snare 1
-    74,  # Pad 8 - Snare 2
-    76   # Pad 9 - Snare 3
-]
+# Corresponding MIDI notes (these match SPOKE's default at these positions)
+drum_notes = [76, 74, 72, 69, 67, 64, 62, 60, 57]
 
-# Colors matching web-drum page
-# Gold for cymbals, Red for bass, Blue for snares
+# Corresponding pad indices for NeoPixels (0-indexed, so pads 10-18 = indices 9-17)
+drum_pixels = [9, 10, 11, 12, 13, 14, 15, 16, 17]
+
+# Colors: Blue for snares (pads 10-12), Red for bass (pads 13-16), Gold for cymbals (pads 17-18)
 drum_colors = [
-    (255, 215, 0),   # Cymbal 1 - Gold
-    (255, 215, 0),   # Cymbal 2 - Gold
-    (233, 69, 96),   # Bass 1 - Red
-    (233, 69, 96),   # Bass 2 - Red
-    (233, 69, 96),   # Bass 3 - Red
-    (233, 69, 96),   # Bass 4 - Red
-    (102, 126, 234), # Snare 1 - Blue
-    (102, 126, 234), # Snare 2 - Blue
-    (102, 126, 234)  # Snare 3 - Blue
+    (102, 126, 234), # Pad 10 - Snare 3 - Blue
+    (102, 126, 234), # Pad 11 - Snare 2 - Blue
+    (102, 126, 234), # Pad 12 - Snare 1 - Blue
+    (233, 69, 96),   # Pad 13 - Bass 4 - Red
+    (233, 69, 96),   # Pad 14 - Bass 3 - Red
+    (233, 69, 96),   # Pad 15 - Bass 2 - Red
+    (233, 69, 96),   # Pad 16 - Bass 1 - Red
+    (255, 215, 0),   # Pad 17 - Cymbal 2 - Gold
+    (255, 215, 0)    # Pad 18 - Cymbal 1 - Gold
 ]
 
 touch_sensors = []
@@ -2001,115 +1997,29 @@ def rainbow(speed, duration, step_size=10):
 
 # Start
 rainbow(0.01, 2, step_size=10)
-pixels.fill((0, 0, 0))
+
+# Set initial colors - LEDs stay on to show which pads are drums
+for i in range(9):
+    pixels[drum_pixels[i]] = drum_colors[i]
 pixels.show()
 
 print("Drum pads ready!")
-print("Pads 1-2: Cymbals (Gold)")
-print("Pads 3-6: Bass (Red)")
-print("Pads 7-9: Snares (Blue)")
+print("Pads 10-12: Snares (Blue)")
+print("Pads 13-16: Bass (Red)")
+print("Pads 17-18: Cymbals (Gold)")
 
 while True:
     for i, touch_sensor in enumerate(touch_sensors):
         if touch_sensor.value:
             if not note_played[i]:
                 midi.send(NoteOn(drum_notes[i], 127))
-                pixels[i] = drum_colors[i]
+                pixels[drum_pixels[i]] = (255, 255, 255)  # Flash white when touched
                 note_played[i] = True
-                print(f"Drum {i+1}")
+                print(f"Drum pad {drum_pixels[i] + 1}")
         else:
             if note_played[i]:
                 midi.send(NoteOff(drum_notes[i], 0))
-                pixels[i] = (0, 0, 0)
-                note_played[i] = False
-`,
-                
-                'piano': `import board
-import touchio
-import usb_midi
-import adafruit_midi
-from adafruit_midi.note_on import NoteOn
-from adafruit_midi.note_off import NoteOff
-import neopixel
-from rainbowio import colorwheel
-import time
-
-# Initialize MIDI
-midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
-
-# Initialize NeoPixels
-num_pixels = 27
-pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
-
-# All 27 pads
-touch_pins = [
-    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6,
-    board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, board.GP12,
-    board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18,
-    board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
-    board.GP25, board.GP28, board.VOLTAGE_MONITOR
-]
-
-# Piano notes - chromatic scale from C4 to D6
-piano_notes = [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
-               73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86]
-
-# Rainbow colors for each note
-def wheel(pos):
-    # Generate rainbow colors across the spectrum
-    if pos < 85:
-        return (pos * 3, 255 - pos * 3, 0)
-    elif pos < 170:
-        pos -= 85
-        return (255 - pos * 3, 0, pos * 3)
-    else:
-        pos -= 170
-        return (0, pos * 3, 255 - pos * 3)
-
-# Assign rainbow colors to all pads
-note_colors = [wheel(int(i * 256 / 27)) for i in range(27)]
-
-touch_sensors = []
-for pin in touch_pins:
-    try:
-        touch_sensors.append(touchio.TouchIn(pin))
-    except ValueError:
-        print(f"No pulldown resistor found on pin {pin}, skipping...")
-
-note_played = [False] * 27
-
-# Startup animation
-def rainbow(speed, duration, step_size=10):
-    start_time = time.monotonic()
-    while time.monotonic() - start_time < duration:
-        for j in range(0, 256, step_size):
-            for i in range(num_pixels):
-                pixel_index = (i * 256 // num_pixels + j) % 256
-                pixels[i] = colorwheel(pixel_index)
-            pixels.show()
-            if time.monotonic() - start_time >= duration:
-                return
-            time.sleep(speed)
-
-# Start
-rainbow(0.01, 2, step_size=10)
-pixels.fill((0, 0, 0))
-pixels.show()
-
-print("Piano ready! 27 chromatic notes with rainbow colors")
-
-while True:
-    for i, touch_sensor in enumerate(touch_sensors):
-        if touch_sensor.value:
-            if not note_played[i]:
-                midi.send(NoteOn(piano_notes[i], 100))
-                pixels[i] = note_colors[i]
-                note_played[i] = True
-                print(f"Note {piano_notes[i]}")
-        else:
-            if note_played[i]:
-                midi.send(NoteOff(piano_notes[i], 0))
-                pixels[i] = (0, 0, 0)
+                pixels[drum_pixels[i]] = drum_colors[i]  # Back to original color
                 note_played[i] = False
 `,
                 
@@ -2316,15 +2226,18 @@ while True:
             # Pad is held - keep looping the arpeggio
             if not last_touched[i]:
                 print(f"Playing sequence {i+1} - hold to loop")
-                pixels[i] = (255, 0, 255)
                 last_touched[i] = True
             
             # Play the arpeggio continuously while held
             arpeggio = arpeggios[i]
-            for note in arpeggio:
+            for note_index, note in enumerate(arpeggio):
                 # Check if still holding - break if released
                 if not sensor.value:
                     break
+                
+                # Visual feedback - pulse brightness for current note
+                brightness = int(255 * (note_index / len(arpeggio)))
+                pixels[i] = (brightness, 0, brightness)  # Purple gradient
                     
                 midi.send(NoteOn(note, 120))
                 time.sleep(0.2)  # Delay between notes (edit this!)
