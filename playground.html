@@ -2196,46 +2196,37 @@ touch_pins = [
 # Gaming controls - Minecraft/FPS style layout
 # Customize for your favorite game!
 controls = [
-    ('W', 'forward'),           # Pad 1 - Move Forward
-    ('A', 'left'),              # Pad 2 - Move Left
-    ('S', 'back'),              # Pad 3 - Move Back
-    ('D', 'right'),             # Pad 4 - Move Right
-    ('SPACE', 'jump'),          # Pad 5 - Jump/Fly Up
-    ('SHIFT', 'sneak'),         # Pad 6 - Sneak/Crouch
-    ('E', 'inventory'),         # Pad 7 - Inventory
-    ('Q', 'drop'),              # Pad 8 - Drop Item
-    ('F', 'swap'),              # Pad 9 - Swap Hands
-    ('1', 'slot1'),             # Pad 10 - Hotbar 1
-    ('2', 'slot2'),             # Pad 11 - Hotbar 2
-    ('3', 'slot3'),             # Pad 12 - Hotbar 3
-    ('4', 'slot4'),             # Pad 13 - Hotbar 4
-    ('5', 'slot5'),             # Pad 14 - Hotbar 5
-    ('6', 'slot6'),             # Pad 15 - Hotbar 6
-    ('7', 'slot7'),             # Pad 16 - Hotbar 7
-    ('8', 'slot8'),             # Pad 17 - Hotbar 8
-    ('9', 'slot9'),             # Pad 18 - Hotbar 9
-    ('LEFT_CLICK', 'attack'),   # Pad 19 - Attack/Break
-    ('RIGHT_CLICK', 'use'),     # Pad 20 - Use/Place
-    ('R', 'sprint'),            # Pad 21 - Sprint/Run
-    ('T', 'chat'),              # Pad 22 - Open Chat
-    ('ESCAPE', 'menu'),         # Pad 23 - Pause Menu
-    ('F3', 'debug'),            # Pad 24 - Debug Screen
-    ('F5', 'perspective'),      # Pad 25 - Change View
-    ('TAB', 'playerlist'),      # Pad 26 - Player List
-    ('ENTER', 'command')        # Pad 27 - Command/Chat Send
+    (Keycode.W, 'forward'),           # Pad 1 - Move Forward
+    (Keycode.A, 'left'),              # Pad 2 - Move Left
+    (Keycode.S, 'back'),              # Pad 3 - Move Back
+    (Keycode.D, 'right'),             # Pad 4 - Move Right
+    (Keycode.SPACE, 'jump'),          # Pad 5 - Jump/Fly Up
+    (Keycode.SHIFT, 'sneak'),         # Pad 6 - Sneak/Crouch
+    (Keycode.E, 'inventory'),         # Pad 7 - Inventory
+    (Keycode.Q, 'drop'),              # Pad 8 - Drop Item
+    (Keycode.F, 'swap'),              # Pad 9 - Swap Hands
+    (Keycode.ONE, 'slot1'),           # Pad 10 - Hotbar 1
+    (Keycode.TWO, 'slot2'),           # Pad 11 - Hotbar 2
+    (Keycode.THREE, 'slot3'),         # Pad 12 - Hotbar 3
+    (Keycode.FOUR, 'slot4'),          # Pad 13 - Hotbar 4
+    (Keycode.FIVE, 'slot5'),          # Pad 14 - Hotbar 5
+    (Keycode.SIX, 'slot6'),           # Pad 15 - Hotbar 6
+    (Keycode.SEVEN, 'slot7'),         # Pad 16 - Hotbar 7
+    (Keycode.EIGHT, 'slot8'),         # Pad 17 - Hotbar 8
+    (Keycode.NINE, 'slot9'),          # Pad 18 - Hotbar 9
+    ('LEFT_CLICK', 'attack'),         # Pad 19 - Attack/Break
+    ('RIGHT_CLICK', 'use'),           # Pad 20 - Use/Place
+    (Keycode.R, 'sprint'),            # Pad 21 - Sprint/Run
+    (Keycode.T, 'chat'),              # Pad 22 - Open Chat
+    (Keycode.ESCAPE, 'menu'),         # Pad 23 - Pause Menu
+    (Keycode.F3, 'debug'),            # Pad 24 - Debug Screen
+    (Keycode.F5, 'perspective'),      # Pad 25 - Change View
+    (Keycode.TAB, 'playerlist'),      # Pad 26 - Player List
+    (Keycode.ENTER, 'command')        # Pad 27 - Command/Chat Send
 ]
 
-# Convert string controls to keycodes
-keycodes = []
-for control, label in controls:
-    if control == 'LEFT_CLICK':
-        keycodes.append('LEFT_CLICK')
-    elif control == 'RIGHT_CLICK':
-        keycodes.append('RIGHT_CLICK')
-    else:
-        # Get keycode from string
-        keycode_name = control.replace(' ', '_')
-        keycodes.append(getattr(Keycode, keycode_name))
+# Extract keycodes (already in correct format)
+keycodes = [control[0] for control in controls]
 
 # Color scheme for different control types
 # Movement (WASD) = Green, Actions = Blue, Hotbar = Orange, Mouse = Red
@@ -2312,8 +2303,16 @@ print("Red: Mouse Clicks")
 print("Blue/Purple/Cyan: Actions")
 print("")
 print("Pad layout:")
-for i, (key, action) in enumerate(controls):
-    print(f"Pad {i+1}: {key} ({action})")
+for i, (keycode, action) in enumerate(controls):
+    # Display key name
+    if keycode == 'LEFT_CLICK':
+        key_name = 'LEFT_CLICK'
+    elif keycode == 'RIGHT_CLICK':
+        key_name = 'RIGHT_CLICK'
+    else:
+        # Get a readable name for the keycode
+        key_name = str(keycode).split('.')[-1] if hasattr(keycode, '__class__') else str(keycode)
+    print(f"Pad {i+1}: {key_name} ({action})")
 
 # Main loop
 while True:
@@ -2330,7 +2329,14 @@ while True:
                 
                 pixels[i] = (255, 255, 255)  # Flash white when pressed
                 control_active[i] = True
-                print(f"Pad {i+1}: {controls[i][0]} - {controls[i][1]}")
+                # Display readable key name
+                if keycodes[i] == 'LEFT_CLICK':
+                    key_name = 'LEFT_CLICK'
+                elif keycodes[i] == 'RIGHT_CLICK':
+                    key_name = 'RIGHT_CLICK'
+                else:
+                    key_name = str(keycodes[i]).split('.')[-1] if hasattr(keycodes[i], '__class__') else str(keycodes[i])
+                print(f"Pad {i+1}: {key_name} - {controls[i][1]}")
         else:
             if control_active[i]:
                 # Release control
