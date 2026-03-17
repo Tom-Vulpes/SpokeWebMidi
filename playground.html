@@ -1941,36 +1941,40 @@ midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=9)
 num_pixels = 27
 pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
 
-# First 9 pads for drums
+# First 9 pads for drums - matching web-drum layout
 touch_pins = [
     board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
     board.GP6, board.GP7, board.GP8, board.GP9
 ]
 
-# General MIDI drum notes
+# MIDI notes matching web-drum page
+# Cymbals: 57, 60 (samples 1-2)
+# Bass: 62, 64, 67, 69 (samples 3-6)
+# Snares: 72, 74, 76 (samples 7-9)
 drum_notes = [
-    36,  # Kick
-    38,  # Snare
-    42,  # Hi-hat closed
-    46,  # Hi-hat open
-    41,  # Tom 1
-    43,  # Tom 2
-    49,  # Crash
-    51,  # Ride
-    37   # Rimshot
+    57,  # Pad 1 - Cymbal 1
+    60,  # Pad 2 - Cymbal 2
+    62,  # Pad 3 - Bass 1
+    64,  # Pad 4 - Bass 2
+    67,  # Pad 5 - Bass 3
+    69,  # Pad 6 - Bass 4
+    72,  # Pad 7 - Snare 1
+    74,  # Pad 8 - Snare 2
+    76   # Pad 9 - Snare 3
 ]
 
-# Different color for each drum type
+# Colors matching web-drum page
+# Gold for cymbals, Red for bass, Blue for snares
 drum_colors = [
-    (255, 0, 0),    # Kick - Red
-    (0, 0, 255),    # Snare - Blue
-    (255, 255, 0),  # Hi-hat closed - Yellow
-    (255, 128, 0),  # Hi-hat open - Orange
-    (128, 0, 255),  # Tom 1 - Purple
-    (255, 0, 255),  # Tom 2 - Magenta
-    (0, 255, 255),  # Crash - Cyan
-    (0, 255, 128),  # Ride - Teal
-    (255, 255, 255) # Rimshot - White
+    (255, 215, 0),   # Cymbal 1 - Gold
+    (255, 215, 0),   # Cymbal 2 - Gold
+    (233, 69, 96),   # Bass 1 - Red
+    (233, 69, 96),   # Bass 2 - Red
+    (233, 69, 96),   # Bass 3 - Red
+    (233, 69, 96),   # Bass 4 - Red
+    (102, 126, 234), # Snare 1 - Blue
+    (102, 126, 234), # Snare 2 - Blue
+    (102, 126, 234)  # Snare 3 - Blue
 ]
 
 touch_sensors = []
@@ -2000,7 +2004,10 @@ rainbow(0.01, 2, step_size=10)
 pixels.fill((0, 0, 0))
 pixels.show()
 
-print("Drum pads ready with color feedback!")
+print("Drum pads ready!")
+print("Pads 1-2: Cymbals (Gold)")
+print("Pads 3-6: Bass (Red)")
+print("Pads 7-9: Snares (Blue)")
 
 while True:
     for i, touch_sensor in enumerate(touch_sensors):
