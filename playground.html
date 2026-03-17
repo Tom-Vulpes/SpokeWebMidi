@@ -472,8 +472,12 @@
                         <div class="template-desc">Adjustable pad sensitivity</div>
                     </div>
                     <div class="template-item" onclick="loadTemplate('keyboard')">
-                        <div class="template-name">Keyboard</div>
-                        <div class="template-desc">USB keyboard keystrokes</div>
+                        <div class="template-name">Letters</div>
+                        <div class="template-desc">A-Z keyboard (26 letters)</div>
+                    </div>
+                    <div class="template-item" onclick="loadTemplate('gaming')">
+                        <div class="template-name">Gaming</div>
+                        <div class="template-desc">Keyboard + mouse controls</div>
                     </div>
                     <div class="template-item" onclick="loadTemplate('neopixel')">
                         <div class="template-name">NeoPixel</div>
@@ -2058,43 +2062,43 @@ touch_pins = [
     board.GP22, board.GP23, board.GP24, board.GP25, board.GP28, board.VOLTAGE_MONITOR
 ]
 
-# Keycode assignments for each pad
-# Customize these to your needs! Examples below:
+# Keycode assignments for each pad - A through Z + one extra
+# First 26 pads are A-Z, pad 27 is SPACE
+# Customize these to your needs! Examples:
 # Numbers: Keycode.ONE, Keycode.TWO, etc.
-# Letters: Keycode.A, Keycode.B, etc.
 # Arrow keys: Keycode.UP_ARROW, Keycode.DOWN_ARROW, etc.
 # Modifiers: Keycode.SHIFT, Keycode.CONTROL, Keycode.ALT
 # Function keys: Keycode.F1, Keycode.F2, etc.
 # Special: Keycode.SPACE, Keycode.ENTER, Keycode.ESCAPE
 
 keycodes = [
-    Keycode.ONE,        # Pad 1
-    Keycode.TWO,        # Pad 2
-    Keycode.THREE,      # Pad 3
-    Keycode.FOUR,       # Pad 4
-    Keycode.FIVE,       # Pad 5
-    Keycode.SIX,        # Pad 6
-    Keycode.SEVEN,      # Pad 7
-    Keycode.EIGHT,      # Pad 8
-    Keycode.NINE,       # Pad 9
-    Keycode.Q,          # Pad 10
-    Keycode.W,          # Pad 11
-    Keycode.E,          # Pad 12
-    Keycode.R,          # Pad 13
-    Keycode.T,          # Pad 14
-    Keycode.Y,          # Pad 15
-    Keycode.U,          # Pad 16
-    Keycode.I,          # Pad 17
-    Keycode.O,          # Pad 18
-    Keycode.A,          # Pad 19
-    Keycode.S,          # Pad 20
-    Keycode.D,          # Pad 21
-    Keycode.F,          # Pad 22
-    Keycode.G,          # Pad 23
-    Keycode.H,          # Pad 24
-    Keycode.J,          # Pad 25
-    Keycode.SPACE,      # Pad 26
-    Keycode.ENTER       # Pad 27
+    Keycode.A,          # Pad 1
+    Keycode.B,          # Pad 2
+    Keycode.C,          # Pad 3
+    Keycode.D,          # Pad 4
+    Keycode.E,          # Pad 5
+    Keycode.F,          # Pad 6
+    Keycode.G,          # Pad 7
+    Keycode.H,          # Pad 8
+    Keycode.I,          # Pad 9
+    Keycode.J,          # Pad 10
+    Keycode.K,          # Pad 11
+    Keycode.L,          # Pad 12
+    Keycode.M,          # Pad 13
+    Keycode.N,          # Pad 14
+    Keycode.O,          # Pad 15
+    Keycode.P,          # Pad 16
+    Keycode.Q,          # Pad 17
+    Keycode.R,          # Pad 18
+    Keycode.S,          # Pad 19
+    Keycode.T,          # Pad 20
+    Keycode.U,          # Pad 21
+    Keycode.V,          # Pad 22
+    Keycode.W,          # Pad 23
+    Keycode.X,          # Pad 24
+    Keycode.Y,          # Pad 25
+    Keycode.Z,          # Pad 26
+    Keycode.SPACE       # Pad 27
 ]
 
 # Rainbow colors for visual feedback
@@ -2149,6 +2153,189 @@ while True:
                 kbd.release(keycodes[i])
                 pixels[i] = (0, 0, 0)
                 key_pressed[i] = False
+    
+    time.sleep(0.01)
+`,
+                
+                'gaming': `# Gaming Controls - Keyboard + Mouse for games
+# Minecraft-style controls with WASD movement and mouse actions
+# Perfect for gaming, includes common game keybinds
+import time
+import board
+import touchio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+from adafruit_hid.mouse import Mouse
+import neopixel
+from rainbowio import colorwheel
+
+# Initialize Keyboard and Mouse
+kbd = Keyboard(usb_hid.devices)
+mouse = Mouse(usb_hid.devices)
+
+# Initialize NeoPixels
+num_pixels = 27
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# Define the touch pins
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7,
+    board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14,
+    board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21,
+    board.GP22, board.GP23, board.GP24, board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+# Gaming controls - Minecraft/FPS style layout
+# Customize for your favorite game!
+controls = [
+    ('W', 'forward'),           # Pad 1 - Move Forward
+    ('A', 'left'),              # Pad 2 - Move Left
+    ('S', 'back'),              # Pad 3 - Move Back
+    ('D', 'right'),             # Pad 4 - Move Right
+    ('SPACE', 'jump'),          # Pad 5 - Jump/Fly Up
+    ('SHIFT', 'sneak'),         # Pad 6 - Sneak/Crouch
+    ('E', 'inventory'),         # Pad 7 - Inventory
+    ('Q', 'drop'),              # Pad 8 - Drop Item
+    ('F', 'swap'),              # Pad 9 - Swap Hands
+    ('1', 'slot1'),             # Pad 10 - Hotbar 1
+    ('2', 'slot2'),             # Pad 11 - Hotbar 2
+    ('3', 'slot3'),             # Pad 12 - Hotbar 3
+    ('4', 'slot4'),             # Pad 13 - Hotbar 4
+    ('5', 'slot5'),             # Pad 14 - Hotbar 5
+    ('6', 'slot6'),             # Pad 15 - Hotbar 6
+    ('7', 'slot7'),             # Pad 16 - Hotbar 7
+    ('8', 'slot8'),             # Pad 17 - Hotbar 8
+    ('9', 'slot9'),             # Pad 18 - Hotbar 9
+    ('LEFT_CLICK', 'attack'),   # Pad 19 - Attack/Break
+    ('RIGHT_CLICK', 'use'),     # Pad 20 - Use/Place
+    ('R', 'sprint'),            # Pad 21 - Sprint/Run
+    ('T', 'chat'),              # Pad 22 - Open Chat
+    ('ESCAPE', 'menu'),         # Pad 23 - Pause Menu
+    ('F3', 'debug'),            # Pad 24 - Debug Screen
+    ('F5', 'perspective'),      # Pad 25 - Change View
+    ('TAB', 'playerlist'),      # Pad 26 - Player List
+    ('ENTER', 'command')        # Pad 27 - Command/Chat Send
+]
+
+# Convert string controls to keycodes
+keycodes = []
+for control, label in controls:
+    if control == 'LEFT_CLICK':
+        keycodes.append('LEFT_CLICK')
+    elif control == 'RIGHT_CLICK':
+        keycodes.append('RIGHT_CLICK')
+    else:
+        # Get keycode from string
+        keycode_name = control.replace(' ', '_')
+        keycodes.append(getattr(Keycode, keycode_name))
+
+# Color scheme for different control types
+# Movement (WASD) = Green, Actions = Blue, Hotbar = Orange, Mouse = Red
+control_colors = [
+    (0, 255, 0),      # Pad 1 - W (Green)
+    (0, 255, 0),      # Pad 2 - A (Green)
+    (0, 255, 0),      # Pad 3 - S (Green)
+    (0, 255, 0),      # Pad 4 - D (Green)
+    (0, 150, 255),    # Pad 5 - Space (Blue)
+    (0, 150, 255),    # Pad 6 - Shift (Blue)
+    (150, 0, 255),    # Pad 7 - E (Purple)
+    (150, 0, 255),    # Pad 8 - Q (Purple)
+    (150, 0, 255),    # Pad 9 - F (Purple)
+    (255, 150, 0),    # Pad 10 - 1 (Orange)
+    (255, 150, 0),    # Pad 11 - 2 (Orange)
+    (255, 150, 0),    # Pad 12 - 3 (Orange)
+    (255, 150, 0),    # Pad 13 - 4 (Orange)
+    (255, 150, 0),    # Pad 14 - 5 (Orange)
+    (255, 150, 0),    # Pad 15 - 6 (Orange)
+    (255, 150, 0),    # Pad 16 - 7 (Orange)
+    (255, 150, 0),    # Pad 17 - 8 (Orange)
+    (255, 150, 0),    # Pad 18 - 9 (Orange)
+    (255, 0, 0),      # Pad 19 - Left Click (Red)
+    (255, 0, 0),      # Pad 20 - Right Click (Red)
+    (0, 255, 255),    # Pad 21 - R (Cyan)
+    (255, 255, 0),    # Pad 22 - T (Yellow)
+    (255, 255, 255),  # Pad 23 - ESC (White)
+    (100, 100, 100),  # Pad 24 - F3 (Gray)
+    (100, 100, 100),  # Pad 25 - F5 (Gray)
+    (200, 200, 200),  # Pad 26 - TAB (Light Gray)
+    (255, 255, 0)     # Pad 27 - ENTER (Yellow)
+]
+
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# State tracking
+control_active = [False] * 27
+
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Start
+rainbow(0.01, 2, step_size=10)
+
+# Turn all LEDs off first
+pixels.fill((0, 0, 0))
+pixels.show()
+
+# Set control colors - LEDs stay on to show control layout
+for i in range(27):
+    pixels[i] = control_colors[i]
+pixels.show()
+
+print("Gaming Controls ready!")
+print("Green: WASD Movement")
+print("Orange: Hotbar 1-9")
+print("Red: Mouse Clicks")
+print("Blue/Purple/Cyan: Actions")
+print("")
+print("Pad layout:")
+for i, (key, action) in enumerate(controls):
+    print(f"Pad {i+1}: {key} ({action})")
+
+# Main loop
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not control_active[i]:
+                # Activate control
+                if keycodes[i] == 'LEFT_CLICK':
+                    mouse.press(Mouse.LEFT_BUTTON)
+                elif keycodes[i] == 'RIGHT_CLICK':
+                    mouse.press(Mouse.RIGHT_BUTTON)
+                else:
+                    kbd.press(keycodes[i])
+                
+                pixels[i] = (255, 255, 255)  # Flash white when pressed
+                control_active[i] = True
+                print(f"Pad {i+1}: {controls[i][0]} - {controls[i][1]}")
+        else:
+            if control_active[i]:
+                # Release control
+                if keycodes[i] == 'LEFT_CLICK':
+                    mouse.release(Mouse.LEFT_BUTTON)
+                elif keycodes[i] == 'RIGHT_CLICK':
+                    mouse.release(Mouse.RIGHT_BUTTON)
+                else:
+                    kbd.release(keycodes[i])
+                
+                pixels[i] = control_colors[i]  # Back to original color
+                control_active[i] = False
     
     time.sleep(0.01)
 `,
