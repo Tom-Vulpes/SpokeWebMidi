@@ -448,7 +448,7 @@
                 <div class="sidebar-header">Code Templates</div>
                 <div class="sidebar-content">
                     <div class="template-item" onclick="loadTemplate('basic')">
-                        <div class="template-name">Basic SPOKE</div>
+                        <div class="template-name">SPOKE Default</div>
                         <div class="template-desc">Default 27-pad MIDI</div>
                     </div>
                     <div class="template-item" onclick="loadTemplate('sensitivity')">
@@ -477,11 +477,11 @@
                     </div>
                     <div class="template-item" onclick="loadTemplate('sequences')">
                         <div class="template-name">Sequence Player</div>
-                        <div class="template-desc">Arpeggios per pad</div>
+                        <div class="template-desc">Loop arpeggios while held</div>
                     </div>
                     <div class="template-item" onclick="loadTemplate('arpeggiator')">
                         <div class="template-name">BPM Arpeggiator</div>
-                        <div class="template-desc">Tempo-synced notes</div>
+                        <div class="template-desc">Loop notes in tempo</div>
                     </div>
                 </div>
             </div>
@@ -511,7 +511,7 @@
                 <div class="welcome-screen" id="welcomeScreen">
                     <div class="welcome-content">
                         <h2>SPOKE CircuitPython Editor</h2>
-                        <p>Edit code.py directly on your SPOKE board.<br>Connect your board and select code.py in the CIRCUITPY device to begin.</p>
+                        <p>Edit code.py directly on your SPOKE board.<br>Connect your board and select code.py to begin.</p>
                         <button class="welcome-btn" onclick="openFile()">Select code.py from SPOKE</button>
                     </div>
                 </div>
@@ -1388,12 +1388,9 @@ while True:
         // CircuitPython Templates
         function getTemplates() {
             return {
-                'basic': `# This is the default code for the main SPOKE board. If you have the mini version or an older version with a visible Raspbery Pi Pico board attached, then use the code in the /SPOKE-mini folder on Github
-
-# This code sets up the touch pins as capacitive touch sensors, it also sets up the neopixels to match the touch sensor it is next to. The MIDI-out in this example os polyphonic on/off. Read through the code to see what each section does and edit the parts you need!
-
-# SPOKE is an open-source project that was funded by very generous Kickstarter backers, including Gawain Hewitt, Jonathan Ansell, Florentina & ORANCIUC IVAN who pledged to have their names in the example code! 
-
+                'basic': `# This is the default code for the main SPOKE board
+# Sets up touch pins as capacitive touch sensors and NeoPixels
+# MIDI-out is polyphonic on/off
 import time
 import board
 import touchio
@@ -1404,7 +1401,6 @@ from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
 import neopixel
 from rainbowio import colorwheel
-
 
 # MIDI note numbers corresponding to each touch pin
 midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
@@ -1470,7 +1466,6 @@ while True:
                 midi.send(NoteOff(midi_notes[i], 120))
                 note_played[i] = False
                 pixels[i] = (0, 0, 255)
-
 `,
                 
                 'sensitivity': `# ============================================================================
@@ -2216,9 +2211,9 @@ while True:
     time.sleep(0.01)
 `,
                 
-                'sequences': `# Sequence Player - Arpeggios per Pad
-# Each pad plays its own arpeggio sequence
-# Edit the arpeggios array to customize sequences
+                'sequences': `# Sequence Player - Looping Arpeggios
+# Hold a pad to play its arpeggio in a loop
+# Release to stop - each pad has a different sequence
 import time
 import board
 import touchio
@@ -2309,35 +2304,36 @@ print("Touch pads to play arpeggios")
 
 # Main loop
 while True:
-    # Check each touch sensor
     for i, sensor in enumerate(touch_sensors):
-        # Detect new touch (rising edge)
-        if sensor.value and not last_touched[i]:
-            print(f"Playing sequence {i+1}")
+        if sensor.value:
+            # Pad is held - keep looping the arpeggio
+            if not last_touched[i]:
+                print(f"Playing sequence {i+1} - hold to loop")
+                pixels[i] = (255, 0, 255)
+                last_touched[i] = True
             
-            # Light up the pad
-            pixels[i] = (255, 0, 255)
-            
-            # Play the arpeggio
+            # Play the arpeggio continuously while held
             arpeggio = arpeggios[i]
             for note in arpeggio:
+                # Check if still holding - break if released
+                if not sensor.value:
+                    break
+                    
                 midi.send(NoteOn(note, 120))
                 time.sleep(0.2)  # Delay between notes (edit this!)
                 midi.send(NoteOff(note, 0))
-            
-            # Turn off the pad
-            pixels[i] = (0, 0, 255)
-            
-            last_touched[i] = True
-        elif not sensor.value:
-            last_touched[i] = False
+        else:
+            # Pad released
+            if last_touched[i]:
+                pixels[i] = (0, 0, 255)
+                last_touched[i] = False
     
     time.sleep(0.01)
 `,
                 
                 'arpeggiator': `# BPM Arpeggiator
-# Touch pads play notes in tempo with adjustable BPM
-# Edit BPM variable to change speed
+# Hold pads to play looping notes synced to BPM
+# Each pad plays a different note in tempo
 import time
 import board
 import touchio
@@ -2418,29 +2414,25 @@ print(f"Note delay: {bpm_to_delay(BPM):.3f} seconds")
 
 # Main loop
 while True:
-    # Check each touch sensor
     for i, sensor in enumerate(touch_sensors):
-        # Detect new touch (rising edge)
-        if sensor.value and not last_touched[i]:
-            # Calculate note for this pad
+        if sensor.value:
+            # Pad is held - keep playing notes in tempo
+            if not last_touched[i]:
+                note = START_NOTE + i
+                print(f"Pad {i+1}: Note {note} - hold to loop")
+                pixels[i] = (255, 0, 255)
+                last_touched[i] = True
+            
+            # Play note continuously while held
             note = START_NOTE + i
-            
-            print(f"Pad {i+1}: Note {note}")
-            
-            # Light up the pad
-            pixels[i] = (255, 0, 255)
-            
-            # Play note with BPM timing
             midi.send(NoteOn(note, 120))
             time.sleep(bpm_to_delay(BPM))
             midi.send(NoteOff(note, 0))
-            
-            # Turn off the pad
-            pixels[i] = (0, 0, 255)
-            
-            last_touched[i] = True
-        elif not sensor.value:
-            last_touched[i] = False
+        else:
+            # Pad released
+            if last_touched[i]:
+                pixels[i] = (0, 0, 255)
+                last_touched[i] = False
     
     time.sleep(0.01)
 `
