@@ -1928,7 +1928,14 @@ while True:
     time.sleep(0.01)
 `,
                 
-                'drums': `import board
+                'drums': `# Drum Pads - 9 drum sounds with color feedback
+# Pads 10-18 trigger drum samples
+# Try it online: https://tom-vulpes.github.io/SpokeWebMidi/drums.html
+# 
+# Blue = Snares (pads 10-12)
+# Red = Bass (pads 13-16)
+# Gold = Cymbals (pads 17-18)
+import board
 import touchio
 import usb_midi
 import adafruit_midi
