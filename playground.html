@@ -471,6 +471,10 @@
                         <div class="template-name">Sensitivity</div>
                         <div class="template-desc">Adjustable pad sensitivity</div>
                     </div>
+                    <div class="template-item" onclick="loadTemplate('keyboard')">
+                        <div class="template-name">Keyboard</div>
+                        <div class="template-desc">USB keyboard keystrokes</div>
+                    </div>
                     <div class="template-item" onclick="loadTemplate('neopixel')">
                         <div class="template-name">NeoPixel</div>
                         <div class="template-desc">27 light effects</div>
@@ -1998,7 +2002,9 @@ def rainbow(speed, duration, step_size=10):
 # Start
 rainbow(0.01, 2, step_size=10)
 
-pixels.fill((0,0,0))
+# Turn all LEDs off first
+pixels.fill((0, 0, 0))
+pixels.show()
 
 # Set initial colors - LEDs stay on to show which pads are drums
 for i in range(9):
@@ -2023,6 +2029,128 @@ while True:
                 midi.send(NoteOff(drum_notes[i], 0))
                 pixels[drum_pixels[i]] = drum_colors[i]  # Back to original color
                 note_played[i] = False
+`,
+                
+                'keyboard': `# Keyboard HID - Turn SPOKE into a USB keyboard
+# Each pad triggers a different keystroke
+# Perfect for gaming, shortcuts, or custom macros
+import time
+import board
+import touchio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+import neopixel
+from rainbowio import colorwheel
+
+# Initialize Keyboard
+kbd = Keyboard(usb_hid.devices)
+
+# Initialize NeoPixels
+num_pixels = 27
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# Define the touch pins
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7,
+    board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14,
+    board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21,
+    board.GP22, board.GP23, board.GP24, board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+# Keycode assignments for each pad
+# Customize these to your needs! Examples below:
+# Numbers: Keycode.ONE, Keycode.TWO, etc.
+# Letters: Keycode.A, Keycode.B, etc.
+# Arrow keys: Keycode.UP_ARROW, Keycode.DOWN_ARROW, etc.
+# Modifiers: Keycode.SHIFT, Keycode.CONTROL, Keycode.ALT
+# Function keys: Keycode.F1, Keycode.F2, etc.
+# Special: Keycode.SPACE, Keycode.ENTER, Keycode.ESCAPE
+
+keycodes = [
+    Keycode.ONE,        # Pad 1
+    Keycode.TWO,        # Pad 2
+    Keycode.THREE,      # Pad 3
+    Keycode.FOUR,       # Pad 4
+    Keycode.FIVE,       # Pad 5
+    Keycode.SIX,        # Pad 6
+    Keycode.SEVEN,      # Pad 7
+    Keycode.EIGHT,      # Pad 8
+    Keycode.NINE,       # Pad 9
+    Keycode.Q,          # Pad 10
+    Keycode.W,          # Pad 11
+    Keycode.E,          # Pad 12
+    Keycode.R,          # Pad 13
+    Keycode.T,          # Pad 14
+    Keycode.Y,          # Pad 15
+    Keycode.U,          # Pad 16
+    Keycode.I,          # Pad 17
+    Keycode.O,          # Pad 18
+    Keycode.A,          # Pad 19
+    Keycode.S,          # Pad 20
+    Keycode.D,          # Pad 21
+    Keycode.F,          # Pad 22
+    Keycode.G,          # Pad 23
+    Keycode.H,          # Pad 24
+    Keycode.J,          # Pad 25
+    Keycode.SPACE,      # Pad 26
+    Keycode.ENTER       # Pad 27
+]
+
+# Rainbow colors for visual feedback
+pad_colors = [colorwheel(int(i * 256 / 27)) for i in range(27)]
+
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# State tracking
+key_pressed = [False] * 27
+
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Start
+rainbow(0.01, 2, step_size=10)
+pixels.fill((0, 0, 0))
+pixels.show()
+
+print("Keyboard HID ready!")
+print("Touch pads to send keystrokes")
+print("Edit keycodes array to customize keys")
+
+# Main loop
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not key_pressed[i]:
+                # Press the key
+                kbd.press(keycodes[i])
+                pixels[i] = pad_colors[i]
+                key_pressed[i] = True
+                print(f"Pad {i+1}: Key pressed")
+        else:
+            if key_pressed[i]:
+                # Release the key
+                kbd.release(keycodes[i])
+                pixels[i] = (0, 0, 0)
+                key_pressed[i] = False
+    
+    time.sleep(0.01)
 `,
                 
                 'sequencer': `import board
