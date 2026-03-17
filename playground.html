@@ -1389,8 +1389,12 @@ while True:
         function getTemplates() {
             return {
                 'basic': `# This is the default code for the main SPOKE board
-# Sets up touch pins as capacitive touch sensors and NeoPixels
-# MIDI-out is polyphonic on/off
+# This is the default code for the main SPOKE board. If you have the mini version or an older version with a visible Raspbery Pi Pico board attached, then use the code in the /SPOKE-mini folder on Github
+
+# This code sets up the touch pins as capacitive touch sensors, it also sets up the neopixels to match the touch sensor it is next to. The MIDI-out in this example os polyphonic on/off. Read through the code to see what each section does and edit the parts you need!
+
+# SPOKE is an open-source project that was funded by very generous Kickstarter backers, including Gawain Hewitt, Jonathan Ansell, Florentina & ORANCIUC IVAN who pledged to have their names in the example code! 
+
 import time
 import board
 import touchio
@@ -1401,6 +1405,7 @@ from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
 import neopixel
 from rainbowio import colorwheel
+
 
 # MIDI note numbers corresponding to each touch pin
 midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
@@ -1466,6 +1471,7 @@ while True:
                 midi.send(NoteOff(midi_notes[i], 120))
                 note_played[i] = False
                 pixels[i] = (0, 0, 255)
+
 `,
                 
                 'sensitivity': `# ============================================================================
