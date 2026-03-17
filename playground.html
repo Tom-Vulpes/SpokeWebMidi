@@ -1998,6 +1998,8 @@ def rainbow(speed, duration, step_size=10):
 # Start
 rainbow(0.01, 2, step_size=10)
 
+pixels.fill((0,0,0))
+
 # Set initial colors - LEDs stay on to show which pads are drums
 for i in range(9):
     pixels[drum_pixels[i]] = drum_colors[i]
