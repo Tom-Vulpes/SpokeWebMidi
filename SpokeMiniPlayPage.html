@@ -350,32 +350,75 @@
             <div class="search-panel">
                 <div class="search-title">🔍 Search Freesound</div>
                 
-                <div id="apiKeySection">
-                    <p style="margin-bottom: 15px; font-size: 14px;">Enter your Freesound API key to get started:</p>
-                    <div class="search-box">
-                        <input type="text" id="apiKeyInput" class="search-input" placeholder="Your API Key">
-                        <button class="btn btn-primary" onclick="saveApiKey()">Save</button>
-                    </div>
-                    <p style="font-size: 12px; opacity: 0.7;">Get a free API key at <a href="https://freesound.org/apiv2/apply" target="_blank" style="color: #4a9eff;">freesound.org</a></p>
+                <div class="search-box">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search sounds..." onkeypress="if(event.key==='Enter') searchSounds()">
+                    <button class="btn btn-primary" onclick="searchSounds()">Search</button>
                 </div>
                 
-                <div id="searchSection" style="display: none;">
-                    <div class="search-box">
-                        <input type="text" id="searchInput" class="search-input" placeholder="Search sounds..." onkeypress="if(event.key==='Enter') searchSounds()">
-                        <button class="btn btn-primary" onclick="searchSounds()">Search</button>
-                    </div>
-                    
-                    <div id="results" class="results"></div>
-                </div>
+                <div id="results" class="results"></div>
             </div>
         </div>
     </div>
 
     <script>
+        // Embedded API key
+        const API_KEY = 'ENXBH14HDdboFnq4ttqKQGed9tV7xxYJOghOaPbo';
+        
         // Configuration - All 26 SPOKE Mini MIDI notes
         const SPOKE_MINI_NOTES = [36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 
                                    67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96];
-        let API_KEY = localStorage.getItem('freesound_api_key') || '';
+        
+        // Content safety filters
+        const BLOCKED_TERMS = [
+            'sex', 'sexy', 'porn', 'xxx', 'adult', 'nsfw',
+            'fuck', 'fucking', 'shit', 'bitch', 'dick', 'cock',
+            'cum', 'orgasm', 'masturbat', 'breast', 'nude', 'naked',
+            'kill', 'murder', 'death', 'violence', 'blood', 'gore',
+            'drug', 'weed', 'cocaine', 'meth', 'heroin',
+            'damn', 'hell', 'crap', 'piss'
+        ];
+        
+        // Whitelist of legitimate terms that contain blocked substrings
+        const WHITELIST_TERMS = [
+            'bass', 'bassist', 'bassdrum', 'bassoon', 
+            'grass', 'class', 'glass', 'pass', 'mass',
+            'assess', 'classic', 'cassette',
+            'kickass' // as in "kickass beat" - slang but not offensive in music context
+        ];
+        
+        function containsBlockedContent(text) {
+            const lowerText = text.toLowerCase();
+            
+            // First check if any whitelisted terms are present
+            for (const whitelist of WHITELIST_TERMS) {
+                if (lowerText.includes(whitelist)) {
+                    // Check if the whitelisted term contains any blocked term
+                    const matchedBlocked = BLOCKED_TERMS.find(blocked => whitelist.includes(blocked));
+                    if (matchedBlocked) {
+                        // Remove the whitelisted term temporarily to check the rest
+                        const textWithoutWhitelist = lowerText.replace(new RegExp(whitelist, 'gi'), '');
+                        // Check if blocked term appears elsewhere
+                        const regex = new RegExp(`\\b${matchedBlocked}\\b`, 'i');
+                        if (!regex.test(textWithoutWhitelist)) {
+                            continue; // This blocked term only appears in whitelist, skip it
+                        }
+                    }
+                }
+            }
+            
+            // Check for whole word matches of blocked terms
+            return BLOCKED_TERMS.some(term => {
+                const regex = new RegExp(`\\b${term}\\b`, 'i');
+                return regex.test(lowerText);
+            });
+        }
+        
+        function sanitizeSearchQuery(query) {
+            if (containsBlockedContent(query)) {
+                return null; // Block the search
+            }
+            return query;
+        }
         
         // State
         let audioContext;
@@ -388,12 +431,7 @@
         // Initialize
         function init() {
             createPads();
-            
-            if (API_KEY) {
-                document.getElementById('apiKeySection').style.display = 'none';
-                document.getElementById('searchSection').style.display = 'block';
-                document.getElementById('apiKeyInput').value = API_KEY;
-            }
+            console.log('✅ SPOKE Mini Freesound Sampler ready with embedded API key');
             
             // Initialize audio context
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -450,21 +488,6 @@
             console.log(`Selected pad ${index + 1}`);
         }
         
-        // Save API key
-        function saveApiKey() {
-            const key = document.getElementById('apiKeyInput').value.trim();
-            if (!key) {
-                alert('Please enter an API key');
-                return;
-            }
-            
-            API_KEY = key;
-            localStorage.setItem('freesound_api_key', key);
-            
-            document.getElementById('apiKeySection').style.display = 'none';
-            document.getElementById('searchSection').style.display = 'block';
-        }
-        
         // Search Freesound
         async function searchSounds() {
             const query = document.getElementById('searchInput').value.trim();
@@ -473,11 +496,23 @@
                 return;
             }
             
+            // Sanitize search query
+            const sanitized = sanitizeSearchQuery(query);
+            if (!sanitized) {
+                document.getElementById('results').innerHTML = `
+                    <div class="error">
+                        <strong>Search Blocked</strong><br>
+                        This search term contains inappropriate content and cannot be processed.
+                    </div>
+                `;
+                return;
+            }
+            
             const results = document.getElementById('results');
             results.innerHTML = '<div class="loading">Searching...</div>';
             
             try {
-                const url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(query)}&token=${API_KEY}&fields=id,name,duration,username&page_size=10`;
+                const url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(sanitized)}&token=${API_KEY}&fields=id,name,duration,username&page_size=10`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -485,7 +520,14 @@
                 }
                 
                 const data = await response.json();
-                displayResults(data.results);
+                
+                // Filter results for inappropriate content
+                const filteredResults = data.results.filter(sound => 
+                    !containsBlockedContent(sound.name) && 
+                    !containsBlockedContent(sound.username)
+                );
+                
+                displayResults(filteredResults);
                 
             } catch (error) {
                 results.innerHTML = `<div class="error">Error: ${error.message}</div>`;
