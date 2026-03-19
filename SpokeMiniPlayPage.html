@@ -17,9 +17,24 @@
             min-height: 100vh;
             color: white;
             overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Background oscilloscope */
+        #backgroundScope {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15;
+            pointer-events: none;
         }
         
         .container {
+            position: relative;
+            z-index: 1;
             max-width: 1200px;
             margin: 0 auto;
             padding: 40px 20px;
@@ -309,6 +324,9 @@
     </style>
 </head>
 <body>
+    <!-- Background oscilloscope -->
+    <canvas id="backgroundScope"></canvas>
+    
     <div class="container">
         <div class="header">
             <h1 class="title">SPOKE MINI SAMPLER</h1>
@@ -320,6 +338,10 @@
             <div class="control-item">
                 <span class="status-indicator" id="midiStatus"></span>
                 <button class="btn btn-primary" onclick="connectMIDI()">Connect MIDI</button>
+            </div>
+            
+            <div class="control-item">
+                <button class="btn" id="recordBtn" onclick="toggleRecord()">🎤 Record to Pad</button>
             </div>
             
             <div class="control-item">
@@ -335,7 +357,7 @@
         <div class="main-grid">
             <!-- SPOKE Mini Board -->
             <div class="board-section">
-                <div class="board-title">SPOKE Mini - 26 Touch Pads (13 per side)</div>
+                <div class="board-title">SPOKE Mini - 26 Touch Pads</div>
                 <div class="mini-board">
                     <div class="pad-column" id="leftColumn">
                         <!-- Left 13 pads (1-13) -->
@@ -352,6 +374,14 @@
                 
                 <div class="search-box">
                     <input type="text" id="searchInput" class="search-input" placeholder="Search sounds..." onkeypress="if(event.key==='Enter') searchSounds()">
+                    <select id="durationFilter" class="search-input" style="width: auto; flex: 0 0 auto;">
+                        <option value="any">Any Duration</option>
+                        <option value="0.5">Under 0.5s</option>
+                        <option value="1" selected>Under 1s</option>
+                        <option value="2">Under 2s</option>
+                        <option value="5">Under 5s</option>
+                        <option value="10">Under 10s</option>
+                    </select>
                     <button class="btn btn-primary" onclick="searchSounds()">Search</button>
                 </div>
                 
@@ -428,9 +458,24 @@
         const activeSources = new Map();
         let selectedPad = null;
         
+        // Recording state
+        let isRecording = false;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        
+        // Preview audio
+        let currentPreview = null;
+        
+        // Background oscilloscope
+        let backgroundScope;
+        let backgroundAnalyser;
+        let backgroundDataArray;
+        let backgroundAnimationId;
+        
         // Initialize
         function init() {
             createPads();
+            initBackgroundScope();
             console.log('✅ SPOKE Mini Freesound Sampler ready with embedded API key');
             
             // Initialize audio context
@@ -438,6 +483,134 @@
             masterGain = audioContext.createGain();
             masterGain.gain.value = 0.8;
             masterGain.connect(audioContext.destination);
+            
+            // Setup background analyser
+            backgroundAnalyser = audioContext.createAnalyser();
+            backgroundAnalyser.fftSize = 2048;
+            const bufferLength = backgroundAnalyser.frequencyBinCount;
+            backgroundDataArray = new Uint8Array(bufferLength);
+            
+            // Connect master gain to analyser
+            masterGain.connect(backgroundAnalyser);
+            
+            // Start scope animation
+            drawBackgroundScope();
+        }
+        
+        // Initialize background oscilloscope
+        function initBackgroundScope() {
+            backgroundScope = document.getElementById('backgroundScope');
+            backgroundScope.width = window.innerWidth;
+            backgroundScope.height = window.innerHeight;
+            
+            window.addEventListener('resize', () => {
+                backgroundScope.width = window.innerWidth;
+                backgroundScope.height = window.innerHeight;
+            });
+        }
+        
+        // Draw background oscilloscope
+        function drawBackgroundScope() {
+            backgroundAnimationId = requestAnimationFrame(drawBackgroundScope);
+            
+            if (!backgroundAnalyser) return;
+            
+            backgroundAnalyser.getByteTimeDomainData(backgroundDataArray);
+            
+            const canvas = backgroundScope;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            
+            const sliceWidth = width / backgroundDataArray.length;
+            let x = 0;
+            
+            for (let i = 0; i < backgroundDataArray.length; i++) {
+                const v = backgroundDataArray[i] / 128.0;
+                const y = (v * height) / 2;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                
+                x += sliceWidth;
+            }
+            
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
+        }
+        
+        // Toggle recording
+        async function toggleRecord() {
+            const btn = document.getElementById('recordBtn');
+            
+            if (!isRecording) {
+                // Start recording
+                if (selectedPad === null) {
+                    alert('Please select a pad first (click on a pad)');
+                    return;
+                }
+                
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    recordedChunks = [];
+                    
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) {
+                            recordedChunks.push(e.data);
+                        }
+                    };
+                    
+                    mediaRecorder.onstop = async () => {
+                        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                        const arrayBuffer = await blob.arrayBuffer();
+                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                        
+                        // Store sample
+                        padSamples.set(selectedPad, {
+                            buffer: audioBuffer,
+                            name: `Recording ${selectedPad + 1}`
+                        });
+                        
+                        // Update UI
+                        document.getElementById(`pad-${selectedPad}`).classList.add('has-sample');
+                        document.getElementById(`padName-${selectedPad}`).textContent = `Rec ${selectedPad + 1}`;
+                        
+                        // Stop all tracks
+                        stream.getTracks().forEach(track => track.stop());
+                        
+                        // Auto-select next pad
+                        if (selectedPad < 25) {
+                            selectPad(selectedPad + 1);
+                        }
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btn.textContent = '⏹️ Stop Recording';
+                    btn.style.background = 'rgba(244, 67, 54, 0.6)';
+                    
+                } catch (error) {
+                    alert('Microphone access denied: ' + error.message);
+                }
+                
+            } else {
+                // Stop recording
+                mediaRecorder.stop();
+                isRecording = false;
+                btn.textContent = '🎤 Record to Pad';
+                btn.style.background = '';
+            }
         }
         
         // Create pad elements - 13 on left, 13 on right
@@ -512,7 +685,7 @@
             results.innerHTML = '<div class="loading">Searching...</div>';
             
             try {
-                const url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(sanitized)}&token=${API_KEY}&fields=id,name,duration,username&page_size=10`;
+                const url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(sanitized)}&token=${API_KEY}&fields=id,name,duration,username&page_size=20`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -521,11 +694,20 @@
                 
                 const data = await response.json();
                 
-                // Filter results for inappropriate content
-                const filteredResults = data.results.filter(sound => 
+                // Get duration filter
+                const durationFilter = document.getElementById('durationFilter').value;
+                
+                // Filter results for inappropriate content and duration
+                let filteredResults = data.results.filter(sound => 
                     !containsBlockedContent(sound.name) && 
                     !containsBlockedContent(sound.username)
                 );
+                
+                // Apply duration filter
+                if (durationFilter !== 'any') {
+                    const maxDuration = parseFloat(durationFilter);
+                    filteredResults = filteredResults.filter(sound => sound.duration <= maxDuration);
+                }
                 
                 displayResults(filteredResults);
                 
@@ -539,7 +721,7 @@
             const results = document.getElementById('results');
             
             if (sounds.length === 0) {
-                results.innerHTML = '<div class="loading">No results found</div>';
+                results.innerHTML = '<div class="loading">No results found matching your criteria</div>';
                 return;
             }
             
@@ -550,7 +732,8 @@
                         ${sound.duration.toFixed(1)}s • by ${sound.username}
                     </div>
                     <div class="result-actions">
-                        <button class="btn btn-small" onclick="previewSound(${sound.id})">▶ Preview</button>
+                        <button class="btn btn-small" onclick="previewSound(${sound.id})" id="preview-${sound.id}">▶ Preview</button>
+                        <button class="btn btn-small" onclick="stopPreview()" style="display: none;" id="stop-${sound.id}">⏹ Stop</button>
                         <button class="btn btn-small btn-primary" onclick="assignSound(${sound.id}, '${sound.name.replace(/'/g, "\\'")}')">Assign to Pad</button>
                     </div>
                 </div>
@@ -559,17 +742,46 @@
         
         // Preview sound
         async function previewSound(soundId) {
+            // Stop any current preview
+            stopPreview();
+            
             try {
                 const url = `https://freesound.org/apiv2/sounds/${soundId}/?token=${API_KEY}&fields=previews`;
                 const response = await fetch(url);
                 const data = await response.json();
                 
-                const audio = new Audio(data.previews['preview-hq-mp3']);
-                audio.volume = masterGain.gain.value;
-                audio.play();
+                currentPreview = new Audio(data.previews['preview-hq-mp3']);
+                currentPreview.volume = masterGain.gain.value;
+                currentPreview.play();
+                
+                // Show stop button, hide preview button
+                const previewBtn = document.getElementById(`preview-${soundId}`);
+                const stopBtn = document.getElementById(`stop-${soundId}`);
+                if (previewBtn) previewBtn.style.display = 'none';
+                if (stopBtn) stopBtn.style.display = 'inline-block';
+                
+                // When audio ends, reset buttons
+                currentPreview.onended = () => {
+                    if (previewBtn) previewBtn.style.display = 'inline-block';
+                    if (stopBtn) stopBtn.style.display = 'none';
+                    currentPreview = null;
+                };
                 
             } catch (error) {
                 alert('Preview failed: ' + error.message);
+            }
+        }
+        
+        // Stop preview
+        function stopPreview() {
+            if (currentPreview) {
+                currentPreview.pause();
+                currentPreview.currentTime = 0;
+                currentPreview = null;
+                
+                // Reset all buttons
+                document.querySelectorAll('[id^="preview-"]').forEach(btn => btn.style.display = 'inline-block');
+                document.querySelectorAll('[id^="stop-"]').forEach(btn => btn.style.display = 'none');
             }
         }
         
@@ -681,8 +893,33 @@
             const padIndex = SPOKE_MINI_NOTES.indexOf(note);
             if (padIndex === -1) return;
             
+            const pad = document.getElementById(`pad-${padIndex}`);
+            
             if (command === 0x90 && velocity > 0) {
+                // Note On - play sample and highlight pad
                 playSample(padIndex, velocity);
+                
+                // Visual feedback - bright flash
+                if (pad) {
+                    pad.style.background = 'rgba(255, 255, 255, 0.9)';
+                    pad.style.borderColor = 'rgba(255, 255, 255, 1)';
+                    pad.style.boxShadow = '0 0 30px rgba(255, 255, 255, 0.8)';
+                }
+            } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+                // Note Off - reset pad appearance
+                if (pad) {
+                    setTimeout(() => {
+                        if (pad.classList.contains('has-sample')) {
+                            pad.style.background = '';
+                            pad.style.borderColor = '';
+                            pad.style.boxShadow = '';
+                        } else {
+                            pad.style.background = '';
+                            pad.style.borderColor = '';
+                            pad.style.boxShadow = '';
+                        }
+                    }, 100);
+                }
             }
         }
         
