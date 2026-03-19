@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE Mini CircuitPython Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Left Sidebar */
+        .sidebar {
+            width: 280px;
+            background: #252525;
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            background: #2d2d2d;
+            border-bottom: 1px solid #333;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+        }
+        
+        .sidebar-section {
+            border-bottom: 1px solid #333;
+        }
+        
+        .sidebar-content {
+            padding: 10px 0;
+        }
+        
+        .template-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-left: 3px solid transparent;
+        }
+        
+        .template-item:hover {
+            background: #2d2d2d;
+            border-left-color: #4a9eff;
+        }
+        
+        .template-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: #e0e0e0;
+        }
+        
+        .template-desc {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        /* Main Editor */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .editor-header {
+            background: #2d2d2d;
+            padding: 15px 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .editor-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #4a9eff;
+        }
+        
+        .editor-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            background: #3a3a3a;
+            border: 1px solid #4a4a4a;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: #4a4a4a;
+            border-color: #5a5a5a;
+        }
+        
+        .btn-primary {
+            background: #4a9eff;
+            border-color: #4a9eff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3a8eef;
+            border-color: #3a8eef;
+        }
+        
+        /* Code Editor */
+        .editor-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #editor {
+            width: 100%;
+            height: 100%;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: none;
+            outline: none;
+            resize: none;
+            tab-size: 4;
+        }
+        
+        /* Pin Mapping Panel */
+        .pin-info {
+            background: #252525;
+            padding: 20px;
+            border-top: 1px solid #333;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .pin-info-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #4a9eff;
+        }
+        
+        .pin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+            font-size: 12px;
+        }
+        
+        .pin-item {
+            background: #2d2d2d;
+            padding: 6px 10px;
+            border-radius: 3px;
+            border-left: 2px solid #4a9eff;
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: #2d2d2d;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #4a9eff;
+        }
+        
+        .modal-close {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+        }
+        
+        .modal-close:hover {
+            color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-header">Code Templates</div>
+                <div class="sidebar-content">
+                    <div class="template-item" onclick="loadTemplate('basic')">
+                        <div class="template-name">Mini Default</div>
+                        <div class="template-desc">26-pad MIDI controller</div>
+                    </div>
+                    <div class="template-item" onclick="loadTemplate('drums')">
+                        <div class="template-name">Drum Pads</div>
+                        <div class="template-desc">13 pads for drums</div>
+                    </div>
+                    <div class="template-item" onclick="loadTemplate('sensitivity')">
+                        <div class="template-name">Sensitivity</div>
+                        <div class="template-desc">Adjustable touch threshold</div>
+                    </div>
+                    <div class="template-item" onclick="loadTemplate('keyboard')">
+                        <div class="template-name">Letters</div>
+                        <div class="template-desc">A-Z keyboard layout</div>
+                    </div>
+                    <div class="template-item" onclick="loadTemplate('gaming')">
+                        <div class="template-name">Gaming</div>
+                        <div class="template-desc">Game controls + mouse</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-header">Quick Actions</div>
+                <div class="sidebar-content">
+                    <div class="template-item" onclick="openFile()">
+                        <div class="template-name">📁 Open File</div>
+                        <div class="template-desc">Load code.py from disk</div>
+                    </div>
+                    <div class="template-item" onclick="saveFile()" style="opacity: 0.5;" id="saveTemplate">
+                        <div class="template-name">💾 Save as code.py</div>
+                        <div class="template-desc">Download to CIRCUITPY drive</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="editor-header">
+                <div class="editor-title">SPOKE Mini CircuitPython Editor</div>
+                <div class="editor-actions">
+                    <button class="btn" onclick="copyCode()">📋 Copy Code</button>
+                    <button class="btn btn-primary" onclick="saveFile()">💾 Download code.py</button>
+                </div>
+            </div>
+            
+            <div class="editor-wrapper">
+                <textarea id="editor" spellcheck="false"></textarea>
+            </div>
+            
+            <div class="pin-info">
+                <div class="pin-info-title">SPOKE Mini Pin Mapping (26 Touch Pads)</div>
+                <div class="pin-grid">
+                    <div class="pin-item">Pad 1: GP0</div>
+                    <div class="pin-item">Pad 2: GP1</div>
+                    <div class="pin-item">Pad 3: GP2</div>
+                    <div class="pin-item">Pad 4: GP3</div>
+                    <div class="pin-item">Pad 5: GP4</div>
+                    <div class="pin-item">Pad 6: GP5</div>
+                    <div class="pin-item">Pad 7: GP6</div>
+                    <div class="pin-item">Pad 8: GP7</div>
+                    <div class="pin-item">Pad 9: GP8</div>
+                    <div class="pin-item">Pad 10: GP9</div>
+                    <div class="pin-item">Pad 11: GP10</div>
+                    <div class="pin-item">Pad 12: GP11</div>
+                    <div class="pin-item">Pad 13: GP12</div>
+                    <div class="pin-item">Pad 14: GP13</div>
+                    <div class="pin-item">Pad 15: GP14</div>
+                    <div class="pin-item">Pad 16: GP15</div>
+                    <div class="pin-item">Pad 17: GP16</div>
+                    <div class="pin-item">Pad 18: GP17</div>
+                    <div class="pin-item">Pad 19: GP18</div>
+                    <div class="pin-item">Pad 20: GP19</div>
+                    <div class="pin-item">Pad 21: GP20</div>
+                    <div class="pin-item">Pad 22: GP21</div>
+                    <div class="pin-item">Pad 23: GP22</div>
+                    <div class="pin-item">Pad 24: GP26</div>
+                    <div class="pin-item">Pad 25: GP27</div>
+                    <div class="pin-item">Pad 26: GP28</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        
+        // Code templates
+        const templates = {
+            getTemplate(name) {
+                return this[name] || this.basic;
+            },
+            
+            'basic': `# SPOKE Mini Default Code - 26-pad MIDI Controller
+# USB MIDI with onboard LED feedback
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+# Define the touch pins (26 pads)
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, 
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, 
+    board.GP27, board.GP28
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# MIDI note numbers for each pad
+midi_notes = [
+    36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 
+    67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96
+]
+
+# State tracking
+note_played = [False] * len(touch_pins)
+
+# Setup onboard LED
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+print("SPOKE Mini ready! 26 pads active")
+
+# Main loop
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(midi_notes[i], 120))
+                led.value = True
+                note_played[i] = True
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(midi_notes[i], 120))
+                led.value = False
+                note_played[i] = False
+`,
+
+            'drums': `# Drum Pads - 13 pads for drums
+# Uses first 13 pads (left side of Mini)
+# LED blinks on each hit
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+# First 13 pads for drums
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
+    board.GP12
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# MIDI setup - channel 10 for drums
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=9)
+
+# General MIDI drum notes
+drum_notes = [
+    36,  # Kick
+    38,  # Snare
+    42,  # Hi-hat closed
+    46,  # Hi-hat open
+    41,  # Tom 1
+    43,  # Tom 2
+    45,  # Tom 3
+    47,  # Tom 4
+    49,  # Crash
+    51,  # Ride
+    37,  # Rimshot
+    39,  # Clap
+    54   # Tambourine
+]
+
+note_played = [False] * 13
+
+# Setup LED
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+print("Drum pads ready! 13 drums on left side")
+
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(drum_notes[i], 127))
+                led.value = True
+                note_played[i] = True
+                print(f"Drum {i+1}")
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(drum_notes[i], 0))
+                led.value = False
+                note_played[i] = False
+`,
+
+            'sensitivity': `# Sensitivity Controls
+# Adjust touch sensitivity with threshold values
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+# SENSITIVITY SETTING - adjust this value!
+# Lower = more sensitive (easier to trigger)
+# Higher = less sensitive (harder to trigger)
+# Default is around 1200-1500
+TOUCH_THRESHOLD = 1400
+
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, 
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, 
+    board.GP27, board.GP28
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        sensor = touchio.TouchIn(pin)
+        sensor.threshold = TOUCH_THRESHOLD
+        touch_sensors.append(sensor)
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+midi_notes = [
+    36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 
+    67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96
+]
+
+note_played = [False] * len(touch_pins)
+
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+print(f"Sensitivity set to: {TOUCH_THRESHOLD}")
+print("Adjust TOUCH_THRESHOLD if pads are too sensitive or not sensitive enough")
+
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(midi_notes[i], 120))
+                led.value = True
+                note_played[i] = True
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(midi_notes[i], 120))
+                led.value = False
+                note_played[i] = False
+`,
+
+            'keyboard': `# Keyboard HID - A-Z Letters
+# 26 pads become A-Z keyboard keys
+import time
+import board
+import touchio
+import digitalio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+
+# Initialize Keyboard
+kbd = Keyboard(usb_hid.devices)
+
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, 
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, 
+    board.GP27, board.GP28
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# A-Z keycodes for each pad
+keycodes = [
+    Keycode.A, Keycode.B, Keycode.C, Keycode.D, Keycode.E, Keycode.F,
+    Keycode.G, Keycode.H, Keycode.I, Keycode.J, Keycode.K, Keycode.L,
+    Keycode.M, Keycode.N, Keycode.O, Keycode.P, Keycode.Q, Keycode.R,
+    Keycode.S, Keycode.T, Keycode.U, Keycode.V, Keycode.W, Keycode.X,
+    Keycode.Y, Keycode.Z
+]
+
+key_pressed = [False] * 26
+
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+print("Keyboard ready! Pads 1-26 are A-Z")
+
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not key_pressed[i]:
+                kbd.press(keycodes[i])
+                led.value = True
+                key_pressed[i] = True
+        else:
+            if key_pressed[i]:
+                kbd.release(keycodes[i])
+                led.value = False
+                key_pressed[i] = False
+    
+    time.sleep(0.01)
+`,
+
+            'gaming': `# Gaming Controls - Keyboard + Mouse
+# Minecraft/FPS style game controls
+import time
+import board
+import touchio
+import digitalio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+from adafruit_hid.mouse import Mouse
+
+kbd = Keyboard(usb_hid.devices)
+mouse = Mouse(usb_hid.devices)
+
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, 
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, 
+    board.GP27, board.GP28
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# Gaming controls mapping
+controls = [
+    (Keycode.W, 'forward'),          # Pad 1
+    (Keycode.A, 'left'),             # Pad 2
+    (Keycode.S, 'back'),             # Pad 3
+    (Keycode.D, 'right'),            # Pad 4
+    (Keycode.SPACE, 'jump'),         # Pad 5
+    (Keycode.SHIFT, 'sneak'),        # Pad 6
+    (Keycode.E, 'inventory'),        # Pad 7
+    (Keycode.Q, 'drop'),             # Pad 8
+    (Keycode.ONE, 'slot1'),          # Pad 9
+    (Keycode.TWO, 'slot2'),          # Pad 10
+    (Keycode.THREE, 'slot3'),        # Pad 11
+    (Keycode.FOUR, 'slot4'),         # Pad 12
+    (Keycode.FIVE, 'slot5'),         # Pad 13
+    (Keycode.SIX, 'slot6'),          # Pad 14
+    (Keycode.SEVEN, 'slot7'),        # Pad 15
+    (Keycode.EIGHT, 'slot8'),        # Pad 16
+    (Keycode.NINE, 'slot9'),         # Pad 17
+    ('LEFT_CLICK', 'attack'),        # Pad 18
+    ('RIGHT_CLICK', 'use'),          # Pad 19
+    (Keycode.R, 'sprint'),           # Pad 20
+    (Keycode.T, 'chat'),             # Pad 21
+    (Keycode.ESCAPE, 'menu'),        # Pad 22
+    (Keycode.F3, 'debug'),           # Pad 23
+    (Keycode.F5, 'perspective'),     # Pad 24
+    (Keycode.TAB, 'playerlist'),     # Pad 25
+    (Keycode.ENTER, 'send')          # Pad 26
+]
+
+keycodes = [control[0] for control in controls]
+control_active = [False] * 26
+
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+print("Gaming controls ready!")
+for i, (key, action) in enumerate(controls):
+    key_name = 'LEFT_CLICK' if key == 'LEFT_CLICK' else ('RIGHT_CLICK' if key == 'RIGHT_CLICK' else str(key).split('.')[-1])
+    print(f"Pad {i+1}: {key_name} ({action})")
+
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not control_active[i]:
+                if keycodes[i] == 'LEFT_CLICK':
+                    mouse.press(Mouse.LEFT_BUTTON)
+                elif keycodes[i] == 'RIGHT_CLICK':
+                    mouse.press(Mouse.RIGHT_BUTTON)
+                else:
+                    kbd.press(keycodes[i])
+                led.value = True
+                control_active[i] = True
+        else:
+            if control_active[i]:
+                if keycodes[i] == 'LEFT_CLICK':
+                    mouse.release(Mouse.LEFT_BUTTON)
+                elif keycodes[i] == 'RIGHT_CLICK':
+                    mouse.release(Mouse.RIGHT_BUTTON)
+                else:
+                    kbd.release(keycodes[i])
+                led.value = False
+                control_active[i] = False
+    
+    time.sleep(0.01)
+`
+        };
+        
+        // Load template
+        function loadTemplate(name) {
+            const template = templates.getTemplate(name);
+            editor.value = template;
+            document.getElementById('saveTemplate').style.opacity = '1';
+        }
+        
+        // Copy code to clipboard
+        function copyCode() {
+            editor.select();
+            document.execCommand('copy');
+            alert('Code copied to clipboard!');
+        }
+        
+        // Save file
+        function saveFile() {
+            const code = editor.value;
+            if (!code.trim()) {
+                alert('Editor is empty! Load a template first.');
+                return;
+            }
+            
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'code.py';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // Open file
+        function openFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.py,.txt';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        editor.value = e.target.result;
+                        document.getElementById('saveTemplate').style.opacity = '1';
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+        
+        // Tab key support in textarea
+        editor.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+            }
+        });
+        
+        // Load default template on startup
+        loadTemplate('basic');
+    </script>
+</body>
+</html>
