@@ -1441,7 +1441,6 @@ while True:
         function loadTemplate(name) {
             const template = templates.getTemplate(name);
             editor.value = template;
-            document.getElementById('saveTemplate').style.opacity = '1';
         }
         
         // Copy code to clipboard
@@ -1500,32 +1499,36 @@ while True:
             }
             
             try {
-                // Request directory access
-                const dirHandle = await window.showDirectoryPicker();
-                
-                // Check if it's CIRCUITPY
-                if (dirHandle.name !== 'CIRCUITPY') {
-                    const confirm = window.confirm(
-                        `Selected folder is "${dirHandle.name}". Continue anyway?\n\n` +
-                        `(Looking for CIRCUITPY drive)`
-                    );
-                    if (!confirm) return;
+                // Check if File System Access API is supported
+                if (!window.showSaveFilePicker) {
+                    addConsoleMessage('❌ File System Access API not supported. Try Chrome or Edge.', 'error');
+                    alert('Your browser does not support direct file saving. Please use "Download code.py" instead.');
+                    return;
                 }
                 
-                // Create/overwrite code.py
-                const fileHandle = await dirHandle.getFileHandle('code.py', { create: true });
+                // Open save file picker with default name code.py
+                const fileHandle = await window.showSaveFilePicker({
+                    suggestedName: 'code.py',
+                    types: [{
+                        description: 'Python Files',
+                        accept: { 'text/x-python': ['.py'] }
+                    }]
+                });
+                
+                // Write the file
                 const writable = await fileHandle.createWritable();
                 await writable.write(code);
                 await writable.close();
                 
-                addConsoleMessage('✅ code.py saved to ' + dirHandle.name + '!', 'info');
-                addConsoleMessage('Board will auto-restart in a moment...', 'info');
+                addConsoleMessage('✅ code.py saved successfully!', 'info');
+                addConsoleMessage('📁 File saved to: ' + (await fileHandle.getFile()).name, 'info');
+                addConsoleMessage('💡 If saved to CIRCUITPY drive, board will auto-restart', 'info');
                 
             } catch (error) {
                 if (error.name === 'AbortError') {
                     addConsoleMessage('Save cancelled.', 'info');
                 } else {
-                    addConsoleMessage(`Save error: ${error.message}`, 'error');
+                    addConsoleMessage(`❌ Save error: ${error.message}`, 'error');
                 }
             }
         }
@@ -1538,23 +1541,6 @@ while True:
         function openFile() {
             openCodePy();
         }
-        
-        // Tab key support in textarea
-        editor.addEventListener('keydown', function(e) {
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                const start = this.selectionStart;
-                const end = this.selectionEnd;
-                this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
-                this.selectionStart = this.selectionEnd = start + 4;
-            }
-        });
-        
-        // Load default template on startup
-        loadTemplate('basic');
-        
-        // Initialize visualizer
-        initVisualizer();
         
         // Scale Builder functionality
         const scaleNotes = new Array(26).fill(60); // Default to middle C
@@ -1570,8 +1556,7 @@ while True:
             return `${noteName}${octave} (${midiNote})`;
         }
         
-        // Make functions global
-        window.openScaleBuilder = function() {
+        function openScaleBuilder() {
             console.log('Opening Scale Builder...');
             const modal = document.getElementById('scaleBuilderModal');
             const grid = document.getElementById('scaleBuilderGrid');
@@ -1586,6 +1571,8 @@ while True:
                 console.error('Grid not found!');
                 return;
             }
+            
+            console.log('Modal and grid found, populating...');
             
             // Clear and populate grid
             grid.innerHTML = '';
@@ -1624,13 +1611,13 @@ while True:
             
             console.log('Displaying modal...');
             modal.style.display = 'flex';
-        };
+        }
         
-        window.closeScaleBuilder = function() {
+        function closeScaleBuilder() {
             document.getElementById('scaleBuilderModal').style.display = 'none';
-        };
+        }
         
-        window.applyPreset = function(presetName) {
+        function applyPreset(presetName) {
             let notes = [];
             
             switch(presetName) {
@@ -1700,9 +1687,9 @@ while True:
                     select.value = notes[i];
                 }
             }
-        };
+        }
         
-        window.generateScaleCode = function() {
+        function generateScaleCode() {
             // Read current values from selects
             for (let i = 0; i < 26; i++) {
                 const select = document.getElementById(`note-${i}`);
@@ -1774,7 +1761,24 @@ while True:
             editor.value = code;
             closeScaleBuilder();
             addConsoleMessage('Custom scale code generated!', 'info');
-        };
+        }
+        
+        // Tab key support in textarea
+        editor.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+            }
+        });
+        
+        // Load default template on startup
+        loadTemplate('basic');
+        
+        // Initialize visualizer
+        initVisualizer();
     </script>
 </body>
 </html>
