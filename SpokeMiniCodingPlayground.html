@@ -101,6 +101,7 @@
         .editor-actions {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
         
         .btn {
@@ -112,6 +113,7 @@
             cursor: pointer;
             font-size: 13px;
             transition: all 0.2s;
+            white-space: nowrap;
         }
         
         .btn:hover {
@@ -128,6 +130,17 @@
         .btn-primary:hover {
             background: #3a8eef;
             border-color: #3a8eef;
+        }
+        
+        .btn-success {
+            background: #4CAF50;
+            border-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+            border-color: #45a049;
         }
         
         /* Code Editor */
@@ -270,6 +283,112 @@
             font-size: 12px;
         }
         
+        /* Visualizer Panel */
+        .visualizer-section {
+            padding: 15px;
+            border-bottom: 1px solid #333;
+            background: #252525;
+        }
+        
+        .visualizer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .visualizer-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a9eff;
+        }
+        
+        .visualizer-status {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+        }
+        
+        .visualizer-status.connected {
+            color: #4CAF50;
+        }
+        
+        .visualizer-connect {
+            padding: 6px 12px;
+            background: #3a3a3a;
+            border: 1px solid #4a4a4a;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        
+        .visualizer-connect:hover {
+            background: #4a4a4a;
+        }
+        
+        .visualizer-connect.connected {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+        
+        .mini-board {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .mini-pads-container {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+        }
+        
+        .mini-side {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .mini-pad {
+            width: 50px;
+            height: 18px;
+            background: #2d2d2d;
+            border: 1px solid #4a4a4a;
+            border-radius: 3px;
+            transition: all 0.1s;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            color: #666;
+        }
+        
+        .mini-pad.active {
+            background: #4a9eff;
+            border-color: #6ab0ff;
+            box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
+            color: white;
+        }
+        
+        .audio-scope {
+            width: 100%;
+            height: 60px;
+            background: #0a0a0a;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        
+        .sample-status {
+            font-size: 10px;
+            color: #888;
+            margin-top: 5px;
+            text-align: center;
+        }
+        
         /* Pin Mapping Panel */
         .pin-grid {
             display: grid;
@@ -376,20 +495,6 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="sidebar-section">
-                <div class="sidebar-header">Quick Actions</div>
-                <div class="sidebar-content">
-                    <div class="template-item" onclick="openFile()">
-                        <div class="template-name">📁 Open File</div>
-                        <div class="template-desc">Load code.py from disk</div>
-                    </div>
-                    <div class="template-item" onclick="saveFile()" style="opacity: 0.5;" id="saveTemplate">
-                        <div class="template-name">💾 Save as code.py</div>
-                        <div class="template-desc">Download to CIRCUITPY drive</div>
-                    </div>
-                </div>
-            </div>
         </div>
         
         <!-- Main Content -->
@@ -397,8 +502,8 @@
             <div class="editor-header">
                 <div class="editor-title">SPOKE Mini CircuitPython Editor</div>
                 <div class="editor-actions">
-                    <button class="btn" onclick="copyCode()">📋 Copy Code</button>
-                    <button class="btn btn-primary" onclick="saveFile()">💾 Download code.py</button>
+                    <button class="btn" onclick="openCodePy()">📁 Open code.py</button>
+                    <button class="btn btn-success" onclick="saveToMini()">📝 Save to Mini</button>
                 </div>
             </div>
             
@@ -426,6 +531,30 @@
         
         <!-- Right Sidebar -->
         <div class="right-sidebar">
+            <!-- Visualizer Section -->
+            <div class="visualizer-section">
+                <div class="visualizer-header">
+                    <div>
+                        <div class="visualizer-title">SPOKE Mini Live</div>
+                        <div class="visualizer-status" id="midiStatus">Not connected</div>
+                    </div>
+                    <button class="visualizer-connect" id="connectMidiBtn" onclick="connectMIDI()">Connect MIDI</button>
+                </div>
+                
+                <div class="mini-board">
+                    <div class="mini-pads-container">
+                        <div class="mini-side" id="leftSide">
+                            <!-- Left 13 pads -->
+                        </div>
+                        <div class="mini-side" id="rightSide">
+                            <!-- Right 13 pads -->
+                        </div>
+                    </div>
+                </div>
+                
+                <canvas id="audioScope" class="audio-scope" width="268" height="60"></canvas>
+                <div class="sample-status" id="sampleStatus">Samples: 0 / 100</div>
+            </div>
             <!-- Setup Instructions -->
             <div class="info-section">
                 <div class="info-title">⚙️ Setup Instructions</div>
@@ -516,6 +645,217 @@
     <script>
         const editor = document.getElementById('editor');
         const consoleOutput = document.getElementById('console');
+        
+        // MIDI and Audio variables
+        let midiAccess = null;
+        let audioContext;
+        let masterGain;
+        let scopeAnalyser;
+        const samples = new Map();
+        const activeSources = new Map();
+        
+        // SPOKE Mini MIDI notes (26 pads)
+        const MINI_NOTES = [36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 
+                            67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96];
+        
+        // Active pads tracking
+        const activePads = new Set();
+        
+        // Initialize visualizer pads
+        function initVisualizer() {
+            const leftSide = document.getElementById('leftSide');
+            const rightSide = document.getElementById('rightSide');
+            
+            // Create 13 pads on each side
+            for (let i = 0; i < 13; i++) {
+                const leftPad = document.createElement('div');
+                leftPad.className = 'mini-pad';
+                leftPad.id = `pad-${i}`;
+                leftPad.textContent = i + 1;
+                leftSide.appendChild(leftPad);
+                
+                const rightPad = document.createElement('div');
+                rightPad.className = 'mini-pad';
+                rightPad.id = `pad-${i + 13}`;
+                rightPad.textContent = i + 14;
+                rightSide.appendChild(rightPad);
+            }
+        }
+        
+        // MIDI Connection
+        async function connectMIDI() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    masterGain = audioContext.createGain();
+                    masterGain.gain.value = 0.8;
+                    
+                    scopeAnalyser = audioContext.createAnalyser();
+                    scopeAnalyser.fftSize = 2048;
+                    
+                    masterGain.connect(scopeAnalyser);
+                    scopeAnalyser.connect(audioContext.destination);
+                }
+                
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    alert('No MIDI devices found');
+                    return;
+                }
+                
+                inputs.forEach(input => input.onmidimessage = handleMIDIMessage);
+                
+                document.getElementById('connectMidiBtn').textContent = 'Connected';
+                document.getElementById('connectMidiBtn').classList.add('connected');
+                document.getElementById('midiStatus').textContent = `Connected: ${inputs[0].name}`;
+                document.getElementById('midiStatus').classList.add('connected');
+                
+                // Start scope animation
+                drawScope();
+                
+                // Load samples
+                loadAllSamples();
+                
+            } catch (error) {
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        // Handle MIDI messages
+        function handleMIDIMessage(message) {
+            const [status, midiNote, velocity] = message.data;
+            const command = status & 0xf0;
+            const padIndex = MINI_NOTES.indexOf(midiNote);
+            
+            if (padIndex === -1) return;
+            
+            const pad = document.getElementById(`pad-${padIndex}`);
+            
+            // Note On
+            if (command === 0x90 && velocity > 0) {
+                if (pad) {
+                    pad.classList.add('active');
+                    activePads.add(padIndex);
+                }
+                playSample(midiNote % 100, velocity);
+            }
+            // Note Off
+            else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+                if (pad) {
+                    pad.classList.remove('active');
+                    activePads.delete(padIndex);
+                }
+            }
+        }
+        
+        // Play sample
+        function playSample(sampleNumber, velocity = 127) {
+            if (!samples.has(sampleNumber)) return;
+            
+            if (activeSources.has(sampleNumber)) {
+                try { activeSources.get(sampleNumber).source.stop(); } catch (e) {}
+                activeSources.delete(sampleNumber);
+            }
+            
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            
+            source.buffer = samples.get(sampleNumber);
+            gainNode.gain.value = velocity / 127;
+            
+            source.connect(gainNode);
+            gainNode.connect(masterGain);
+            source.start(0);
+            
+            activeSources.set(sampleNumber, { source, gainNode });
+            
+            source.onended = () => {
+                if (activeSources.get(sampleNumber)?.source === source) {
+                    activeSources.delete(sampleNumber);
+                }
+            };
+        }
+        
+        // Load samples from GitHub
+        async function loadAllSamples() {
+            const CONFIG = {
+                username: 'Tom-Vulpes',
+                repo: 'SpokeWebMidi',
+                branch: 'main',
+                samplesFolder: 'notes'
+            };
+            
+            let loadedCount = 0;
+            const statusEl = document.getElementById('sampleStatus');
+            
+            for (let i = 0; i < 100; i++) {
+                const formats = ['wav', 'mp3'];
+                
+                for (const format of formats) {
+                    const filename = `note_${String(i).padStart(3, '0')}`;
+                    const url = `https://raw.githubusercontent.com/${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/${filename}.${format}`;
+                    
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) continue;
+                        
+                        const arrayBuffer = await response.arrayBuffer();
+                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                        samples.set(i, audioBuffer);
+                        loadedCount++;
+                        statusEl.textContent = `Samples: ${loadedCount} / 100`;
+                        break;
+                    } catch (error) {
+                        // Try next format
+                    }
+                }
+            }
+        }
+        
+        // Draw audio scope
+        function drawScope() {
+            const canvas = document.getElementById('audioScope');
+            const ctx = canvas.getContext('2d');
+            
+            if (!scopeAnalyser) {
+                requestAnimationFrame(drawScope);
+                return;
+            }
+            
+            const bufferLength = scopeAnalyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            scopeAnalyser.getByteTimeDomainData(dataArray);
+            
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ff9800';
+            ctx.beginPath();
+            
+            const sliceWidth = canvas.width / bufferLength;
+            let x = 0;
+            
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * canvas.height / 2;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                
+                x += sliceWidth;
+            }
+            
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.stroke();
+            
+            requestAnimationFrame(drawScope);
+        }
         
         // Serial port variables
         let port;
@@ -965,8 +1305,27 @@ while True:
             alert('Code copied to clipboard!');
         }
         
-        // Save file
-        function saveFile() {
+        // Open code.py file
+        function openCodePy() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.py';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        editor.value = e.target.result;
+                        addConsoleMessage(`Loaded: ${file.name}`, 'info');
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+        
+        // Download code.py
+        function downloadCodePy() {
             const code = editor.value;
             if (!code.trim()) {
                 alert('Editor is empty! Load a template first.');
@@ -982,25 +1341,56 @@ while True:
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            
+            addConsoleMessage('code.py downloaded! Copy it to your CIRCUITPY drive.', 'info');
         }
         
-        // Open file
-        function openFile() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.py,.txt';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        editor.value = e.target.result;
-                        document.getElementById('saveTemplate').style.opacity = '1';
-                    };
-                    reader.readAsText(file);
+        // Save directly to Mini via File System Access API
+        async function saveToMini() {
+            const code = editor.value;
+            if (!code.trim()) {
+                alert('Editor is empty! Load a template first.');
+                return;
+            }
+            
+            try {
+                // Request directory access
+                const dirHandle = await window.showDirectoryPicker();
+                
+                // Check if it's CIRCUITPY
+                if (dirHandle.name !== 'CIRCUITPY') {
+                    const confirm = window.confirm(
+                        `Selected folder is "${dirHandle.name}". Continue anyway?\n\n` +
+                        `(Looking for CIRCUITPY drive)`
+                    );
+                    if (!confirm) return;
                 }
-            };
-            input.click();
+                
+                // Create/overwrite code.py
+                const fileHandle = await dirHandle.getFileHandle('code.py', { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(code);
+                await writable.close();
+                
+                addConsoleMessage('✅ code.py saved to ' + dirHandle.name + '!', 'info');
+                addConsoleMessage('Board will auto-restart in a moment...', 'info');
+                
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    addConsoleMessage('Save cancelled.', 'info');
+                } else {
+                    addConsoleMessage(`Save error: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        // Alias for compatibility
+        function saveFile() {
+            downloadCodePy();
+        }
+        
+        function openFile() {
+            openCodePy();
         }
         
         // Tab key support in textarea
@@ -1016,6 +1406,9 @@ while True:
         
         // Load default template on startup
         loadTemplate('basic');
+        
+        // Initialize visualizer
+        initVisualizer();
     </script>
 </body>
 </html>
