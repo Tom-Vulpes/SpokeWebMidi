@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE Mini - Freesound API Sampler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .title {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+        
+        /* Controls at top */
+        .top-controls {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px 30px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #666;
+        }
+        
+        .status-indicator.active {
+            background: #4CAF50;
+            box-shadow: 0 0 10px #4CAF50;
+        }
+        
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .volume-control input {
+            width: 150px;
+        }
+        
+        /* Main Grid Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        /* SPOKE Mini Board */
+        .board-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .board-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .mini-board {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 30px 20px;
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .pad-column {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .pad {
+            width: 120px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .pad:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .pad.active {
+            background: rgba(74, 158, 255, 0.8);
+            border-color: rgba(74, 158, 255, 1);
+            box-shadow: 0 0 20px rgba(74, 158, 255, 0.6);
+            transform: scale(1.1);
+        }
+        
+        .pad.has-sample {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: rgba(76, 175, 80, 0.8);
+        }
+        
+        .pad-number {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .pad-name {
+            position: absolute;
+            bottom: 3px;
+            font-size: 9px;
+            opacity: 0.7;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 90%;
+        }
+        
+        /* Search Panel */
+        .search-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .search-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary {
+            background: rgba(74, 158, 255, 0.6);
+            border-color: rgba(74, 158, 255, 1);
+        }
+        
+        .results {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .result-item:hover {
+            background: rgba(0, 0, 0, 0.3);
+            border-color: rgba(74, 158, 255, 0.5);
+        }
+        
+        .result-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .result-meta {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            opacity: 0.7;
+        }
+        
+        .error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">SPOKE MINI SAMPLER</h1>
+            <p class="subtitle">Freesound API • 26 Touch Pads</p>
+        </div>
+        
+        <!-- Top Controls -->
+        <div class="top-controls">
+            <div class="control-item">
+                <span class="status-indicator" id="midiStatus"></span>
+                <button class="btn btn-primary" onclick="connectMIDI()">Connect MIDI</button>
+            </div>
+            
+            <div class="control-item">
+                <button class="btn" onclick="clearAllSamples()">🗑️ Clear All Samples</button>
+            </div>
+            
+            <div class="control-item volume-control">
+                <span>🔊 Volume:</span>
+                <input type="range" min="0" max="100" value="80" oninput="setVolume(this.value)">
+            </div>
+        </div>
+        
+        <div class="main-grid">
+            <!-- SPOKE Mini Board -->
+            <div class="board-section">
+                <div class="board-title">SPOKE Mini - 26 Touch Pads (13 per side)</div>
+                <div class="mini-board">
+                    <div class="pad-column" id="leftColumn">
+                        <!-- Left 13 pads (1-13) -->
+                    </div>
+                    <div class="pad-column" id="rightColumn">
+                        <!-- Right 13 pads (14-26) -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Search Panel -->
+            <div class="search-panel">
+                <div class="search-title">🔍 Search Freesound</div>
+                
+                <div id="apiKeySection">
+                    <p style="margin-bottom: 15px; font-size: 14px;">Enter your Freesound API key to get started:</p>
+                    <div class="search-box">
+                        <input type="text" id="apiKeyInput" class="search-input" placeholder="Your API Key">
+                        <button class="btn btn-primary" onclick="saveApiKey()">Save</button>
+                    </div>
+                    <p style="font-size: 12px; opacity: 0.7;">Get a free API key at <a href="https://freesound.org/apiv2/apply" target="_blank" style="color: #4a9eff;">freesound.org</a></p>
+                </div>
+                
+                <div id="searchSection" style="display: none;">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search sounds..." onkeypress="if(event.key==='Enter') searchSounds()">
+                        <button class="btn btn-primary" onclick="searchSounds()">Search</button>
+                    </div>
+                    
+                    <div id="results" class="results"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - All 26 SPOKE Mini MIDI notes
+        const SPOKE_MINI_NOTES = [36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 
+                                   67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96];
+        let API_KEY = localStorage.getItem('freesound_api_key') || '';
+        
+        // State
+        let audioContext;
+        let masterGain;
+        let midiAccess = null;
+        const padSamples = new Map(); // padIndex -> {buffer, name}
+        const activeSources = new Map();
+        let selectedPad = null;
+        
+        // Initialize
+        function init() {
+            createPads();
+            
+            if (API_KEY) {
+                document.getElementById('apiKeySection').style.display = 'none';
+                document.getElementById('searchSection').style.display = 'block';
+                document.getElementById('apiKeyInput').value = API_KEY;
+            }
+            
+            // Initialize audio context
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioContext.createGain();
+            masterGain.gain.value = 0.8;
+            masterGain.connect(audioContext.destination);
+        }
+        
+        // Create pad elements - 13 on left, 13 on right
+        function createPads() {
+            const leftColumn = document.getElementById('leftColumn');
+            const rightColumn = document.getElementById('rightColumn');
+            
+            // Left column: Pads 1-13
+            for (let i = 0; i < 13; i++) {
+                const pad = document.createElement('div');
+                pad.className = 'pad';
+                pad.id = `pad-${i}`;
+                pad.innerHTML = `
+                    <div style="text-align: center;">
+                        <div class="pad-number">Pad ${i + 1}</div>
+                        <div class="pad-name" id="padName-${i}">Empty</div>
+                    </div>
+                `;
+                pad.onclick = () => selectPad(i);
+                leftColumn.appendChild(pad);
+            }
+            
+            // Right column: Pads 14-26
+            for (let i = 13; i < 26; i++) {
+                const pad = document.createElement('div');
+                pad.className = 'pad';
+                pad.id = `pad-${i}`;
+                pad.innerHTML = `
+                    <div style="text-align: center;">
+                        <div class="pad-number">Pad ${i + 1}</div>
+                        <div class="pad-name" id="padName-${i}">Empty</div>
+                    </div>
+                `;
+                pad.onclick = () => selectPad(i);
+                rightColumn.appendChild(pad);
+            }
+        }
+        
+        // Select pad for sample assignment
+        function selectPad(index) {
+            // Deselect all
+            document.querySelectorAll('.pad').forEach(p => p.classList.remove('active'));
+            
+            // Select this pad
+            selectedPad = index;
+            document.getElementById(`pad-${index}`).classList.add('active');
+            
+            console.log(`Selected pad ${index + 1}`);
+        }
+        
+        // Save API key
+        function saveApiKey() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (!key) {
+                alert('Please enter an API key');
+                return;
+            }
+            
+            API_KEY = key;
+            localStorage.setItem('freesound_api_key', key);
+            
+            document.getElementById('apiKeySection').style.display = 'none';
+            document.getElementById('searchSection').style.display = 'block';
+        }
+        
+        // Search Freesound
+        async function searchSounds() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                alert('Please enter a search term');
+                return;
+            }
+            
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="loading">Searching...</div>';
+            
+            try {
+                const url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(query)}&token=${API_KEY}&fields=id,name,duration,username&page_size=10`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('API request failed. Check your API key.');
+                }
+                
+                const data = await response.json();
+                displayResults(data.results);
+                
+            } catch (error) {
+                results.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Display search results
+        function displayResults(sounds) {
+            const results = document.getElementById('results');
+            
+            if (sounds.length === 0) {
+                results.innerHTML = '<div class="loading">No results found</div>';
+                return;
+            }
+            
+            results.innerHTML = sounds.map(sound => `
+                <div class="result-item">
+                    <div class="result-name">${sound.name}</div>
+                    <div class="result-meta">
+                        ${sound.duration.toFixed(1)}s • by ${sound.username}
+                    </div>
+                    <div class="result-actions">
+                        <button class="btn btn-small" onclick="previewSound(${sound.id})">▶ Preview</button>
+                        <button class="btn btn-small btn-primary" onclick="assignSound(${sound.id}, '${sound.name.replace(/'/g, "\\'")}')">Assign to Pad</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Preview sound
+        async function previewSound(soundId) {
+            try {
+                const url = `https://freesound.org/apiv2/sounds/${soundId}/?token=${API_KEY}&fields=previews`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const audio = new Audio(data.previews['preview-hq-mp3']);
+                audio.volume = masterGain.gain.value;
+                audio.play();
+                
+            } catch (error) {
+                alert('Preview failed: ' + error.message);
+            }
+        }
+        
+        // Assign sound to selected pad
+        async function assignSound(soundId, soundName) {
+            if (selectedPad === null) {
+                alert('Please select a pad first (click on a pad)');
+                return;
+            }
+            
+            try {
+                // Get sound details
+                const url = `https://freesound.org/apiv2/sounds/${soundId}/?token=${API_KEY}&fields=previews,name`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                // Download audio
+                const audioResponse = await fetch(data.previews['preview-hq-mp3']);
+                const arrayBuffer = await audioResponse.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                // Store sample
+                padSamples.set(selectedPad, {
+                    buffer: audioBuffer,
+                    name: data.name
+                });
+                
+                // Update UI
+                document.getElementById(`pad-${selectedPad}`).classList.add('has-sample');
+                document.getElementById(`padName-${selectedPad}`).textContent = data.name.substring(0, 20);
+                
+                alert(`Assigned "${data.name}" to Pad ${selectedPad + 1}`);
+                
+                // Auto-select next pad
+                if (selectedPad < 25) {
+                    selectPad(selectedPad + 1);
+                }
+                
+            } catch (error) {
+                alert('Assignment failed: ' + error.message);
+            }
+        }
+        
+        // Play sample
+        function playSample(padIndex, velocity = 127) {
+            if (!padSamples.has(padIndex)) return;
+            
+            // Stop previous
+            if (activeSources.has(padIndex)) {
+                try {
+                    activeSources.get(padIndex).stop();
+                } catch (e) {}
+            }
+            
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            
+            source.buffer = padSamples.get(padIndex).buffer;
+            gainNode.gain.value = velocity / 127;
+            
+            source.connect(gainNode);
+            gainNode.connect(masterGain);
+            source.start(0);
+            
+            activeSources.set(padIndex, source);
+            
+            // Visual feedback
+            const pad = document.getElementById(`pad-${padIndex}`);
+            pad.style.transform = 'scale(1.15)';
+            setTimeout(() => {
+                pad.style.transform = '';
+            }, 100);
+            
+            source.onended = () => {
+                if (activeSources.get(padIndex) === source) {
+                    activeSources.delete(padIndex);
+                }
+            };
+        }
+        
+        // MIDI connection
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    alert('No MIDI devices found');
+                    return;
+                }
+                
+                inputs.forEach(input => {
+                    input.onmidimessage = handleMIDIMessage;
+                });
+                
+                document.getElementById('midiStatus').classList.add('active');
+                alert('MIDI Connected!');
+                
+            } catch (error) {
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        // Handle MIDI messages
+        function handleMIDIMessage(message) {
+            const [status, note, velocity] = message.data;
+            const command = status & 0xf0;
+            
+            const padIndex = SPOKE_MINI_NOTES.indexOf(note);
+            if (padIndex === -1) return;
+            
+            if (command === 0x90 && velocity > 0) {
+                playSample(padIndex, velocity);
+            }
+        }
+        
+        // Clear all samples
+        function clearAllSamples() {
+            if (!confirm('Clear all samples?')) return;
+            
+            padSamples.clear();
+            activeSources.forEach(source => {
+                try { source.stop(); } catch (e) {}
+            });
+            activeSources.clear();
+            
+            for (let i = 0; i < 26; i++) {
+                document.getElementById(`pad-${i}`).classList.remove('has-sample', 'active');
+                document.getElementById(`padName-${i}`).textContent = 'Empty';
+            }
+            
+            selectedPad = null;
+        }
+        
+        // Set master volume
+        function setVolume(value) {
+            if (masterGain) {
+                masterGain.gain.value = value / 100;
+            }
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
