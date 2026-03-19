@@ -1570,9 +1570,22 @@ while True:
             return `${noteName}${octave} (${midiNote})`;
         }
         
-        function openScaleBuilder() {
+        // Make functions global
+        window.openScaleBuilder = function() {
+            console.log('Opening Scale Builder...');
             const modal = document.getElementById('scaleBuilderModal');
             const grid = document.getElementById('scaleBuilderGrid');
+            
+            if (!modal) {
+                console.error('Modal not found!');
+                alert('Scale Builder modal not found. Please refresh the page.');
+                return;
+            }
+            
+            if (!grid) {
+                console.error('Grid not found!');
+                return;
+            }
             
             // Clear and populate grid
             grid.innerHTML = '';
@@ -1609,14 +1622,15 @@ while True:
                 grid.appendChild(selector);
             }
             
+            console.log('Displaying modal...');
             modal.style.display = 'flex';
-        }
+        };
         
-        function closeScaleBuilder() {
+        window.closeScaleBuilder = function() {
             document.getElementById('scaleBuilderModal').style.display = 'none';
-        }
+        };
         
-        function applyPreset(presetName) {
+        window.applyPreset = function(presetName) {
             let notes = [];
             
             switch(presetName) {
@@ -1686,9 +1700,9 @@ while True:
                     select.value = notes[i];
                 }
             }
-        }
+        };
         
-        function generateScaleCode() {
+        window.generateScaleCode = function() {
             // Read current values from selects
             for (let i = 0; i < 26; i++) {
                 const select = document.getElementById(`note-${i}`);
@@ -1760,7 +1774,7 @@ while True:
             editor.value = code;
             closeScaleBuilder();
             addConsoleMessage('Custom scale code generated!', 'info');
-        }
+        };
     </script>
 </body>
 </html>
