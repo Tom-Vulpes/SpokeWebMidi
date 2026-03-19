@@ -175,11 +175,12 @@
         
         /* Serial Console */
         .console-wrapper {
-            height: 200px;
+            height: 220px;
             background: #1a1a1a;
             border-top: 1px solid #333;
             display: flex;
             flex-direction: column;
+            flex-shrink: 0;
         }
         
         .console-header {
@@ -220,14 +221,22 @@
         
         .console-line {
             margin-bottom: 2px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
         
         .console-error {
             color: #ff6b6b;
+            font-weight: bold;
         }
         
         .console-info {
             color: #4a9eff;
+        }
+        
+        .console-timestamp {
+            color: #888;
+            margin-right: 8px;
         }
         
         /* Right Sidebar */
@@ -441,7 +450,7 @@
             background: #2d2d2d;
             padding: 30px;
             border-radius: 8px;
-            max-width: 500px;
+            max-width: 700px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
@@ -452,17 +461,89 @@
             font-weight: 600;
             margin-bottom: 20px;
             color: #4a9eff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .modal-close {
-            float: right;
             font-size: 24px;
             cursor: pointer;
             color: #888;
+            background: none;
+            border: none;
+            padding: 0;
+            width: 30px;
+            height: 30px;
         }
         
         .modal-close:hover {
             color: #e0e0e0;
+        }
+        
+        .scale-builder-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .pad-selector {
+            background: #1e1e1e;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #3a3a3a;
+        }
+        
+        .pad-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+        
+        .note-select {
+            width: 100%;
+            background: #3a3a3a;
+            border: 1px solid #4a4a4a;
+            color: #e0e0e0;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        
+        .note-select:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+        
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .preset-btn {
+            padding: 10px;
+            background: #3a3a3a;
+            border: 1px solid #4a4a4a;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .preset-btn:hover {
+            background: #4a4a4a;
+            border-color: #4a9eff;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
         }
     </style>
 </head>
@@ -480,6 +561,10 @@
                     <div class="template-item" onclick="loadTemplate('drums')">
                         <div class="template-name">Drum Pads</div>
                         <div class="template-desc">13 pads for drums</div>
+                    </div>
+                    <div class="template-item" onclick="openScaleBuilder()">
+                        <div class="template-name">Scale Builder</div>
+                        <div class="template-desc">Custom notes for each pad</div>
                     </div>
                     <div class="template-item" onclick="loadTemplate('sensitivity')">
                         <div class="template-name">Sensitivity</div>
@@ -522,8 +607,14 @@
                         </div>
                     </div>
                     <div class="console-output" id="console">
-                        <div class="console-line console-info">Click "Connect" to start serial monitoring...</div>
-                        <div class="console-line console-info">Make sure your SPOKE Mini is plugged in via USB.</div>
+                        <div class="console-line console-info">🔌 Serial Console Ready</div>
+                        <div class="console-line console-info">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+                        <div class="console-line">Click "Connect" to start monitoring SPOKE Mini output</div>
+                        <div class="console-line">This will show:</div>
+                        <div class="console-line">  • print() statements from your code</div>
+                        <div class="console-line">  • Error messages and tracebacks</div>
+                        <div class="console-line">  • Debug information</div>
+                        <div class="console-line console-info">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
                     </div>
                 </div>
             </div>
@@ -638,6 +729,34 @@
                         <li>Raspberry Pi Pico inside</li>
                     </ul>
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scale Builder Modal -->
+    <div class="modal" id="scaleBuilderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>🎹 Scale Builder - Choose Notes for Each Pad</span>
+                <button class="modal-close" onclick="closeScaleBuilder()">×</button>
+            </div>
+            
+            <div class="preset-buttons">
+                <button class="preset-btn" onclick="applyPreset('chromatic')">Chromatic Scale</button>
+                <button class="preset-btn" onclick="applyPreset('major')">C Major Scale</button>
+                <button class="preset-btn" onclick="applyPreset('minor')">A Minor Scale</button>
+                <button class="preset-btn" onclick="applyPreset('pentatonic')">Pentatonic Scale</button>
+                <button class="preset-btn" onclick="applyPreset('blues')">Blues Scale</button>
+                <button class="preset-btn" onclick="applyPreset('default')">Default Notes</button>
+            </div>
+            
+            <div class="scale-builder-grid" id="scaleBuilderGrid">
+                <!-- Dynamically populated with 26 pad selectors -->
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn" onclick="closeScaleBuilder()">Cancel</button>
+                <button class="btn btn-primary" onclick="generateScaleCode()">Generate Code</button>
             </div>
         </div>
     </div>
@@ -865,7 +984,7 @@
         // Serial console functions
         async function connectSerial() {
             if (!('serial' in navigator)) {
-                addConsoleMessage('Web Serial API not supported. Use Chrome, Edge, or Opera.', 'error');
+                addConsoleMessage('❌ Web Serial API not supported. Use Chrome, Edge, or Opera.', 'error');
                 return;
             }
             
@@ -874,15 +993,16 @@
                 port = await navigator.serial.requestPort();
                 await port.open({ baudRate: 115200 });
                 
-                addConsoleMessage('Connected to SPOKE Mini!', 'info');
-                addConsoleMessage('Monitoring serial output...', 'info');
+                addConsoleMessage('✅ Connected to SPOKE Mini!', 'info');
+                addConsoleMessage('📡 Monitoring serial output at 115200 baud...', 'info');
+                addConsoleMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
                 
                 // Start reading
                 isReading = true;
                 readSerial();
                 
             } catch (error) {
-                addConsoleMessage(`Connection error: ${error.message}`, 'error');
+                addConsoleMessage(`❌ Connection error: ${error.message}`, 'error');
             }
         }
         
@@ -897,10 +1017,22 @@
                         
                         // Decode and display
                         const text = new TextDecoder().decode(value);
-                        addConsoleMessage(text.trim());
+                        const lines = text.split('\n');
+                        
+                        lines.forEach(line => {
+                            line = line.trim();
+                            if (line) {
+                                // Detect errors
+                                if (line.includes('Traceback') || line.includes('Error') || line.includes('Exception')) {
+                                    addConsoleMessage(line, 'error');
+                                } else {
+                                    addConsoleMessage(line);
+                                }
+                            }
+                        });
                     }
                 } catch (error) {
-                    addConsoleMessage(`Read error: ${error.message}`, 'error');
+                    addConsoleMessage(`📡 Read error: ${error.message}`, 'error');
                 } finally {
                     reader.releaseLock();
                 }
@@ -914,7 +1046,21 @@
             line.className = 'console-line';
             if (type === 'error') line.classList.add('console-error');
             if (type === 'info') line.classList.add('console-info');
-            line.textContent = message;
+            
+            // Add timestamp
+            const timestamp = new Date().toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            });
+            
+            const timestampSpan = document.createElement('span');
+            timestampSpan.className = 'console-timestamp';
+            timestampSpan.textContent = `[${timestamp}]`;
+            
+            line.appendChild(timestampSpan);
+            line.appendChild(document.createTextNode(message));
             
             consoleOutput.appendChild(line);
             consoleOutput.scrollTop = consoleOutput.scrollHeight;
@@ -922,7 +1068,7 @@
         
         function clearConsole() {
             consoleOutput.innerHTML = '';
-            addConsoleMessage('Console cleared.', 'info');
+            addConsoleMessage('🗑️ Console cleared.', 'info');
         }
         
         // Close serial on page unload
@@ -1409,6 +1555,212 @@ while True:
         
         // Initialize visualizer
         initVisualizer();
+        
+        // Scale Builder functionality
+        const scaleNotes = new Array(26).fill(60); // Default to middle C
+        
+        // MIDI note names
+        const noteNames = [
+            'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
+        ];
+        
+        function getNoteName(midiNote) {
+            const octave = Math.floor(midiNote / 12) - 1;
+            const noteName = noteNames[midiNote % 12];
+            return `${noteName}${octave} (${midiNote})`;
+        }
+        
+        function openScaleBuilder() {
+            const modal = document.getElementById('scaleBuilderModal');
+            const grid = document.getElementById('scaleBuilderGrid');
+            
+            // Clear and populate grid
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 26; i++) {
+                const selector = document.createElement('div');
+                selector.className = 'pad-selector';
+                
+                const label = document.createElement('div');
+                label.className = 'pad-label';
+                label.textContent = `Pad ${i + 1}`;
+                
+                const select = document.createElement('select');
+                select.className = 'note-select';
+                select.id = `note-${i}`;
+                
+                // Populate with MIDI notes 21 (A0) to 108 (C8)
+                for (let note = 21; note <= 108; note++) {
+                    const option = document.createElement('option');
+                    option.value = note;
+                    option.textContent = getNoteName(note);
+                    if (note === scaleNotes[i]) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                }
+                
+                select.addEventListener('change', (e) => {
+                    scaleNotes[i] = parseInt(e.target.value);
+                });
+                
+                selector.appendChild(label);
+                selector.appendChild(select);
+                grid.appendChild(selector);
+            }
+            
+            modal.style.display = 'flex';
+        }
+        
+        function closeScaleBuilder() {
+            document.getElementById('scaleBuilderModal').style.display = 'none';
+        }
+        
+        function applyPreset(presetName) {
+            let notes = [];
+            
+            switch(presetName) {
+                case 'chromatic':
+                    // C3 to C5 chromatic
+                    for (let i = 0; i < 26; i++) {
+                        notes.push(48 + i); // C3 upwards
+                    }
+                    break;
+                    
+                case 'major':
+                    // C Major scale across 3+ octaves
+                    const majorPattern = [0, 2, 4, 5, 7, 9, 11]; // Major scale intervals
+                    for (let i = 0; i < 26; i++) {
+                        const octave = Math.floor(i / 7);
+                        const note = majorPattern[i % 7];
+                        notes.push(48 + (octave * 12) + note); // Start from C3
+                    }
+                    break;
+                    
+                case 'minor':
+                    // A Minor scale
+                    const minorPattern = [0, 2, 3, 5, 7, 8, 10]; // Natural minor
+                    for (let i = 0; i < 26; i++) {
+                        const octave = Math.floor(i / 7);
+                        const note = minorPattern[i % 7];
+                        notes.push(45 + (octave * 12) + note); // Start from A2
+                    }
+                    break;
+                    
+                case 'pentatonic':
+                    // C Major pentatonic
+                    const pentaPattern = [0, 2, 4, 7, 9]; // Pentatonic scale
+                    for (let i = 0; i < 26; i++) {
+                        const octave = Math.floor(i / 5);
+                        const note = pentaPattern[i % 5];
+                        notes.push(48 + (octave * 12) + note); // Start from C3
+                    }
+                    break;
+                    
+                case 'blues':
+                    // Blues scale
+                    const bluesPattern = [0, 3, 5, 6, 7, 10]; // Blues scale
+                    for (let i = 0; i < 26; i++) {
+                        const octave = Math.floor(i / 6);
+                        const note = bluesPattern[i % 6];
+                        notes.push(48 + (octave * 12) + note); // Start from C3
+                    }
+                    break;
+                    
+                case 'default':
+                    // Default SPOKE Mini notes
+                    notes = [36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 
+                            67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96];
+                    break;
+            }
+            
+            // Update scaleNotes array
+            for (let i = 0; i < 26; i++) {
+                scaleNotes[i] = notes[i];
+            }
+            
+            // Update all selects
+            for (let i = 0; i < 26; i++) {
+                const select = document.getElementById(`note-${i}`);
+                if (select) {
+                    select.value = notes[i];
+                }
+            }
+        }
+        
+        function generateScaleCode() {
+            // Read current values from selects
+            for (let i = 0; i < 26; i++) {
+                const select = document.getElementById(`note-${i}`);
+                if (select) {
+                    scaleNotes[i] = parseInt(select.value);
+                }
+            }
+            
+            const notesString = '[' + scaleNotes.join(', ') + ']';
+            
+            const code = `# Custom Scale - SPOKE Mini
+# Generated with Scale Builder
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+# Define the touch pins (26 pads)
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, 
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, 
+    board.GP27, board.GP28
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# Custom MIDI notes for each pad
+midi_notes = ${notesString}
+
+# State tracking
+note_played = [False] * len(touch_pins)
+
+# Setup onboard LED
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+print("Custom Scale ready!")
+print("Notes:", midi_notes)
+
+# Main loop
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(midi_notes[i], 120))
+                led.value = True
+                note_played[i] = True
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(midi_notes[i], 120))
+                led.value = False
+                note_played[i] = False
+`;
+            
+            editor.value = code;
+            closeScaleBuilder();
+            addConsoleMessage('Custom scale code generated!', 'info');
+        }
     </script>
 </body>
 </html>
