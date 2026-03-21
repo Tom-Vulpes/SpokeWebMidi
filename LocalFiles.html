@@ -301,6 +301,44 @@
             background: rgba(76, 175, 80, 0.3);
             border: 1px solid #4CAF50;
         }
+        
+        .playback-modes {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            padding: 10px 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        
+        .mode-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .mode-btn.active {
+            background: rgba(74, 158, 255, 0.4);
+            border-color: #4a9eff;
+            box-shadow: 0 0 15px rgba(74, 158, 255, 0.4);
+        }
+        
+        .mode-description {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
@@ -320,6 +358,24 @@
                     <button class="btn" onclick="connectMIDI()">🎹 Connect MIDI</button>
                     <button class="btn" onclick="refreshFiles()">🔄 Refresh Files</button>
                     <div class="status" id="status">No folder selected</div>
+                </div>
+                
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                    <div style="margin-bottom: 10px; font-weight: 600; font-size: 14px;">🎚️ Playback Mode:</div>
+                    <div class="playback-modes">
+                        <button class="mode-btn active" onclick="setPlaybackMode('oneshot')" id="mode-oneshot">
+                            One-Shot
+                        </button>
+                        <button class="mode-btn" onclick="setPlaybackMode('loop')" id="mode-loop">
+                            Loop
+                        </button>
+                        <button class="mode-btn" onclick="setPlaybackMode('toggle')" id="mode-toggle">
+                            Start/Stop
+                        </button>
+                    </div>
+                    <div class="mode-description" id="modeDescription">
+                        <strong>One-Shot:</strong> Sound plays once when pad is touched
+                    </div>
                 </div>
             </div>
             
@@ -360,6 +416,10 @@
         const padAssignments = new Map(); // padIndex -> fileHandle
         const audioBuffers = new Map(); // fileName -> AudioBuffer
         const activeSources = new Map(); // padIndex -> AudioBufferSourceNode
+        
+        // Playback mode
+        let playbackMode = 'oneshot'; // oneshot, loop, toggle
+        const toggleStates = new Map(); // padIndex -> boolean (playing or not)
         
         // Preview audio state
         let previewSource = null;
@@ -474,6 +534,33 @@
                 pad.onclick = () => selectPad(i);
                 board.appendChild(pad);
             }
+        }
+        
+        // Set playback mode
+        function setPlaybackMode(mode) {
+            playbackMode = mode;
+            
+            // Update button states
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`mode-${mode}`).classList.add('active');
+            
+            // Update description
+            const descriptions = {
+                oneshot: '<strong>One-Shot:</strong> Sound plays once when pad is touched, stops previous if retriggered',
+                loop: '<strong>Loop:</strong> Sound loops continuously while pad is held, stops when released',
+                toggle: '<strong>Start/Stop:</strong> First touch starts looping, second touch stops playback'
+            };
+            
+            document.getElementById('modeDescription').innerHTML = descriptions[mode];
+            
+            // Stop all currently playing sounds when switching modes
+            activeSources.forEach((source, padIndex) => {
+                try {
+                    source.stop();
+                } catch (e) {}
+            });
+            activeSources.clear();
+            toggleStates.clear();
         }
         
         // Select folder
@@ -676,40 +763,54 @@
             await assignFileToPad(selectedPad, fileData);
         }
         
-        // Play pad
-        function playPad(padIndex, velocity = 127) {
+        // Play pad with different modes
+        function playPad(padIndex, velocity = 127, isNoteOn = true) {
             const pad = document.getElementById(`pad-${padIndex}`);
             
             // Visual feedback even without sample
-            pad.classList.add('playing');
-            setTimeout(() => pad.classList.remove('playing'), 150);
+            if (isNoteOn) {
+                pad.classList.add('playing');
+                setTimeout(() => pad.classList.remove('playing'), 150);
+            }
             
             const fileData = padAssignments.get(padIndex);
             if (!fileData) return; // Just show visual feedback, no sound
             
-            // Stop previous sound
+            // Get cached buffer
+            const buffer = audioBuffers.get(fileData.name);
+            if (!buffer) return;
+            
+            // Handle different playback modes
+            if (playbackMode === 'oneshot') {
+                handleOneshotMode(padIndex, buffer, velocity);
+            } else if (playbackMode === 'loop') {
+                handleLoopMode(padIndex, buffer, velocity, isNoteOn);
+            } else if (playbackMode === 'toggle') {
+                handleToggleMode(padIndex, buffer, velocity, isNoteOn);
+            }
+        }
+        
+        // One-shot mode: play once, retriggerable
+        function handleOneshotMode(padIndex, buffer, velocity) {
+            // Stop previous sound on this pad
             if (activeSources.has(padIndex)) {
                 try {
                     activeSources.get(padIndex).stop();
                 } catch (e) {}
             }
             
-            // Get cached buffer
-            const buffer = audioBuffers.get(fileData.name);
-            if (!buffer) return;
-            
             // Create and play
             const source = audioContext.createBufferSource();
             const gainNode = audioContext.createGain();
             
             source.buffer = buffer;
+            source.loop = false;
             gainNode.gain.value = velocity / 127;
             
             source.connect(gainNode);
-            gainNode.connect(backgroundAnalyser); // Connect to analyser for visualizer
+            gainNode.connect(backgroundAnalyser);
             
             source.start(0);
-            
             activeSources.set(padIndex, source);
             
             source.onended = () => {
@@ -717,6 +818,85 @@
                     activeSources.delete(padIndex);
                 }
             };
+        }
+        
+        // Loop mode: loop while held, stop on release
+        function handleLoopMode(padIndex, buffer, velocity, isNoteOn) {
+            if (isNoteOn) {
+                // Note on - start looping
+                // Stop any previous sound
+                if (activeSources.has(padIndex)) {
+                    try {
+                        activeSources.get(padIndex).stop();
+                    } catch (e) {}
+                }
+                
+                // Create and play looping
+                const source = audioContext.createBufferSource();
+                const gainNode = audioContext.createGain();
+                
+                source.buffer = buffer;
+                source.loop = true; // Loop continuously
+                gainNode.gain.value = velocity / 127;
+                
+                source.connect(gainNode);
+                gainNode.connect(backgroundAnalyser);
+                
+                source.start(0);
+                activeSources.set(padIndex, source);
+                
+            } else {
+                // Note off - stop looping
+                if (activeSources.has(padIndex)) {
+                    try {
+                        activeSources.get(padIndex).stop();
+                    } catch (e) {}
+                    activeSources.delete(padIndex);
+                }
+            }
+        }
+        
+        // Toggle mode: first touch starts loop, second touch stops
+        function handleToggleMode(padIndex, buffer, velocity, isNoteOn) {
+            // Only respond to note on messages
+            if (!isNoteOn) return;
+            
+            const isPlaying = toggleStates.get(padIndex) || false;
+            
+            if (isPlaying) {
+                // Currently playing - stop it
+                if (activeSources.has(padIndex)) {
+                    try {
+                        activeSources.get(padIndex).stop();
+                    } catch (e) {}
+                    activeSources.delete(padIndex);
+                }
+                toggleStates.set(padIndex, false);
+                
+            } else {
+                // Not playing - start looping
+                const source = audioContext.createBufferSource();
+                const gainNode = audioContext.createGain();
+                
+                source.buffer = buffer;
+                source.loop = true; // Loop continuously
+                gainNode.gain.value = velocity / 127;
+                
+                source.connect(gainNode);
+                gainNode.connect(backgroundAnalyser);
+                
+                source.start(0);
+                activeSources.set(padIndex, source);
+                toggleStates.set(padIndex, true);
+                
+                // If source ends naturally (shouldn't happen with loop), update state
+                source.onended = () => {
+                    if (activeSources.get(padIndex) === source) {
+                        activeSources.delete(padIndex);
+                        toggleStates.set(padIndex, false);
+                    }
+                };
+            }
         }
         
         // Select pad
@@ -762,7 +942,11 @@
             if (padIndex === -1) return;
             
             if (command === 0x90 && velocity > 0) {
-                playPad(padIndex, velocity);
+                // Note On
+                playPad(padIndex, velocity, true);
+            } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+                // Note Off
+                playPad(padIndex, velocity, false);
             }
         }
         
