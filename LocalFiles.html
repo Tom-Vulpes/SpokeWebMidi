@@ -17,11 +17,27 @@
             min-height: 100vh;
             color: white;
             padding: 40px 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* Background oscilloscope */
+        #backgroundScope {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15;
+            pointer-events: none;
         }
         
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            position: relative;
+            z-index: 1;
         }
         
         .header {
@@ -215,6 +231,7 @@
             border: 2px solid rgba(255, 255, 255, 0.2);
             cursor: pointer;
             transition: all 0.2s;
+            position: relative;
         }
         
         .file-item:hover {
@@ -225,6 +242,33 @@
         .file-item.playing {
             border-color: #4CAF50;
             background: rgba(76, 175, 80, 0.2);
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .file-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            color: white;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .file-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .file-btn.stop {
+            background: rgba(244, 67, 54, 0.6);
+            border-color: rgba(244, 67, 54, 1);
         }
         
         .file-name {
@@ -260,6 +304,9 @@
     </style>
 </head>
 <body>
+    <!-- Background oscilloscope -->
+    <canvas id="backgroundScope"></canvas>
+    
     <div class="container">
         <div class="header">
             <h1 class="title">SPOKE Local Audio Player</h1>
@@ -314,13 +361,90 @@
         const audioBuffers = new Map(); // fileName -> AudioBuffer
         const activeSources = new Map(); // padIndex -> AudioBufferSourceNode
         
+        // Preview audio state
+        let previewSource = null;
+        let currentlyPreviewingFile = null;
+        
+        // Background oscilloscope
+        let backgroundScope;
+        let backgroundAnalyser;
+        let backgroundDataArray;
+        let backgroundAnimationId;
+        
         // Initialize
         function init() {
             // Create audio context
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             
+            // Setup background analyser
+            backgroundAnalyser = audioContext.createAnalyser();
+            backgroundAnalyser.fftSize = 2048;
+            const bufferLength = backgroundAnalyser.frequencyBinCount;
+            backgroundDataArray = new Uint8Array(bufferLength);
+            
+            // Connect analyser to destination
+            backgroundAnalyser.connect(audioContext.destination);
+            
+            // Initialize background scope
+            initBackgroundScope();
+            
             // Create circular pad layout
             createCircularPads();
+            
+            // Start scope animation
+            drawBackgroundScope();
+        }
+        
+        // Initialize background oscilloscope
+        function initBackgroundScope() {
+            backgroundScope = document.getElementById('backgroundScope');
+            backgroundScope.width = window.innerWidth;
+            backgroundScope.height = window.innerHeight;
+            
+            window.addEventListener('resize', () => {
+                backgroundScope.width = window.innerWidth;
+                backgroundScope.height = window.innerHeight;
+            });
+        }
+        
+        // Draw background oscilloscope
+        function drawBackgroundScope() {
+            backgroundAnimationId = requestAnimationFrame(drawBackgroundScope);
+            
+            if (!backgroundAnalyser) return;
+            
+            backgroundAnalyser.getByteTimeDomainData(backgroundDataArray);
+            
+            const canvas = backgroundScope;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            
+            const sliceWidth = width / backgroundDataArray.length;
+            let x = 0;
+            
+            for (let i = 0; i < backgroundDataArray.length; i++) {
+                const v = backgroundDataArray[i] / 128.0;
+                const y = (v * height) / 2;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                
+                x += sliceWidth;
+            }
+            
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
         }
         
         // Create pads in circular layout
@@ -425,22 +549,35 @@
             audioFiles.forEach((fileData, index) => {
                 const item = document.createElement('div');
                 item.className = 'file-item';
+                item.id = `file-${index}`;
+                
+                const isPlaying = currentlyPreviewingFile === fileData.name;
+                
                 item.innerHTML = `
                     <div class="file-name">${fileData.name}</div>
                     <div class="file-info">${formatBytes(fileData.size)}</div>
+                    <div class="file-actions">
+                        <button class="file-btn" onclick="event.stopPropagation(); ${isPlaying ? 'stopPreview()' : `previewFile(${index})`}">
+                            ${isPlaying ? '⏹ Stop' : '▶ Preview'}
+                        </button>
+                        <button class="file-btn" onclick="event.stopPropagation(); assignToSelected(${index})">
+                            📌 Assign to Pad
+                        </button>
+                    </div>
                 `;
                 
-                item.onclick = async () => {
-                    if (selectedPad !== null) {
-                        // Assign to pad
-                        await assignFileToPad(selectedPad, fileData);
+                // Click on item itself to preview
+                item.onclick = () => {
+                    if (isPlaying) {
+                        stopPreview();
                     } else {
-                        // Just play it
-                        await playFile(fileData);
-                        item.classList.add('playing');
-                        setTimeout(() => item.classList.remove('playing'), 500);
+                        previewFile(index);
                     }
                 };
+                
+                if (isPlaying) {
+                    item.classList.add('playing');
+                }
                 
                 fileListDiv.appendChild(item);
             });
@@ -474,8 +611,13 @@
             console.log(`Assigned ${fileData.name} to Pad ${padIndex + 1}`);
         }
         
-        // Play file
-        async function playFile(fileData) {
+        // Preview file
+        async function previewFile(fileIndex) {
+            const fileData = audioFiles[fileIndex];
+            
+            // Stop any current preview
+            stopPreview();
+            
             try {
                 // Load buffer if not cached
                 if (!audioBuffers.has(fileData.name)) {
@@ -487,13 +629,51 @@
                 // Play
                 const source = audioContext.createBufferSource();
                 source.buffer = audioBuffers.get(fileData.name);
-                source.connect(audioContext.destination);
+                source.connect(backgroundAnalyser); // Connect to analyser for visualizer
                 source.start(0);
                 
+                previewSource = source;
+                currentlyPreviewingFile = fileData.name;
+                
+                // Update UI
+                displayFiles();
+                
+                // Clear when done
+                source.onended = () => {
+                    if (previewSource === source) {
+                        stopPreview();
+                    }
+                };
+                
             } catch (error) {
-                console.error('Error playing file:', error);
-                alert('Could not play file: ' + error.message);
+                console.error('Error previewing file:', error);
+                alert('Could not preview file: ' + error.message);
             }
+        }
+        
+        // Stop preview
+        function stopPreview() {
+            if (previewSource) {
+                try {
+                    previewSource.stop();
+                } catch (e) {}
+                previewSource = null;
+            }
+            currentlyPreviewingFile = null;
+            
+            // Update UI
+            displayFiles();
+        }
+        
+        // Assign to selected pad
+        async function assignToSelected(fileIndex) {
+            if (selectedPad === null) {
+                alert('Please select a pad first (click on a pad in the circle above)');
+                return;
+            }
+            
+            const fileData = audioFiles[fileIndex];
+            await assignFileToPad(selectedPad, fileData);
         }
         
         // Play pad
@@ -526,7 +706,8 @@
             gainNode.gain.value = velocity / 127;
             
             source.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+            gainNode.connect(backgroundAnalyser); // Connect to analyser for visualizer
+            
             source.start(0);
             
             activeSources.set(padIndex, source);
