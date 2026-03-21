@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE - Local Audio Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .title {
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        
+        .setup-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary {
+            background: rgba(74, 158, 255, 0.6);
+            border-color: rgba(74, 158, 255, 1);
+        }
+        
+        .btn-primary:hover {
+            background: rgba(74, 158, 255, 0.8);
+        }
+        
+        .info-box {
+            background: rgba(59, 130, 246, 0.2);
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        .file-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .file-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .file-item:hover {
+            border-color: rgba(74, 158, 255, 0.8);
+            transform: scale(1.05);
+        }
+        
+        .file-item.playing {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.2);
+        }
+        
+        .file-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 13px;
+            word-break: break-word;
+        }
+        
+        .file-info {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+        
+        .board-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .pads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .pad {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+        
+        .pad:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .pad.active {
+            background: rgba(76, 175, 80, 0.4);
+            border-color: #4CAF50;
+        }
+        
+        .pad-number {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+        
+        .pad-file {
+            font-size: 9px;
+            text-align: center;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .status {
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        
+        .status.connected {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">SPOKE Local Audio Player</h1>
+            <p class="subtitle">Play audio files directly from your computer</p>
+        </div>
+        
+        <div class="setup-section">
+            <h2 style="margin-bottom: 15px;">Setup</h2>
+            
+            <div class="info-box">
+                <strong>How it works:</strong>
+                <ol style="margin-top: 10px; margin-left: 20px;">
+                    <li>Click "Select Audio Folder" and choose a folder on your PC</li>
+                    <li>The browser gets permission to read files from that folder</li>
+                    <li>Audio files appear below and can be played instantly</li>
+                    <li>Assign files to SPOKE pads for MIDI triggering</li>
+                    <li>No uploading needed - files stay on your computer!</li>
+                </ol>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-primary" onclick="selectFolder()">📁 Select Audio Folder</button>
+                <button class="btn" onclick="connectMIDI()">🎹 Connect MIDI</button>
+                <button class="btn" onclick="refreshFiles()">🔄 Refresh Files</button>
+                <div class="status" id="status">No folder selected</div>
+            </div>
+            
+            <div id="fileList" class="file-list"></div>
+        </div>
+        
+        <div class="board-section">
+            <h2 style="margin-bottom: 15px;">SPOKE Pads</h2>
+            <p style="opacity: 0.8; font-size: 14px; margin-bottom: 15px;">Click a pad, then click an audio file to assign it</p>
+            <div class="pads-grid" id="padsGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        // SPOKE configuration
+        const SPOKE_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36];
+        
+        // State
+        let directoryHandle = null;
+        let audioFiles = [];
+        let audioContext = null;
+        let midiAccess = null;
+        let selectedPad = null;
+        const padAssignments = new Map(); // padIndex -> fileHandle
+        const audioBuffers = new Map(); // fileName -> AudioBuffer
+        const activeSources = new Map(); // padIndex -> AudioBufferSourceNode
+        
+        // Initialize
+        function init() {
+            // Create audio context
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Create pads
+            const grid = document.getElementById('padsGrid');
+            for (let i = 0; i < 27; i++) {
+                const pad = document.createElement('div');
+                pad.className = 'pad';
+                pad.id = `pad-${i}`;
+                pad.innerHTML = `
+                    <div class="pad-number">Pad ${i + 1}</div>
+                    <div>🔇</div>
+                    <div class="pad-file" id="padFile-${i}">No file</div>
+                `;
+                pad.onclick = () => selectPad(i);
+                grid.appendChild(pad);
+            }
+        }
+        
+        // Select folder
+        async function selectFolder() {
+            try {
+                // Request directory access
+                directoryHandle = await window.showDirectoryPicker({
+                    mode: 'read'
+                });
+                
+                document.getElementById('status').textContent = `📁 Folder: ${directoryHandle.name}`;
+                document.getElementById('status').classList.add('connected');
+                
+                await loadAudioFiles();
+                
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    alert('Error selecting folder: ' + error.message);
+                }
+            }
+        }
+        
+        // Load audio files from directory
+        async function loadAudioFiles() {
+            if (!directoryHandle) return;
+            
+            audioFiles = [];
+            const fileListDiv = document.getElementById('fileList');
+            fileListDiv.innerHTML = '<p style="opacity: 0.7;">Loading files...</p>';
+            
+            try {
+                // Iterate through directory
+                for await (const entry of directoryHandle.values()) {
+                    if (entry.kind === 'file') {
+                        const file = await entry.getFile();
+                        
+                        // Check if it's an audio file
+                        if (file.type.startsWith('audio/') || 
+                            file.name.endsWith('.mp3') || 
+                            file.name.endsWith('.wav') || 
+                            file.name.endsWith('.ogg') ||
+                            file.name.endsWith('.m4a')) {
+                            
+                            audioFiles.push({
+                                handle: entry,
+                                file: file,
+                                name: file.name,
+                                size: file.size
+                            });
+                        }
+                    }
+                }
+                
+                // Display files
+                displayFiles();
+                
+            } catch (error) {
+                fileListDiv.innerHTML = `<p style="color: #f48771;">Error loading files: ${error.message}</p>`;
+            }
+        }
+        
+        // Display audio files
+        function displayFiles() {
+            const fileListDiv = document.getElementById('fileList');
+            
+            if (audioFiles.length === 0) {
+                fileListDiv.innerHTML = '<p style="opacity: 0.7;">No audio files found in this folder</p>';
+                return;
+            }
+            
+            fileListDiv.innerHTML = '';
+            
+            audioFiles.forEach((fileData, index) => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <div class="file-name">${fileData.name}</div>
+                    <div class="file-info">${formatBytes(fileData.size)}</div>
+                `;
+                
+                item.onclick = async () => {
+                    if (selectedPad !== null) {
+                        // Assign to pad
+                        await assignFileToPad(selectedPad, fileData);
+                    } else {
+                        // Just play it
+                        await playFile(fileData);
+                        item.classList.add('playing');
+                        setTimeout(() => item.classList.remove('playing'), 500);
+                    }
+                };
+                
+                fileListDiv.appendChild(item);
+            });
+        }
+        
+        // Assign file to pad
+        async function assignFileToPad(padIndex, fileData) {
+            // Store assignment
+            padAssignments.set(padIndex, fileData);
+            
+            // Load and cache the audio buffer
+            if (!audioBuffers.has(fileData.name)) {
+                const arrayBuffer = await fileData.file.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                audioBuffers.set(fileData.name, audioBuffer);
+            }
+            
+            // Update UI
+            const pad = document.getElementById(`pad-${padIndex}`);
+            const padFile = document.getElementById(`padFile-${padIndex}`);
+            pad.querySelector('div:nth-child(2)').textContent = '🔊';
+            padFile.textContent = fileData.name.substring(0, 15) + (fileData.name.length > 15 ? '...' : '');
+            
+            // Deselect pad
+            selectedPad = null;
+            document.querySelectorAll('.pad').forEach(p => p.classList.remove('active'));
+            
+            console.log(`Assigned ${fileData.name} to Pad ${padIndex + 1}`);
+        }
+        
+        // Play file
+        async function playFile(fileData) {
+            try {
+                // Load buffer if not cached
+                if (!audioBuffers.has(fileData.name)) {
+                    const arrayBuffer = await fileData.file.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    audioBuffers.set(fileData.name, audioBuffer);
+                }
+                
+                // Play
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffers.get(fileData.name);
+                source.connect(audioContext.destination);
+                source.start(0);
+                
+            } catch (error) {
+                console.error('Error playing file:', error);
+                alert('Could not play file: ' + error.message);
+            }
+        }
+        
+        // Play pad
+        function playPad(padIndex, velocity = 127) {
+            const fileData = padAssignments.get(padIndex);
+            if (!fileData) return;
+            
+            // Stop previous sound
+            if (activeSources.has(padIndex)) {
+                try {
+                    activeSources.get(padIndex).stop();
+                } catch (e) {}
+            }
+            
+            // Get cached buffer
+            const buffer = audioBuffers.get(fileData.name);
+            if (!buffer) return;
+            
+            // Create and play
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            
+            source.buffer = buffer;
+            gainNode.gain.value = velocity / 127;
+            
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            source.start(0);
+            
+            activeSources.set(padIndex, source);
+            
+            source.onended = () => {
+                if (activeSources.get(padIndex) === source) {
+                    activeSources.delete(padIndex);
+                }
+            };
+            
+            // Visual feedback
+            const pad = document.getElementById(`pad-${padIndex}`);
+            pad.style.transform = 'scale(1.1)';
+            setTimeout(() => pad.style.transform = '', 100);
+        }
+        
+        // Select pad
+        function selectPad(index) {
+            selectedPad = index;
+            
+            // Update UI
+            document.querySelectorAll('.pad').forEach((p, i) => {
+                p.classList.toggle('active', i === index);
+            });
+            
+            console.log(`Pad ${index + 1} selected - click a file to assign`);
+        }
+        
+        // Connect MIDI
+        async function connectMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                const inputs = Array.from(midiAccess.inputs.values());
+                
+                if (inputs.length === 0) {
+                    alert('No MIDI devices found');
+                    return;
+                }
+                
+                inputs.forEach(input => {
+                    input.onmidimessage = handleMIDI;
+                });
+                
+                alert('MIDI Connected! Touch SPOKE pads to trigger sounds');
+                
+            } catch (error) {
+                alert('MIDI Error: ' + error.message);
+            }
+        }
+        
+        // Handle MIDI
+        function handleMIDI(message) {
+            const [status, note, velocity] = message.data;
+            const command = status & 0xf0;
+            
+            const padIndex = SPOKE_NOTES.indexOf(note);
+            if (padIndex === -1) return;
+            
+            if (command === 0x90 && velocity > 0) {
+                playPad(padIndex, velocity);
+            }
+        }
+        
+        // Refresh files
+        async function refreshFiles() {
+            if (directoryHandle) {
+                await loadAudioFiles();
+            } else {
+                alert('Please select a folder first');
+            }
+        }
+        
+        // Format bytes
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
