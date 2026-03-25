@@ -283,6 +283,52 @@
         </div>
         
         <div class="panel" style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="panel-title" style="margin: 0;">📈 Raw Sensor Data Graph</div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <label style="font-size: 13px; color: #999;">Select Pin:</label>
+                    <select id="pinSelector" onchange="changeSelectedPin()" style="background: #333; color: white; border: 1px solid #555; padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;">
+                        <option value="0">GP1 (Pad 1)</option>
+                        <option value="1">GP2 (Pad 2)</option>
+                        <option value="2">GP3 (Pad 3)</option>
+                        <option value="3">GP4 (Pad 4)</option>
+                        <option value="4">GP5 (Pad 5)</option>
+                        <option value="5">GP6 (Pad 6)</option>
+                        <option value="6">GP7 (Pad 7)</option>
+                        <option value="7">GP8 (Pad 8)</option>
+                        <option value="8">GP9 (Pad 9)</option>
+                        <option value="9">GP10 (Pad 10)</option>
+                        <option value="10">GP11 (Pad 11)</option>
+                        <option value="11">GP12 (Pad 12)</option>
+                        <option value="12">GP13 (Pad 13)</option>
+                        <option value="13">GP14 (Pad 14)</option>
+                        <option value="14">GP15 (Pad 15)</option>
+                        <option value="15">GP16 (Pad 16)</option>
+                        <option value="16">GP17 (Pad 17)</option>
+                        <option value="17">GP18 (Pad 18)</option>
+                        <option value="18">GP19 (Pad 19)</option>
+                        <option value="19">GP20 (Pad 20)</option>
+                        <option value="20">GP21 (Pad 21)</option>
+                        <option value="21">GP22 (Pad 22)</option>
+                        <option value="22">GP25 (Pad 23)</option>
+                        <option value="23">GP26 (Pad 24)</option>
+                        <option value="24">GP27 (Pad 25)</option>
+                        <option value="25">GP28 (Pad 26)</option>
+                        <option value="26">VOLTAGE_MONITOR (Pad 27)</option>
+                    </select>
+                    <div style="font-size: 12px; color: #999;">
+                        Current: <span id="currentRaw" style="color: #4CAF50; font-weight: 700;">--</span> | 
+                        Threshold: <span id="currentThreshold" style="color: #ff9800; font-weight: 700;">--</span>
+                    </div>
+                </div>
+            </div>
+            <canvas id="graphCanvas" width="1400" height="300" style="background: #0a0a0a; border-radius: 8px; width: 100%;"></canvas>
+            <div style="margin-top: 10px; font-size: 11px; color: #666; text-align: center;">
+                Green line = Raw sensor value | Orange line = Threshold | Graph shows last 100 readings
+            </div>
+        </div>
+        
+        <div class="panel" style="margin-bottom: 20px;">
             <div class="panel-title">📋 Testing Instructions</div>
             <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; line-height: 1.8;">
                 <div style="margin-bottom: 15px; font-weight: 700; color: #ff6b35;">Please touch the pads in this exact order:</div>
@@ -294,7 +340,7 @@
                     <li><strong>Finally</strong>, rapidly tap pad 13 five times in quick succession</li>
                 </ol>
                 <div style="margin-top: 15px; padding: 12px; background: rgba(255, 152, 0, 0.1); border-left: 3px solid #ff9800; border-radius: 4px;">
-                    ⚠️ <strong>Important:</strong> Once complete, click "Copy Console Output" below and send the full log to support.
+                    ⚠️ <strong>Important:</strong> Watch the graph above to see sensor behavior in real-time. Select different pins to inspect individual sensors.
                 </div>
             </div>
         </div>
@@ -318,6 +364,14 @@
         let reader = null;
         let isReading = false;
         
+        // Graphing
+        let selectedPinIndex = 0;
+        const sensorDataHistory = Array(27).fill(null).map(() => []);
+        const thresholdHistory = Array(27).fill(null).map(() => []);
+        const MAX_HISTORY = 100;
+        let graphCanvas, graphCtx;
+        let graphAnimationId;
+        
         // SPOKE configuration
         const TOUCH_PINS = ['GP1', 'GP2', 'GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9', 
                             'GP10', 'GP11', 'GP12', 'GP13', 'GP14', 'GP15', 'GP16', 'GP17', 
@@ -325,7 +379,13 @@
         
         // Initialize UI
         function init() {
-            // No GUI elements needed - everything goes to console
+            // Setup graph canvas
+            graphCanvas = document.getElementById('graphCanvas');
+            graphCtx = graphCanvas.getContext('2d');
+            
+            // Start graph animation
+            drawGraph();
+            
             logConsole('Diagnostic tool ready. Follow steps above to begin.', 'info');
         }
         
@@ -562,6 +622,34 @@ while True:
             // Log everything to console
             logConsole(line, type);
             
+            // Parse and store raw sensor data
+            if (line.includes('TOUCH_ON:') || line.includes('TOUCH_OFF:')) {
+                const match = line.match(/(\w+) \(index (\d+)\) \| Raw: (\d+) \| Threshold: (\d+)/);
+                if (match) {
+                    const index = parseInt(match[2]);
+                    const rawValue = parseInt(match[3]);
+                    const threshold = parseInt(match[4]);
+                    
+                    // Store in history
+                    if (index < 27) {
+                        sensorDataHistory[index].push(rawValue);
+                        thresholdHistory[index].push(threshold);
+                        
+                        // Keep only last MAX_HISTORY readings
+                        if (sensorDataHistory[index].length > MAX_HISTORY) {
+                            sensorDataHistory[index].shift();
+                            thresholdHistory[index].shift();
+                        }
+                        
+                        // Update current values if this is the selected pin
+                        if (index === selectedPinIndex) {
+                            document.getElementById('currentRaw').textContent = rawValue;
+                            document.getElementById('currentThreshold').textContent = threshold;
+                        }
+                    }
+                }
+            }
+            
             // Count touch events
             if (line.includes('TOUCH_ON') || line.includes('TOUCH_OFF')) {
                 const touchCount = parseInt(document.getElementById('touchEvents').textContent);
@@ -577,6 +665,132 @@ while True:
             // Update total message count
             const totalCount = parseInt(document.getElementById('totalMessages').textContent);
             document.getElementById('totalMessages').textContent = totalCount + 1;
+        }
+        
+        // Change selected pin for graphing
+        function changeSelectedPin() {
+            selectedPinIndex = parseInt(document.getElementById('pinSelector').value);
+            
+            // Update current values display
+            const history = sensorDataHistory[selectedPinIndex];
+            const thresholds = thresholdHistory[selectedPinIndex];
+            
+            if (history.length > 0) {
+                document.getElementById('currentRaw').textContent = history[history.length - 1];
+                document.getElementById('currentThreshold').textContent = thresholds[thresholds.length - 1];
+            } else {
+                document.getElementById('currentRaw').textContent = '--';
+                document.getElementById('currentThreshold').textContent = '--';
+            }
+        }
+        
+        // Draw graph
+        function drawGraph() {
+            graphAnimationId = requestAnimationFrame(drawGraph);
+            
+            if (!graphCtx) return;
+            
+            const width = graphCanvas.width;
+            const height = graphCanvas.height;
+            const padding = 40;
+            const graphWidth = width - padding * 2;
+            const graphHeight = height - padding * 2;
+            
+            // Clear canvas
+            graphCtx.fillStyle = '#0a0a0a';
+            graphCtx.fillRect(0, 0, width, height);
+            
+            // Get data for selected pin
+            const data = sensorDataHistory[selectedPinIndex];
+            const thresholds = thresholdHistory[selectedPinIndex];
+            
+            if (data.length === 0) {
+                // No data yet
+                graphCtx.fillStyle = '#666';
+                graphCtx.font = '14px monospace';
+                graphCtx.textAlign = 'center';
+                graphCtx.fillText('Waiting for sensor data...', width / 2, height / 2);
+                return;
+            }
+            
+            // Find min/max for scaling
+            const allValues = [...data, ...thresholds];
+            const minVal = Math.min(...allValues) - 1000;
+            const maxVal = Math.max(...allValues) + 1000;
+            const range = maxVal - minVal;
+            
+            // Draw grid lines
+            graphCtx.strokeStyle = '#222';
+            graphCtx.lineWidth = 1;
+            
+            for (let i = 0; i <= 5; i++) {
+                const y = padding + (graphHeight / 5) * i;
+                graphCtx.beginPath();
+                graphCtx.moveTo(padding, y);
+                graphCtx.lineTo(width - padding, y);
+                graphCtx.stroke();
+                
+                // Y-axis labels
+                const val = maxVal - (range / 5) * i;
+                graphCtx.fillStyle = '#666';
+                graphCtx.font = '10px monospace';
+                graphCtx.textAlign = 'right';
+                graphCtx.fillText(Math.round(val), padding - 5, y + 3);
+            }
+            
+            // Draw threshold line (orange)
+            if (thresholds.length > 0) {
+                const threshold = thresholds[thresholds.length - 1];
+                const y = padding + graphHeight - ((threshold - minVal) / range) * graphHeight;
+                
+                graphCtx.strokeStyle = '#ff9800';
+                graphCtx.lineWidth = 2;
+                graphCtx.setLineDash([5, 5]);
+                graphCtx.beginPath();
+                graphCtx.moveTo(padding, y);
+                graphCtx.lineTo(width - padding, y);
+                graphCtx.stroke();
+                graphCtx.setLineDash([]);
+            }
+            
+            // Draw sensor data line (green)
+            graphCtx.strokeStyle = '#4CAF50';
+            graphCtx.lineWidth = 2;
+            graphCtx.beginPath();
+            
+            for (let i = 0; i < data.length; i++) {
+                const x = padding + (graphWidth / (MAX_HISTORY - 1)) * i;
+                const y = padding + graphHeight - ((data[i] - minVal) / range) * graphHeight;
+                
+                if (i === 0) {
+                    graphCtx.moveTo(x, y);
+                } else {
+                    graphCtx.lineTo(x, y);
+                }
+            }
+            
+            graphCtx.stroke();
+            
+            // Draw axes
+            graphCtx.strokeStyle = '#444';
+            graphCtx.lineWidth = 2;
+            graphCtx.beginPath();
+            graphCtx.moveTo(padding, padding);
+            graphCtx.lineTo(padding, height - padding);
+            graphCtx.lineTo(width - padding, height - padding);
+            graphCtx.stroke();
+            
+            // Labels
+            graphCtx.fillStyle = '#999';
+            graphCtx.font = '12px monospace';
+            graphCtx.textAlign = 'center';
+            graphCtx.fillText('Time (last 100 readings) →', width / 2, height - 10);
+            
+            graphCtx.save();
+            graphCtx.translate(15, height / 2);
+            graphCtx.rotate(-Math.PI / 2);
+            graphCtx.fillText('Raw Capacitance Value', 0, 0);
+            graphCtx.restore();
         }
         
         // Copy console to clipboard
