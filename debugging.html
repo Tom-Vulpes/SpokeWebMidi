@@ -796,21 +796,203 @@ while True:
         // Copy console to clipboard
         function copyConsole() {
             const consoleOutput = document.getElementById('consoleOutput');
-            const text = Array.from(consoleOutput.children)
+            const logText = Array.from(consoleOutput.children)
                 .map(line => line.textContent)
                 .join('\n');
             
-            navigator.clipboard.writeText(text).then(() => {
-                alert('✓ Console output copied to clipboard!\n\nYou can now paste it into an email or support ticket.');
+            // Create comprehensive diagnostic prompt
+            const diagnosticPrompt = `# SPOKE Hardware Diagnostic Report
+Generated: ${new Date().toLocaleString()}
+
+## HARDWARE SPECIFICATIONS
+
+**Device:** SPOKE - Custom CircuitPython MIDI Controller
+**MCU:** Raspberry Pi Pico (RP2040)
+**CircuitPython Version:** 9.x
+
+### Touch Sensor Configuration
+- **Total Pads:** 27 capacitive touch sensors
+- **Technology:** touchio library (built-in capacitive sensing)
+- **GPIO Pins Used:** GP1-GP22, GP25-GP28, VOLTAGE_MONITOR
+- **Pin Mapping:** Direct 1:1 mapping (Pad 1 = GP1, Pad 2 = GP2, etc.)
+  - Pads 1-22: GP1-GP22
+  - Pad 23: GP25
+  - Pad 24: GP26
+  - Pad 25: GP27
+  - Pad 26: GP28
+  - Pad 27: VOLTAGE_MONITOR
+
+### NeoPixel Configuration
+- **Total LEDs:** 27 RGB NeoPixels (WS2812B)
+- **Data Pin:** GP0
+- **Mapping:** Direct index mapping (Sensor index 0 → NeoPixel 0)
+- **Brightness:** 10% (0.1)
+- **Expected Behavior:** Green (0, 255, 0) when touched, Off (0, 0, 0) when released
+
+### MIDI Configuration
+- **Output:** USB MIDI (usb_midi.ports[1])
+- **Channel:** 0
+- **Velocity:** Fixed at 100
+- **Note Mapping:** Custom chromatic scale (high to low)
+  - Pad 1 (GP1): Note 98
+  - Pad 2 (GP2): Note 96
+  - Pad 3 (GP3): Note 93
+  - Pad 4 (GP4): Note 91
+  - Pad 5 (GP5): Note 88
+  - Pad 6 (GP6): Note 86
+  - Pad 7 (GP7): Note 84
+  - Pad 8 (GP8): Note 81
+  - Pad 9 (GP9): Note 79
+  - Pad 10 (GP10): Note 76
+  - Pad 11 (GP11): Note 74
+  - Pad 12 (GP12): Note 72
+  - Pad 13 (GP13): Note 69
+  - Pad 14 (GP14): Note 67
+  - Pad 15 (GP15): Note 64
+  - Pad 16 (GP16): Note 62
+  - Pad 17 (GP17): Note 60
+  - Pad 18 (GP18): Note 57
+  - Pad 19 (GP19): Note 55
+  - Pad 20 (GP20): Note 52
+  - Pad 21 (GP21): Note 50
+  - Pad 22 (GP22): Note 48
+  - Pad 23 (GP25): Note 45
+  - Pad 24 (GP26): Note 43
+  - Pad 25 (GP27): Note 40
+  - Pad 26 (GP28): Note 38
+  - Pad 27 (VOLTAGE_MONITOR): Note 36
+
+## DIAGNOSTIC CODE BEHAVIOR
+
+**Testing Pattern:** Sequential pad testing (1-27), dual touch test (1+27), rapid tap test (pad 13 x5)
+
+**Capacitive Touch Operation:**
+- Each sensor has a \`raw_value\` (0-65535) representing measured capacitance
+- Each sensor has a \`threshold\` value (auto-calibrated by CircuitPython)
+- Touch detected when: raw_value < threshold
+- Typical values:
+  - Untouched: 40000-60000
+  - Touched: 15000-25000
+  - Healthy margin: 10000+ between resting value and threshold
+
+**State Change Detection:**
+- Code only logs TOUCH_ON and TOUCH_OFF events (not continuous polling)
+- TOUCH_ON: Sensor crosses below threshold
+- TOUCH_OFF: Sensor crosses above threshold
+
+**Expected Log Format:**
+\`\`\`
+INIT: GP1 OK
+TOUCH_ON: GP5 (index 4) | Raw: 45823 | Threshold: 30000 | MIDI: Note 88 ON
+TOUCH_OFF: GP5 (index 4) | Raw: 28941 | Threshold: 30000 | MIDI: Note 88 OFF
+STATUS: Loop 100, Active sensors: 2
+RAW_VALUES: GP1:28450 | GP2:29100 | GP3:27800 | ...
+\`\`\`
+
+## COMMON ISSUES TO IDENTIFY
+
+### 1. Stuttering/Bouncing
+**Symptoms:** Rapid TOUCH_ON/TOUCH_OFF events without user action
+**Cause:** Raw value oscillating near threshold
+**Example:**
+\`\`\`
+TOUCH_ON: GP12 | Raw: 30100 | Threshold: 30000
+TOUCH_OFF: GP12 | Raw: 29900 | Threshold: 30000
+TOUCH_ON: GP12 | Raw: 30050 | Threshold: 30000
+\`\`\`
+**Solution:** Threshold too close to resting value, electrical noise, or poor connection
+
+### 2. Pin/LED Mismatch
+**Symptoms:** Wrong NeoPixel lights up, or wrong GPIO triggers
+**Example:** User touches Pad 5, but GP12 logs the event
+**Cause:** Hardware wiring error or incorrect GPIO mapping
+**Solution:** Check physical connections and pin definitions
+
+### 3. MIDI Note Mismatch
+**Symptoms:** Wrong MIDI note sent for a given pad
+**Example:** Pad 5 should send Note 88, but sends Note 74
+**Cause:** Incorrect MIDI_NOTES array or index mapping error
+**Solution:** Verify MIDI_NOTES array matches expected mapping
+
+### 4. Missing Note OFF Events
+**Symptoms:** Multiple TOUCH_ON events without corresponding TOUCH_OFF
+**Example:**
+\`\`\`
+TOUCH_ON: GP5 | Note 88 ON
+TOUCH_ON: GP5 | Note 88 ON  ← No OFF between!
+\`\`\`
+**Cause:** Threshold too high, sensor not releasing properly
+**Solution:** Adjust threshold or check sensor calibration
+
+### 5. Dead/Unresponsive Sensor
+**Symptoms:** No TOUCH_ON events, or raw value always very low
+**Example:** GP15 shows raw values of 12000-15000 (never reaches threshold)
+**Cause:** Broken wire, poor solder joint, or damaged sensor pad
+**Solution:** Hardware repair required
+
+### 6. Weak/Inconsistent Response
+**Symptoms:** Touch sometimes works, sometimes doesn't
+**Example:** Raw value drops to 31000 when threshold is 30000 (only 1000 margin)
+**Cause:** Insufficient capacitive coupling, poor ground plane
+**Solution:** Improve sensor pad design or increase sensor area
+
+### 7. Electrical Noise/EMI
+**Symptoms:** Raw values fluctuate wildly (±5000) even when untouched
+**Example:** GP8 shows: 45000 → 52000 → 43000 → 49000 (unstable baseline)
+**Cause:** Electromagnetic interference, poor shielding, nearby power source
+**Solution:** Add filtering capacitors, improve grounding, relocate board
+
+### 8. Crosstalk Between Sensors
+**Symptoms:** Touching one pad affects neighboring pads
+**Example:** Touch Pad 5, both GP5 and GP6 register TOUCH_ON
+**Cause:** Insufficient spacing between sensor pads, poor ground isolation
+**Solution:** Physical redesign with better pad spacing
+
+## DIAGNOSTIC LOG DATA
+
+Below is the complete serial output from the SPOKE diagnostic session:
+
+---
+
+${logText}
+
+---
+
+## ANALYSIS REQUEST
+
+Please analyze the above diagnostic log and identify:
+
+1. **Any stuttering or bouncing sensors** - Look for rapid ON/OFF cycles
+2. **Pin/LED mapping mismatches** - Verify GPIO pins match expected pad numbers
+3. **MIDI note correctness** - Confirm each pad sends the correct MIDI note number
+4. **Missing Note OFF events** - Check for stuck notes
+5. **Dead or unresponsive sensors** - Identify pads that never trigger
+6. **Weak sensors** - Find pads with raw values too close to threshold
+7. **Electrical noise issues** - Spot unstable raw value baselines
+8. **Crosstalk problems** - Detect multiple pads triggering from single touch
+
+For each issue found, please:
+- Specify the pad number and GPIO pin
+- Quote the relevant log lines
+- Explain the likely root cause
+- Suggest specific remediation steps
+
+If the log shows the testing sequence was incomplete, note which pads were not tested.
+
+Thank you for your analysis!`;
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(diagnosticPrompt).then(() => {
+                alert('✓ Complete diagnostic report copied to clipboard!\n\nThis includes:\n• Full hardware specifications\n• MIDI note mapping\n• Common issues guide\n• Complete serial log\n• Analysis instructions\n\nYou can now paste this into ChatGPT, Claude, or any LLM for automated analysis.');
             }).catch(err => {
                 // Fallback: select and copy manually
                 const textarea = document.createElement('textarea');
-                textarea.value = text;
+                textarea.value = diagnosticPrompt;
                 document.body.appendChild(textarea);
                 textarea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textarea);
-                alert('✓ Console output copied to clipboard!');
+                alert('✓ Complete diagnostic report copied to clipboard!');
             });
         }
         
