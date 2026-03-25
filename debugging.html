@@ -140,11 +140,13 @@
             border-radius: 6px;
             border: 2px solid #333;
             transition: all 0.2s;
+            font-size: 11px;
         }
         
         .sensor-item.active {
             border-color: #4CAF50;
             background: rgba(76, 175, 80, 0.1);
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
         }
         
         .sensor-item.error {
@@ -153,13 +155,14 @@
         }
         
         .sensor-label {
-            font-size: 11px;
+            font-size: 10px;
             color: #999;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
+            font-weight: 600;
         }
         
         .sensor-value {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 700;
             font-family: 'Courier New', monospace;
         }
@@ -339,8 +342,15 @@
                 <div class="stat-value" id="litPixels">0</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">Data Updates</div>
-                <div class="stat-value" id="updateCount">0</div>
+                <div class="stat-label">MIDI Events</div>
+                <div class="stat-value" id="midiEvents">0</div>
+            </div>
+        </div>
+        
+        <div class="panel" style="margin-bottom: 20px;">
+            <div class="panel-title">🎹 Recent MIDI Events</div>
+            <div id="midiLog" style="font-family: 'Courier New', monospace; font-size: 12px; max-height: 120px; overflow-y: auto; background: #1e1e1e; padding: 10px; border-radius: 6px;">
+                <div style="color: #666;">No MIDI events yet...</div>
             </div>
         </div>
         
@@ -378,6 +388,8 @@
         const sensorStates = new Map();
         const pixelStates = new Map();
         let updateCount = 0;
+        let midiEventCount = 0;
+        const recentMidiEvents = [];
         
         // SPOKE configuration
         const TOUCH_PINS = ['GP1', 'GP2', 'GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9', 
@@ -453,10 +465,14 @@
             }
             
             const diagnosticCode = `# SPOKE Diagnostic Code
-# This code tests all sensors and NeoPixels
+# This code tests all sensors, NeoPixels, and MIDI output
 import board
 import touchio
 import neopixel
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
 import time
 
 # All touch pins
@@ -470,11 +486,19 @@ pin_names = ['GP1', 'GP2', 'GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9',
              'GP10', 'GP11', 'GP12', 'GP13', 'GP14', 'GP15', 'GP16', 'GP17',
              'GP18', 'GP19', 'GP20', 'GP21', 'GP22', 'GP25', 'GP26', 'GP27', 'GP28', 'VOLTAGE_MONITOR']
 
+# MIDI note mapping (default SPOKE mapping)
+MIDI_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
+
+# Initialize MIDI
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+print("INIT: MIDI OK")
+
 # Initialize touch sensors
 touch_sensors = []
 for i, pin in enumerate(touch_pins_raw):
     try:
-        touch_sensors.append(touchio.TouchIn(pin))
+        sensor = touchio.TouchIn(pin)
+        touch_sensors.append(sensor)
         print(f"INIT: {pin_names[i]} OK")
     except Exception as e:
         touch_sensors.append(None)
@@ -490,6 +514,9 @@ for i in range(27):
     pixels[i] = (0, 0, 0)
 pixels.show()
 
+# Track previous states
+previous_states = [False] * len(touch_sensors)
+
 # Main diagnostic loop
 loop_count = 0
 while True:
@@ -500,26 +527,53 @@ while True:
         if sensor is not None:
             try:
                 is_touched = sensor.value
+                raw_value = sensor.raw_value
+                threshold = sensor.threshold
                 
-                # Print state changes and light up corresponding NeoPixel
-                if is_touched:
-                    # Map sensor to NeoPixel (assume direct mapping for now)
-                    if i < 27:
-                        pixels[i] = (0, 255, 0)  # Green when touched
-                    print(f"SENSOR: {pin_names[i]} (index {i}) = TRUE")
-                else:
-                    if i < 27:
-                        pixels[i] = (0, 0, 0)  # Off when not touched
+                # Detect state changes
+                if is_touched != previous_states[i]:
+                    previous_states[i] = is_touched
+                    
+                    if is_touched:
+                        # Touched - send note on
+                        if i < 27:
+                            midi_note = MIDI_NOTES[i]
+                            midi.send(NoteOn(midi_note, 100))
+                            pixels[i] = (0, 255, 0)  # Green when touched
+                            print(f"TOUCH_ON: {pin_names[i]} (index {i}) | Raw: {raw_value} | Threshold: {threshold} | MIDI: Note {midi_note} ON")
+                        else:
+                            print(f"TOUCH_ON: {pin_names[i]} (index {i}) | Raw: {raw_value} | Threshold: {threshold}")
+                    else:
+                        # Released - send note off
+                        if i < 27:
+                            midi_note = MIDI_NOTES[i]
+                            midi.send(NoteOff(midi_note, 0))
+                            pixels[i] = (0, 0, 0)  # Off when not touched
+                            print(f"TOUCH_OFF: {pin_names[i]} (index {i}) | Raw: {raw_value} | Threshold: {threshold} | MIDI: Note {midi_note} OFF")
+                        else:
+                            print(f"TOUCH_OFF: {pin_names[i]} (index {i}) | Raw: {raw_value} | Threshold: {threshold}")
+                
             except Exception as e:
                 print(f"ERROR: {pin_names[i]} - {e}")
     
     # Update NeoPixels
     pixels.show()
     
-    # Print summary every 100 loops
+    # Print detailed summary every 100 loops
     if loop_count % 100 == 0:
         active_count = sum(1 for s in touch_sensors if s and s.value)
         print(f"STATUS: Loop {loop_count}, Active sensors: {active_count}")
+        
+        # Print raw values for all sensors
+        raw_values = []
+        for i, sensor in enumerate(touch_sensors):
+            if sensor is not None:
+                try:
+                    raw_values.append(f"{pin_names[i]}:{sensor.raw_value}")
+                except:
+                    pass
+        if raw_values:
+            print(f"RAW_VALUES: {' | '.join(raw_values[:10])}")  # Print first 10 to avoid spam
     
     time.sleep(0.01)  # 10ms delay
 `;
@@ -597,25 +651,70 @@ while True:
             let type = 'info';
             if (line.includes('ERROR')) type = 'error';
             else if (line.includes('INIT') || line.includes('STATUS')) type = 'info';
-            else if (line.includes('SENSOR')) type = 'success';
+            else if (line.includes('TOUCH_ON')) type = 'success';
+            else if (line.includes('TOUCH_OFF')) type = 'warning';
+            else if (line.includes('RAW_VALUES')) type = 'info';
             
             logConsole(line, type);
             
-            // Parse sensor data
-            if (line.includes('SENSOR:')) {
-                const match = line.match(/SENSOR: (\w+) \(index (\d+)\) = (TRUE|FALSE)/);
+            // Parse TOUCH_ON events with MIDI and raw values
+            if (line.includes('TOUCH_ON:')) {
+                const match = line.match(/TOUCH_ON: (\w+) \(index (\d+)\) \| Raw: (\d+) \| Threshold: (\d+) \| MIDI: Note (\d+) ON/);
                 if (match) {
                     const pinName = match[1];
                     const index = parseInt(match[2]);
-                    const state = match[3] === 'TRUE';
+                    const rawValue = parseInt(match[3]);
+                    const threshold = parseInt(match[4]);
+                    const midiNote = parseInt(match[5]);
                     
-                    updateSensor(index, state);
+                    updateSensor(index, true);
+                    logMidiEvent(`Note ${midiNote} ON`, pinName, index, rawValue, threshold);
                 }
+            }
+            
+            // Parse TOUCH_OFF events with MIDI and raw values
+            if (line.includes('TOUCH_OFF:')) {
+                const match = line.match(/TOUCH_OFF: (\w+) \(index (\d+)\) \| Raw: (\d+) \| Threshold: (\d+) \| MIDI: Note (\d+) OFF/);
+                if (match) {
+                    const pinName = match[1];
+                    const index = parseInt(match[2]);
+                    const rawValue = parseInt(match[3]);
+                    const threshold = parseInt(match[4]);
+                    const midiNote = parseInt(match[5]);
+                    
+                    updateSensor(index, false);
+                    logMidiEvent(`Note ${midiNote} OFF`, pinName, index, rawValue, threshold);
+                }
+            }
+            
+            // Parse RAW_VALUES summary
+            if (line.includes('RAW_VALUES:')) {
+                // This line contains multiple raw values - already logged to console
             }
             
             // Update counters
             updateCount++;
-            document.getElementById('updateCount').textContent = updateCount;
+        }
+        
+        // Log MIDI event
+        function logMidiEvent(event, pinName, index, rawValue, threshold) {
+            midiEventCount++;
+            document.getElementById('midiEvents').textContent = midiEventCount;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const eventText = `[${timestamp}] ${event} | ${pinName} (${index}) | Raw: ${rawValue} | Threshold: ${threshold}`;
+            
+            recentMidiEvents.unshift(eventText);
+            if (recentMidiEvents.length > 10) {
+                recentMidiEvents.pop();
+            }
+            
+            // Update MIDI log display
+            const midiLog = document.getElementById('midiLog');
+            midiLog.innerHTML = recentMidiEvents.map(e => {
+                const color = e.includes('ON') ? '#4CAF50' : '#ff9800';
+                return `<div style="color: ${color}; margin-bottom: 2px;">${e}</div>`;
+            }).join('');
         }
         
         // Update sensor display
