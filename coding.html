@@ -83,6 +83,25 @@ body{font-family:var(--sans);background:var(--bg);color:var(--t1);height:100vh;d
 .guide-msg{font-size:12px;color:var(--t2);flex:1;line-height:1.4}
 .guide-msg b{color:var(--t1);font-weight:500}
 
+/* ── STEP EXPLAIN (left panel sync) ── */
+.explain-block{margin:0;transition:opacity .2s}
+.explain-block + .explain-block{margin-top:10px}
+.explain-intro{font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:14px}
+.explain-intro b{color:var(--t1);font-weight:500}
+.explain-intro .ic{font-family:var(--mono);font-size:11px;color:var(--acc);background:var(--s3);padding:1px 5px;border-radius:2px}
+.step-card{background:var(--s2);border:1px solid var(--b1);border-left:2px solid var(--acc);border-radius:0 3px 3px 0;padding:11px 13px;margin:10px 0;transition:all .25s}
+.step-card.dim{opacity:.35;border-left-color:var(--b2)}
+.step-card.hi{border-left-color:var(--acc);background:rgba(249,115,22,.06)}
+.step-card-n{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc);margin-bottom:4px}
+.step-card.dim .step-card-n{color:var(--t3)}
+.step-card-title{font-size:13px;font-weight:500;color:var(--t1);margin-bottom:5px;line-height:1.3}
+.step-card.dim .step-card-title{color:var(--t3)}
+.step-card-body{font-size:12px;color:var(--t2);line-height:1.65}
+.step-card-body b{color:var(--t1);font-weight:500}
+.step-card-body .ic{font-family:var(--mono);font-size:11px;color:var(--acc);background:var(--s3);padding:1px 5px;border-radius:2px}
+.step-card-code{font-family:var(--mono);font-size:11px;color:var(--t1);background:var(--s3);border:1px solid var(--b1);padding:7px 10px;border-radius:2px;margin-top:7px;white-space:pre}
+.step-card-code .kw{color:#c678dd}.step-card-code .st{color:#98c379}.step-card-code .fn{color:#61afef}.step-card-code .co{color:var(--t3)}
+
 .code-view{flex:1;overflow-y:auto;padding:14px 0;font-family:var(--mono);font-size:12px;line-height:1.9}
 .code-view::-webkit-scrollbar{width:3px}
 .code-view::-webkit-scrollbar-thumb{background:var(--b2)}
@@ -223,89 +242,352 @@ body{font-family:var(--sans);background:var(--bg);color:var(--t1);height:100vh;d
 //   prompt     → student types this line; answer is checked (prefix shown before cursor)
 const L = {
 1:{mod:'Module 1 — First Steps',title:'Light Up a Pad',sub:'Touch Pad 1 — see a green light',ks:'KS3 · Sequence · Selection',midi:false,
+intro:`<p class="explain-intro">Your first program does something you can see and feel: touch <b>Pad 1</b> and a light turns green. Lift your finger and it turns off.</p>
+<p class="explain-intro">To make that happen, you need to give the computer <b>exact instructions in the right order</b>. One wrong letter and it fails. That is not a flaw — that precision is what makes programming powerful.</p>
+<p class="explain-intro">The greyed-out lines on the right are setup code (already done for you). You will write the <b>logic</b> — the part that decides what happens. Each card below explains the line you are about to type, and updates as you go.</p>`,
 info:[
-  {t:'info',l:'The plan',p:'<ic>while True</ic> runs forever. Inside, we ask: is the pad being touched? If yes — green. If no — off.'},
-  {t:'info',l:'Colour numbers',p:'Colours are <ic>(Red, Green, Blue)</ic>, each 0–255. <ic>(0, 255, 0)</ic> = green. <ic>(0, 0, 0)</ic> = off.'},
-  {t:'task',l:'Your goal',p:'Type each line when prompted. When done, click <b>Save & Run</b> and touch Pad 1.'},
+  {t:'task',l:'Your goal',p:'Type each line when prompted on the right. When all lines are written, click <b>Save & Run</b>, then touch Pad 1 with your finger.'},
 ],
-challenge:{t:'task',l:'Challenge',p:'Change the colour to red <ic>(255, 0, 0)</ic> in Free Edit.'},
+challenge:{t:'task',l:'Challenge',p:'Change the colour to red — swap <ic>(0, 255, 0)</ic> for <ic>(255, 0, 0)</ic> in Free Edit.'},
 lines:[
   {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
   {ln:2,skip:true,toks:[]},
   {ln:3,skip:true,toks:[{c:'pl',v:'touch1 = touchio.TouchIn(board.GP1)'}]},
-  {ln:4,skip:true,toks:[{c:'pl',v:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)'}]},
+  {ln:4,skip:true,toks:[{c:'pl',v:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.08, auto_write=False)'}]},
   {ln:5,skip:true,toks:[]},
-  {ln:6,prompt:'Start the infinite loop — keyword, space, True, colon.',hint:'while True:',pfx:'',ans:'while True:',toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
-  {ln:7,prompt:'Check if Pad 1 is touched. 4 spaces, then: if touch1.value:',hint:'    if touch1.value:',pfx:'    ',ans:'if touch1.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch1.value:'}]},
-  {ln:8,prompt:'Turn pixel 0 green. 8 spaces, then: pixels[0] = (0, 255, 0)',hint:'        pixels[0] = (0, 255, 0)',pfx:'        ',ans:'pixels[0] = (0, 255, 0)',alt:['pixels[0]=(0,255,0)'],toks:[{c:'pl',v:'        pixels[0] = (0, 255, 0)'}]},
-  {ln:9,prompt:'Handle the other case — "otherwise". 4 spaces, keyword, colon.',hint:'    else:',pfx:'    ',ans:'else:',toks:[{c:'pl',v:'    '},{c:'kw',v:'else'},{c:'pl',v:':'}]},
-  {ln:10,prompt:'Turn it off. 8 spaces, then: pixels[0] = (0, 0, 0)',hint:'        pixels[0] = (0, 0, 0)',pfx:'        ',ans:'pixels[0] = (0, 0, 0)',alt:['pixels[0]=(0,0,0)'],toks:[{c:'pl',v:'        pixels[0] = (0, 0, 0)'}]},
-  {ln:11,prompt:'Update the lights. 4 spaces, then: pixels.show()',hint:'    pixels.show()',pfx:'    ',ans:'pixels.show()',toks:[{c:'pl',v:'    pixels.show()'}]},
+  {ln:6,
+   prompt:'Start the infinite loop — type: while True:',
+   hint:'while True:',pfx:'',ans:'while True:',
+   explain:{
+     n:'Line 6 — the forever loop',
+     title:'while True: — instructions that repeat forever',
+     body:'<ic>while True:</ic> is a loop. Python runs everything inside it, then goes back to the top and runs it again — over and over, hundreds of times a second, until you unplug the board.<br><br><ic>True</ic> is always true, so the loop never stops. Without this, your code would run once and quit — nothing would respond to your touch.<br><br>Every interactive program starts this way.',
+     code:'<span class="kw">while</span> True:  <span class="co"># keep doing this forever</span>'
+   },
+   toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:7,
+   prompt:'Ask if Pad 1 is being touched — type: if touch1.value:  (4 spaces first)',
+   hint:'    if touch1.value:',pfx:'    ',ans:'if touch1.value:',
+   explain:{
+     n:'Line 7 — asking a yes/no question',
+     title:'if touch1.value: — is someone touching it?',
+     body:'<ic>touch1.value</ic> is always either <b>True</b> (finger on pad) or <b>False</b> (nothing there). There is no "maybe".<br><br>The word <ic>if</ic> means: only run the next line if this is True. If it is False, skip it entirely and jump to <ic>else</ic>.<br><br>The <b>4 spaces</b> before <ic>if</ic> are critical — they tell Python this line lives <b>inside</b> the while loop. Python uses indentation (spaces) to understand structure, not brackets like some other languages.',
+     code:'<span class="kw">while</span> True:
+<span class="kw">    if</span> touch1.value:  <span class="co"># 4 spaces = inside the loop</span>'
+   },
+   toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch1.value:'}]},
+  {ln:8,
+   prompt:'Set the light to green — type: pixels[0] = (0, 255, 0)  (8 spaces first)',
+   hint:'        pixels[0] = (0, 255, 0)',pfx:'        ',ans:'pixels[0] = (0, 255, 0)',alt:['pixels[0]=(0,255,0)'],
+   explain:{
+     n:'Line 8 — choosing a colour',
+     title:'pixels[0] = (0, 255, 0) — the green light',
+     body:'<ic>pixels[0]</ic> is the first light. Computers start counting from <b>zero</b>, not one — so pad 1 is pixel 0, pad 2 is pixel 1, and so on.<br><br>Colours are written as <b>(Red, Green, Blue)</b>, each from 0 (none) to 255 (full). <ic>(0, 255, 0)</ic> means: no red, maximum green, no blue — a bright green.<br><br>The <b>8 spaces</b> mean this line is inside the <ic>if</ic>, which is inside the <ic>while</ic> — two levels deep.',
+     code:'<span class="pl">        pixels[0] = (</span><span class="nu">0</span><span class="pl">, </span><span class="nu">255</span><span class="pl">, </span><span class="nu">0</span><span class="pl">)  </span><span class="co"># R=0 G=255 B=0</span>'
+   },
+   toks:[{c:'pl',v:'        pixels[0] = (0, 255, 0)'}]},
+  {ln:9,
+   prompt:'Handle when nothing is touching — type: else:  (4 spaces first)',
+   hint:'    else:',pfx:'    ',ans:'else:',
+   explain:{
+     n:'Line 9 — the other path',
+     title:'else: — what to do when the answer is False',
+     body:'<ic>else:</ic> is the "otherwise" case. If <ic>touch1.value</ic> was False (nothing touching), Python skips the green line and comes here instead.<br><br>Together, <ic>if</ic> and <ic>else</ic> guarantee <b>one branch always runs</b> — never both, never neither. The program is making a binary decision: touched or not touched. This decision-making is called <b>selection</b>.',
+     code:'<span class="kw">    if</span> touch1.value:    <span class="co"># True path</span>
+        ...
+<span class="kw">    else</span>:              <span class="co"># False path</span>
+        ...'
+   },
+   toks:[{c:'pl',v:'    '},{c:'kw',v:'else'},{c:'pl',v:':'}]},
+  {ln:10,
+   prompt:'Turn the light off — type: pixels[0] = (0, 0, 0)  (8 spaces first)',
+   hint:'        pixels[0] = (0, 0, 0)',pfx:'        ',ans:'pixels[0] = (0, 0, 0)',alt:['pixels[0]=(0,0,0)'],
+   explain:{
+     n:'Line 10 — switching off',
+     title:'(0, 0, 0) — zero of everything means off',
+     body:'There is no "turn off" command. Instead, you set the colour to <ic>(0, 0, 0)</ic>: zero red, zero green, zero blue. No light output at all — which looks black, or off.<br><br>This is the pattern throughout all your programs: set a colour to turn on, set <ic>(0, 0, 0)</ic> to turn off. Always the same idea.',
+     code:'<span class="pl">        pixels[0] = (</span><span class="nu">0</span><span class="pl">, </span><span class="nu">0</span><span class="pl">, </span><span class="nu">0</span><span class="pl">)  </span><span class="co"># 0+0+0 = no light = off</span>'
+   },
+   toks:[{c:'pl',v:'        pixels[0] = (0, 0, 0)'}]},
+  {ln:11,
+   prompt:'Send the colour to the lights — type: pixels.show()  (4 spaces first)',
+   hint:'    pixels.show()',pfx:'    ',ans:'pixels.show()',
+   explain:{
+     n:'Line 11 — making the change visible',
+     title:'pixels.show() — post the letter, don\'t just write it',
+     body:'Setting <ic>pixels[0]</ic> stores a colour in memory, but the physical lights <b>do not change yet</b>. Think of it like writing a letter — <ic>pixels.show()</ic> is the step that actually posts it.<br><br>It runs at the end of every loop cycle, so the lights update hundreds of times per second — fast enough to feel instant.',
+     code:'<span class="pl">    pixels</span><span class="fn">.show</span><span class="pl">()  </span><span class="co"># now the light actually changes</span>'
+   },
+   toks:[{c:'pl',v:'    pixels.show()'}]},
 ],
-free:`import board, touchio, neopixel\n\ntouch1 = touchio.TouchIn(board.GP1)\npixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)\n\nwhile True:\n    if touch1.value:\n        pixels[0] = (0, 255, 0)\n    else:\n        pixels[0] = (0, 0, 0)\n    pixels.show()`},
+free:`import board, touchio, neopixel\n\ntouch1 = touchio.TouchIn(board.GP1)\npixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.08, auto_write=False)\n\nwhile True:\n    if touch1.value:\n        pixels[0] = (0, 255, 0)\n    else:\n        pixels[0] = (0, 0, 0)\n    pixels.show()`},
 
 2:{mod:'Module 1 — First Steps',title:'Three Pads, Three Colours',sub:'Red, green, blue — one per pad',ks:'KS3 · Sequence',midi:false,
+intro:`<p class="explain-intro">Last lesson you controlled one pad. Now you will control three — and here is the key insight: <b>the code for each pad is identical in structure</b>. Only the pad number and colour change.</p>
+<p class="explain-intro">The computer runs your code from top to bottom, continuously. It checks Pad 1, then Pad 2, then Pad 3, then starts again. This is called <b>sequencing</b> — instructions executed in order. It happens so fast (hundreds of times per second) that touching two pads at once lights both simultaneously.</p>
+<p class="explain-intro">As you write the three blocks, notice the pattern repeating. Recognising repetition is one of the most important skills in programming — in Lesson 5 you will learn how to eliminate it with loops.</p>`,
 info:[
-  {t:'info',l:'Sequencing',p:'The code checks pad 1, then 2, then 3 — hundreds of times a second. Touch two at once: both lights appear.'},
-  {t:'info',l:'Spot the pattern',p:'You will write the same three-line block three times. Good programmers notice this and fix it with loops — coming in Lesson 5.'},
+  {t:'task',l:'Your goal',p:'Touch Pad 1 → red. Touch Pad 2 → green. Touch Pad 3 → blue. Try touching two at once — what happens?'},
 ],
-challenge:{t:'task',l:'Challenge',p:'Make Pad 2 yellow <ic>(255, 255, 0)</ic> instead of green in Free Edit.'},
+challenge:{t:'task',l:'Challenge',p:'Make Pad 2 yellow — swap <ic>(0, 255, 0)</ic> for <ic>(255, 255, 0)</ic> in Free Edit. Yellow = full red + full green.'},
 lines:[
   {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
   {ln:2,skip:true,toks:[]},
-  {ln:3,prompt:'Set up touch sensor 1. Type: touch1 = touchio.TouchIn(board.GP1)',hint:'touch1 = touchio.TouchIn(board.GP1)',pfx:'',ans:'touch1 = touchio.TouchIn(board.GP1)',alt:['touch1=touchio.TouchIn(board.GP1)'],toks:[{c:'pl',v:'touch1 = touchio.TouchIn(board.GP1)'}]},
-  {ln:4,prompt:'Same pattern for pad 2. GP2 this time.',hint:'touch2 = touchio.TouchIn(board.GP2)',pfx:'',ans:'touch2 = touchio.TouchIn(board.GP2)',alt:['touch2=touchio.TouchIn(board.GP2)'],toks:[{c:'pl',v:'touch2 = touchio.TouchIn(board.GP2)'}]},
-  {ln:5,prompt:'And pad 3. GP3.',hint:'touch3 = touchio.TouchIn(board.GP3)',pfx:'',ans:'touch3 = touchio.TouchIn(board.GP3)',alt:['touch3=touchio.TouchIn(board.GP3)'],toks:[{c:'pl',v:'touch3 = touchio.TouchIn(board.GP3)'}]},
-  {ln:6,skip:true,toks:[{c:'pl',v:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)'}]},
+  {ln:3,
+   prompt:'Set up the first touch sensor. Type: touch1 = touchio.TouchIn(board.GP1)',
+   hint:'touch1 = touchio.TouchIn(board.GP1)',pfx:'',ans:'touch1 = touchio.TouchIn(board.GP1)',alt:['touch1=touchio.TouchIn(board.GP1)'],
+   explain:{
+     n:'Lines 3–5 — setting up each pad',
+     title:'touch1 = touchio.TouchIn(board.GP1) — registering a sensor',
+     body:'<ic>touchio.TouchIn(board.GP1)</ic> tells the board: "watch the physical pin called GP1 and tell me when a finger is there". <b>GP</b> stands for General Purpose pin — a physical connection point on SPOKE.<br><br>We store the result in a variable called <ic>touch1</ic>. A <b>variable</b> is a named container — like a labelled box. Later, when we write <ic>touch1.value</ic>, Python opens that box and checks: is someone touching it right now?<br><br>You write the same line three times, once per pad — only the number changes.',
+     code:'touch1 = touchio.TouchIn(board.<span class="kw">GP1</span>)\ntouch2 = touchio.TouchIn(board.<span class="kw">GP2</span>)\ntouch3 = touchio.TouchIn(board.<span class="kw">GP3</span>)'
+   },
+   toks:[{c:'pl',v:'touch1 = touchio.TouchIn(board.GP1)'}]},
+  {ln:4,
+   prompt:'Same pattern for Pad 2. Replace GP1 with GP2.',
+   hint:'touch2 = touchio.TouchIn(board.GP2)',pfx:'',ans:'touch2 = touchio.TouchIn(board.GP2)',alt:['touch2=touchio.TouchIn(board.GP2)'],
+   explain:{
+     n:'Lines 3–5 — setting up each pad',
+     title:'touch1 = touchio.TouchIn(board.GP1) — registering a sensor',
+     body:'<ic>touchio.TouchIn(board.GP1)</ic> tells the board: "watch the physical pin called GP1 and tell me when a finger is there". <b>GP</b> stands for General Purpose pin — a physical connection point on SPOKE.<br><br>We store the result in a variable called <ic>touch1</ic>. A <b>variable</b> is a named container — like a labelled box. Later, when we write <ic>touch1.value</ic>, Python opens that box and checks: is someone touching it right now?<br><br>You write the same line three times, once per pad — only the number changes.',
+     code:'touch1 = touchio.TouchIn(board.<span class="kw">GP1</span>)\ntouch2 = touchio.TouchIn(board.<span class="kw">GP2</span>)\ntouch3 = touchio.TouchIn(board.<span class="kw">GP3</span>)'
+   },
+   toks:[{c:'pl',v:'touch2 = touchio.TouchIn(board.GP2)'}]},
+  {ln:5,
+   prompt:'And Pad 3. Replace GP1 with GP3.',
+   hint:'touch3 = touchio.TouchIn(board.GP3)',pfx:'',ans:'touch3 = touchio.TouchIn(board.GP3)',alt:['touch3=touchio.TouchIn(board.GP3)'],
+   explain:{
+     n:'Lines 3–5 — setting up each pad',
+     title:'touch1 = touchio.TouchIn(board.GP1) — registering a sensor',
+     body:'<ic>touchio.TouchIn(board.GP1)</ic> tells the board: "watch the physical pin called GP1 and tell me when a finger is there". <b>GP</b> stands for General Purpose pin — a physical connection point on SPOKE.<br><br>We store the result in a variable called <ic>touch1</ic>. A <b>variable</b> is a named container — like a labelled box. Later, when we write <ic>touch1.value</ic>, Python opens that box and checks: is someone touching it right now?<br><br>You write the same line three times, once per pad — only the number changes.',
+     code:'touch1 = touchio.TouchIn(board.<span class="kw">GP1</span>)\ntouch2 = touchio.TouchIn(board.<span class="kw">GP2</span>)\ntouch3 = touchio.TouchIn(board.<span class="kw">GP3</span>)'
+   },
+   toks:[{c:'pl',v:'touch3 = touchio.TouchIn(board.GP3)'}]},
+  {ln:6,skip:true,toks:[{c:'pl',v:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.08, auto_write=False)'}]},
   {ln:7,skip:true,toks:[]},
   {ln:8,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
-  {ln:9,prompt:'Check pad 1. 4 spaces then the if statement.',hint:'    if touch1.value:',pfx:'    ',ans:'if touch1.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch1.value:'}]},
-  {ln:10,prompt:'Pixel 0 to red. 8 spaces.',hint:'        pixels[0] = (255, 0, 0)',pfx:'        ',ans:'pixels[0] = (255, 0, 0)',alt:['pixels[0]=(255,0,0)'],toks:[{c:'pl',v:'        pixels[0] = (255, 0, 0)'}]},
-  {ln:11,prompt:'Else — off. 4 spaces.',hint:'    else: pixels[0] = (0, 0, 0)',pfx:'    ',ans:'else: pixels[0] = (0, 0, 0)',alt:['else:pixels[0]=(0,0,0)','else: pixels[0]=(0,0,0)'],toks:[{c:'pl',v:'    else: pixels[0] = (0, 0, 0)'}]},
-  {ln:12,prompt:'Check pad 2.',hint:'    if touch2.value:',pfx:'    ',ans:'if touch2.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch2.value:'}]},
-  {ln:13,prompt:'Pixel 1 green. 8 spaces.',hint:'        pixels[1] = (0, 255, 0)',pfx:'        ',ans:'pixels[1] = (0, 255, 0)',alt:['pixels[1]=(0,255,0)'],toks:[{c:'pl',v:'        pixels[1] = (0, 255, 0)'}]},
-  {ln:14,prompt:'Else off.',hint:'    else: pixels[1] = (0, 0, 0)',pfx:'    ',ans:'else: pixels[1] = (0, 0, 0)',alt:['else:pixels[1]=(0,0,0)'],toks:[{c:'pl',v:'    else: pixels[1] = (0, 0, 0)'}]},
-  {ln:15,prompt:'Check pad 3.',hint:'    if touch3.value:',pfx:'    ',ans:'if touch3.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch3.value:'}]},
-  {ln:16,prompt:'Pixel 2 blue — (0, 0, 255). 8 spaces.',hint:'        pixels[2] = (0, 0, 255)',pfx:'        ',ans:'pixels[2] = (0, 0, 255)',alt:['pixels[2]=(0,0,255)'],toks:[{c:'pl',v:'        pixels[2] = (0, 0, 255)'}]},
-  {ln:17,prompt:'Else off.',hint:'    else: pixels[2] = (0, 0, 0)',pfx:'    ',ans:'else: pixels[2] = (0, 0, 0)',alt:['else:pixels[2]=(0,0,0)'],toks:[{c:'pl',v:'    else: pixels[2] = (0, 0, 0)'}]},
-  {ln:18,prompt:'Update the lights.',hint:'    pixels.show()',pfx:'    ',ans:'pixels.show()',toks:[{c:'pl',v:'    pixels.show()'}]},
+  {ln:9,
+   prompt:'Check if Pad 1 is touched. 4 spaces, then: if touch1.value:',
+   hint:'    if touch1.value:',pfx:'    ',ans:'if touch1.value:',
+   explain:{
+     n:'Lines 9–11 — the Pad 1 block',
+     title:'Three lines that handle one pad completely',
+     body:'This block does everything needed for one pad: check if it is touched, light it up if yes, turn it off if no.<br><br>Step by step: <ic>if touch1.value:</ic> asks the question. <ic>pixels[0] = (255,0,0)</ic> gives the "yes" answer (red). <ic>else: pixels[0] = (0,0,0)</ic> gives the "no" answer (off).<br><br>You will write this exact structure for Pad 2 and Pad 3. The <b>only differences</b> are: which <ic>touch</ic> variable you check, which <ic>pixels[n]</ic> you set, and which colour you use.',
+     code:'<span class="kw">    if</span> touch1.value:\n        pixels[0] = (<span class="nu">255</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># red</span>\n<span class="kw">    else</span>: pixels[0] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># off</span>'
+   },
+   toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch1.value:'}]},
+  {ln:10,
+   prompt:'Set Pad 1\'s light to red. 8 spaces, then: pixels[0] = (255, 0, 0)',
+   hint:'        pixels[0] = (255, 0, 0)',pfx:'        ',ans:'pixels[0] = (255, 0, 0)',alt:['pixels[0]=(255,0,0)'],
+   explain:{
+     n:'Lines 9–11 — the Pad 1 block',
+     title:'Three lines that handle one pad completely',
+     body:'This block does everything needed for one pad: check if it is touched, light it up if yes, turn it off if no.<br><br>Step by step: <ic>if touch1.value:</ic> asks the question. <ic>pixels[0] = (255,0,0)</ic> gives the "yes" answer (red). <ic>else: pixels[0] = (0,0,0)</ic> gives the "no" answer (off).<br><br>You will write this exact structure for Pad 2 and Pad 3. The <b>only differences</b> are: which <ic>touch</ic> variable you check, which <ic>pixels[n]</ic> you set, and which colour you use.',
+     code:'<span class="kw">    if</span> touch1.value:\n        pixels[0] = (<span class="nu">255</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># red</span>\n<span class="kw">    else</span>: pixels[0] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># off</span>'
+   },
+   toks:[{c:'pl',v:'        pixels[0] = (255, 0, 0)'}]},
+  {ln:11,
+   prompt:'Turn off when not touched. 4 spaces, then: else: pixels[0] = (0, 0, 0)',
+   hint:'    else: pixels[0] = (0, 0, 0)',pfx:'    ',ans:'else: pixels[0] = (0, 0, 0)',alt:['else:pixels[0]=(0,0,0)','else: pixels[0]=(0,0,0)'],
+   explain:{
+     n:'Lines 9–11 — the Pad 1 block',
+     title:'Three lines that handle one pad completely',
+     body:'This block does everything needed for one pad: check if it is touched, light it up if yes, turn it off if no.<br><br>Step by step: <ic>if touch1.value:</ic> asks the question. <ic>pixels[0] = (255,0,0)</ic> gives the "yes" answer (red). <ic>else: pixels[0] = (0,0,0)</ic> gives the "no" answer (off).<br><br>You will write this exact structure for Pad 2 and Pad 3. The <b>only differences</b> are: which <ic>touch</ic> variable you check, which <ic>pixels[n]</ic> you set, and which colour you use.',
+     code:'<span class="kw">    if</span> touch1.value:\n        pixels[0] = (<span class="nu">255</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># red</span>\n<span class="kw">    else</span>: pixels[0] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># off</span>'
+   },
+   toks:[{c:'pl',v:'    else: pixels[0] = (0, 0, 0)'}]},
+  {ln:12,
+   prompt:'Now Pad 2. 4 spaces, then: if touch2.value:',
+   hint:'    if touch2.value:',pfx:'    ',ans:'if touch2.value:',
+   explain:{
+     n:'Lines 12–14 — the Pad 2 block',
+     title:'Same structure, different values — spot what changed',
+     body:'Look carefully at this block versus the Pad 1 block. The <b>structure is identical</b>. The only things that changed: <ic>touch2</ic> instead of <ic>touch1</ic>, <ic>pixels[1]</ic> instead of <ic>pixels[0]</ic>, and the colour is green instead of red.<br><br>This is pattern recognition in action. When you see the same structure repeating with only small changes, that is a clue that there is a smarter way to write it — which you will discover in Lesson 5.',
+     code:'<span class="kw">    if</span> touch2.value:\n        pixels[1] = (<span class="nu">0</span>, <span class="nu">255</span>, <span class="nu">0</span>)  <span class="co"># green</span>\n<span class="kw">    else</span>: pixels[1] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)'
+   },
+   toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch2.value:'}]},
+  {ln:13,
+   prompt:'Pad 2 green. 8 spaces, then: pixels[1] = (0, 255, 0)',
+   hint:'        pixels[1] = (0, 255, 0)',pfx:'        ',ans:'pixels[1] = (0, 255, 0)',alt:['pixels[1]=(0,255,0)'],
+   explain:{
+     n:'Lines 12–14 — the Pad 2 block',
+     title:'Same structure, different values — spot what changed',
+     body:'Look carefully at this block versus the Pad 1 block. The <b>structure is identical</b>. The only things that changed: <ic>touch2</ic> instead of <ic>touch1</ic>, <ic>pixels[1]</ic> instead of <ic>pixels[0]</ic>, and the colour is green instead of red.<br><br>This is pattern recognition in action. When you see the same structure repeating with only small changes, that is a clue that there is a smarter way to write it — which you will discover in Lesson 5.',
+     code:'<span class="kw">    if</span> touch2.value:\n        pixels[1] = (<span class="nu">0</span>, <span class="nu">255</span>, <span class="nu">0</span>)  <span class="co"># green</span>\n<span class="kw">    else</span>: pixels[1] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)'
+   },
+   toks:[{c:'pl',v:'        pixels[1] = (0, 255, 0)'}]},
+  {ln:14,
+   prompt:'Pad 2 off otherwise. 4 spaces, then: else: pixels[1] = (0, 0, 0)',
+   hint:'    else: pixels[1] = (0, 0, 0)',pfx:'    ',ans:'else: pixels[1] = (0, 0, 0)',alt:['else:pixels[1]=(0,0,0)'],
+   explain:{
+     n:'Lines 12–14 — the Pad 2 block',
+     title:'Same structure, different values — spot what changed',
+     body:'Look carefully at this block versus the Pad 1 block. The <b>structure is identical</b>. The only things that changed: <ic>touch2</ic> instead of <ic>touch1</ic>, <ic>pixels[1]</ic> instead of <ic>pixels[0]</ic>, and the colour is green instead of red.<br><br>This is pattern recognition in action. When you see the same structure repeating with only small changes, that is a clue that there is a smarter way to write it — which you will discover in Lesson 5.',
+     code:'<span class="kw">    if</span> touch2.value:\n        pixels[1] = (<span class="nu">0</span>, <span class="nu">255</span>, <span class="nu">0</span>)  <span class="co"># green</span>\n<span class="kw">    else</span>: pixels[1] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)'
+   },
+   toks:[{c:'pl',v:'    else: pixels[1] = (0, 0, 0)'}]},
+  {ln:15,
+   prompt:'Pad 3 check. 4 spaces, then: if touch3.value:',
+   hint:'    if touch3.value:',pfx:'    ',ans:'if touch3.value:',
+   explain:{
+     n:'Lines 15–18 — Pad 3 and the loop restarting',
+     title:'The third block, then the loop begins again',
+     body:'Pad 3 follows the same pattern one more time — blue this time. Then <ic>pixels.show()</ic> sends all three stored colours to the physical lights simultaneously.<br><br>After <ic>pixels.show()</ic>, the <ic>while True:</ic> loop restarts from the top — checking Pad 1 again. This cycle happens so fast you never notice the gap. Touching two pads at the same time works because the loop catches both within milliseconds.',
+     code:'<span class="kw">    if</span> touch3.value:\n        pixels[2] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">255</span>)  <span class="co"># blue</span>\n<span class="kw">    else</span>: pixels[2] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)\n    pixels<span class="fn">.show</span>()  <span class="co"># now update all lights</span>'
+   },
+   toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch3.value:'}]},
+  {ln:16,
+   prompt:'Pad 3 blue. 8 spaces, then: pixels[2] = (0, 0, 255)',
+   hint:'        pixels[2] = (0, 0, 255)',pfx:'        ',ans:'pixels[2] = (0, 0, 255)',alt:['pixels[2]=(0,0,255)'],
+   explain:{
+     n:'Lines 15–18 — Pad 3 and the loop restarting',
+     title:'The third block, then the loop begins again',
+     body:'Pad 3 follows the same pattern one more time — blue this time. Then <ic>pixels.show()</ic> sends all three stored colours to the physical lights simultaneously.<br><br>After <ic>pixels.show()</ic>, the <ic>while True:</ic> loop restarts from the top — checking Pad 1 again. This cycle happens so fast you never notice the gap. Touching two pads at the same time works because the loop catches both within milliseconds.',
+     code:'<span class="kw">    if</span> touch3.value:\n        pixels[2] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">255</span>)  <span class="co"># blue</span>\n<span class="kw">    else</span>: pixels[2] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)\n    pixels<span class="fn">.show</span>()  <span class="co"># now update all lights</span>'
+   },
+   toks:[{c:'pl',v:'        pixels[2] = (0, 0, 255)'}]},
+  {ln:17,
+   prompt:'Pad 3 off otherwise. 4 spaces, then: else: pixels[2] = (0, 0, 0)',
+   hint:'    else: pixels[2] = (0, 0, 0)',pfx:'    ',ans:'else: pixels[2] = (0, 0, 0)',alt:['else:pixels[2]=(0,0,0)'],
+   explain:{
+     n:'Lines 15–18 — Pad 3 and the loop restarting',
+     title:'The third block, then the loop begins again',
+     body:'Pad 3 follows the same pattern one more time — blue this time. Then <ic>pixels.show()</ic> sends all three stored colours to the physical lights simultaneously.<br><br>After <ic>pixels.show()</ic>, the <ic>while True:</ic> loop restarts from the top — checking Pad 1 again. This cycle happens so fast you never notice the gap. Touching two pads at the same time works because the loop catches both within milliseconds.',
+     code:'<span class="kw">    if</span> touch3.value:\n        pixels[2] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">255</span>)  <span class="co"># blue</span>\n<span class="kw">    else</span>: pixels[2] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)\n    pixels<span class="fn">.show</span>()  <span class="co"># now update all lights</span>'
+   },
+   toks:[{c:'pl',v:'    else: pixels[2] = (0, 0, 0)'}]},
+  {ln:18,
+   prompt:'Update all three lights. 4 spaces, then: pixels.show()',
+   hint:'    pixels.show()',pfx:'    ',ans:'pixels.show()',
+   explain:{
+     n:'Lines 15–18 — Pad 3 and the loop restarting',
+     title:'The third block, then the loop begins again',
+     body:'Pad 3 follows the same pattern one more time — blue this time. Then <ic>pixels.show()</ic> sends all three stored colours to the physical lights simultaneously.<br><br>After <ic>pixels.show()</ic>, the <ic>while True:</ic> loop restarts from the top — checking Pad 1 again. This cycle happens so fast you never notice the gap. Touching two pads at the same time works because the loop catches both within milliseconds.',
+     code:'<span class="kw">    if</span> touch3.value:\n        pixels[2] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">255</span>)  <span class="co"># blue</span>\n<span class="kw">    else</span>: pixels[2] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)\n    pixels<span class="fn">.show</span>()  <span class="co"># now update all lights</span>'
+   },
+   toks:[{c:'pl',v:'    pixels.show()'}]},
 ],
-free:`import board, touchio, neopixel\ntouch1=touchio.TouchIn(board.GP1)\ntouch2=touchio.TouchIn(board.GP2)\ntouch3=touchio.TouchIn(board.GP3)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nwhile True:\n    if touch1.value: pixels[0]=(255,0,0)\n    else: pixels[0]=(0,0,0)\n    if touch2.value: pixels[1]=(0,255,0)\n    else: pixels[1]=(0,0,0)\n    if touch3.value: pixels[2]=(0,0,255)\n    else: pixels[2]=(0,0,0)\n    pixels.show()`},
+free:`import board, touchio, neopixel\ntouch1=touchio.TouchIn(board.GP1)\ntouch2=touchio.TouchIn(board.GP2)\ntouch3=touchio.TouchIn(board.GP3)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\nwhile True:\n    if touch1.value: pixels[0]=(255,0,0)\n    else: pixels[0]=(0,0,0)\n    if touch2.value: pixels[1]=(0,255,0)\n    else: pixels[1]=(0,0,0)\n    if touch3.value: pixels[2]=(0,0,255)\n    else: pixels[2]=(0,0,0)\n    pixels.show()`},
 
 3:{mod:'Module 2 — Logic',title:'IF, ELIF, ELSE',sub:'One pad, one light, three possible colours',ks:'KS3 · Selection',midi:false,
+intro:`<p class="explain-intro">So far every pad has had its own light. This lesson changes the structure: <b>one light, three possible colours</b> — which one you get depends on which pad you touch.</p>
+<p class="explain-intro">You already know <ic>if</ic> and <ic>else</ic>. Now you will meet <b>elif</b> (short for "else if") — a way to check a second condition only if the first was false, then a third if the second was false, and so on.</p>
+<p class="explain-intro">This is still selection — the program is choosing one path from several options. The important rule: Python checks the conditions <b>in order</b> and runs <b>only the first true one</b>. The rest are skipped entirely.</p>`,
 info:[
-  {t:'info',l:'elif',p:'<ic>elif</ic> means "else if". Python checks each condition in order and runs the <b>first true one</b> — then skips all the rest.'},
-  {t:'info',l:'Colour mixing',p:'Red+Green=Yellow. Green+Blue=Cyan. Red+Blue=Magenta. Mix any values 0–255 to make your own colours.'},
+  {t:'task',l:'Your goal',p:'Touch Pad 1 → yellow. Pad 2 → cyan. Pad 3 → magenta. Touch none → off.'},
 ],
-challenge:{t:'task',l:'Challenge',p:'Add a 4th condition for Pad 4 showing white <ic>(255, 255, 255)</ic>.'},
+challenge:{t:'task',l:'Challenge',p:'Add a 4th condition for white: add another <ic>elif t4.value:</ic> block with <ic>(255, 255, 255)</ic>. You\'ll need to set up <ic>t4</ic> first.'},
 lines:[
   {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
   {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1);t2=touchio.TouchIn(board.GP2);t3=touchio.TouchIn(board.GP3)'}]},
-  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)'}]},
   {ln:4,skip:true,toks:[]},
   {ln:5,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
-  {ln:6,prompt:'First condition — if t1 is touched. 4 spaces.',hint:'    if t1.value:',pfx:'    ',ans:'if t1.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' t1.value:'}]},
-  {ln:7,prompt:'Yellow light: (255, 255, 0). 8 spaces.',hint:'        pixels[0] = (255, 255, 0)',pfx:'        ',ans:'pixels[0] = (255, 255, 0)',alt:['pixels[0]=(255,255,0)'],toks:[{c:'pl',v:'        pixels[0] = (255, 255, 0)'}]},
-  {ln:8,prompt:'"Else if" t2 is touched. 4 spaces — what keyword?',hint:'    elif t2.value:',pfx:'    ',ans:'elif t2.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'elif'},{c:'pl',v:' t2.value:'}]},
-  {ln:9,prompt:'Cyan: (0, 255, 255). 8 spaces.',hint:'        pixels[0] = (0, 255, 255)',pfx:'        ',ans:'pixels[0] = (0, 255, 255)',alt:['pixels[0]=(0,255,255)'],toks:[{c:'pl',v:'        pixels[0] = (0, 255, 255)'}]},
-  {ln:10,prompt:'"Else if" t3. Same pattern.',hint:'    elif t3.value:',pfx:'    ',ans:'elif t3.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'elif'},{c:'pl',v:' t3.value:'}]},
-  {ln:11,prompt:'Magenta: red + blue. 8 spaces.',hint:'        pixels[0] = (255, 0, 255)',pfx:'        ',ans:'pixels[0] = (255, 0, 255)',alt:['pixels[0]=(255,0,255)'],toks:[{c:'pl',v:'        pixels[0] = (255, 0, 255)'}]},
-  {ln:12,prompt:'Final fallback — if nothing is touched. 4 spaces.',hint:'    else:',pfx:'    ',ans:'else:',toks:[{c:'pl',v:'    '},{c:'kw',v:'else'},{c:'pl',v:':'}]},
-  {ln:13,prompt:'Turn off. 8 spaces.',hint:'        pixels[0] = (0, 0, 0)',pfx:'        ',ans:'pixels[0] = (0, 0, 0)',alt:['pixels[0]=(0,0,0)'],toks:[{c:'pl',v:'        pixels[0] = (0, 0, 0)'}]},
-  {ln:14,prompt:'Update.',hint:'    pixels.show()',pfx:'    ',ans:'pixels.show()',toks:[{c:'pl',v:'    pixels.show()'}]},
+  {ln:6,
+   prompt:'Check Pad 1 first. 4 spaces, then: if t1.value:',
+   hint:'    if t1.value:',pfx:'    ',ans:'if t1.value:',
+   explain:{
+     n:'Line 6 — the first question',
+     title:'if t1.value: — Python checks this first',
+     body:'This is the first condition Python evaluates. If Pad 1 is being touched right now, it runs the next line and then <b>jumps past all the elif and else blocks</b> — Pad 2 and Pad 3 are not even checked.<br><br>Think of it like a decision tree: once you have found a matching branch, you take it and ignore the rest. This is exactly what makes <ic>elif</ic> different from writing multiple separate <ic>if</ic> statements — separate <ic>if</ic>s would all be checked independently, which would cause problems when two pads are touched at once.',
+     code:'<span class="kw">    if</span> t1.value:  <span class="co"># first question — only runs if pad 1 is touched</span>'
+   },
+   toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' t1.value:'}]},
+  {ln:7,
+   prompt:'Yellow for Pad 1. 8 spaces, then: pixels[0] = (255, 255, 0)',
+   hint:'        pixels[0] = (255, 255, 0)',pfx:'        ',ans:'pixels[0] = (255, 255, 0)',alt:['pixels[0]=(255,255,0)'],
+   explain:{
+     n:'Line 7 — mixing colours with numbers',
+     title:'(255, 255, 0) — how light mixing creates yellow',
+     body:'Colours on a screen or LED work differently from paint. With light: Red + Green = Yellow. Green + Blue = Cyan. Red + Blue = Magenta. All three together = White.<br><br><ic>(255, 255, 0)</ic> means maximum red, maximum green, zero blue. The two channels add together to make yellow.<br><br>Guess: what would <ic>(255, 128, 0)</ic> look like? Full red, half green, no blue — that is orange.',
+     code:'<span class="pl">        pixels[0] = (</span><span class="nu">255</span><span class="pl">, </span><span class="nu">255</span><span class="pl">, </span><span class="nu">0</span><span class="pl">)  </span><span class="co"># max red + max green = yellow</span>'
+   },
+   toks:[{c:'pl',v:'        pixels[0] = (255, 255, 0)'}]},
+  {ln:8,
+   prompt:'"Else if" Pad 2 is touched. 4 spaces, then: elif t2.value:',
+   hint:'    elif t2.value:',pfx:'    ',ans:'elif t2.value:',
+   explain:{
+     n:'Line 8 — the second condition',
+     title:'elif — short for "else if"',
+     body:'<ic>elif</ic> is only evaluated if the previous <ic>if</ic> was False. So this line only runs if Pad 1 was <b>not</b> being touched.<br><br>Python reads down the chain in order: if → elif → elif → else. It stops at the first true condition and runs that block. It never goes back and runs another.<br><br>This is important: if you used separate <ic>if</ic> statements instead of <ic>elif</ic>, all of them would be checked and potentially all of them could change the light colour in the same loop cycle.',
+     code:'<span class="kw">    elif</span> t2.value:  <span class="co"># only reached if t1.value was False</span>'
+   },
+   toks:[{c:'pl',v:'    '},{c:'kw',v:'elif'},{c:'pl',v:' t2.value:'}]},
+  {ln:9,
+   prompt:'Cyan for Pad 2. 8 spaces, then: pixels[0] = (0, 255, 255)',
+   hint:'        pixels[0] = (0, 255, 255)',pfx:'        ',ans:'pixels[0] = (0, 255, 255)',alt:['pixels[0]=(0,255,255)'],
+   explain:{
+     n:'Line 9',
+     title:'Cyan = green + blue',
+     body:'<ic>(0, 255, 255)</ic> is zero red, full green, full blue — a bright cyan. Note we are setting <ic>pixels[0]</ic> again — the same light as before. That is fine because only one branch will ever run, so there is no conflict.',
+     code:'<span class="pl">        pixels[0] = (</span><span class="nu">0</span><span class="pl">, </span><span class="nu">255</span><span class="pl">, </span><span class="nu">255</span><span class="pl">)  </span><span class="co"># cyan</span>'
+   },
+   toks:[{c:'pl',v:'        pixels[0] = (0, 255, 255)'}]},
+  {ln:10,
+   prompt:'"Else if" Pad 3. 4 spaces, then: elif t3.value:',
+   hint:'    elif t3.value:',pfx:'    ',ans:'elif t3.value:',
+   explain:{
+     n:'Line 10 — chaining conditions',
+     title:'A third elif — conditions checked in sequence',
+     body:'You can have as many <ic>elif</ic> blocks as you need. Python checks them strictly in order, top to bottom. This third <ic>elif</ic> is only reached if Pad 1 <b>and</b> Pad 2 are both not being touched.<br><br>The chain works like a series of filters. Each one only gets a turn if all the ones above it were False.',
+     code:'<span class="kw">    elif</span> t3.value:  <span class="co"># only reached if t1 and t2 were both False</span>'
+   },
+   toks:[{c:'pl',v:'    '},{c:'kw',v:'elif'},{c:'pl',v:' t3.value:'}]},
+  {ln:11,
+   prompt:'Magenta for Pad 3. 8 spaces, then: pixels[0] = (255, 0, 255)',
+   hint:'        pixels[0] = (255, 0, 255)',pfx:'        ',ans:'pixels[0] = (255, 0, 255)',alt:['pixels[0]=(255,0,255)'],
+   explain:{
+     n:'Line 11',
+     title:'Magenta = red + blue',
+     body:'<ic>(255, 0, 255)</ic> is full red, zero green, full blue — a vivid magenta/purple. You are getting the complete picture of how light colour mixing works: the three primaries of light are Red, Green, and Blue — not red, yellow, and blue like paint.',
+     code:'<span class="pl">        pixels[0] = (</span><span class="nu">255</span><span class="pl">, </span><span class="nu">0</span><span class="pl">, </span><span class="nu">255</span><span class="pl">)  </span><span class="co"># magenta</span>'
+   },
+   toks:[{c:'pl',v:'        pixels[0] = (255, 0, 255)'}]},
+  {ln:12,
+   prompt:'The final fallback — no pad touched. 4 spaces, then: else:',
+   hint:'    else:',pfx:'    ',ans:'else:',
+   explain:{
+     n:'Lines 12–14 — the final fallback',
+     title:'else: — the guaranteed catch-all',
+     body:'<ic>else:</ic> has no condition of its own. It runs if and only if <b>every</b> condition above it was False — meaning no pad is being touched right now.<br><br>This is the guarantee of the <ic>if / elif / else</ic> structure: <b>exactly one branch always runs</b>. Never zero, never two. The light always has a defined state. This reliability is what makes selection useful in real programs.',
+     code:'<span class="kw">    else</span>:  <span class="co"># all conditions above were False</span>\n        pixels[0] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># off</span>\n    pixels<span class="fn">.show</span>()'
+   },
+   toks:[{c:'pl',v:'    '},{c:'kw',v:'else'},{c:'pl',v:':'}]},
+  {ln:13,
+   prompt:'Turn off. 8 spaces, then: pixels[0] = (0, 0, 0)',
+   hint:'        pixels[0] = (0, 0, 0)',pfx:'        ',ans:'pixels[0] = (0, 0, 0)',alt:['pixels[0]=(0,0,0)'],
+   explain:{
+     n:'Lines 12–14 — the final fallback',
+     title:'else: — the guaranteed catch-all',
+     body:'<ic>else:</ic> has no condition of its own. It runs if and only if <b>every</b> condition above it was False — meaning no pad is being touched right now.<br><br>This is the guarantee of the <ic>if / elif / else</ic> structure: <b>exactly one branch always runs</b>. Never zero, never two. The light always has a defined state. This reliability is what makes selection useful in real programs.',
+     code:'<span class="kw">    else</span>:  <span class="co"># all conditions above were False</span>\n        pixels[0] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># off</span>\n    pixels<span class="fn">.show</span>()'
+   },
+   toks:[{c:'pl',v:'        pixels[0] = (0, 0, 0)'}]},
+  {ln:14,
+   prompt:'Update the light. 4 spaces, then: pixels.show()',
+   hint:'    pixels.show()',pfx:'    ',ans:'pixels.show()',
+   explain:{
+     n:'Lines 12–14 — the final fallback',
+     title:'else: — the guaranteed catch-all',
+     body:'<ic>else:</ic> has no condition of its own. It runs if and only if <b>every</b> condition above it was False — meaning no pad is being touched right now.<br><br>This is the guarantee of the <ic>if / elif / else</ic> structure: <b>exactly one branch always runs</b>. Never zero, never two. The light always has a defined state. This reliability is what makes selection useful in real programs.',
+     code:'<span class="kw">    else</span>:  <span class="co"># all conditions above were False</span>\n        pixels[0] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># off</span>\n    pixels<span class="fn">.show</span>()'
+   },
+   toks:[{c:'pl',v:'    pixels.show()'}]},
 ],
-free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1);t2=touchio.TouchIn(board.GP2);t3=touchio.TouchIn(board.GP3)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nwhile True:\n    if t1.value:      pixels[0]=(255,255,0)\n    elif t2.value:    pixels[0]=(0,255,255)\n    elif t3.value:    pixels[0]=(255,0,255)\n    else:             pixels[0]=(0,0,0)\n    pixels.show()`},
+free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1);t2=touchio.TouchIn(board.GP2);t3=touchio.TouchIn(board.GP3)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\nwhile True:\n    if t1.value:      pixels[0]=(255,255,0)\n    elif t2.value:    pixels[0]=(0,255,255)\n    elif t3.value:    pixels[0]=(255,0,255)\n    else:             pixels[0]=(0,0,0)\n    pixels.show()`},
 
 4:{mod:'Module 2 — Logic',title:'Variables',sub:'Count how many times you touch a pad',ks:'KS3 · Variables',midi:false,
+intro:`<p class="explain-intro">So far your programs have reacted to what is happening <b>right now</b>. Variables let you <b>remember things over time</b> — like how many times a pad has been pressed.</p>
+<p class="explain-intro">A variable is a named storage box. You choose the name, you put a value in, and you can read or change it at any point in the program. This is one of the most fundamental ideas in all of programming.</p>`,
 info:[
-  {t:'info',l:'Variables',p:'A variable is a named storage box. <ic>count = 0</ic> creates one. <ic>count = count + 1</ic> reads, adds 1, and stores the result back.'},
-  {t:'info',l:'De-bouncing',p:'One touch registers hundreds of times per second without a flag. <ic>was_touched</ic> tracks whether this press has already been counted.'},
+  {t:'info',l:'How variables work',p:'<ic>count = 0</ic> creates a box called "count" and puts 0 inside. <ic>count = count + 1</ic> reads what is in the box, adds 1, and puts the new value back in. The variable has been updated.'},
+  {t:'info',l:'Why we need was_touched',p:'The while loop runs hundreds of times per second. Without a flag, a single half-second press would add 50+ to the count. <ic>was_touched</ic> records "we already counted this press" so it only counts once per touch, no matter how long you hold it.'},
 ],
-challenge:{t:'task',l:'Challenge',p:'Make Pad 2 reset the count to 0. Add <ic>if t2.value: count = 0</ic> inside the loop.'},
+challenge:{t:'task',l:'Challenge',p:'Make Pad 2 reset the count to 0. You need to set up <ic>t2</ic> and add <ic>if t2.value: count = 0</ic> inside the loop.'},
 lines:[
   {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
   {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1)'}]},
-  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)'}]},
   {ln:4,skip:true,toks:[]},
   {ln:5,prompt:'Create a variable called count, set to zero.',hint:'count = 0',pfx:'',ans:'count = 0',alt:['count=0'],toks:[{c:'pl',v:'count = 0'}]},
   {ln:6,prompt:'Create a flag called was_touched, starting as False.',hint:'was_touched = False',pfx:'',ans:'was_touched = False',alt:['was_touched=False'],toks:[{c:'pl',v:'was_touched = False'}]},
@@ -318,22 +600,24 @@ lines:[
   {ln:13,prompt:'Set was_touched to True. 12 spaces.',hint:'            was_touched = True',pfx:'            ',ans:'was_touched = True',alt:['was_touched=True'],toks:[{c:'pl',v:'            was_touched = True'}]},
   {ln:14,skip:true,toks:[{c:'pl',v:'        pixels[0]=(0,255,0)'}]},
   {ln:15,skip:true,toks:[{c:'pl',v:'    else:'}]},
-  {ln:16,prompt:'When not touched, reset the flag. 8 spaces.',hint:'        was_touched = False',pfx:'        ',ans:'was_touched = False',alt:['was_touched=False'],toks:[{c:'pl',v:'        was_touched = False'}]},
+  {ln:16,prompt:'Reset the flag when the pad is not touched. We are now inside "else:" — 8 spaces (not 12, because we are back out of the inner if).',hint:'        was_touched = False',pfx:'        ',ans:'was_touched = False',alt:['was_touched=False'],toks:[{c:'pl',v:'        was_touched = False'}]},
   {ln:17,skip:true,toks:[{c:'pl',v:'        pixels[0]=(0,0,0)'}]},
   {ln:18,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
 ],
-free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\ncount=0;was_touched=False\nwhile True:\n    if t1.value:\n        if not was_touched:\n            count=count+1;print("Count:",count);was_touched=True\n        pixels[0]=(0,255,0)\n    else:\n        was_touched=False;pixels[0]=(0,0,0)\n    pixels.show()`},
+free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\ncount=0;was_touched=False\nwhile True:\n    if t1.value:\n        if not was_touched:\n            count=count+1;print("Count:",count);was_touched=True\n        pixels[0]=(0,255,0)\n    else:\n        was_touched=False;pixels[0]=(0,0,0)\n    pixels.show()`},
 
 5:{mod:'Module 3 — Loops',title:'FOR Loops',sub:'Light all 27 pads without repeating yourself',ks:'KS3 · Iteration',midi:false,
+intro:`<p class="explain-intro">SPOKE has 27 pads. If you wanted to light them all up, you could write <ic>pixels[0]=(0,255,0)</ic>, then <ic>pixels[1]=(0,255,0)</ic>... 27 times. That would be 27 lines that are nearly identical — bad code.</p>
+<p class="explain-intro">A <b>for loop</b> solves this. It repeats a block of code a set number of times, with a counter variable that changes each time. Three lines replace 27.</p>`,
 info:[
-  {t:'info',l:'Iteration',p:'<ic>for i in range(27):</ic> runs with i=0, then i=1... up to i=26. Three lines replace 27.'},
-  {t:'info',l:'range()',p:'<ic>range(27)</ic> gives 0–26. <ic>range(0,27,2)</ic> gives every other one. <ic>range(27,0,-1)</ic> counts backwards.'},
+  {t:'info',l:'How a for loop works',p:'<ic>for i in range(27):</ic> runs the indented block 27 times. First time: i=0. Second time: i=1. Third time: i=2. Last time: i=26. The variable <ic>i</ic> is automatically updated each time — you just use it.'},
+  {t:'info',l:'range() controls the count',p:'<ic>range(27)</ic> gives 0–26 (27 numbers). <ic>range(0,27,2)</ic> gives every other one: 0,2,4... <ic>range(27,0,-1)</ic> counts backwards from 26 down to 1. You are in control.'},
 ],
-challenge:{t:'task',l:'Challenge',p:'Try <ic>range(0,27,3)</ic> — what pattern? Then <ic>range(27,0,-1)</ic>.'},
+challenge:{t:'task',l:'Challenge',p:'Try changing <ic>range(27)</ic> to <ic>range(0,27,3)</ic> in Free Edit. What pattern do you get? Then try <ic>range(27,0,-1)</ic>.'},
 lines:[
   {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
   {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1)'}]},
-  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)'}]},
   {ln:4,skip:true,toks:[]},
   {ln:5,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
   {ln:6,skip:true,toks:[{c:'pl',v:'    if t1.value:'}]},
@@ -344,18 +628,20 @@ lines:[
   {ln:11,prompt:'Pixel i to off. 12 spaces.',hint:'            pixels[i] = (0, 0, 0)',pfx:'            ',ans:'pixels[i] = (0, 0, 0)',alt:['pixels[i]=(0,0,0)'],toks:[{c:'pl',v:'            pixels[i] = (0, 0, 0)'}]},
   {ln:12,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
 ],
-free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nwhile True:\n    if t1.value:\n        for i in range(27): pixels[i]=(0,255,0)\n    else:\n        for i in range(27): pixels[i]=(0,0,0)\n    pixels.show()`},
+free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\nwhile True:\n    if t1.value:\n        for i in range(27): pixels[i]=(0,255,0)\n    else:\n        for i in range(27): pixels[i]=(0,0,0)\n    pixels.show()`},
 
 6:{mod:'Module 3 — Loops',title:'Patterns with Loops',sub:'Use i to vary colours across pads',ks:'KS3 · Iteration',midi:false,
+intro:`<p class="explain-intro">The loop counter <ic>i</ic> changes every iteration — that means you can use it to make <b>different things happen at different positions</b>. Instead of every pad being the same colour, you can create patterns.</p>
+<p class="explain-intro">The key tool is the <b>modulo operator</b> <ic>%</ic> — it gives the remainder after division. This turns out to be incredibly useful for creating repeating patterns.</p>`,
 info:[
-  {t:'info',l:'Modulo %',p:'<ic>i % 2</ic> gives the remainder after dividing by 2 — alternates 0,1,0,1. <ic>i % 3</ic> gives 0,1,2,0,1,2. Perfect for patterns.'},
-  {t:'info',l:'if inside for',p:'Put an <ic>if</ic> inside a <ic>for</ic> loop. Every iteration the condition is checked with the current value of i.'},
+  {t:'info',l:'What % (modulo) does',p:'<ic>i % 2</ic> divides i by 2 and gives the <b>remainder</b>. When i=0: 0÷2=0 remainder 0. When i=1: 1÷2=0 remainder 1. When i=2: 2÷2=1 remainder 0. The result alternates: 0,1,0,1,0,1... — perfect for "every other one".'},
+  {t:'info',l:'if inside for',p:'You can put an <ic>if</ic> statement inside a <ic>for</ic> loop. Every time the loop runs, the condition is checked with the current value of <ic>i</ic>. So the colour you pick can depend on the position.'},
 ],
-challenge:{t:'task',l:'Challenge',p:'Make every 3rd pad white: <ic>if i % 3 == 0</ic>. Fill in the other two branches.'},
+challenge:{t:'task',l:'Challenge',p:'Change the pattern: make every 3rd pad white using <ic>if i % 3 == 0</ic>. You will need three branches: 0, 1, and 2. What colours will you pick for each?'},
 lines:[
   {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
   {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1)'}]},
-  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)'}]},
   {ln:4,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
   {ln:5,skip:true,toks:[{c:'pl',v:'    if t1.value:'}]},
   {ln:6,skip:true,toks:[{c:'pl',v:'        for i in range(27):'}]},
@@ -366,7 +652,7 @@ lines:[
   {ln:11,skip:true,toks:[{c:'pl',v:'        for i in range(27): pixels[i]=(0,0,0)'}]},
   {ln:12,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
 ],
-free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nwhile True:\n    if t1.value:\n        for i in range(27):\n            if i%2==0: pixels[i]=(255,0,0)\n            else: pixels[i]=(0,0,255)\n    else:\n        for i in range(27): pixels[i]=(0,0,0)\n    pixels.show()`},
+free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\nwhile True:\n    if t1.value:\n        for i in range(27):\n            if i%2==0: pixels[i]=(255,0,0)\n            else: pixels[i]=(0,0,255)\n    else:\n        for i in range(27): pixels[i]=(0,0,0)\n    pixels.show()`},
 
 7:{mod:'Module 3 — Loops',title:'Lists',sub:'Store 6 colours in one variable',ks:'KS3 · Data Structures',midi:false,
 info:[
@@ -377,7 +663,7 @@ challenge:{t:'task',l:'Challenge',p:'Make the list 27 items: 9 red, 9 green, 9 b
 lines:[
   {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
   {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1)'}]},
-  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)'}]},
   {ln:4,skip:true,toks:[]},
   {ln:5,prompt:'Define a list called colours with 6 RGB tuples — a mini rainbow.',hint:'colours = [(255,0,0),(255,150,0),(255,255,0),(0,255,0),(0,0,255),(150,0,255)]',pfx:'',ans:'colours = [(255,0,0),(255,150,0),(255,255,0),(0,255,0),(0,0,255),(150,0,255)]',alt:['colours=[(255,0,0),(255,150,0),(255,255,0),(0,255,0),(0,0,255),(150,0,255)]'],toks:[{c:'pl',v:'colours = [(255,0,0),(255,150,0),(255,255,0),(0,255,0),(0,0,255),(150,0,255)]'}]},
   {ln:6,skip:true,toks:[]},
@@ -389,7 +675,7 @@ lines:[
   {ln:12,skip:true,toks:[{c:'pl',v:'        for i in range(27): pixels[i]=(0,0,0)'}]},
   {ln:13,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
 ],
-free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\ncolours=[(255,0,0),(255,150,0),(255,255,0),(0,255,0),(0,0,255),(150,0,255)]\nwhile True:\n    if t1.value:\n        for i,col in enumerate(colours): pixels[i]=col\n    else:\n        for i in range(27): pixels[i]=(0,0,0)\n    pixels.show()`},
+free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\ncolours=[(255,0,0),(255,150,0),(255,255,0),(0,255,0),(0,0,255),(150,0,255)]\nwhile True:\n    if t1.value:\n        for i,col in enumerate(colours): pixels[i]=col\n    else:\n        for i in range(27): pixels[i]=(0,0,0)\n    pixels.show()`},
 
 8:{mod:'Module 4 — Functions',title:'Functions',sub:'Write once, call many times',ks:'KS3 · Abstraction',midi:false,
 info:[
@@ -400,7 +686,7 @@ challenge:{t:'task',l:'Challenge',p:'Add a third parameter <ic>times</ic> and ma
 lines:[
   {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel, time'}]},
   {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1);t2=touchio.TouchIn(board.GP2)'}]},
-  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)'}]},
   {ln:4,skip:true,toks:[]},
   {ln:5,prompt:'Define a function called flash with parameters pad and colour.',hint:'def flash(pad, colour):',pfx:'',ans:'def flash(pad, colour):',alt:['def flash(pad,colour):'],toks:[{c:'kw',v:'def'},{c:'pl',v:' flash(pad, colour):'}]},
   {ln:6,prompt:'Set the pixel. 4 spaces: pixels[pad] = colour',hint:'    pixels[pad] = colour',pfx:'    ',ans:'pixels[pad] = colour',alt:['pixels[pad]=colour'],toks:[{c:'pl',v:'    pixels[pad] = colour'}]},
@@ -412,7 +698,7 @@ lines:[
   {ln:12,prompt:'If t2 touched, call flash for pad 1, blue.',hint:'    if t2.value: flash(1, (0, 0, 255))',pfx:'    ',ans:'if t2.value: flash(1, (0, 0, 255))',alt:['if t2.value: flash(1,(0,0,255))','if t2.value:flash(1,(0,0,255))'],toks:[{c:'pl',v:'    if t2.value: flash(1, (0, 0, 255))'}]},
   {ln:13,skip:true,toks:[{c:'pl',v:'    time.sleep(0.01)'}]},
 ],
-free:`import board,touchio,neopixel,time\nt1=touchio.TouchIn(board.GP1);t2=touchio.TouchIn(board.GP2)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\ndef flash(pad,colour):\n    pixels[pad]=colour;pixels.show();time.sleep(0.15)\n    pixels[pad]=(0,0,0);pixels.show()\nwhile True:\n    if t1.value: flash(0,(255,0,0))\n    if t2.value: flash(1,(0,0,255))\n    time.sleep(0.01)`},
+free:`import board,touchio,neopixel,time\nt1=touchio.TouchIn(board.GP1);t2=touchio.TouchIn(board.GP2)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\ndef flash(pad,colour):\n    pixels[pad]=colour;pixels.show();time.sleep(0.15)\n    pixels[pad]=(0,0,0);pixels.show()\nwhile True:\n    if t1.value: flash(0,(255,0,0))\n    if t2.value: flash(1,(0,0,255))\n    time.sleep(0.01)`},
 
 9:{mod:'Module 4 — Debugging',title:'Finding Bugs',sub:'Three bugs — read the error, fix it',ks:'KS3 · Testing',midi:false,
 info:[
@@ -424,7 +710,7 @@ lines:[
   {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
   {ln:2,skip:true,toks:[]},
   {ln:3,skip:true,toks:[{c:'co',v:'# Bug 1: variable name typo'}]},
-  {ln:4,prompt:'This line has "pixles" — fix the spelling and type the correct line.',hint:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)',pfx:'',ans:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)',alt:['pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)','pixels = neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'],toks:[{c:'pl',v:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)'}]},
+  {ln:4,prompt:'This line has "pixles" — fix the spelling and type the correct line.',hint:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.08, auto_write=False)',pfx:'',ans:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.08, auto_write=False)',alt:['pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)','pixels = neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)'],toks:[{c:'pl',v:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.08, auto_write=False)'}]},
   {ln:5,skip:true,toks:[{c:'pl',v:'touch1 = touchio.TouchIn(board.GP1)'}]},
   {ln:6,skip:true,toks:[]},
   {ln:7,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
@@ -435,7 +721,7 @@ lines:[
   {ln:12,skip:true,toks:[{c:'co',v:'    # Bug 3: wrong method name'}]},
   {ln:13,prompt:'"pixels.shaw()" is not real — what should it be?',hint:'    pixels.show()',pfx:'    ',ans:'pixels.show()',toks:[{c:'pl',v:'    pixels.show()'}]},
 ],
-free:`import board,touchio,neopixel\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\ntouch1=touchio.TouchIn(board.GP1)\nwhile True:\n    if touch1.value: pixels[0]=(255,0,0)\n    else: pixels[0]=(0,0,0)\n    pixels.show()`},
+free:`import board,touchio,neopixel\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\ntouch1=touchio.TouchIn(board.GP1)\nwhile True:\n    if touch1.value: pixels[0]=(255,0,0)\n    else: pixels[0]=(0,0,0)\n    pixels.show()`},
 
 10:{mod:'Module 5 — MIDI',title:'Your First MIDI Note',sub:'Touch Pad 1 — send a note to your DAW',ks:'KS3 · Physical Computing',midi:true,
 info:[
@@ -452,7 +738,7 @@ lines:[
   {ln:5,skip:true,toks:[]},
   {ln:6,prompt:'Create the MIDI object, outputting to USB port 1.',hint:'midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1])',pfx:'',ans:'midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1])',alt:['midi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])'],toks:[{c:'pl',v:'midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1])'}]},
   {ln:7,skip:true,toks:[{c:'pl',v:'touch1=touchio.TouchIn(board.GP1)'}]},
-  {ln:8,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:8,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)'}]},
   {ln:9,skip:true,toks:[{c:'pl',v:'was_on=False'}]},
   {ln:10,skip:true,toks:[]},
   {ln:11,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
@@ -464,7 +750,7 @@ lines:[
   {ln:17,skip:true,toks:[{c:'pl',v:'        pixels[0]=(0,0,0);was_on=False'}]},
   {ln:18,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
 ],
-free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\ntouch1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nwas_on=False\nwhile True:\n    if touch1.value and not was_on:\n        midi.send(NoteOn(60,100));pixels[0]=(0,255,0);was_on=True\n    elif not touch1.value and was_on:\n        midi.send(NoteOff(60,0));pixels[0]=(0,0,0);was_on=False\n    pixels.show()`},
+free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\ntouch1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\nwas_on=False\nwhile True:\n    if touch1.value and not was_on:\n        midi.send(NoteOn(60,100));pixels[0]=(0,255,0);was_on=True\n    elif not touch1.value and was_on:\n        midi.send(NoteOff(60,0));pixels[0]=(0,0,0);was_on=False\n    pixels.show()`},
 
 11:{mod:'Module 5 — MIDI',title:'8-Pad Scale',sub:'C major scale across 8 pads using loops',ks:'KS3 · Physical Computing',midi:true,
 info:[
@@ -477,7 +763,7 @@ lines:[
   {ln:2,skip:true,toks:[{c:'kw',v:'from'},{c:'pl',v:' adafruit_midi.note_on '},{c:'kw',v:'import'},{c:'pl',v:' NoteOn'}]},
   {ln:3,skip:true,toks:[{c:'kw',v:'from'},{c:'pl',v:' adafruit_midi.note_off '},{c:'kw',v:'import'},{c:'pl',v:' NoteOff'}]},
   {ln:4,skip:true,toks:[{c:'pl',v:'midi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])'}]},
-  {ln:5,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:5,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)'}]},
   {ln:6,skip:true,toks:[]},
   {ln:7,prompt:'Define the notes list — C major scale, 8 MIDI note numbers.',hint:'notes = [60, 62, 64, 65, 67, 69, 71, 72]',pfx:'',ans:'notes = [60, 62, 64, 65, 67, 69, 71, 72]',alt:['notes=[60,62,64,65,67,69,71,72]','notes = [60,62,64,65,67,69,71,72]'],toks:[{c:'pl',v:'notes = [60, 62, 64, 65, 67, 69, 71, 72]'}]},
   {ln:8,prompt:'Define a pins list — board.GP1 through board.GP8.',hint:'pins  = [board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]',pfx:'',ans:'pins  = [board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]',alt:['pins=[board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]','pins = [board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]'],toks:[{c:'pl',v:'pins  = [board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]'}]},
@@ -494,7 +780,7 @@ lines:[
   {ln:19,skip:true,toks:[{c:'pl',v:'            pixels[i]=(0,0,0);was_on[i]=False'}]},
   {ln:20,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
 ],
-free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nnotes=[60,62,64,65,67,69,71,72]\npins=[board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]\ntouches=[touchio.TouchIn(p) for p in pins]\nwas_on=[False]*8\nwhile True:\n    for i in range(8):\n        if touches[i].value and not was_on[i]:\n            midi.send(NoteOn(notes[i],100));pixels[i]=(0,200,255);was_on[i]=True\n        elif not touches[i].value and was_on[i]:\n            midi.send(NoteOff(notes[i],0));pixels[i]=(0,0,0);was_on[i]=False\n    pixels.show()`},
+free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\nnotes=[60,62,64,65,67,69,71,72]\npins=[board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]\ntouches=[touchio.TouchIn(p) for p in pins]\nwas_on=[False]*8\nwhile True:\n    for i in range(8):\n        if touches[i].value and not was_on[i]:\n            midi.send(NoteOn(notes[i],100));pixels[i]=(0,200,255);was_on[i]=True\n        elif not touches[i].value and was_on[i]:\n            midi.send(NoteOff(notes[i],0));pixels[i]=(0,0,0);was_on[i]=False\n    pixels.show()`},
 
 12:{mod:'Module 5 — MIDI',title:'Colour + Note per Pad',sub:'Each pad: its own note, colour, and pin',ks:'KS3 · Data Structures',midi:true,
 info:[
@@ -507,7 +793,7 @@ lines:[
   {ln:2,skip:true,toks:[{c:'kw',v:'from'},{c:'pl',v:' adafruit_midi.note_on '},{c:'kw',v:'import'},{c:'pl',v:' NoteOn'}]},
   {ln:3,skip:true,toks:[{c:'kw',v:'from'},{c:'pl',v:' adafruit_midi.note_off '},{c:'kw',v:'import'},{c:'pl',v:' NoteOff'}]},
   {ln:4,skip:true,toks:[{c:'pl',v:'midi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])'}]},
-  {ln:5,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:5,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)'}]},
   {ln:6,skip:true,toks:[]},
   {ln:7,skip:true,toks:[{c:'pl',v:'pads = ['}]},
   {ln:8,prompt:'First pad dict: pin GP1, note 60, colour (255,50,0).',hint:'    {"pin": board.GP1, "note": 60, "colour": (255, 50, 0)},',pfx:'    ',ans:'{"pin": board.GP1, "note": 60, "colour": (255, 50, 0)},',alt:['{"pin":board.GP1,"note":60,"colour":(255,50,0)},'],toks:[{c:'pl',v:'    {"pin": board.GP1, "note": 60, "colour": (255, 50,  0)},'}]},
@@ -534,7 +820,7 @@ lines:[
   {ln:29,skip:true,toks:[{c:'pl',v:'            pixels[i]=(0,0,0);was_on[i]=False'}]},
   {ln:30,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
 ],
-free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\npads=[\n    {"pin":board.GP1,"note":60,"colour":(255,50,0)},\n    {"pin":board.GP2,"note":62,"colour":(255,150,0)},\n    {"pin":board.GP3,"note":64,"colour":(255,255,0)},\n    {"pin":board.GP4,"note":65,"colour":(0,255,0)},\n    {"pin":board.GP5,"note":67,"colour":(0,200,255)},\n    {"pin":board.GP6,"note":69,"colour":(0,0,255)},\n    {"pin":board.GP7,"note":71,"colour":(150,0,255)},\n    {"pin":board.GP8,"note":72,"colour":(255,0,200)},\n]\ntouches=[touchio.TouchIn(p["pin"]) for p in pads]\nwas_on=[False]*len(pads)\nwhile True:\n    for i,pad in enumerate(pads):\n        if touches[i].value and not was_on[i]:\n            midi.send(NoteOn(pad["note"],100));pixels[i]=pad["colour"];was_on[i]=True\n        elif not touches[i].value and was_on[i]:\n            midi.send(NoteOff(pad["note"],0));pixels[i]=(0,0,0);was_on[i]=False\n    pixels.show()`},
+free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\npads=[\n    {"pin":board.GP1,"note":60,"colour":(255,50,0)},\n    {"pin":board.GP2,"note":62,"colour":(255,150,0)},\n    {"pin":board.GP3,"note":64,"colour":(255,255,0)},\n    {"pin":board.GP4,"note":65,"colour":(0,255,0)},\n    {"pin":board.GP5,"note":67,"colour":(0,200,255)},\n    {"pin":board.GP6,"note":69,"colour":(0,0,255)},\n    {"pin":board.GP7,"note":71,"colour":(150,0,255)},\n    {"pin":board.GP8,"note":72,"colour":(255,0,200)},\n]\ntouches=[touchio.TouchIn(p["pin"]) for p in pads]\nwas_on=[False]*len(pads)\nwhile True:\n    for i,pad in enumerate(pads):\n        if touches[i].value and not was_on[i]:\n            midi.send(NoteOn(pad["note"],100));pixels[i]=pad["colour"];was_on[i]=True\n        elif not touches[i].value and was_on[i]:\n            midi.send(NoteOff(pad["note"],0));pixels[i]=(0,0,0);was_on[i]=False\n    pixels.show()`},
 
 13:{mod:'Module 6 — Project',title:'Design Your Instrument',sub:'Build your own MIDI controller',ks:'KS3 · Computational Thinking',midi:true,
 info:[
@@ -549,7 +835,7 @@ lines:[
   {ln:3,skip:true,toks:[{c:'co',v:'# Requirements: 8+ pads, each with note + colour'}]},
   {ln:4,skip:true,toks:[{c:'co',v:'# Use loops — no repeated code blocks.'}]},
 ],
-free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\n\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\n\n# Design your pads — add at least 8:\npads=[\n    {"pin":board.GP1,"note":60,"colour":(255,50,0)},\n    {"pin":board.GP2,"note":62,"colour":(255,200,0)},\n    # ... your pads here\n]\n\ntouches=[touchio.TouchIn(p["pin"]) for p in pads]\nwas_on=[False]*len(pads)\n\nwhile True:\n    for i,pad in enumerate(pads):\n        if touches[i].value and not was_on[i]:\n            midi.send(NoteOn(pad["note"],100))\n            pixels[i]=pad["colour"]\n            was_on[i]=True\n        elif not touches[i].value and was_on[i]:\n            midi.send(NoteOff(pad["note"],0))\n            pixels[i]=(0,0,0)\n            was_on[i]=False\n    pixels.show()`},
+free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\n\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.08,auto_write=False)\n\n# Design your pads — add at least 8:\npads=[\n    {"pin":board.GP1,"note":60,"colour":(255,50,0)},\n    {"pin":board.GP2,"note":62,"colour":(255,200,0)},\n    # ... your pads here\n]\n\ntouches=[touchio.TouchIn(p["pin"]) for p in pads]\nwas_on=[False]*len(pads)\n\nwhile True:\n    for i,pad in enumerate(pads):\n        if touches[i].value and not was_on[i]:\n            midi.send(NoteOn(pad["note"],100))\n            pixels[i]=pad["colour"]\n            was_on[i]=True\n        elif not touches[i].value and was_on[i]:\n            midi.send(NoteOff(pad["note"],0))\n            pixels[i]=(0,0,0)\n            was_on[i]=False\n    pixels.show()`},
 
 14:{mod:'Module 6 — Project',title:'Perform',sub:'Play it. Annotate it. Share it.',ks:'KS3 · Evaluation',midi:true,
 info:[
@@ -963,8 +1249,27 @@ function loadLesson(n){
   document.getElementById('hintBar').style.display=''
   document.getElementById('setupWrap').style.display='none'
 
+  // Build left panel
+  const hasExplain = l.lines && l.lines.some(r=>r.explain)
   let h=`<div class="ks">${l.ks}</div><h1>${l.title}</h1><p class="sub">${l.sub}</p>`
+  if(l.intro) h += l.intro
   l.info.forEach(c=>{h+=card(c)})
+  if(hasExplain){
+    // Build step-explain cards — deduplicated by explain.n
+    const seen=new Set(), explainLines=[]
+    l.lines.forEach(r=>{ if(r.explain&&!seen.has(r.explain.n)){seen.add(r.explain.n);explainLines.push(r)} })
+    h += '<div id="stepCards" style="margin-top:6px">'
+    explainLines.forEach((row,i)=>{
+      const e=row.explain
+      h+=`<div class="step-card${i===0?' hi':' dim'}" id="sc-${i}">
+        <div class="step-card-n">${e.n}</div>
+        <div class="step-card-title">${e.title}</div>
+        <div class="step-card-body">${e.body.replace(/<ic>(.*?)<\/ic>/g,'<code class="ic">$1</code>')}</div>
+        ${e.code?`<div class="step-card-code">${e.code}</div>`:''}
+      </div>`
+    })
+    h += '</div>'
+  }
   if(l.challenge) h+=card(l.challenge)
   document.getElementById('lpBody').innerHTML=h
   document.getElementById('freeEd').value=l.free||''
@@ -982,6 +1287,23 @@ function card(c){
   return `<div class="card ${c.t}"><div class="card-lbl">${c.l}</div><p>${c.p.replace(/<ic>(.*?)<\/ic>/g,'<code class="ic">$1</code>')}</p></div>`
 }
 
+// Sync explain cards to the current typed step
+function syncExplain(){
+  const l=L[cur]
+  if(!l||!l.lines||!l.lines.some(r=>r.explain)) return
+  const curr = step < typeable.length ? typeable[step] : null
+  const currN = curr&&curr.explain ? curr.explain.n : '__done__'
+  const seen=new Set(), order=[]
+  l.lines.forEach(r=>{ if(r.explain&&!seen.has(r.explain.n)){seen.add(r.explain.n);order.push(r.explain.n)} })
+  const activeIdx = order.indexOf(currN)
+  order.forEach((n,i)=>{
+    const c=document.getElementById('sc-'+i)
+    if(!c) return
+    if(i===activeIdx){ c.className='step-card hi'; c.scrollIntoView({behavior:'smooth',block:'nearest'}) }
+    else { c.className='step-card dim' }
+  })
+}
+
 // ── RENDER CODE VIEW ─────────────────────────────────────────────────────────
 function renderCode(){
   const view=document.getElementById('codeView');view.innerHTML=''
@@ -996,10 +1318,24 @@ function renderCode(){
 
   if(step>=typeable.length){
     const d=document.createElement('div');d.className='done-wrap'
-    d.innerHTML=`<div class="done-icon">✓</div><div class="done-title">All lines complete</div><div class="done-sub">Click Save & Run to upload to your board.</div>`
+    const doneMsg = (cur===1)
+      ? `<div class="done-icon">✓</div>
+         <div class="done-title">Code written — now save and test it</div>
+         <div class="done-sub" style="max-width:280px;line-height:1.7">
+           Click <b>Save &amp; Run</b> above.<br>
+           Your board will restart — the lights may flash briefly.<br><br>
+           Then <b>touch Pad 1</b> with your finger.<br>
+           You should see a green light appear while your finger is on it, and go off when you lift it.<br><br>
+           If it works: that is your first real program running on real hardware.
+         </div>`
+      : `<div class="done-icon">✓</div><div class="done-title">All lines complete</div><div class="done-sub">Click Save &amp; Run to upload to your board.</div>`
+    d.innerHTML=doneMsg
     view.appendChild(d)
     document.getElementById('stepLbl').textContent='Done'
-    document.getElementById('stepMsg').textContent='Exercise finished. Save & Run or edit in Free Edit.'
+    document.getElementById('stepMsg').textContent= cur===1
+      ? 'Click Save & Run, then touch Pad 1 — watch it glow green.'
+      : 'Exercise finished. Save & Run or edit in Free Edit.'
+    syncExplain()
     view.scrollTop=view.scrollHeight;return
   }
 
@@ -1020,6 +1356,7 @@ function renderCode(){
   document.getElementById('stepMsg').textContent=curr.prompt||''
   document.getElementById('hintText').textContent=curr.hint||''
   if(hintVis) document.getElementById('hintBar').classList.add('show')
+  syncExplain()
 
   view.scrollTop=view.scrollHeight
   setTimeout(()=>{const i=document.getElementById('ti');if(i)i.focus()},40)
