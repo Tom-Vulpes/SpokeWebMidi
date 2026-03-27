@@ -1,2329 +1,744 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPOKE Learn - Physical Computing Education</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .header {
-            background: #252526;
-            border-bottom: 1px solid #3e3e42;
-            padding: 16px 24px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .logo {
-            font-size: 20px;
-            font-weight: 900;
-            color: #ff7a45;
-            letter-spacing: -0.5px;
-        }
-        
-        .header-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: #cccccc;
-        }
-        
-        .progress-info {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .progress-text {
-            font-size: 12px;
-            color: #858585;
-            font-weight: 600;
-        }
-        
-        .progress-bar {
-            height: 6px;
-            background: #3e3e42;
-            width: 150px;
-            position: relative;
-            overflow: hidden;
-            border-radius: 3px;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ff7a45, #ff9e70);
-            transition: width 0.3s;
-        }
-        
-        .header-btn {
-            background: #ff7a45;
-            border: none;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .header-btn:hover {
-            background: #ff8f5f;
-            transform: translateY(-1px);
-        }
-        
-        .header-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .main-container {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-        }
-        
-        .sidebar {
-            width: 240px;
-            background: #252526;
-            border-right: 1px solid #3e3e42;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-        
-        .sidebar-section {
-            border-bottom: 1px solid #3e3e42;
-            padding: 8px;
-        }
-        
-        .sidebar-header {
-            padding: 10px 12px;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #858585;
-        }
-        
-        .lesson-item {
-            padding: 10px 12px;
-            margin-bottom: 4px;
-            background: #2d2d30;
-            border-left: 3px solid transparent;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .lesson-item:hover {
-            background: #37373d;
-            border-left-color: #ff7a45;
-        }
-        
-        .lesson-item.active {
-            border-left-color: #ff7a45;
-            background: rgba(255, 122, 69, 0.15);
-        }
-        
-        .lesson-item.completed {
-            border-left-color: #0e8a16;
-        }
-        
-        .lesson-item.completed .lesson-number {
-            color: #0e8a16;
-        }
-        
-        .lesson-number {
-            font-size: 10px;
-            color: #858585;
-            font-weight: 600;
-            margin-bottom: 3px;
-        }
-        
-        .lesson-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #ffffff;
-        }
-        
-        .lesson-desc {
-            display: none;
-        }
-        
-        .lesson-badge {
-            display: none;
-        }
-        
-        .content-area {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-        }
-        
-        .lesson-panel {
-            width: 45%;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #3e3e42;
-            overflow-y: auto;
-        }
-        
-        .lesson-content {
-            padding: 30px 35px;
-        }
-        
-        .lesson-header {
-            margin-bottom: 20px;
-        }
-        
-        .curriculum-badge {
-            display: inline-block;
-            background: #3b82f6;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        
-        .lesson-header h1 {
-            font-size: 26px;
-            font-weight: 900;
-            color: #ffffff;
-            margin-bottom: 8px;
-            line-height: 1.2;
-        }
-        
-        .lesson-header p {
-            font-size: 13px;
-            color: #a0a0a0;
-            line-height: 1.6;
-        }
-        
-        .step-section {
-            margin-bottom: 25px;
-        }
-        
-        .step-section h2 {
-            font-size: 16px;
-            font-weight: 700;
-            color: #ff7a45;
-            margin-bottom: 10px;
-        }
-        
-        .step-section h3 {
-            font-size: 14px;
-            font-weight: 700;
-            color: #ffffff;
-            margin: 14px 0 8px 0;
-        }
-        
-        .step-section p {
-            font-size: 13px;
-            color: #d4d4d4;
-            line-height: 1.7;
-            margin-bottom: 10px;
-        }
-        
-        .step-section ul, .step-section ol {
-            margin-left: 20px;
-            margin-bottom: 10px;
-        }
-        
-        .step-section li {
-            font-size: 13px;
-            color: #d4d4d4;
-            line-height: 1.6;
-            margin-bottom: 5px;
-        }
-        
-        .challenge-box {
-            background: rgba(255, 122, 69, 0.1);
-            border-left: 3px solid #ff7a45;
-            padding: 14px;
-            border-radius: 4px;
-            margin: 14px 0;
-        }
-        
-        .challenge-box h3 {
-            color: #ff7a45;
-            margin-top: 0;
-            font-size: 13px;
-            margin-bottom: 8px;
-        }
-        
-        .challenge-box p {
-            font-size: 12px;
-            margin-bottom: 6px;
-        }
-        
-        .info-box {
-            background: rgba(59, 130, 246, 0.1);
-            border-left: 3px solid #3b82f6;
-            padding: 14px;
-            border-radius: 4px;
-            margin: 14px 0;
-        }
-        
-        .info-box h3 {
-            color: #3b82f6;
-            margin-top: 0;
-            font-size: 13px;
-            margin-bottom: 8px;
-        }
-        
-        .success-box {
-            background: rgba(14, 138, 22, 0.1);
-            border-left: 3px solid #0e8a16;
-            padding: 14px;
-            border-radius: 4px;
-            margin: 14px 0;
-        }
-        
-        .success-box h3 {
-            color: #0e8a16;
-            margin-top: 0;
-            font-size: 13px;
-            margin-bottom: 8px;
-        }
-        
-        .nav-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #3e3e42;
-        }
-        
-        .nav-btn {
-            flex: 1;
-            padding: 10px 16px;
-            border: none;
-            background: #2d2d30;
-            color: #cccccc;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .nav-btn:hover {
-            background: #3e3e42;
-        }
-        
-        .nav-btn.primary {
-            background: #ff7a45;
-            color: white;
-        }
-        
-        .nav-btn.primary:hover {
-            background: #ff8f5f;
-        }
-        
-        .code-panel {
-            width: 55%;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .code-editor {
-            flex: 1;
-            width: 100%;
-            padding: 20px;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border: none;
-            outline: none;
-            font-family: 'JetBrains Mono', 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            resize: none;
-            tab-size: 4;
-        }
-        
-        .console {
-            height: 150px;
-            background: #1e1e1e;
-            border-top: 1px solid #3e3e42;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .console-header {
-            background: #2d2d30;
-            padding: 6px 16px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #858585;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .console-content {
-            flex: 1;
-            padding: 10px 16px;
-            overflow-y: auto;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            line-height: 1.5;
-        }
-        
-        .console-line {
-            margin-bottom: 2px;
-        }
-        
-        .console-line.error {
-            color: #f48771;
-        }
-        
-        .console-line.success {
-            color: #89d185;
-        }
-        
-        .console-line.info {
-            color: #75beff;
-        }
-        
-        code {
-            background: #2d2d30;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            color: #ff7a45;
-        }
-        
-        .clear-btn {
-            background: transparent;
-            border: none;
-            color: #858585;
-            font-size: 10px;
-            cursor: pointer;
-            padding: 2px 8px;
-        }
-        
-        .clear-btn:hover {
-            color: #cccccc;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPOKE Learn</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0c0c0c;--s1:#131313;--s2:#1a1a1a;--s3:#222;
+  --b1:#2a2a2a;--b2:#383838;
+  --t1:#e2e2e2;--t2:#888;--t3:#4a4a4a;
+  --acc:#f97316;--acc2:#fb923c;
+  --grn:#22c55e;--blu:#3b82f6;--red:#ef4444;--ylw:#eab308;--pur:#a855f7;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+
+.bar{height:44px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 16px;gap:14px;flex-shrink:0}
+.logo{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--acc);letter-spacing:3px}
+.sep{width:1px;height:18px;background:var(--b2)}
+.crumb{font-family:var(--mono);font-size:11px;color:var(--t3)}
+.crumb b{color:var(--t2);font-weight:400}
+.bar-r{margin-left:auto;display:flex;align-items:center;gap:10px}
+.prog-row{display:flex;align-items:center;gap:7px}
+.prog-lbl{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.prog-track{width:100px;height:2px;background:var(--b2);border-radius:1px;overflow:hidden}
+.prog-fill{height:100%;background:var(--acc);transition:width .4s;border-radius:1px}
+.btn{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:6px 13px;border:1px solid var(--b2);background:transparent;color:var(--t3);cursor:pointer;border-radius:2px;transition:all .12s}
+.btn:hover{border-color:var(--acc);color:var(--acc)}
+.btn.go{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.go:hover{background:var(--acc2)}
+.btn:disabled{opacity:.25;cursor:not-allowed;pointer-events:none}
+.midi-pill{font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);color:var(--pur);border-radius:2px}
+
+.main{display:flex;flex:1;overflow:hidden}
+
+.sidebar{width:196px;background:var(--s1);border-right:1px solid var(--b1);overflow-y:auto;flex-shrink:0}
+.sidebar::-webkit-scrollbar{width:0}
+.mod-lbl{padding:14px 14px 5px;font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--t3)}
+.sb-btn{display:flex;align-items:center;width:100%;padding:8px 14px;background:transparent;border:none;border-left:2px solid transparent;cursor:pointer;gap:9px;transition:all .1s;text-align:left}
+.sb-btn:hover{background:var(--s2)}
+.sb-btn.active{background:var(--s2);border-left-color:var(--acc)}
+.sb-btn.done{border-left-color:var(--grn)}
+.sb-n{font-family:var(--mono);font-size:9px;color:var(--t3);min-width:14px}
+.sb-btn.active .sb-n{color:var(--acc)}
+.sb-btn.done .sb-n{color:var(--grn)}
+.sb-t{font-size:12px;color:var(--t2);line-height:1.25}
+.sb-btn.active .sb-t{color:var(--t1)}
+.tick{width:5px;height:5px;border-radius:50%;background:var(--grn);margin-left:auto;flex-shrink:0}
+
+.content{flex:1;display:flex;overflow:hidden}
+
+.lp{width:38%;min-width:280px;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.lp-body{flex:1;overflow-y:auto;padding:22px 22px 12px}
+.lp-body::-webkit-scrollbar{width:0}
+.ks{display:inline-block;font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);border:1px solid var(--b2);padding:2px 7px;border-radius:2px;margin-bottom:9px}
+.lp h1{font-size:20px;font-weight:500;color:var(--t1);margin-bottom:4px;line-height:1.2}
+.lp .sub{font-size:13px;color:var(--t2);margin-bottom:18px}
+.card{background:var(--s2);border:1px solid var(--b1);border-radius:3px;padding:12px 14px;margin:10px 0}
+.card-lbl{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+.card.info .card-lbl{color:var(--blu)}.card.info{border-left:2px solid var(--blu)}
+.card.task .card-lbl{color:var(--acc)}.card.task{border-left:2px solid var(--acc)}
+.card.win .card-lbl{color:var(--grn)}.card.win{border-left:2px solid var(--grn)}
+.card p{font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:5px}
+.card p:last-child{margin-bottom:0}
+.card p b{color:var(--t1);font-weight:500}
+.ic{font-family:var(--mono);font-size:11px;color:var(--acc);background:var(--s3);padding:1px 5px;border-radius:2px;white-space:nowrap}
+.lp-foot{padding:10px 22px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-shrink:0}
+.lp-foot .btn{flex:1;text-align:center;padding:8px}
+
+.cp{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.tabs{height:38px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 12px;gap:6px;flex-shrink:0}
+.tab{font-family:var(--mono);font-size:10px;letter-spacing:.5px;padding:5px 10px;background:transparent;border:1px solid transparent;color:var(--t3);cursor:pointer;border-radius:2px;transition:all .1s}
+.tab:hover{color:var(--t2)}
+.tab.on{color:var(--t1);background:var(--s2);border-color:var(--b1)}
+.tab-r{margin-left:auto;display:flex;gap:6px;align-items:center}
+
+.guide-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.guide-top{padding:10px 16px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:baseline;gap:10px;flex-shrink:0}
+.guide-step{font-family:var(--mono);font-size:10px;color:var(--t3);flex-shrink:0}
+.guide-msg{font-size:12px;color:var(--t2);flex:1;line-height:1.4}
+.guide-msg b{color:var(--t1);font-weight:500}
+
+.code-view{flex:1;overflow-y:auto;padding:14px 0;font-family:var(--mono);font-size:12px;line-height:1.9}
+.code-view::-webkit-scrollbar{width:3px}
+.code-view::-webkit-scrollbar-thumb{background:var(--b2)}
+
+.code-row{display:flex;align-items:baseline;padding:0 16px;min-height:23px}
+.ln-num{width:28px;color:var(--t3);flex-shrink:0;text-align:right;margin-right:14px;font-size:10px;user-select:none}
+.code-tokens{display:flex;align-items:baseline;flex:1}
+.kw{color:#c678dd}.fn{color:#61afef}.st{color:#98c379}.co{color:var(--t3);font-style:italic}.nm{color:#e06c75}.nu{color:#d19a66}.op{color:var(--t2)}.pl{color:var(--t1)}
+.ctx{opacity:.5}
+
+.type-row{display:flex;align-items:baseline;padding:0 16px;background:rgba(249,115,22,.06);border-left:2px solid var(--acc);margin:1px 0}
+.type-row .ln-num{color:var(--acc)}
+.type-prefix{font-family:var(--mono);font-size:12px;color:var(--t3);white-space:pre;flex-shrink:0;line-height:1.9}
+.type-input{font-family:var(--mono);font-size:12px;color:var(--t1);background:transparent;border:none;outline:none;flex:1;caret-color:var(--acc);line-height:1.9;min-width:160px}
+.type-input::placeholder{color:var(--t3);font-style:italic;font-size:11px}
+.type-input.wrong{animation:shake .28s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}33%{transform:translateX(-5px)}66%{transform:translateX(5px)}}
+
+.done-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px 20px;text-align:center}
+.done-icon{font-family:var(--mono);font-size:28px;color:var(--grn)}
+.done-title{font-size:15px;font-weight:500;color:var(--t1)}
+.done-sub{font-size:12px;color:var(--t2)}
+
+.free-ed{flex:1;width:100%;padding:16px;background:transparent;color:var(--t1);border:none;outline:none;font-family:var(--mono);font-size:12px;line-height:1.9;resize:none;tab-size:4;display:none}
+.free-ed::placeholder{color:var(--t3)}
+
+.hint-bar{position:absolute;bottom:130px;left:0;right:0;background:rgba(234,179,8,.07);border-top:1px solid rgba(234,179,8,.18);padding:7px 16px;display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;color:var(--ylw);transform:translateY(100%);transition:transform .18s ease;pointer-events:none}
+.hint-bar.show{transform:translateY(0);pointer-events:all}
+.hint-lbl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:rgba(234,179,8,.45);flex-shrink:0}
+
+.con{height:130px;background:var(--s1);border-top:1px solid var(--b1);display:flex;flex-direction:column;flex-shrink:0}
+.con-head{padding:5px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.con-dot{width:5px;height:5px;border-radius:50%;background:var(--t3)}
+.con-dot.live{background:var(--grn);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.con-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3)}
+.con-body{flex:1;padding:7px 14px;overflow-y:auto;font-family:var(--mono);font-size:11px;line-height:1.6}
+.con-body::-webkit-scrollbar{width:0}
+.cl{margin-bottom:1px}
+.cl.err{color:#f87171}.cl.ok{color:#4ade80}.cl.info{color:#60a5fa}.cl.warn{color:#fbbf24}.cl.dim{color:var(--t3)}
+</style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo">SPOKE</div>
-        <div class="header-title">Learn</div>
-        <div class="progress-info">
-            <span class="progress-text" id="progressText">0 / 14 Lessons</span>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressBar" style="width: 0%"></div>
-            </div>
-        </div>
-        <button class="header-btn" id="setupBtn" onclick="setupBoard()">Setup SPOKE</button>
+<div class="bar">
+  <div class="logo">SPOKE</div>
+  <div class="sep"></div>
+  <div class="crumb" id="crumb">Module 1 / <b>Lesson 1</b></div>
+  <div class="bar-r">
+    <div class="prog-row">
+      <div class="prog-lbl" id="progLbl">0 / 14</div>
+      <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
     </div>
-    
-    <div class="main-container">
-        <div class="sidebar">
-            <div class="sidebar-section">
-                <div class="sidebar-header">Module 1: First Steps</div>
-                <div class="lesson-item active" onclick="loadLesson(1)">
-                    <div class="lesson-number">Lesson 1</div>
-                    <div class="lesson-title">Light Up a Pad</div>
-                    <div class="lesson-desc">Your first program with visual feedback</div>
-                </div>
-                <div class="lesson-item" onclick="loadLesson(2)">
-                    <div class="lesson-number">Lesson 2</div>
-                    <div class="lesson-title">Multiple Pads</div>
-                    <div class="lesson-desc">Control three pads at once</div>
-                </div>
-                <div class="lesson-item" onclick="loadLesson(3)">
-                    <div class="lesson-number">Lesson 3</div>
-                    <div class="lesson-title">Color Changes</div>
-                    <div class="lesson-desc">Learn RGB colors</div>
-                </div>
-            </div>
-            
-            <div class="sidebar-section">
-                <div class="sidebar-header">Module 2: Selection & Logic</div>
-                <div class="lesson-item" onclick="loadLesson(4)">
-                    <div class="lesson-number">Lesson 4</div>
-                    <div class="lesson-title">IF Statements</div>
-                    <div class="lesson-desc">Different colors for different pads</div>
-                </div>
-                <div class="lesson-item" onclick="loadLesson(5)">
-                    <div class="lesson-number">Lesson 5</div>
-                    <div class="lesson-title">IF-ELSE Logic</div>
-                    <div class="lesson-desc">Touch vs not touched</div>
-                </div>
-            </div>
-            
-            <div class="sidebar-section">
-                <div class="sidebar-header">Module 3: Loops</div>
-                <div class="lesson-item" onclick="loadLesson(6)">
-                    <div class="lesson-number">Lesson 6</div>
-                    <div class="lesson-title">FOR Loops</div>
-                    <div class="lesson-desc">Light up all 27 pads</div>
-                </div>
-                <div class="lesson-item" onclick="loadLesson(7)">
-                    <div class="lesson-number">Lesson 7</div>
-                    <div class="lesson-title">Pattern Making</div>
-                    <div class="lesson-desc">Create light sequences</div>
-                </div>
-            </div>
-            
-            <div class="sidebar-section">
-                <div class="sidebar-header">Module 4: Variables</div>
-                <div class="lesson-item" onclick="loadLesson(8)">
-                    <div class="lesson-number">Lesson 8</div>
-                    <div class="lesson-title">Storing Data</div>
-                    <div class="lesson-desc">Count pad presses</div>
-                </div>
-                <div class="lesson-item" onclick="loadLesson(9)">
-                    <div class="lesson-number">Lesson 9</div>
-                    <div class="lesson-title">Lists</div>
-                    <div class="lesson-desc">Store 27 different colors</div>
-                </div>
-            </div>
-            
-            <div class="sidebar-section">
-                <div class="sidebar-header">Module 5: Debugging</div>
-                <div class="lesson-item" onclick="loadLesson(10)">
-                    <div class="lesson-number">Lesson 10</div>
-                    <div class="lesson-title">Finding Bugs</div>
-                    <div class="lesson-desc">Fix broken code with print()</div>
-                </div>
-                <div class="lesson-item" onclick="loadLesson(11)">
-                    <div class="lesson-number">Lesson 11</div>
-                    <div class="lesson-title">Testing Your Code</div>
-                    <div class="lesson-desc">Systematic debugging</div>
-                </div>
-            </div>
-            
-            <div class="sidebar-section">
-                <div class="sidebar-header">Module 6: Projects</div>
-                <div class="lesson-item" onclick="loadLesson(12)">
-                    <div class="lesson-number">Project 1</div>
-                    <div class="lesson-title">Simon Says Game</div>
-                    <div class="lesson-desc">Memory pattern game</div>
-                </div>
-                <div class="lesson-item" onclick="loadLesson(13)">
-                    <div class="lesson-number">Project 2</div>
-                    <div class="lesson-title">Reaction Timer</div>
-                    <div class="lesson-desc">Test your reaction speed</div>
-                </div>
-                <div class="lesson-item" onclick="loadLesson(14)">
-                    <div class="lesson-number">Project 3</div>
-                    <div class="lesson-title">Light Sequencer</div>
-                    <div class="lesson-desc">Create your own light show</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="content-area">
-            <div class="lesson-panel">
-                <div class="lesson-content" id="lessonContent">
-                    <!-- Lesson content loaded here -->
-                </div>
-            </div>
-            
-            <div class="code-panel">
-                <textarea class="code-editor" id="codeEditor" spellcheck="false" placeholder="Click 'Load Code' in the lesson to get started..."># SPOKE Learn - Code Editor
-# Your code will appear here</textarea>
-                
-                <div class="console">
-                    <div class="console-header">
-                        Output
-                        <button class="clear-btn" onclick="clearConsole()">Clear</button>
-                    </div>
-                    <div class="console-content" id="consoleContent">
-                        <div class="console-line info">Click "Setup SPOKE" to connect your board</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="sep"></div>
+    <span class="midi-pill" id="midiPill" style="display:none">MIDI</span>
+    <button class="btn" id="connectBtn" onclick="connectBoard()">Connect Board</button>
+    <button class="btn go" id="runBtn" onclick="saveAndRun()" disabled>Save &amp; Run</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="content">
+    <div class="lp">
+      <div class="lp-body" id="lpBody"></div>
+      <div class="lp-foot">
+        <button class="btn" id="prevBtn" onclick="prevLesson()" disabled>← Back</button>
+        <button class="btn go" id="nextBtn" onclick="completeNext()">Done — Next →</button>
+      </div>
     </div>
+    <div class="cp" id="cp">
+      <div class="tabs">
+        <button class="tab on" id="tabGuide" onclick="setTab('guide')">Exercise</button>
+        <button class="tab" id="tabFree" onclick="setTab('free')">Free Edit</button>
+        <div class="tab-r">
+          <button class="btn" onclick="toggleHint()" style="font-size:9px;padding:4px 9px">Hint</button>
+          <button class="btn" onclick="resetExercise()" style="font-size:9px;padding:4px 9px">Reset</button>
+        </div>
+      </div>
+      <div class="guide-wrap" id="guideWrap">
+        <div class="guide-top">
+          <div class="guide-step" id="stepLbl">—</div>
+          <div class="guide-msg" id="stepMsg">Load a lesson to begin</div>
+        </div>
+        <div class="code-view" id="codeView"></div>
+      </div>
+      <textarea class="free-ed" id="freeEd" spellcheck="false" placeholder="# Write your own code here"></textarea>
+      <div class="hint-bar" id="hintBar">
+        <span class="hint-lbl">Hint</span>
+        <span id="hintText">—</span>
+      </div>
+      <div class="con">
+        <div class="con-head">
+          <div class="con-dot" id="conDot"></div>
+          <div class="con-lbl">Output</div>
+          <button class="btn" style="margin-left:auto;font-size:9px;padding:3px 8px" onclick="clearCon()">Clear</button>
+        </div>
+        <div class="con-body" id="conBody">
+          <div class="cl info">Connect your SPOKE board to begin</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <script>
-        let fileHandle = null;
-        let serialPort = null;
-        let reader = null;
-        let isReading = false;
-        let currentLesson = 1;
-        let completedLessons = [];
-        let currentLessonCode = '';
-        let isSetup = false;
-        
-        // Combined setup function
-        async function setupBoard() {
-            if (isSetup) {
-                // Already setup - save file
-                await saveFile();
-                return;
-            }
-            
-            // First time - do full setup
-            try {
-                // Step 1: Open file
-                if (!('showOpenFilePicker' in window)) {
-                    alert('Please use Chrome, Edge, or Opera browser.');
-                    return;
-                }
-                
-                logConsole('Opening code.py...', 'info');
-                const [handle] = await window.showOpenFilePicker({
-                    types: [{
-                        description: 'Python Files',
-                        accept: {'text/x-python': ['.py']}
-                    }]
-                });
-                
-                fileHandle = handle;
-                const file = await fileHandle.getFile();
-                const contents = await file.text();
-                document.getElementById('codeEditor').value = contents;
-                
-                logConsole('✓ Opened code.py', 'success');
-                
-                // Step 2: Connect serial
-                if (!('serial' in navigator)) {
-                    alert('Web Serial not supported. Use Chrome, Edge, or Opera.');
-                    return;
-                }
-                
-                logConsole('Connecting to SPOKE...', 'info');
-                serialPort = await navigator.serial.requestPort();
-                await serialPort.open({ baudRate: 115200 });
-                
-                logConsole('✓ Connected to SPOKE!', 'success');
-                logConsole('Ready to learn! Edit code and click "Save & Run"', 'info');
-                
-                // Update button
-                document.getElementById('setupBtn').textContent = 'Save & Run';
-                isSetup = true;
-                
-                // Start reading serial
-                readSerial();
-                
-            } catch (error) {
-                if (error.name !== 'AbortError' && error.name !== 'NotFoundError') {
-                    logConsole('Setup error: ' + error.message, 'error');
-                }
-            }
-        }
-        
-        async function saveFile() {
-            if (!fileHandle) {
-                logConsole('Please run Setup SPOKE first!', 'error');
-                return;
-            }
-            
-            try {
-                const writable = await fileHandle.createWritable();
-                const code = document.getElementById('codeEditor').value;
-                await writable.write(code);
-                await writable.close();
-                
-                logConsole('✓ Saved! Board restarting...', 'success');
-                
-            } catch (error) {
-                logConsole('Save error: ' + error.message, 'error');
-            }
-        }
-        
-        async function readSerial() {
-            if (!serialPort) return;
-            
-            isReading = true;
-            
-            try {
-                const decoder = new TextDecoderStream();
-                serialPort.readable.pipeTo(decoder.writable);
-                reader = decoder.readable.getReader();
-                
-                while (isReading) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    
-                    if (value) {
-                        const isError = value.includes('Traceback') || value.includes('Error:');
-                        const type = isError ? 'error' : 'success';
-                        
-                        const lines = value.split('\n');
-                        lines.forEach(line => {
-                            if (line.trim()) {
-                                logConsole(line.trim(), type);
-                            }
-                        });
-                    }
-                }
-            } catch (error) {
-                if (isReading) {
-                    logConsole('Serial error: ' + error.message, 'error');
-                }
-            }
-        }
-        
-        function logConsole(message, type = 'info') {
-            const console = document.getElementById('consoleContent');
-            const line = document.createElement('div');
-            line.className = `console-line ${type}`;
-            line.textContent = message;
-            console.appendChild(line);
-            console.scrollTop = console.scrollHeight;
-        }
-        
-        function clearConsole() {
-            document.getElementById('consoleContent').innerHTML = '';
-        }
-        
-        function loadLessonCode() {
-            document.getElementById('codeEditor').value = currentLessonCode;
-            logConsole('Lesson code loaded! Click "Save & Run" to test it.', 'success');
-        }
-        
-        function loadLesson(lessonNum) {
-            currentLesson = lessonNum;
-            
-            // Update sidebar
-            document.querySelectorAll('.lesson-item').forEach((item, index) => {
-                item.classList.remove('active');
-                if (index + 1 === lessonNum) {
-                    item.classList.add('active');
-                }
-            });
-            
-            // Load lesson content and code
-            const lessonData = getLessonContent(lessonNum);
-            document.getElementById('lessonContent').innerHTML = lessonData.content;
-            currentLessonCode = lessonData.code;
-            
-            // Update progress
-            updateProgress();
-        }
-        
-        function markComplete() {
-            if (!completedLessons.includes(currentLesson)) {
-                completedLessons.push(currentLesson);
-                
-                const items = document.querySelectorAll('.lesson-item');
-                if (items[currentLesson - 1]) {
-                    items[currentLesson - 1].classList.add('completed');
-                }
-                
-                updateProgress();
-                logConsole(`✓ Lesson ${currentLesson} completed!`, 'success');
-            }
-        }
-        
-        function updateProgress() {
-            const totalLessons = 14;
-            const progress = (completedLessons.length / totalLessons) * 100;
-            document.getElementById('progressBar').style.width = progress + '%';
-            document.getElementById('progressText').textContent = `${completedLessons.length} / ${totalLessons} Lessons`;
-        }
-        
-        function nextLesson() {
-            if (currentLesson < 14) {
-                loadLesson(currentLesson + 1);
-            }
-        }
-        
-        function prevLesson() {
-            if (currentLesson > 1) {
-                loadLesson(currentLesson - 1);
-            }
-        }
-        
-        function getLessonContent(lessonNum) {
-            const lessons = {
-                1: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - First Programs</div>
-                            <h1>Lesson 1: Your First Program</h1>
-                            <p>Make a light turn on when you touch SPOKE</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>What We'll Do</h2>
-                            <p>In this lesson, you'll:</p>
-                            <ol>
-                                <li>Connect your SPOKE board to this website</li>
-                                <li>Load some ready-made code</li>
-                                <li>Touch Pad 1 and watch it light up GREEN!</li>
-                            </ol>
-                            <p><strong>Don't worry about understanding everything yet - we'll explain it step by step!</strong></p>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>Your Goal</h3>
-                            <p>When you <strong>touch Pad 1</strong>, a green light appears.</p>
-                            <p>When you <strong>let go</strong>, the light turns off.</p>
-                            <p>That's it! Simple.</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>Step-by-Step Instructions</h2>
-                            
-                            <h3>Step 1: Connect Your SPOKE</h3>
-                            <ol>
-                                <li>Plug your SPOKE into your computer with a USB cable</li>
-                                <li>A drive called <strong>CIRCUITPY</strong> should appear (like a USB stick)</li>
-                                <li>Click the <strong>"Setup SPOKE"</strong> button at the top of this page</li>
-                                <li>Find the CIRCUITPY drive and open the file called <strong>code.py</strong></li>
-                                <li>The website will connect to your SPOKE automatically</li>
-                            </ol>
-                            
-                            <h3>Step 2: Load the Lesson Code</h3>
-                            <p>Click the big orange <strong>"Load Code"</strong> button below. The lesson code will replace whatever is in the editor.</p>
-                            
-                            <h3>Step 3: Save and Test!</h3>
-                            <ol>
-                                <li>Click <strong>"Save & Run"</strong> at the top</li>
-                                <li>Your SPOKE will restart (the lights might flash)</li>
-                                <li>Now <strong>touch Pad 1</strong> with your finger</li>
-                                <li>Watch it light up GREEN!</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="success-box">
-                            <h3>Did it work?</h3>
-                            <p>If you see a <strong>green light</strong> when you touch Pad 1, congratulations! You just ran your first program!</p>
-                            <p>If nothing happened, check:</p>
-                            <ul>
-                                <li>Is SPOKE plugged in?</li>
-                                <li>Did you click "Setup SPOKE" first?</li>
-                                <li>Did you click "Load Code" to get the lesson code?</li>
-                                <li>Did you click "Save & Run"?</li>
-                                <li>Are you touching Pad 1 (the first circular pad)?</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>Understanding the Code (Don't Worry, It's Simple!)</h2>
-                            
-                            <p>Let's look at what the code does, line by line. You don't need to memorize this - just read through it.</p>
-                            
-                            <h3>Lines 1-3: Getting Ready</h3>
-                            <div class="code-block">import board
-import touchio
-import neopixel</div>
-                            <p>These lines load some tools we need. Think of it like getting ingredients before cooking:</p>
-                            <ul>
-                                <li><code>board</code> = Access to SPOKE's pads</li>
-                                <li><code>touchio</code> = Ability to detect touch</li>
-                                <li><code>neopixel</code> = Control the lights</li>
-                            </ul>
-                            
-                            <h3>Line 6: Setting Up Pad 1</h3>
-                            <div class="code-block">touch1 = touchio.TouchIn(board.GP1)</div>
-                            <p>This tells the computer: "Pay attention to Pad 1, I want to know when someone touches it."</p>
-                            
-                            <h3>Line 9: Setting Up the Lights</h3>
-                            <div class="code-block">pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1)</div>
-                            <p>This says: "There are 27 lights on SPOKE. Make them not too bright (10%)."</p>
-                            
-                            <h3>Lines 14-22: The Main Loop (The Important Bit!)</h3>
-                            <div class="code-block">while True:
-    if touch1.value:
-        pixels[0] = (0, 255, 0)
-    else:
-        pixels[0] = (0, 0, 0)
-    pixels.show()</div>
-                            
-                            <p>Let's break this down in plain English:</p>
-                            <ul>
-                                <li><code>while True:</code> = "Keep doing this forever"</li>
-                                <li><code>if touch1.value:</code> = "If someone is touching Pad 1..."</li>
-                                <li><code>pixels[0] = (0, 255, 0)</code> = "...turn the first light GREEN"</li>
-                                <li><code>else:</code> = "Otherwise (if they're not touching)..."</li>
-                                <li><code>pixels[0] = (0, 0, 0)</code> = "...turn the light OFF"</li>
-                                <li><code>pixels.show()</code> = "Update the lights!"</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>What Does (0, 255, 0) Mean?</h3>
-                            <p>Colors on computers use three numbers: <strong>(Red, Green, Blue)</strong></p>
-                            <p>Each number goes from 0 (none) to 255 (maximum).</p>
-                            <ul>
-                                <li><code>(0, 255, 0)</code> = No red, lots of green, no blue = GREEN</li>
-                                <li><code>(255, 0, 0)</code> = Lots of red, no green, no blue = RED</li>
-                                <li><code>(0, 0, 255)</code> = No red, no green, lots of blue = BLUE</li>
-                                <li><code>(0, 0, 0)</code> = No colors = OFF (black)</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Try These Easy Changes!</h3>
-                            <p>Now that the code is working, let's make some changes. Don't worry - you can always click "Load Code" again to get the original back!</p>
-                            
-                            <p><strong>Challenge 1: Change the Color to Red</strong></p>
-                            <p>Find this line in your code:</p>
-                            <div class="code-block">pixels[0] = (0, 255, 0)  # GREEN</div>
-                            <p>Change it to:</p>
-                            <div class="code-block">pixels[0] = (255, 0, 0)  # RED</div>
-                            <p>Click "Save & Run" and touch Pad 1. Is it red now?</p>
-                            
-                            <p><strong>Challenge 2: Make it Blue</strong></p>
-                            <p>Can you make it blue? Hint: <code>(0, 0, 255)</code></p>
-                            
-                            <p><strong>Challenge 3: Make it Purple</strong></p>
-                            <p>Purple is made by mixing red and blue. Try: <code>(255, 0, 255)</code></p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">I Did It! Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Lesson 1: Your First Program
-# This code makes Pad 1 light up green when you touch it!
+<script>
+// ── LESSON DATA ───────────────────────────────────────────────────────────────
+// line types:
+//   skip:true  → shown as dimmed context, never typed
+//   prompt     → student types this line; answer is checked (prefix shown before cursor)
+const L = {
+1:{mod:'Module 1 — First Steps',title:'Light Up a Pad',sub:'Touch Pad 1 — see a green light',ks:'KS3 · Sequence · Selection',midi:false,
+info:[
+  {t:'info',l:'The plan',p:'<ic>while True</ic> runs forever. Inside, we ask: is the pad being touched? If yes — green. If no — off.'},
+  {t:'info',l:'Colour numbers',p:'Colours are <ic>(Red, Green, Blue)</ic>, each 0–255. <ic>(0, 255, 0)</ic> = green. <ic>(0, 0, 0)</ic> = off.'},
+  {t:'task',l:'Your goal',p:'Type each line when prompted. When done, click <b>Save & Run</b> and touch Pad 1.'},
+],
+challenge:{t:'task',l:'Challenge',p:'Change the colour to red <ic>(255, 0, 0)</ic> in Free Edit.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
+  {ln:2,skip:true,toks:[]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'touch1 = touchio.TouchIn(board.GP1)'}]},
+  {ln:4,skip:true,toks:[{c:'pl',v:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)'}]},
+  {ln:5,skip:true,toks:[]},
+  {ln:6,prompt:'Start the infinite loop — keyword, space, True, colon.',hint:'while True:',pfx:'',ans:'while True:',toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:7,prompt:'Check if Pad 1 is touched. 4 spaces, then: if touch1.value:',hint:'    if touch1.value:',pfx:'    ',ans:'if touch1.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch1.value:'}]},
+  {ln:8,prompt:'Turn pixel 0 green. 8 spaces, then: pixels[0] = (0, 255, 0)',hint:'        pixels[0] = (0, 255, 0)',pfx:'        ',ans:'pixels[0] = (0, 255, 0)',alt:['pixels[0]=(0,255,0)'],toks:[{c:'pl',v:'        pixels[0] = (0, 255, 0)'}]},
+  {ln:9,prompt:'Handle the other case — "otherwise". 4 spaces, keyword, colon.',hint:'    else:',pfx:'    ',ans:'else:',toks:[{c:'pl',v:'    '},{c:'kw',v:'else'},{c:'pl',v:':'}]},
+  {ln:10,prompt:'Turn it off. 8 spaces, then: pixels[0] = (0, 0, 0)',hint:'        pixels[0] = (0, 0, 0)',pfx:'        ',ans:'pixels[0] = (0, 0, 0)',alt:['pixels[0]=(0,0,0)'],toks:[{c:'pl',v:'        pixels[0] = (0, 0, 0)'}]},
+  {ln:11,prompt:'Update the lights. 4 spaces, then: pixels.show()',hint:'    pixels.show()',pfx:'    ',ans:'pixels.show()',toks:[{c:'pl',v:'    pixels.show()'}]},
+],
+free:`import board, touchio, neopixel\n\ntouch1 = touchio.TouchIn(board.GP1)\npixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)\n\nwhile True:\n    if touch1.value:\n        pixels[0] = (0, 255, 0)\n    else:\n        pixels[0] = (0, 0, 0)\n    pixels.show()`},
 
-import board
-import touchio
-import neopixel
+2:{mod:'Module 1 — First Steps',title:'Three Pads, Three Colours',sub:'Red, green, blue — one per pad',ks:'KS3 · Sequence',midi:false,
+info:[
+  {t:'info',l:'Sequencing',p:'The code checks pad 1, then 2, then 3 — hundreds of times a second. Touch two at once: both lights appear.'},
+  {t:'info',l:'Spot the pattern',p:'You will write the same three-line block three times. Good programmers notice this and fix it with loops — coming in Lesson 5.'},
+],
+challenge:{t:'task',l:'Challenge',p:'Make Pad 2 yellow <ic>(255, 255, 0)</ic> instead of green in Free Edit.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
+  {ln:2,skip:true,toks:[]},
+  {ln:3,prompt:'Set up touch sensor 1. Type: touch1 = touchio.TouchIn(board.GP1)',hint:'touch1 = touchio.TouchIn(board.GP1)',pfx:'',ans:'touch1 = touchio.TouchIn(board.GP1)',alt:['touch1=touchio.TouchIn(board.GP1)'],toks:[{c:'pl',v:'touch1 = touchio.TouchIn(board.GP1)'}]},
+  {ln:4,prompt:'Same pattern for pad 2. GP2 this time.',hint:'touch2 = touchio.TouchIn(board.GP2)',pfx:'',ans:'touch2 = touchio.TouchIn(board.GP2)',alt:['touch2=touchio.TouchIn(board.GP2)'],toks:[{c:'pl',v:'touch2 = touchio.TouchIn(board.GP2)'}]},
+  {ln:5,prompt:'And pad 3. GP3.',hint:'touch3 = touchio.TouchIn(board.GP3)',pfx:'',ans:'touch3 = touchio.TouchIn(board.GP3)',alt:['touch3=touchio.TouchIn(board.GP3)'],toks:[{c:'pl',v:'touch3 = touchio.TouchIn(board.GP3)'}]},
+  {ln:6,skip:true,toks:[{c:'pl',v:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)'}]},
+  {ln:7,skip:true,toks:[]},
+  {ln:8,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:9,prompt:'Check pad 1. 4 spaces then the if statement.',hint:'    if touch1.value:',pfx:'    ',ans:'if touch1.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch1.value:'}]},
+  {ln:10,prompt:'Pixel 0 to red. 8 spaces.',hint:'        pixels[0] = (255, 0, 0)',pfx:'        ',ans:'pixels[0] = (255, 0, 0)',alt:['pixels[0]=(255,0,0)'],toks:[{c:'pl',v:'        pixels[0] = (255, 0, 0)'}]},
+  {ln:11,prompt:'Else — off. 4 spaces.',hint:'    else: pixels[0] = (0, 0, 0)',pfx:'    ',ans:'else: pixels[0] = (0, 0, 0)',alt:['else:pixels[0]=(0,0,0)','else: pixels[0]=(0,0,0)'],toks:[{c:'pl',v:'    else: pixels[0] = (0, 0, 0)'}]},
+  {ln:12,prompt:'Check pad 2.',hint:'    if touch2.value:',pfx:'    ',ans:'if touch2.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch2.value:'}]},
+  {ln:13,prompt:'Pixel 1 green. 8 spaces.',hint:'        pixels[1] = (0, 255, 0)',pfx:'        ',ans:'pixels[1] = (0, 255, 0)',alt:['pixels[1]=(0,255,0)'],toks:[{c:'pl',v:'        pixels[1] = (0, 255, 0)'}]},
+  {ln:14,prompt:'Else off.',hint:'    else: pixels[1] = (0, 0, 0)',pfx:'    ',ans:'else: pixels[1] = (0, 0, 0)',alt:['else:pixels[1]=(0,0,0)'],toks:[{c:'pl',v:'    else: pixels[1] = (0, 0, 0)'}]},
+  {ln:15,prompt:'Check pad 3.',hint:'    if touch3.value:',pfx:'    ',ans:'if touch3.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch3.value:'}]},
+  {ln:16,prompt:'Pixel 2 blue — (0, 0, 255). 8 spaces.',hint:'        pixels[2] = (0, 0, 255)',pfx:'        ',ans:'pixels[2] = (0, 0, 255)',alt:['pixels[2]=(0,0,255)'],toks:[{c:'pl',v:'        pixels[2] = (0, 0, 255)'}]},
+  {ln:17,prompt:'Else off.',hint:'    else: pixels[2] = (0, 0, 0)',pfx:'    ',ans:'else: pixels[2] = (0, 0, 0)',alt:['else:pixels[2]=(0,0,0)'],toks:[{c:'pl',v:'    else: pixels[2] = (0, 0, 0)'}]},
+  {ln:18,prompt:'Update the lights.',hint:'    pixels.show()',pfx:'    ',ans:'pixels.show()',toks:[{c:'pl',v:'    pixels.show()'}]},
+],
+free:`import board, touchio, neopixel\ntouch1=touchio.TouchIn(board.GP1)\ntouch2=touchio.TouchIn(board.GP2)\ntouch3=touchio.TouchIn(board.GP3)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nwhile True:\n    if touch1.value: pixels[0]=(255,0,0)\n    else: pixels[0]=(0,0,0)\n    if touch2.value: pixels[1]=(0,255,0)\n    else: pixels[1]=(0,0,0)\n    if touch3.value: pixels[2]=(0,0,255)\n    else: pixels[2]=(0,0,0)\n    pixels.show()`},
 
-# Set up Pad 1 to detect touch
-touch1 = touchio.TouchIn(board.GP1)
+3:{mod:'Module 2 — Logic',title:'IF, ELIF, ELSE',sub:'One pad, one light, three possible colours',ks:'KS3 · Selection',midi:false,
+info:[
+  {t:'info',l:'elif',p:'<ic>elif</ic> means "else if". Python checks each condition in order and runs the <b>first true one</b> — then skips all the rest.'},
+  {t:'info',l:'Colour mixing',p:'Red+Green=Yellow. Green+Blue=Cyan. Red+Blue=Magenta. Mix any values 0–255 to make your own colours.'},
+],
+challenge:{t:'task',l:'Challenge',p:'Add a 4th condition for Pad 4 showing white <ic>(255, 255, 255)</ic>.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
+  {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1);t2=touchio.TouchIn(board.GP2);t3=touchio.TouchIn(board.GP3)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:4,skip:true,toks:[]},
+  {ln:5,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:6,prompt:'First condition — if t1 is touched. 4 spaces.',hint:'    if t1.value:',pfx:'    ',ans:'if t1.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' t1.value:'}]},
+  {ln:7,prompt:'Yellow light: (255, 255, 0). 8 spaces.',hint:'        pixels[0] = (255, 255, 0)',pfx:'        ',ans:'pixels[0] = (255, 255, 0)',alt:['pixels[0]=(255,255,0)'],toks:[{c:'pl',v:'        pixels[0] = (255, 255, 0)'}]},
+  {ln:8,prompt:'"Else if" t2 is touched. 4 spaces — what keyword?',hint:'    elif t2.value:',pfx:'    ',ans:'elif t2.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'elif'},{c:'pl',v:' t2.value:'}]},
+  {ln:9,prompt:'Cyan: (0, 255, 255). 8 spaces.',hint:'        pixels[0] = (0, 255, 255)',pfx:'        ',ans:'pixels[0] = (0, 255, 255)',alt:['pixels[0]=(0,255,255)'],toks:[{c:'pl',v:'        pixels[0] = (0, 255, 255)'}]},
+  {ln:10,prompt:'"Else if" t3. Same pattern.',hint:'    elif t3.value:',pfx:'    ',ans:'elif t3.value:',toks:[{c:'pl',v:'    '},{c:'kw',v:'elif'},{c:'pl',v:' t3.value:'}]},
+  {ln:11,prompt:'Magenta: red + blue. 8 spaces.',hint:'        pixels[0] = (255, 0, 255)',pfx:'        ',ans:'pixels[0] = (255, 0, 255)',alt:['pixels[0]=(255,0,255)'],toks:[{c:'pl',v:'        pixels[0] = (255, 0, 255)'}]},
+  {ln:12,prompt:'Final fallback — if nothing is touched. 4 spaces.',hint:'    else:',pfx:'    ',ans:'else:',toks:[{c:'pl',v:'    '},{c:'kw',v:'else'},{c:'pl',v:':'}]},
+  {ln:13,prompt:'Turn off. 8 spaces.',hint:'        pixels[0] = (0, 0, 0)',pfx:'        ',ans:'pixels[0] = (0, 0, 0)',alt:['pixels[0]=(0,0,0)'],toks:[{c:'pl',v:'        pixels[0] = (0, 0, 0)'}]},
+  {ln:14,prompt:'Update.',hint:'    pixels.show()',pfx:'    ',ans:'pixels.show()',toks:[{c:'pl',v:'    pixels.show()'}]},
+],
+free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1);t2=touchio.TouchIn(board.GP2);t3=touchio.TouchIn(board.GP3)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nwhile True:\n    if t1.value:      pixels[0]=(255,255,0)\n    elif t2.value:    pixels[0]=(0,255,255)\n    elif t3.value:    pixels[0]=(255,0,255)\n    else:             pixels[0]=(0,0,0)\n    pixels.show()`},
 
-# Set up the lights (27 LEDs, not too bright)
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+4:{mod:'Module 2 — Logic',title:'Variables',sub:'Count how many times you touch a pad',ks:'KS3 · Variables',midi:false,
+info:[
+  {t:'info',l:'Variables',p:'A variable is a named storage box. <ic>count = 0</ic> creates one. <ic>count = count + 1</ic> reads, adds 1, and stores the result back.'},
+  {t:'info',l:'De-bouncing',p:'One touch registers hundreds of times per second without a flag. <ic>was_touched</ic> tracks whether this press has already been counted.'},
+],
+challenge:{t:'task',l:'Challenge',p:'Make Pad 2 reset the count to 0. Add <ic>if t2.value: count = 0</ic> inside the loop.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
+  {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:4,skip:true,toks:[]},
+  {ln:5,prompt:'Create a variable called count, set to zero.',hint:'count = 0',pfx:'',ans:'count = 0',alt:['count=0'],toks:[{c:'pl',v:'count = 0'}]},
+  {ln:6,prompt:'Create a flag called was_touched, starting as False.',hint:'was_touched = False',pfx:'',ans:'was_touched = False',alt:['was_touched=False'],toks:[{c:'pl',v:'was_touched = False'}]},
+  {ln:7,skip:true,toks:[]},
+  {ln:8,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:9,skip:true,toks:[{c:'pl',v:'    if t1.value:'}]},
+  {ln:10,prompt:'Only count once per press — if not already counted. 8 spaces.',hint:'        if not was_touched:',pfx:'        ',ans:'if not was_touched:',toks:[{c:'pl',v:'        if not was_touched:'}]},
+  {ln:11,prompt:'Add 1 to count. 12 spaces.',hint:'            count = count + 1',pfx:'            ',ans:'count = count + 1',alt:['count=count+1','count += 1','count+=1'],toks:[{c:'pl',v:'            count = count + 1'}]},
+  {ln:12,prompt:'Print the count. 12 spaces.',hint:'            print("Count:", count)',pfx:'            ',ans:'print("Count:", count)',alt:["print('Count:', count)",'print("Count:",count)',"print('Count:',count)"],toks:[{c:'pl',v:'            print("Count:", count)'}]},
+  {ln:13,prompt:'Set was_touched to True. 12 spaces.',hint:'            was_touched = True',pfx:'            ',ans:'was_touched = True',alt:['was_touched=True'],toks:[{c:'pl',v:'            was_touched = True'}]},
+  {ln:14,skip:true,toks:[{c:'pl',v:'        pixels[0]=(0,255,0)'}]},
+  {ln:15,skip:true,toks:[{c:'pl',v:'    else:'}]},
+  {ln:16,prompt:'When not touched, reset the flag. 8 spaces.',hint:'        was_touched = False',pfx:'        ',ans:'was_touched = False',alt:['was_touched=False'],toks:[{c:'pl',v:'        was_touched = False'}]},
+  {ln:17,skip:true,toks:[{c:'pl',v:'        pixels[0]=(0,0,0)'}]},
+  {ln:18,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
+],
+free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\ncount=0;was_touched=False\nwhile True:\n    if t1.value:\n        if not was_touched:\n            count=count+1;print("Count:",count);was_touched=True\n        pixels[0]=(0,255,0)\n    else:\n        was_touched=False;pixels[0]=(0,0,0)\n    pixels.show()`},
 
-print("Touch Pad 1 to see the green light!")
+5:{mod:'Module 3 — Loops',title:'FOR Loops',sub:'Light all 27 pads without repeating yourself',ks:'KS3 · Iteration',midi:false,
+info:[
+  {t:'info',l:'Iteration',p:'<ic>for i in range(27):</ic> runs with i=0, then i=1... up to i=26. Three lines replace 27.'},
+  {t:'info',l:'range()',p:'<ic>range(27)</ic> gives 0–26. <ic>range(0,27,2)</ic> gives every other one. <ic>range(27,0,-1)</ic> counts backwards.'},
+],
+challenge:{t:'task',l:'Challenge',p:'Try <ic>range(0,27,3)</ic> — what pattern? Then <ic>range(27,0,-1)</ic>.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
+  {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:4,skip:true,toks:[]},
+  {ln:5,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:6,skip:true,toks:[{c:'pl',v:'    if t1.value:'}]},
+  {ln:7,prompt:'Write the for loop. 8 spaces, then: for i in range(27):',hint:'        for i in range(27):',pfx:'        ',ans:'for i in range(27):',toks:[{c:'pl',v:'        '},{c:'kw',v:'for'},{c:'pl',v:' i '},{c:'kw',v:'in'},{c:'pl',v:' range(27):'}]},
+  {ln:8,prompt:'Set each pixel using the loop variable. 12 spaces.',hint:'            pixels[i] = (0, 255, 0)',pfx:'            ',ans:'pixels[i] = (0, 255, 0)',alt:['pixels[i]=(0,255,0)'],toks:[{c:'pl',v:'            pixels[i] = (0, 255, 0)'}]},
+  {ln:9,skip:true,toks:[{c:'pl',v:'    else:'}]},
+  {ln:10,prompt:'Turn all off — another for loop. 8 spaces.',hint:'        for i in range(27):',pfx:'        ',ans:'for i in range(27):',toks:[{c:'pl',v:'        '},{c:'kw',v:'for'},{c:'pl',v:' i '},{c:'kw',v:'in'},{c:'pl',v:' range(27):'}]},
+  {ln:11,prompt:'Pixel i to off. 12 spaces.',hint:'            pixels[i] = (0, 0, 0)',pfx:'            ',ans:'pixels[i] = (0, 0, 0)',alt:['pixels[i]=(0,0,0)'],toks:[{c:'pl',v:'            pixels[i] = (0, 0, 0)'}]},
+  {ln:12,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
+],
+free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nwhile True:\n    if t1.value:\n        for i in range(27): pixels[i]=(0,255,0)\n    else:\n        for i in range(27): pixels[i]=(0,0,0)\n    pixels.show()`},
 
-# Keep doing this forever:
-while True:
-    # Check if Pad 1 is being touched
-    if touch1.value:
-        # YES! Turn the light GREEN
-        pixels[0] = (0, 255, 0)
-        print("Pad 1 touched!")
-    else:
-        # NO! Turn the light OFF
-        pixels[0] = (0, 0, 0)
-    
-    # Update the lights
-    pixels.show()`
-                },
-                
-                2: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Sequencing</div>
-                            <h1>Lesson 2: Three Colorful Pads</h1>
-                            <p>Make three pads work with different colors</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>What We'll Do</h2>
-                            <p>In Lesson 1, you made one pad light up. Now let's make THREE pads work!</p>
-                            <ul>
-                                <li>Pad 1 = RED light</li>
-                                <li>Pad 2 = GREEN light</li>
-                                <li>Pad 3 = BLUE light</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>Your Goal</h3>
-                            <p>Touch <strong>Pad 1</strong> and a RED light appears</p>
-                            <p>Touch <strong>Pad 2</strong> and a GREEN light appears</p>
-                            <p>Touch <strong>Pad 3</strong> and a BLUE light appears</p>
-                            <p>Try touching two pads at once - what happens?</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>Quick Start</h2>
-                            <ol>
-                                <li>Click the <strong>"Load Code"</strong> button below</li>
-                                <li>Click <strong>"Save & Run"</strong> at the top</li>
-                                <li>Touch Pads 1, 2, and 3 to see different colors!</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>What's Different From Lesson 1?</h2>
-                            
-                            <p>In Lesson 1, we had this for ONE pad:</p>
-                            <div class="code-block">touch1 = touchio.TouchIn(board.GP1)</div>
-                            
-                            <p>Now we have THREE pads:</p>
-                            <div class="code-block">touch1 = touchio.TouchIn(board.GP1)
-touch2 = touchio.TouchIn(board.GP2)
-touch3 = touchio.TouchIn(board.GP3)</div>
-                            
-                            <p>We just added two more lines! <code>touch2</code> and <code>touch3</code>.</p>
-                            
-                            <h3>The Pattern</h3>
-                            <p>Look at the main loop. See the pattern? It repeats three times:</p>
-                            <div class="code-block"># Check Pad 1
-if touch1.value:
-    pixels[0] = (255, 0, 0)  # RED
-else:
-    pixels[0] = (0, 0, 0)    # OFF
+6:{mod:'Module 3 — Loops',title:'Patterns with Loops',sub:'Use i to vary colours across pads',ks:'KS3 · Iteration',midi:false,
+info:[
+  {t:'info',l:'Modulo %',p:'<ic>i % 2</ic> gives the remainder after dividing by 2 — alternates 0,1,0,1. <ic>i % 3</ic> gives 0,1,2,0,1,2. Perfect for patterns.'},
+  {t:'info',l:'if inside for',p:'Put an <ic>if</ic> inside a <ic>for</ic> loop. Every iteration the condition is checked with the current value of i.'},
+],
+challenge:{t:'task',l:'Challenge',p:'Make every 3rd pad white: <ic>if i % 3 == 0</ic>. Fill in the other two branches.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
+  {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:4,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:5,skip:true,toks:[{c:'pl',v:'    if t1.value:'}]},
+  {ln:6,skip:true,toks:[{c:'pl',v:'        for i in range(27):'}]},
+  {ln:7,prompt:'Check if i is even. 12 spaces: if i % 2 == 0:',hint:'            if i % 2 == 0:',pfx:'            ',ans:'if i % 2 == 0:',toks:[{c:'pl',v:'            '},{c:'kw',v:'if'},{c:'pl',v:' i % 2 == 0:'}]},
+  {ln:8,prompt:'Even pixels: red. 16 spaces.',hint:'                pixels[i] = (255, 0, 0)',pfx:'                ',ans:'pixels[i] = (255, 0, 0)',alt:['pixels[i]=(255,0,0)'],toks:[{c:'pl',v:'                pixels[i] = (255, 0, 0)'}]},
+  {ln:9,prompt:'Odd pixels: blue. 12 spaces, then the else and assignment.',hint:'            else: pixels[i] = (0, 0, 255)',pfx:'            ',ans:'else: pixels[i] = (0, 0, 255)',alt:['else:pixels[i]=(0,0,255)'],toks:[{c:'pl',v:'            else: pixels[i] = (0, 0, 255)'}]},
+  {ln:10,skip:true,toks:[{c:'pl',v:'    else:'}]},
+  {ln:11,skip:true,toks:[{c:'pl',v:'        for i in range(27): pixels[i]=(0,0,0)'}]},
+  {ln:12,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
+],
+free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nwhile True:\n    if t1.value:\n        for i in range(27):\n            if i%2==0: pixels[i]=(255,0,0)\n            else: pixels[i]=(0,0,255)\n    else:\n        for i in range(27): pixels[i]=(0,0,0)\n    pixels.show()`},
 
-# Check Pad 2
-if touch2.value:
-    pixels[1] = (0, 255, 0)  # GREEN
-else:
-    pixels[1] = (0, 0, 0)    # OFF
+7:{mod:'Module 3 — Loops',title:'Lists',sub:'Store 6 colours in one variable',ks:'KS3 · Data Structures',midi:false,
+info:[
+  {t:'info',l:'Lists',p:'A list holds values in order: <ic>colours = [(255,0,0),(0,255,0)]</ic>. Access by index starting at 0: <ic>colours[0]</ic> is red.'},
+  {t:'info',l:'enumerate()',p:'<ic>for i, col in enumerate(colours)</ic> gives the index <b>and</b> the value each iteration — no need for <ic>colours[i]</ic> separately.'},
+],
+challenge:{t:'task',l:'Challenge',p:'Make the list 27 items: 9 red, 9 green, 9 blue — a flag pattern.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
+  {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:4,skip:true,toks:[]},
+  {ln:5,prompt:'Define a list called colours with 6 RGB tuples — a mini rainbow.',hint:'colours = [(255,0,0),(255,150,0),(255,255,0),(0,255,0),(0,0,255),(150,0,255)]',pfx:'',ans:'colours = [(255,0,0),(255,150,0),(255,255,0),(0,255,0),(0,0,255),(150,0,255)]',alt:['colours=[(255,0,0),(255,150,0),(255,255,0),(0,255,0),(0,0,255),(150,0,255)]'],toks:[{c:'pl',v:'colours = [(255,0,0),(255,150,0),(255,255,0),(0,255,0),(0,0,255),(150,0,255)]'}]},
+  {ln:6,skip:true,toks:[]},
+  {ln:7,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:8,skip:true,toks:[{c:'pl',v:'    if t1.value:'}]},
+  {ln:9,prompt:'Loop through the list with enumerate. 8 spaces.',hint:'        for i, col in enumerate(colours):',pfx:'        ',ans:'for i, col in enumerate(colours):',alt:['for i,col in enumerate(colours):'],toks:[{c:'pl',v:'        '},{c:'kw',v:'for'},{c:'pl',v:' i, col '},{c:'kw',v:'in'},{c:'pl',v:' enumerate(colours):'}]},
+  {ln:10,prompt:'Set pixel i to col. 12 spaces.',hint:'            pixels[i] = col',pfx:'            ',ans:'pixels[i] = col',alt:['pixels[i]=col'],toks:[{c:'pl',v:'            pixels[i] = col'}]},
+  {ln:11,skip:true,toks:[{c:'pl',v:'    else:'}]},
+  {ln:12,skip:true,toks:[{c:'pl',v:'        for i in range(27): pixels[i]=(0,0,0)'}]},
+  {ln:13,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
+],
+free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\ncolours=[(255,0,0),(255,150,0),(255,255,0),(0,255,0),(0,0,255),(150,0,255)]\nwhile True:\n    if t1.value:\n        for i,col in enumerate(colours): pixels[i]=col\n    else:\n        for i in range(27): pixels[i]=(0,0,0)\n    pixels.show()`},
 
-# Check Pad 3
-if touch3.value:
-    pixels[2] = (0, 0, 255)  # BLUE
-else:
-    pixels[2] = (0, 0, 0)    # OFF</div>
-                            
-                            <p>It's the SAME pattern, just repeated for each pad!</p>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>Understanding Sequencing</h3>
-                            <p>The computer checks the pads in order:</p>
-                            <ol>
-                                <li>First, check Pad 1</li>
-                                <li>Then, check Pad 2</li>
-                                <li>Then, check Pad 3</li>
-                                <li>Update the lights</li>
-                                <li>Start again from step 1!</li>
-                            </ol>
-                            <p>This happens <strong>super fast</strong> - hundreds of times per second! So it feels instant.</p>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Easy Edit Challenges</h3>
-                            
-                            <p><strong>Challenge 1: Swap Two Colors</strong></p>
-                            <p>Can you make Pad 1 BLUE and Pad 3 RED?</p>
-                            <p>Hint: Find these lines and change the numbers:</p>
-                            <div class="code-block">pixels[0] = (255, 0, 0)  # Change this to (0, 0, 255)
-pixels[2] = (0, 0, 255)  # Change this to (255, 0, 0)</div>
-                            
-                            <p><strong>Challenge 2: Add Yellow</strong></p>
-                            <p>Make Pad 2 turn YELLOW instead of green.</p>
-                            <p>Hint: Yellow = Red + Green = <code>(255, 255, 0)</code></p>
-                            <div class="code-block">pixels[1] = (255, 255, 0)  # YELLOW!</div>
-                            
-                            <p><strong>Challenge 3: Different "Off" Color</strong></p>
-                            <p>Right now, when you're not touching a pad, it turns OFF <code>(0, 0, 0)</code>.</p>
-                            <p>Can you make it dim blue when not touched? Try <code>(0, 0, 50)</code></p>
-                        </div>
-                        
-                        <div class="success-box">
-                            <h3>Test Your Understanding</h3>
-                            <p>Try touching different combinations:</p>
-                            <ul>
-                                <li>Touch Pad 1 only - see RED</li>
-                                <li>Touch Pad 1 AND Pad 2 at the same time - see RED and GREEN!</li>
-                                <li>Touch all three - see a rainbow!</li>
-                            </ul>
-                            <p>This shows how the code checks EACH pad independently.</p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Back to Lesson 1</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Got It! Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Lesson 2: Three Colorful Pads
-# This makes three pads light up with different colors!
+8:{mod:'Module 4 — Functions',title:'Functions',sub:'Write once, call many times',ks:'KS3 · Abstraction',midi:false,
+info:[
+  {t:'info',l:'Defining functions',p:'<ic>def flash(pad, colour):</ic> names the function and its parameters. Call it with <ic>flash(0, (255,0,0))</ic>.'},
+  {t:'info',l:'Why bother',p:'Without functions, flashing three pads means copying 5 lines three times. With a function: write once, call three times. Change the function, everything updates.'},
+],
+challenge:{t:'task',l:'Challenge',p:'Add a third parameter <ic>times</ic> and make it flash that many times using a for loop.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel, time'}]},
+  {ln:2,skip:true,toks:[{c:'pl',v:'t1=touchio.TouchIn(board.GP1);t2=touchio.TouchIn(board.GP2)'}]},
+  {ln:3,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:4,skip:true,toks:[]},
+  {ln:5,prompt:'Define a function called flash with parameters pad and colour.',hint:'def flash(pad, colour):',pfx:'',ans:'def flash(pad, colour):',alt:['def flash(pad,colour):'],toks:[{c:'kw',v:'def'},{c:'pl',v:' flash(pad, colour):'}]},
+  {ln:6,prompt:'Set the pixel. 4 spaces: pixels[pad] = colour',hint:'    pixels[pad] = colour',pfx:'    ',ans:'pixels[pad] = colour',alt:['pixels[pad]=colour'],toks:[{c:'pl',v:'    pixels[pad] = colour'}]},
+  {ln:7,skip:true,toks:[{c:'pl',v:'    pixels.show(); time.sleep(0.15)'}]},
+  {ln:8,skip:true,toks:[{c:'pl',v:'    pixels[pad]=(0,0,0); pixels.show()'}]},
+  {ln:9,skip:true,toks:[]},
+  {ln:10,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:11,prompt:'If t1 touched, call flash for pad 0, red. 4 spaces.',hint:'    if t1.value: flash(0, (255, 0, 0))',pfx:'    ',ans:'if t1.value: flash(0, (255, 0, 0))',alt:['if t1.value: flash(0,(255,0,0))','if t1.value:flash(0,(255,0,0))'],toks:[{c:'pl',v:'    if t1.value: flash(0, (255, 0, 0))'}]},
+  {ln:12,prompt:'If t2 touched, call flash for pad 1, blue.',hint:'    if t2.value: flash(1, (0, 0, 255))',pfx:'    ',ans:'if t2.value: flash(1, (0, 0, 255))',alt:['if t2.value: flash(1,(0,0,255))','if t2.value:flash(1,(0,0,255))'],toks:[{c:'pl',v:'    if t2.value: flash(1, (0, 0, 255))'}]},
+  {ln:13,skip:true,toks:[{c:'pl',v:'    time.sleep(0.01)'}]},
+],
+free:`import board,touchio,neopixel,time\nt1=touchio.TouchIn(board.GP1);t2=touchio.TouchIn(board.GP2)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\ndef flash(pad,colour):\n    pixels[pad]=colour;pixels.show();time.sleep(0.15)\n    pixels[pad]=(0,0,0);pixels.show()\nwhile True:\n    if t1.value: flash(0,(255,0,0))\n    if t2.value: flash(1,(0,0,255))\n    time.sleep(0.01)`},
 
-import board
-import touchio
-import neopixel
+9:{mod:'Module 4 — Debugging',title:'Finding Bugs',sub:'Three bugs — read the error, fix it',ks:'KS3 · Testing',midi:false,
+info:[
+  {t:'info',l:'Types of bug',p:'<b>Syntax:</b> Python won\'t run. <b>Runtime:</b> crashes mid-run. <b>Logic:</b> runs, but wrong result. Each needs a different approach.'},
+  {t:'info',l:'print() helps',p:'Add <ic>print(variable)</ic> to see its value in the console. Remove prints when done — they slow the board.'},
+],
+challenge:{t:'task',l:'Your job',p:'The code below has three deliberate bugs. Type the corrected version of each broken line. Look carefully.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel'}]},
+  {ln:2,skip:true,toks:[]},
+  {ln:3,skip:true,toks:[{c:'co',v:'# Bug 1: variable name typo'}]},
+  {ln:4,prompt:'This line has "pixles" — fix the spelling and type the correct line.',hint:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)',pfx:'',ans:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)',alt:['pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)','pixels = neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'],toks:[{c:'pl',v:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)'}]},
+  {ln:5,skip:true,toks:[{c:'pl',v:'touch1 = touchio.TouchIn(board.GP1)'}]},
+  {ln:6,skip:true,toks:[]},
+  {ln:7,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:8,skip:true,toks:[{c:'pl',v:'    if touch1.value:'}]},
+  {ln:9,skip:true,toks:[{c:'co',v:'        # Bug 2: missing closing bracket'}]},
+  {ln:10,prompt:'This line is missing its closing bracket — fix it.',hint:'        pixels[0] = (255, 0, 0)',pfx:'        ',ans:'pixels[0] = (255, 0, 0)',alt:['pixels[0]=(255,0,0)'],toks:[{c:'pl',v:'        pixels[0] = (255, 0, 0)'}]},
+  {ln:11,skip:true,toks:[{c:'pl',v:'    else: pixels[0] = (0, 0, 0)'}]},
+  {ln:12,skip:true,toks:[{c:'co',v:'    # Bug 3: wrong method name'}]},
+  {ln:13,prompt:'"pixels.shaw()" is not real — what should it be?',hint:'    pixels.show()',pfx:'    ',ans:'pixels.show()',toks:[{c:'pl',v:'    pixels.show()'}]},
+],
+free:`import board,touchio,neopixel\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\ntouch1=touchio.TouchIn(board.GP1)\nwhile True:\n    if touch1.value: pixels[0]=(255,0,0)\n    else: pixels[0]=(0,0,0)\n    pixels.show()`},
 
-# Set up THREE touch sensors (one for each pad)
-touch1 = touchio.TouchIn(board.GP1)
-touch2 = touchio.TouchIn(board.GP2)
-touch3 = touchio.TouchIn(board.GP3)
+10:{mod:'Module 5 — MIDI',title:'Your First MIDI Note',sub:'Touch Pad 1 — send a note to your DAW',ks:'KS3 · Physical Computing',midi:true,
+info:[
+  {t:'info',l:'What is MIDI?',p:'MIDI sends music messages. A <b>Note On</b> has three numbers: channel, note (60=middle C), velocity (0–127, loudness).'},
+  {t:'info',l:'On CircuitPython',p:'SPOKE appears as a USB MIDI device. Import <ic>usb_midi</ic> and <ic>adafruit_midi</ic>, then call <ic>midi.send(NoteOn(60, 100))</ic>.'},
+  {t:'task',l:'Setup',p:'Install <ic>adafruit_midi</ic> into the lib folder on your SPOKE. Open a DAW or browser MIDI monitor.'},
+],
+challenge:{t:'task',l:'Challenge',p:'Change 60 to 62 (D), 64 (E), 65 (F), 67 (G). Play a scale with five presses.'},
+lines:[
+  {ln:1,prompt:'Import standard libraries plus usb_midi.',hint:'import board, touchio, neopixel, usb_midi',pfx:'',ans:'import board, touchio, neopixel, usb_midi',alt:['import board,touchio,neopixel,usb_midi'],toks:[{c:'kw',v:'import'},{c:'pl',v:' board, touchio, neopixel, usb_midi'}]},
+  {ln:2,prompt:'Import adafruit_midi.',hint:'import adafruit_midi',pfx:'',ans:'import adafruit_midi',toks:[{c:'kw',v:'import'},{c:'pl',v:' adafruit_midi'}]},
+  {ln:3,prompt:'From the note_on module, import NoteOn.',hint:'from adafruit_midi.note_on import NoteOn',pfx:'',ans:'from adafruit_midi.note_on import NoteOn',toks:[{c:'kw',v:'from'},{c:'pl',v:' adafruit_midi.note_on '},{c:'kw',v:'import'},{c:'pl',v:' NoteOn'}]},
+  {ln:4,prompt:'Import NoteOff too — same pattern.',hint:'from adafruit_midi.note_off import NoteOff',pfx:'',ans:'from adafruit_midi.note_off import NoteOff',toks:[{c:'kw',v:'from'},{c:'pl',v:' adafruit_midi.note_off '},{c:'kw',v:'import'},{c:'pl',v:' NoteOff'}]},
+  {ln:5,skip:true,toks:[]},
+  {ln:6,prompt:'Create the MIDI object, outputting to USB port 1.',hint:'midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1])',pfx:'',ans:'midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1])',alt:['midi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])'],toks:[{c:'pl',v:'midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1])'}]},
+  {ln:7,skip:true,toks:[{c:'pl',v:'touch1=touchio.TouchIn(board.GP1)'}]},
+  {ln:8,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:9,skip:true,toks:[{c:'pl',v:'was_on=False'}]},
+  {ln:10,skip:true,toks:[]},
+  {ln:11,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:12,skip:true,toks:[{c:'pl',v:'    if touch1.value and not was_on:'}]},
+  {ln:13,prompt:'Send a NoteOn: note 60, velocity 100. 8 spaces.',hint:'        midi.send(NoteOn(60, 100))',pfx:'        ',ans:'midi.send(NoteOn(60, 100))',alt:['midi.send(NoteOn(60,100))'],toks:[{c:'pl',v:'        midi.send(NoteOn(60, 100))'}]},
+  {ln:14,skip:true,toks:[{c:'pl',v:'        pixels[0]=(0,255,0);was_on=True'}]},
+  {ln:15,skip:true,toks:[{c:'pl',v:'    elif not touch1.value and was_on:'}]},
+  {ln:16,prompt:'Send NoteOff to stop the note. Same number, velocity 0.',hint:'        midi.send(NoteOff(60, 0))',pfx:'        ',ans:'midi.send(NoteOff(60, 0))',alt:['midi.send(NoteOff(60,0))'],toks:[{c:'pl',v:'        midi.send(NoteOff(60, 0))'}]},
+  {ln:17,skip:true,toks:[{c:'pl',v:'        pixels[0]=(0,0,0);was_on=False'}]},
+  {ln:18,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
+],
+free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\ntouch1=touchio.TouchIn(board.GP1)\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nwas_on=False\nwhile True:\n    if touch1.value and not was_on:\n        midi.send(NoteOn(60,100));pixels[0]=(0,255,0);was_on=True\n    elif not touch1.value and was_on:\n        midi.send(NoteOff(60,0));pixels[0]=(0,0,0);was_on=False\n    pixels.show()`},
 
-# Set up the lights
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+11:{mod:'Module 5 — MIDI',title:'8-Pad Scale',sub:'C major scale across 8 pads using loops',ks:'KS3 · Physical Computing',midi:true,
+info:[
+  {t:'info',l:'MIDI notes',p:'Middle C = 60. C major: <ic>60,62,64,65,67,69,71,72</ic>. Store in a list and loop — no copying the same block 8 times.'},
+  {t:'info',l:'List comprehensions',p:'<ic>[touchio.TouchIn(p) for p in pins]</ic> creates a list by running the expression once per item in pins.'},
+],
+challenge:{t:'task',l:'Challenge',p:'Change to minor scale: <ic>[60,62,63,65,67,68,70,72]</ic>. How does it feel?'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board,touchio,neopixel,usb_midi,adafruit_midi'}]},
+  {ln:2,skip:true,toks:[{c:'kw',v:'from'},{c:'pl',v:' adafruit_midi.note_on '},{c:'kw',v:'import'},{c:'pl',v:' NoteOn'}]},
+  {ln:3,skip:true,toks:[{c:'kw',v:'from'},{c:'pl',v:' adafruit_midi.note_off '},{c:'kw',v:'import'},{c:'pl',v:' NoteOff'}]},
+  {ln:4,skip:true,toks:[{c:'pl',v:'midi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])'}]},
+  {ln:5,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:6,skip:true,toks:[]},
+  {ln:7,prompt:'Define the notes list — C major scale, 8 MIDI note numbers.',hint:'notes = [60, 62, 64, 65, 67, 69, 71, 72]',pfx:'',ans:'notes = [60, 62, 64, 65, 67, 69, 71, 72]',alt:['notes=[60,62,64,65,67,69,71,72]','notes = [60,62,64,65,67,69,71,72]'],toks:[{c:'pl',v:'notes = [60, 62, 64, 65, 67, 69, 71, 72]'}]},
+  {ln:8,prompt:'Define a pins list — board.GP1 through board.GP8.',hint:'pins  = [board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]',pfx:'',ans:'pins  = [board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]',alt:['pins=[board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]','pins = [board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]'],toks:[{c:'pl',v:'pins  = [board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]'}]},
+  {ln:9,prompt:'Create touches using a list comprehension.',hint:'touches = [touchio.TouchIn(p) for p in pins]',pfx:'',ans:'touches = [touchio.TouchIn(p) for p in pins]',alt:['touches=[touchio.TouchIn(p) for p in pins]'],toks:[{c:'pl',v:'touches = [touchio.TouchIn(p) for p in pins]'}]},
+  {ln:10,prompt:'was_on list — 8 False values using list multiplication.',hint:'was_on  = [False] * 8',pfx:'',ans:'was_on  = [False] * 8',alt:['was_on=[False]*8','was_on = [False]*8'],toks:[{c:'pl',v:'was_on  = [False] * 8'}]},
+  {ln:11,skip:true,toks:[]},
+  {ln:12,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:13,prompt:'Loop 8 times. 4 spaces.',hint:'    for i in range(8):',pfx:'    ',ans:'for i in range(8):',toks:[{c:'pl',v:'    '},{c:'kw',v:'for'},{c:'pl',v:' i '},{c:'kw',v:'in'},{c:'pl',v:' range(8):'}]},
+  {ln:14,skip:true,toks:[{c:'pl',v:'        if touches[i].value and not was_on[i]:'}]},
+  {ln:15,prompt:'Send NoteOn for notes[i] at velocity 100. 12 spaces.',hint:'            midi.send(NoteOn(notes[i], 100))',pfx:'            ',ans:'midi.send(NoteOn(notes[i], 100))',alt:['midi.send(NoteOn(notes[i],100))'],toks:[{c:'pl',v:'            midi.send(NoteOn(notes[i], 100))'}]},
+  {ln:16,skip:true,toks:[{c:'pl',v:'            pixels[i]=(0,200,255);was_on[i]=True'}]},
+  {ln:17,skip:true,toks:[{c:'pl',v:'        elif not touches[i].value and was_on[i]:'}]},
+  {ln:18,prompt:'Send NoteOff for notes[i]. 12 spaces.',hint:'            midi.send(NoteOff(notes[i], 0))',pfx:'            ',ans:'midi.send(NoteOff(notes[i], 0))',alt:['midi.send(NoteOff(notes[i],0))'],toks:[{c:'pl',v:'            midi.send(NoteOff(notes[i], 0))'}]},
+  {ln:19,skip:true,toks:[{c:'pl',v:'            pixels[i]=(0,0,0);was_on[i]=False'}]},
+  {ln:20,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
+],
+free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\nnotes=[60,62,64,65,67,69,71,72]\npins=[board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8]\ntouches=[touchio.TouchIn(p) for p in pins]\nwas_on=[False]*8\nwhile True:\n    for i in range(8):\n        if touches[i].value and not was_on[i]:\n            midi.send(NoteOn(notes[i],100));pixels[i]=(0,200,255);was_on[i]=True\n        elif not touches[i].value and was_on[i]:\n            midi.send(NoteOff(notes[i],0));pixels[i]=(0,0,0);was_on[i]=False\n    pixels.show()`},
 
-print("Touch the pads to see colors!")
-print("Pad 1 = RED | Pad 2 = GREEN | Pad 3 = BLUE")
+12:{mod:'Module 5 — MIDI',title:'Colour + Note per Pad',sub:'Each pad: its own note, colour, and pin',ks:'KS3 · Data Structures',midi:true,
+info:[
+  {t:'info',l:'Dictionaries',p:'<ic>{"note":60,"colour":(255,0,0)}</ic> maps keys to values. Access with <ic>pad["note"]</ic>. A list of dicts configures each pad individually.'},
+  {t:'info',l:'Design thinking',p:'Low notes often feel warm; high notes feel cool. There is no right answer — this is an artistic choice.'},
+],
+challenge:{t:'task',l:'Challenge',p:'Add a 9th pad with your own note (try 48 for bass) and colour.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'kw',v:'import'},{c:'pl',v:' board,touchio,neopixel,usb_midi,adafruit_midi'}]},
+  {ln:2,skip:true,toks:[{c:'kw',v:'from'},{c:'pl',v:' adafruit_midi.note_on '},{c:'kw',v:'import'},{c:'pl',v:' NoteOn'}]},
+  {ln:3,skip:true,toks:[{c:'kw',v:'from'},{c:'pl',v:' adafruit_midi.note_off '},{c:'kw',v:'import'},{c:'pl',v:' NoteOff'}]},
+  {ln:4,skip:true,toks:[{c:'pl',v:'midi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])'}]},
+  {ln:5,skip:true,toks:[{c:'pl',v:'pixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)'}]},
+  {ln:6,skip:true,toks:[]},
+  {ln:7,skip:true,toks:[{c:'pl',v:'pads = ['}]},
+  {ln:8,prompt:'First pad dict: pin GP1, note 60, colour (255,50,0).',hint:'    {"pin": board.GP1, "note": 60, "colour": (255, 50, 0)},',pfx:'    ',ans:'{"pin": board.GP1, "note": 60, "colour": (255, 50, 0)},',alt:['{"pin":board.GP1,"note":60,"colour":(255,50,0)},'],toks:[{c:'pl',v:'    {"pin": board.GP1, "note": 60, "colour": (255, 50,  0)},'}]},
+  {ln:9,prompt:'Second pad: GP2, note 62, colour (255,150,0).',hint:'    {"pin": board.GP2, "note": 62, "colour": (255, 150, 0)},',pfx:'    ',ans:'{"pin": board.GP2, "note": 62, "colour": (255, 150, 0)},',alt:['{"pin":board.GP2,"note":62,"colour":(255,150,0)},'],toks:[{c:'pl',v:'    {"pin": board.GP2, "note": 62, "colour": (255,150, 0)},'}]},
+  {ln:10,skip:true,toks:[{c:'pl',v:'    {"pin":board.GP3,"note":64,"colour":(255,255,0)},'}]},
+  {ln:11,skip:true,toks:[{c:'pl',v:'    {"pin":board.GP4,"note":65,"colour":(0,255,0)},'}]},
+  {ln:12,skip:true,toks:[{c:'pl',v:'    {"pin":board.GP5,"note":67,"colour":(0,200,255)},'}]},
+  {ln:13,skip:true,toks:[{c:'pl',v:'    {"pin":board.GP6,"note":69,"colour":(0,0,255)},'}]},
+  {ln:14,skip:true,toks:[{c:'pl',v:'    {"pin":board.GP7,"note":71,"colour":(150,0,255)},'}]},
+  {ln:15,skip:true,toks:[{c:'pl',v:'    {"pin":board.GP8,"note":72,"colour":(255,0,200)},'}]},
+  {ln:16,skip:true,toks:[{c:'pl',v:']'}]},
+  {ln:17,skip:true,toks:[]},
+  {ln:18,prompt:'Create touches — list comprehension using p["pin"].',hint:'touches = [touchio.TouchIn(p["pin"]) for p in pads]',pfx:'',ans:'touches = [touchio.TouchIn(p["pin"]) for p in pads]',alt:['touches=[touchio.TouchIn(p["pin"]) for p in pads]'],toks:[{c:'pl',v:'touches = [touchio.TouchIn(p["pin"]) for p in pads]'}]},
+  {ln:19,prompt:'was_on — False for each pad, using len(pads) not a hardcoded number.',hint:'was_on  = [False] * len(pads)',pfx:'',ans:'was_on  = [False] * len(pads)',alt:['was_on=[False]*len(pads)'],toks:[{c:'pl',v:'was_on  = [False] * len(pads)'}]},
+  {ln:20,skip:true,toks:[]},
+  {ln:21,skip:true,toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:22,prompt:'Loop with enumerate(pads) — gives index and dict. 4 spaces.',hint:'    for i, pad in enumerate(pads):',pfx:'    ',ans:'for i, pad in enumerate(pads):',alt:['for i,pad in enumerate(pads):'],toks:[{c:'pl',v:'    '},{c:'kw',v:'for'},{c:'pl',v:' i, pad '},{c:'kw',v:'in'},{c:'pl',v:' enumerate(pads):'}]},
+  {ln:23,skip:true,toks:[{c:'pl',v:'        if touches[i].value and not was_on[i]:'}]},
+  {ln:24,prompt:'Send NoteOn using pad["note"]. 12 spaces.',hint:'            midi.send(NoteOn(pad["note"], 100))',pfx:'            ',ans:'midi.send(NoteOn(pad["note"], 100))',alt:['midi.send(NoteOn(pad["note"],100))'],toks:[{c:'pl',v:'            midi.send(NoteOn(pad["note"], 100))'}]},
+  {ln:25,prompt:'Set pixel colour using pad["colour"]. 12 spaces.',hint:'            pixels[i] = pad["colour"]',pfx:'            ',ans:'pixels[i] = pad["colour"]',alt:['pixels[i]=pad["colour"]'],toks:[{c:'pl',v:'            pixels[i] = pad["colour"]'}]},
+  {ln:26,skip:true,toks:[{c:'pl',v:'            was_on[i]=True'}]},
+  {ln:27,skip:true,toks:[{c:'pl',v:'        elif not touches[i].value and was_on[i]:'}]},
+  {ln:28,skip:true,toks:[{c:'pl',v:'            midi.send(NoteOff(pad["note"],0))'}]},
+  {ln:29,skip:true,toks:[{c:'pl',v:'            pixels[i]=(0,0,0);was_on[i]=False'}]},
+  {ln:30,skip:true,toks:[{c:'pl',v:'    pixels.show()'}]},
+],
+free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\npads=[\n    {"pin":board.GP1,"note":60,"colour":(255,50,0)},\n    {"pin":board.GP2,"note":62,"colour":(255,150,0)},\n    {"pin":board.GP3,"note":64,"colour":(255,255,0)},\n    {"pin":board.GP4,"note":65,"colour":(0,255,0)},\n    {"pin":board.GP5,"note":67,"colour":(0,200,255)},\n    {"pin":board.GP6,"note":69,"colour":(0,0,255)},\n    {"pin":board.GP7,"note":71,"colour":(150,0,255)},\n    {"pin":board.GP8,"note":72,"colour":(255,0,200)},\n]\ntouches=[touchio.TouchIn(p["pin"]) for p in pads]\nwas_on=[False]*len(pads)\nwhile True:\n    for i,pad in enumerate(pads):\n        if touches[i].value and not was_on[i]:\n            midi.send(NoteOn(pad["note"],100));pixels[i]=pad["colour"];was_on[i]=True\n        elif not touches[i].value and was_on[i]:\n            midi.send(NoteOff(pad["note"],0));pixels[i]=(0,0,0);was_on[i]=False\n    pixels.show()`},
 
-# Keep doing this forever:
-while True:
-    # Check Pad 1
-    if touch1.value:
-        pixels[0] = (255, 0, 0)  # RED
-    else:
-        pixels[0] = (0, 0, 0)    # OFF
-    
-    # Check Pad 2
-    if touch2.value:
-        pixels[1] = (0, 255, 0)  # GREEN
-    else:
-        pixels[1] = (0, 0, 0)    # OFF
-    
-    # Check Pad 3
-    if touch3.value:
-        pixels[2] = (0, 0, 255)  # BLUE
-    else:
-        pixels[2] = (0, 0, 0)    # OFF
-    
-    # Update all the lights
-    pixels.show()`
-                },
-                
-                3: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Data Representation</div>
-                            <h1>Lesson 3: Mixing Colors</h1>
-                            <p>Learn how to create any color you want</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>What We'll Do</h2>
-                            <p>You've used RED, GREEN, and BLUE. Now let's mix them to make new colors!</p>
-                            <ul>
-                                <li>Create YELLOW, CYAN, and MAGENTA</li>
-                                <li>Make colors brighter or dimmer</li>
-                                <li>Understand how computer screens show millions of colors</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>Color Mixing Guide</h3>
-                            <p>Remember: Colors are <code>(Red, Green, Blue)</code> from 0-255</p>
-                            <ul>
-                                <li>RED + GREEN = YELLOW</li>
-                                <li>GREEN + BLUE = CYAN (light blue)</li>
-                                <li>RED + BLUE = MAGENTA (pink/purple)</li>
-                                <li>RED + GREEN + BLUE = WHITE</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>Try This Code</h2>
-                            <p>This code shows different colors on three pads:</p>
-                            <ul>
-                                <li>Pad 1 = YELLOW <code>(255, 255, 0)</code></li>
-                                <li>Pad 2 = CYAN <code>(0, 255, 255)</code></li>
-                                <li>Pad 3 = MAGENTA <code>(255, 0, 255)</code></li>
-                            </ul>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Challenges</h3>
-                            <p><strong>Challenge 1: Make Orange</strong></p>
-                            <p>Orange is mostly red with some green. Try <code>(255, 100, 0)</code></p>
-                            
-                            <p><strong>Challenge 2: Make Pink</strong></p>
-                            <p>Pink is light red. Try <code>(255, 100, 150)</code></p>
-                            
-                            <p><strong>Challenge 3: Make Your Favorite Color</strong></p>
-                            <p>Experiment! Mix different amounts. What happens with <code>(128, 0, 128)</code>?</p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Lesson 3: Mixing Colors
-# Create yellow, cyan, and magenta by mixing!
+13:{mod:'Module 6 — Project',title:'Design Your Instrument',sub:'Build your own MIDI controller',ks:'KS3 · Computational Thinking',midi:true,
+info:[
+  {t:'info',l:'Brief',p:'At least 8 pads, each with a unique note and colour. Your choice of scale and colour scheme. No repeated code blocks.'},
+  {t:'info',l:'Ideas',p:'<b>Pentatonic</b> (no wrong notes): 60,63,65,67,70. <b>Chord mode:</b> one pad sends multiple NoteOn calls. <b>Octave shift:</b> a pad that adds 12 to all notes.'},
+  {t:'win',l:'Extension',p:'Sustain pad: holds all notes until pressed again. You need a <ic>sustain</ic> boolean and conditional NoteOff logic.'},
+],
+challenge:{t:'task',l:'Your task',p:'Switch to <b>Free Edit</b>. Design your pads list, pick your scale, choose your colours. Write the whole thing yourself.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'co',v:'# ── Switch to Free Edit for this lesson ──'}]},
+  {ln:2,skip:true,toks:[{c:'co',v:'# Build your own instrument.'}]},
+  {ln:3,skip:true,toks:[{c:'co',v:'# Requirements: 8+ pads, each with note + colour'}]},
+  {ln:4,skip:true,toks:[{c:'co',v:'# Use loops — no repeated code blocks.'}]},
+],
+free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.note_on import NoteOn\nfrom adafruit_midi.note_off import NoteOff\n\nmidi=adafruit_midi.MIDI(midi_out=usb_midi.ports[1])\npixels=neopixel.NeoPixel(board.GP0,27,brightness=0.1,auto_write=False)\n\n# Design your pads — add at least 8:\npads=[\n    {"pin":board.GP1,"note":60,"colour":(255,50,0)},\n    {"pin":board.GP2,"note":62,"colour":(255,200,0)},\n    # ... your pads here\n]\n\ntouches=[touchio.TouchIn(p["pin"]) for p in pads]\nwas_on=[False]*len(pads)\n\nwhile True:\n    for i,pad in enumerate(pads):\n        if touches[i].value and not was_on[i]:\n            midi.send(NoteOn(pad["note"],100))\n            pixels[i]=pad["colour"]\n            was_on[i]=True\n        elif not touches[i].value and was_on[i]:\n            midi.send(NoteOff(pad["note"],0))\n            pixels[i]=(0,0,0)\n            was_on[i]=False\n    pixels.show()`},
 
-import board
-import touchio
-import neopixel
+14:{mod:'Module 6 — Project',title:'Perform',sub:'Play it. Annotate it. Share it.',ks:'KS3 · Evaluation',midi:true,
+info:[
+  {t:'win',l:'You made it',p:'You have written real Python, connected physical hardware to a DAW, and built a working MIDI instrument from scratch.'},
+  {t:'info',l:'What you know',p:'Sequence, selection, iteration, variables, lists, dictionaries, functions, debugging, and physical computing with MIDI.'},
+  {t:'task',l:'Final task',p:'Annotate your code: add a comment on every non-obvious line explaining <b>why</b>, not just what. Then record a short performance.'},
+  {t:'win',l:'Next steps',p:'Look into capacitive value (pressure-like velocity), MIDI CC messages, or a step sequencer that plays automatically.'},
+],
+challenge:{t:'task',l:'Evaluation',p:'Could another student run your code without any explanation from you? If not — add more comments.'},
+lines:[
+  {ln:1,skip:true,toks:[{c:'co',v:'# Well done.'}]},
+  {ln:2,skip:true,toks:[{c:'co',v:'# Annotate and finish your instrument in Free Edit.'}]},
+],
+free:`# Your finished instrument — fully annotated.\n# Every non-obvious line should have a comment.\n\n# Example of a good comment:\n# was_on tracks whether a note is currently playing.\n# Without it, NoteOn would fire hundreds of times per press.`}
+}
 
-# Set up three touch sensors
-touch1 = touchio.TouchIn(board.GP1)
-touch2 = touchio.TouchIn(board.GP2)
-touch3 = touchio.TouchIn(board.GP3)
-
-# Set up the lights
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
-
-print("Touch pads to see mixed colors!")
-print("Pad 1 = YELLOW | Pad 2 = CYAN | Pad 3 = MAGENTA")
-
-# Keep doing this forever:
-while True:
-    # Pad 1: YELLOW (Red + Green)
-    if touch1.value:
-        pixels[0] = (255, 255, 0)  # YELLOW
-    else:
-        pixels[0] = (0, 0, 0)
-    
-    # Pad 2: CYAN (Green + Blue)
-    if touch2.value:
-        pixels[1] = (0, 255, 255)  # CYAN
-    else:
-        pixels[1] = (0, 0, 0)
-    
-    # Pad 3: MAGENTA (Red + Blue)
-    if touch3.value:
-        pixels[2] = (255, 0, 255)  # MAGENTA
-    else:
-        pixels[2] = (0, 0, 0)
-    
-    # Update all the lights
-    pixels.show()`
-                },
-                
-                
-                4: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Selection</div>
-                            <h1>Lesson 4: Making Decisions with IF</h1>
-                            <p>Understanding how your code makes choices</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>What We'll Learn</h2>
-                            <p>You've been using IF statements in every lesson! Now let's understand them properly.</p>
-                            <p>An <strong>IF statement</strong> lets your program make decisions:</p>
-                            <ul>
-                                <li>IF something is true, do this action</li>
-                                <li>IF something else is true, do a different action</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>How IF Works</h3>
-                            <div class="code-block">if touch1.value:
-    # This code ONLY runs if Pad 1 is touched
-    pixels[0] = (255, 0, 0)</div>
-                            <p>The computer asks: "Is touch1.value TRUE?"</p>
-                            <p>If YES: Run the indented code below</p>
-                            <p>If NO: Skip it and move on</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>This Lesson's Code</h2>
-                            <p>Each pad will print a different message and show a different color!</p>
-                            <p>Watch the console to see which IF statements are running.</p>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Challenges</h3>
-                            <p><strong>Challenge 1: Add a Fourth Pad</strong></p>
-                            <p>Copy the pattern and make Pad 4 turn purple when touched.</p>
-                            
-                            <p><strong>Challenge 2: Make It Stay On</strong></p>
-                            <p>Remove the <code>else:</code> part from Pad 1. What happens? The light stays on!</p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Lesson 4: Making Decisions with IF
-# Each pad makes a different decision!
-
-import board
-import touchio
-import neopixel
-
-# Set up pads
-touch1 = touchio.TouchIn(board.GP1)
-touch2 = touchio.TouchIn(board.GP2)
-touch3 = touchio.TouchIn(board.GP3)
-
-# Set up lights
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
-
-print("Touch pads to see IF statements in action!")
-
-while True:
-    # IF Pad 1 is touched:
-    if touch1.value:
-        pixels[0] = (255, 0, 0)  # RED
-        print("IF: Pad 1 is touched - turning RED")
-    else:
-        pixels[0] = (0, 0, 0)
-    
-    # IF Pad 2 is touched:
-    if touch2.value:
-        pixels[1] = (0, 255, 0)  # GREEN
-        print("IF: Pad 2 is touched - turning GREEN")
-    else:
-        pixels[1] = (0, 0, 0)
-    
-    # IF Pad 3 is touched:
-    if touch3.value:
-        pixels[2] = (0, 0, 255)  # BLUE
-        print("IF: Pad 3 is touched - turning BLUE")
-    else:
-        pixels[2] = (0, 0, 0)
-    
-    pixels.show()`
-                },
-                5: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Boolean Logic</div>
-                            <h1>Lesson 5: IF-ELSE Choices</h1>
-                            <p>Choose between two options: do this OR do that</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>What We'll Learn</h2>
-                            <p>Sometimes you want the computer to choose between TWO options:</p>
-                            <ul>
-                                <li>IF the pad is touched, do this</li>
-                                <li>ELSE (otherwise), do that</li>
-                            </ul>
-                            <p>This is called an <strong>IF-ELSE</strong> statement.</p>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>IF-ELSE in Action</h3>
-                            <div class="code-block">if touch1.value:
-    # Do this when touched
-    pixels[0] = (255, 0, 0)
-else:
-    # Do this when NOT touched
-    pixels[0] = (20, 0, 0)</div>
-                            <p>The computer ALWAYS does one of these two things - never both, never neither!</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>This Lesson's Code</h2>
-                            <p>The pads will ALWAYS glow - but they change brightness when touched:</p>
-                            <ul>
-                                <li>Touched = Bright color</li>
-                                <li>Not touched = Dim color</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Challenge</h3>
-                            <p><strong>Make them change color instead of brightness</strong></p>
-                            <p>Change Pad 1 to be RED when touched, BLUE when not touched.</p>
-                            <p>Hint: Change the else to <code>pixels[0] = (0, 0, 255)</code></p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Lesson 5: IF-ELSE Choices
-# Pads always glow, but change brightness when touched!
-
-import board
-import touchio
-import neopixel
-
-touch1 = touchio.TouchIn(board.GP1)
-touch2 = touchio.TouchIn(board.GP2)
-touch3 = touchio.TouchIn(board.GP3)
-
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
-
-print("Pads glow dim, bright when touched!")
-
-while True:
-    # Pad 1: Bright red OR dim red
-    if touch1.value:
-        pixels[0] = (255, 0, 0)    # Bright RED
-    else:
-        pixels[0] = (30, 0, 0)     # Dim RED
-    
-    # Pad 2: Bright green OR dim green
-    if touch2.value:
-        pixels[1] = (0, 255, 0)    # Bright GREEN
-    else:
-        pixels[1] = (0, 30, 0)     # Dim GREEN
-    
-    # Pad 3: Bright blue OR dim blue
-    if touch3.value:
-        pixels[2] = (0, 0, 255)    # Bright BLUE
-    else:
-        pixels[2] = (0, 0, 30)     # Dim BLUE
-    
-    pixels.show()`
-                },
-                6: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Iteration</div>
-                            <h1>Lesson 6: FOR Loops - Doing Things Multiple Times</h1>
-                            <p>Avoid copying the same code 27 times!</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>The Problem</h2>
-                            <p>SPOKE has 27 pads. Imagine writing code for each one separately:</p>
-                            <div class="code-block">pixels[0] = (255, 0, 0)
-pixels[1] = (255, 0, 0)
-pixels[2] = (255, 0, 0)
-# ... 24 more lines! That's terrible!</div>
-                            <p>There's a better way: <strong>FOR loops</strong></p>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>How FOR Loops Work</h3>
-                            <div class="code-block">for i in range(27):
-    pixels[i] = (255, 0, 0)</div>
-                            <p>This means: "For each number from 0 to 26:</p>
-                            <ul>
-                                <li>First time: i = 0, so pixels[0] becomes red</li>
-                                <li>Second time: i = 1, so pixels[1] becomes red</li>
-                                <li>Third time: i = 2, so pixels[2] becomes red</li>
-                                <li>...and so on until i = 26</li>
-                            </ul>
-                            <p>3 lines of code instead of 27!</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>This Lesson's Code</h2>
-                            <p>Touch Pad 1 to light up ALL 27 pads at once with a FOR loop!</p>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Challenges</h3>
-                            <p><strong>Challenge 1: Light Only Half</strong></p>
-                            <p>Change <code>range(27)</code> to <code>range(14)</code> - only 14 pads light up!</p>
-                            
-                            <p><strong>Challenge 2: Different Color</strong></p>
-                            <p>Make all the pads turn purple instead of green.</p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Lesson 6: FOR Loops
-# Light up all 27 pads with just a few lines!
-
-import board
-import touchio
-import neopixel
-
-# Just set up Pad 1 for now
-touch1 = touchio.TouchIn(board.GP1)
-
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
-
-print("Touch Pad 1 to light up ALL pads!")
-
-while True:
-    if touch1.value:
-        # FOR loop: Do this for each number from 0 to 26
-        for i in range(27):
-            pixels[i] = (0, 255, 0)  # Set each pixel to GREEN
-        print("All 27 pads are on!")
-    else:
-        # Turn them all off with another FOR loop
-        for i in range(27):
-            pixels[i] = (0, 0, 0)  # Set each pixel to OFF
-    
-    pixels.show()`
-                },
-                7: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Iteration</div>
-                            <h1>Lesson 7: Creating Patterns with Loops</h1>
-                            <p>Use the loop counter to make different colors</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>What We'll Learn</h2>
-                            <p>The variable <code>i</code> in a FOR loop changes each time through:</p>
-                            <div class="code-block">for i in range(27):
-    # First time: i = 0
-    # Second time: i = 1
-    # Third time: i = 2
-    # ... and so on</div>
-                            <p>We can use this changing number to create patterns!</p>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>Making a Rainbow</h3>
-                            <div class="code-block">for i in range(27):
-    if i < 9:
-        pixels[i] = (255, 0, 0)  # First 9: RED
-    elif i < 18:
-        pixels[i] = (0, 255, 0)  # Next 9: GREEN
-    else:
-        pixels[i] = (0, 0, 255)  # Last 9: BLUE</div>
-                            <p><code>elif</code> means "else if" - another choice to check!</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>This Lesson's Code</h2>
-                            <p>Touch Pad 1 to see a rainbow pattern across all pads!</p>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Challenges</h3>
-                            <p><strong>Challenge 1: Change the Pattern</strong></p>
-                            <p>Make the first 14 pads yellow, last 13 pads cyan.</p>
-                            
-                            <p><strong>Challenge 2: Alternating Colors</strong></p>
-                            <p>Can you make every other pad a different color?</p>
-                            <p>Hint: Use <code>if i % 2 == 0:</code> (% means "remainder")</p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Lesson 7: Creating Patterns
-# Make a rainbow across all pads!
-
-import board
-import touchio
-import neopixel
-
-touch1 = touchio.TouchIn(board.GP1)
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
-
-print("Touch Pad 1 for a rainbow!")
-
-while True:
-    if touch1.value:
-        # Create a rainbow pattern
-        for i in range(27):
-            # Use i to decide which color
-            if i < 9:
-                pixels[i] = (255, 0, 0)    # First 9 pads: RED
-            elif i < 18:
-                pixels[i] = (0, 255, 0)    # Next 9 pads: GREEN
-            else:
-                pixels[i] = (0, 0, 255)    # Last 9 pads: BLUE
-    else:
-        # Turn all off
-        for i in range(27):
-            pixels[i] = (0, 0, 0)
-    
-    pixels.show()`
-                },
-                8: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Variables</div>
-                            <h1>Lesson 8: Variables - Remembering Information</h1>
-                            <p>Count how many times you've touched a pad</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>What Are Variables?</h2>
-                            <p>A <strong>variable</strong> is like a box with a label that stores information.</p>
-                            <p>You can:</p>
-                            <ul>
-                                <li>Put information in the box (create and set)</li>
-                                <li>Look at what's in the box (read)</li>
-                                <li>Change what's in the box (update)</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>Using Variables</h3>
-                            <div class="code-block">count = 0              # Create variable, set to 0
-count = count + 1      # Add 1 to it
-print(count)           # Show what's in it (prints 1)</div>
-                            <p><code>count = count + 1</code> means:</p>
-                            <ul>
-                                <li>Take the current value of count</li>
-                                <li>Add 1 to it</li>
-                                <li>Put the new value back in count</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>This Lesson's Code</h2>
-                            <p>Count how many times you touch Pad 1!</p>
-                            <p>Watch the console to see the count go up.</p>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Challenge</h3>
-                            <p><strong>Add a Reset Button</strong></p>
-                            <p>Make Pad 2 reset the count back to 0.</p>
-                            <p>Hint: Add <code>if touch2.value: count = 0</code></p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Lesson 8: Variables - Counting Touches
-# Remember how many times you touched the pad!
-
-import board
-import touchio
-import neopixel
-import time
-
-touch1 = touchio.TouchIn(board.GP1)
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
-
-# Create a variable to store the count
-count = 0
-
-# Track if we already counted this touch
-was_touched = False
-
-print("Touch Pad 1 to count!")
-print("Count:", count)
-
-while True:
-    if touch1.value:
-        # Only count once per touch (not every loop)
-        if not was_touched:
-            count = count + 1  # Add 1 to count
-            print("Count:", count)
-            was_touched = True
-        
-        # Flash the light
-        pixels[0] = (0, 255, 0)
-    else:
-        was_touched = False
-        pixels[0] = (0, 0, 0)
-    
-    pixels.show()`
-                },
-                9: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Data Structures</div>
-                            <h1>Lesson 9: Lists - Multiple Values in One Variable</h1>
-                            <p>Store 27 colors without 27 variables!</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>What Are Lists?</h2>
-                            <p>A <strong>list</strong> is a variable that holds multiple values in order.</p>
-                            <p>Instead of:</p>
-                            <div class="code-block">color1 = (255, 0, 0)
-color2 = (0, 255, 0)
-color3 = (0, 0, 255)
-# ... 24 more!</div>
-                            <p>You can do:</p>
-                            <div class="code-block">colors = [(255,0,0), (0,255,0), (0,0,255)]</div>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>How Lists Work</h3>
-                            <div class="code-block">colors = [(255,0,0), (0,255,0), (0,0,255)]
-# colors[0] is (255,0,0) - RED
-# colors[1] is (0,255,0) - GREEN  
-# colors[2] is (0,0,255) - BLUE</div>
-                            <p>Lists use <strong>square brackets [ ]</strong></p>
-                            <p>Numbers start at 0! (0 is first, 1 is second, etc.)</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>This Lesson's Code</h2>
-                            <p>A list of 27 different colors - one for each pad!</p>
-                            <p>Touch Pad 1 to see a full rainbow.</p>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Challenge</h3>
-                            <p><strong>Change the Rainbow</strong></p>
-                            <p>Edit the colors in the list to create your own color scheme!</p>
-                            <p>Maybe all shades of blue? Or alternating red and green?</p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Lesson 9: Lists of Colors
-# Store 27 different colors in one list!
-
-import board
-import touchio
-import neopixel
-
-touch1 = touchio.TouchIn(board.GP1)
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
-
-# A list of 27 different colors - a full rainbow!
-colors = [
-    (255, 0, 0),    (255, 50, 0),   (255, 100, 0),  # Reds/Oranges
-    (255, 150, 0),  (255, 200, 0),  (255, 255, 0),  # Yellows
-    (200, 255, 0),  (150, 255, 0),  (100, 255, 0),  # Yellow-greens
-    (50, 255, 0),   (0, 255, 0),    (0, 255, 50),   # Greens
-    (0, 255, 100),  (0, 255, 150),  (0, 255, 200),  # Cyans
-    (0, 255, 255),  (0, 200, 255),  (0, 150, 255),  # Blues
-    (0, 100, 255),  (0, 50, 255),   (0, 0, 255),    # Deep blues
-    (50, 0, 255),   (100, 0, 255),  (150, 0, 255),  # Purples
-    (200, 0, 255),  (255, 0, 255),  (255, 0, 200)   # Magentas
+// ── MODULES ───────────────────────────────────────────────────────────────────
+const MODS=[
+  {n:'Module 1 — First Steps',ls:[1,2,3]},
+  {n:'Module 2 — Logic',ls:[4]},
+  {n:'Module 3 — Loops',ls:[5,6,7]},
+  {n:'Module 4 — Functions',ls:[8,9]},
+  {n:'Module 5 — MIDI',ls:[10,11,12]},
+  {n:'Module 6 — Project',ls:[13,14]},
 ]
 
-print("Touch Pad 1 for a full rainbow!")
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let cur=1,done=new Set(),tab='guide',step=0,typeable=[],hintVis=false
+let fileHandle=null,serialPort=null,isConn=false
 
-while True:
-    if touch1.value:
-        # Use the list with a FOR loop
-        for i in range(27):
-            pixels[i] = colors[i]  # Get color from list
-    else:
-        for i in range(27):
-            pixels[i] = (0, 0, 0)
-    
-    pixels.show()`
-                },
-                10: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Debugging</div>
-                            <h1>Lesson 10: Finding and Fixing Bugs</h1>
-                            <p>This code has bugs - can you fix them?</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>What Are Bugs?</h2>
-                            <p>A <strong>bug</strong> is a mistake in code that makes it not work.</p>
-                            <p><strong>Debugging</strong> means finding and fixing these mistakes.</p>
-                            <p>ALL programmers spend lots of time debugging - it's completely normal!</p>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>Common Bugs</h3>
-                            <ul>
-                                <li><strong>Typos:</strong> <code>pixles</code> instead of <code>pixels</code></li>
-                                <li><strong>Wrong numbers:</strong> <code>pixels[27]</code> when there's no pixel 27</li>
-                                <li><strong>Missing brackets:</strong> <code>(255, 0, 0</code> missing the closing )</li>
-                                <li><strong>Wrong indentation:</strong> Code not lined up properly</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>This Code Has THREE Bugs!</h2>
-                            <p>When you load this code, it won't work. Your job:</p>
-                            <ol>
-                                <li>Click "Load Code" and "Save & Run"</li>
-                                <li>Look at the error messages in the console</li>
-                                <li>Find and fix the THREE bugs</li>
-                                <li>When all bugs are fixed, Pad 1 will turn RED!</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="success-box">
-                            <h3>Hints</h3>
-                            <p>Bug 1: Look at line 8 - is "pixles" spelled correctly?</p>
-                            <p>Bug 2: Look at line 14 - count the brackets!</p>
-                            <p>Bug 3: Look at line 19 - what should "shaw" be?</p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Buggy Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Lesson 10: Finding Bugs
-# This code has 3 bugs! Can you find and fix them?
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function buildSB(){
+  const sb=document.getElementById('sidebar');sb.innerHTML=''
+  MODS.forEach(m=>{
+    const h=document.createElement('div');h.className='mod-lbl';h.textContent=m.n;sb.appendChild(h)
+    m.ls.forEach(n=>{
+      const l=L[n],b=document.createElement('button')
+      b.className='sb-btn'+(n===cur?' active':'')+(done.has(n)?' done':'')
+      b.onclick=()=>loadLesson(n)
+      b.innerHTML=`<span class="sb-n">${n}</span><span class="sb-t">${l.title}</span>${done.has(n)?'<span class="tick"></span>':''}`
+      sb.appendChild(b)
+    })
+  })
+}
 
-import board
-import touchio
-import neopixel
+// ── LOAD LESSON ───────────────────────────────────────────────────────────────
+function loadLesson(n){
+  cur=n;const l=L[n]
+  document.getElementById('crumb').innerHTML=`${l.mod} / <b>${l.title}</b>`
+  document.getElementById('midiPill').style.display=l.midi?'':'none'
+  document.getElementById('prevBtn').disabled=(n===1)
+  document.getElementById('nextBtn').textContent=n===14?'Complete ✓':'Done — Next →'
 
-# BUG 1: "pixles" should be "pixels"
-pixles = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+  let h=`<div class="ks">${l.ks}</div><h1>${l.title}</h1><p class="sub">${l.sub}</p>`
+  l.info.forEach(c=>{h+=card(c)})
+  if(l.challenge) h+=card(l.challenge)
+  document.getElementById('lpBody').innerHTML=h
+  document.getElementById('freeEd').value=l.free||''
 
-touch1 = touchio.TouchIn(board.GP1)
+  step=0
+  typeable=l.lines.filter(r=>!r.skip)
+  hintVis=false
+  document.getElementById('hintBar').classList.remove('show')
+  renderCode()
+  setTab(tab==='free'?'free':'guide')
+  buildSB();updateProg()
+}
 
-print("Touch Pad 1 - if you can fix the bugs!")
+function card(c){
+  return `<div class="card ${c.t}"><div class="card-lbl">${c.l}</div><p>${c.p.replace(/<ic>(.*?)<\/ic>/g,'<code class="ic">$1</code>')}</p></div>`
+}
 
-while True:
-    if touch1.value:
-        # BUG 2: Missing closing bracket
-        pixels[0] = (255, 0, 0
-    else:
-        pixels[0] = (0, 0, 0)
-    
-    # BUG 3: "shaw" should be "show"
-    pixels.shaw()`
-                },
-                11: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Debugging</div>
-                            <h1>Lesson 11: Debugging with Print</h1>
-                            <p>Use print() to see what your code is doing</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>The Best Debugging Tool</h2>
-                            <p>The <code>print()</code> function is your best friend for debugging!</p>
-                            <p>Use it to see:</p>
-                            <ul>
-                                <li>What values variables have</li>
-                                <li>Which parts of your code are running</li>
-                                <li>How many times a loop repeats</li>
-                                <li>When IF statements are true or false</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>Print Everything!</h3>
-                            <div class="code-block">count = 0
-print("Starting count:", count)
+// ── RENDER CODE VIEW ─────────────────────────────────────────────────────────
+function renderCode(){
+  const view=document.getElementById('codeView');view.innerHTML=''
+  const l=L[cur]
 
-count = count + 1
-print("After adding 1:", count)
+  l.lines.forEach(row=>{
+    if(row.skip){view.appendChild(ctxRow(row));return}
+    const ti=typeable.indexOf(row)
+    if(ti<step) view.appendChild(ctxRow(row))
+    // future lines not shown
+  })
 
-if count > 5:
-    print("Count is bigger than 5!")</div>
-                            <p>The console shows you exactly what's happening!</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>This Lesson's Code</h2>
-                            <p>This code has LOTS of print statements.</p>
-                            <p>Watch the console as you touch different pads!</p>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Challenge</h3>
-                            <p><strong>Add More Print Statements</strong></p>
-                            <p>Add prints to show:</p>
-                            <ul>
-                                <li>The color value being set</li>
-                                <li>A message every 500 loops</li>
-                                <li>When ALL pads are not touched</li>
-                            </ul>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Lesson 11: Debugging with Print
-# Watch the console to see what's happening!
+  if(step>=typeable.length){
+    const d=document.createElement('div');d.className='done-wrap'
+    d.innerHTML=`<div class="done-icon">✓</div><div class="done-title">All lines complete</div><div class="done-sub">Click Save & Run to upload to your board.</div>`
+    view.appendChild(d)
+    document.getElementById('stepLbl').textContent='Done'
+    document.getElementById('stepMsg').textContent='Exercise finished. Save & Run or edit in Free Edit.'
+    view.scrollTop=view.scrollHeight;return
+  }
 
-import board
-import touchio
-import neopixel
+  // typing row
+  const curr=typeable[step]
+  const tr=document.createElement('div');tr.className='type-row'
+  const ln=document.createElement('span');ln.className='ln-num';ln.textContent=curr.ln
+  const pre=document.createElement('span');pre.className='type-prefix';pre.textContent=curr.pfx||''
+  const inp=document.createElement('input');inp.type='text';inp.className='type-input';inp.id='ti'
+  inp.placeholder='type here, press Enter…'
+  inp.setAttribute('spellcheck','false');inp.setAttribute('autocomplete','off')
+  inp.setAttribute('autocorrect','off');inp.setAttribute('autocapitalize','off')
+  inp.onkeydown=handleKey
+  tr.appendChild(ln);tr.appendChild(pre);tr.appendChild(inp)
+  view.appendChild(tr)
 
-touch1 = touchio.TouchIn(board.GP1)
-touch2 = touchio.TouchIn(board.GP2)
-touch3 = touchio.TouchIn(board.GP3)
+  document.getElementById('stepLbl').textContent=`Line ${step+1} / ${typeable.length}`
+  document.getElementById('stepMsg').textContent=curr.prompt||''
+  document.getElementById('hintText').textContent=curr.hint||''
+  if(hintVis) document.getElementById('hintBar').classList.add('show')
 
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+  view.scrollTop=view.scrollHeight
+  setTimeout(()=>{const i=document.getElementById('ti');if(i)i.focus()},40)
+}
 
-print("=== Program Started ===")
-print("Touch pads 1, 2, or 3")
-print("")
+function ctxRow(row){
+  const div=document.createElement('div');div.className='code-row ctx'
+  const ln=document.createElement('span');ln.className='ln-num';ln.textContent=row.ln
+  const tok=document.createElement('span');tok.className='code-tokens'
+  ;(row.toks||[]).forEach(t=>{const s=document.createElement('span');s.className=t.c;s.textContent=t.v;tok.appendChild(s)})
+  div.appendChild(ln);div.appendChild(tok);return div
+}
 
-loop_count = 0
+// ── KEY HANDLER ───────────────────────────────────────────────────────────────
+function handleKey(e){
+  if(e.key==='Enter'){e.preventDefault();checkLine(e.target.value)}
+  else if(e.key==='Tab'){e.preventDefault();const p=e.target.selectionStart;e.target.value=e.target.value.slice(0,p)+'    '+e.target.value.slice(p);e.target.selectionStart=e.target.selectionEnd=p+4}
+}
 
-while True:
-    loop_count = loop_count + 1
-    
-    # Print every 100 loops so console doesn't get too full
-    if loop_count % 100 == 0:
-        print("Main loop count:", loop_count)
-    
-    # Check each pad and print when touched
-    if touch1.value:
-        print("  -> Pad 1 TOUCHED! Setting to RED")
-        pixels[0] = (255, 0, 0)
-    else:
-        pixels[0] = (0, 0, 0)
-    
-    if touch2.value:
-        print("  -> Pad 2 TOUCHED! Setting to GREEN")
-        pixels[1] = (0, 255, 0)
-    else:
-        pixels[1] = (0, 0, 0)
-    
-    if touch3.value:
-        print("  -> Pad 3 TOUCHED! Setting to BLUE")
-        pixels[2] = (0, 0, 255)
-    else:
-        pixels[2] = (0, 0, 0)
-    
-    pixels.show()`
-                },
-                12: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Project</div>
-                            <h1>Project 1: Memory Game</h1>
-                            <p>Build a Simon Says style game!</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>How the Game Works</h2>
-                            <ol>
-                                <li>SPOKE shows you a sequence of lights</li>
-                                <li>Remember the order!</li>
-                                <li>Touch the pads in the same order</li>
-                                <li>Each round adds one more light</li>
-                                <li>Make a mistake and game over!</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>What You'll Use</h3>
-                            <p>This project combines EVERYTHING you've learned:</p>
-                            <ul>
-                                <li>Variables (to store the score)</li>
-                                <li>Lists (to store the sequence)</li>
-                                <li>FOR loops (to show the sequence)</li>
-                                <li>IF statements (to check answers)</li>
-                                <li>The time library (to add delays)</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>How to Play</h2>
-                            <p>Touch Pad 1 to start a new game!</p>
-                            <p>Watch the sequence carefully, then repeat it.</p>
-                            <p>The game uses Pads 1-4.</p>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Challenges</h3>
-                            <p><strong>Make it harder:</strong> Speed up the lights</p>
-                            <p><strong>Make it easier:</strong> Use only 3 pads instead of 4</p>
-                            <p><strong>Add features:</strong> Show the current level number</p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Project 1: Memory Game (Simon Says)
-# Watch the pattern, then repeat it!
+function norm(s){return s.trim().replace(/\s+/g,' ')}
 
-import board
-import touchio
-import neopixel
-import time
-import random
+function checkLine(val){
+  const curr=typeable[step]
+  const got=norm(val),exp=norm(curr.ans),alts=(curr.alt||[]).map(norm)
+  if(got===exp||alts.includes(got)){
+    step++;renderCode()
+  } else {
+    const inp=document.getElementById('ti')
+    if(inp){inp.classList.add('wrong');inp.style.color='var(--red)';setTimeout(()=>{inp.classList.remove('wrong');inp.style.color='';inp.focus()},300)}
+    const msg=document.getElementById('stepMsg'),orig=msg.textContent
+    msg.innerHTML='<span style="color:var(--red)">Not quite — check spelling, spacing, and brackets</span>'
+    setTimeout(()=>msg.textContent=orig,2200)
+  }
+}
 
-# Set up 4 pads for the game
-touches = [
-    touchio.TouchIn(board.GP1),
-    touchio.TouchIn(board.GP2),
-    touchio.TouchIn(board.GP3),
-    touchio.TouchIn(board.GP4)
-]
+function resetExercise(){step=0;hintVis=false;document.getElementById('hintBar').classList.remove('show');renderCode()}
 
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+// ── HINT ──────────────────────────────────────────────────────────────────────
+function toggleHint(){hintVis=!hintVis;document.getElementById('hintBar').classList.toggle('show',hintVis)}
 
-# Colors for each pad
-colors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0)]
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function setTab(t){
+  tab=t
+  document.getElementById('tabGuide').classList.toggle('on',t==='guide')
+  document.getElementById('tabFree').classList.toggle('on',t==='free')
+  document.getElementById('guideWrap').style.display=t==='guide'?'flex':'none'
+  document.getElementById('freeEd').style.display=t==='free'?'block':'none'
+  if(t==='guide') setTimeout(()=>{const i=document.getElementById('ti');if(i)i.focus()},40)
+  if(t==='free') document.getElementById('freeEd').focus()
+}
 
-# Game variables
-sequence = []
-level = 0
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function completeNext(){done.add(cur);if(cur<14)loadLesson(cur+1);else{buildSB();updateProg()}}
+function prevLesson(){if(cur>1)loadLesson(cur-1)}
+function updateProg(){const p=(done.size/14)*100;document.getElementById('progFill').style.width=p+'%';document.getElementById('progLbl').textContent=`${done.size} / 14`}
 
-print("=== MEMORY GAME ===")
-print("Touch Pad 1 to start!")
+// ── BOARD ─────────────────────────────────────────────────────────────────────
+async function connectBoard(){
+  if(isConn){saveAndRun();return}
+  try{
+    if(!('showOpenFilePicker' in window)){alert('Use Chrome or Edge');return}
+    log('Opening code.py…','info')
+    const [h]=await window.showOpenFilePicker({types:[{description:'Python',accept:{'text/x-python':['.py']}}]})
+    fileHandle=h;log('code.py ready','ok')
+    if(!('serial' in navigator)){log('Web Serial not available — use Chrome','err');return}
+    log('Select your SPOKE serial port…','info')
+    serialPort=await navigator.serial.requestPort()
+    await serialPort.open({baudRate:115200})
+    isConn=true
+    document.getElementById('connectBtn').textContent='Connected ✓'
+    document.getElementById('connectBtn').style.color='var(--grn)'
+    document.getElementById('runBtn').disabled=false
+    document.getElementById('conDot').classList.add('live')
+    log('Connected — click Save & Run to upload','ok')
+    readSerial()
+  }catch(e){if(e.name!=='AbortError')log('Error: '+e.message,'err')}
+}
 
-def flash_pad(pad_num, duration=0.5):
-    """Light up a pad briefly"""
-    pixels[pad_num] = colors[pad_num]
-    pixels.show()
-    time.sleep(duration)
-    pixels[pad_num] = (0,0,0)
-    pixels.show()
+async function saveAndRun(){
+  if(!fileHandle){log('Connect your board first','warn');return}
+  try{
+    const code=tab==='free'?document.getElementById('freeEd').value:buildExCode()
+    const w=await fileHandle.createWritable();await w.write(code);await w.close()
+    log('Saved — board restarting…','ok')
+  }catch(e){log('Save error: '+e.message,'err')}
+}
 
-def show_sequence():
-    """Show the current sequence"""
-    time.sleep(0.5)
-    for pad_num in sequence:
-        flash_pad(pad_num)
-        time.sleep(0.2)
+function buildExCode(){
+  const l=L[cur]
+  return l.lines.map(r=>(r.pfx||'')+(r.toks||[]).map(t=>t.v).join('')).join('\n')
+}
 
-def wait_for_touch():
-    """Wait for player to touch a pad"""
-    while True:
-        for i in range(4):
-            if touches[i].value:
-                flash_pad(i, 0.3)
-                while touches[i].value:  # Wait for release
-                    time.sleep(0.01)
-                return i
+async function readSerial(){
+  try{
+    const dec=new TextDecoderStream();serialPort.readable.pipeTo(dec.writable)
+    const r=dec.readable.getReader()
+    while(true){const{value,done}=await r.read();if(done)break;if(value){const err=value.includes('Traceback')||value.includes('Error:');value.split('\n').forEach(l=>{if(l.trim())log(l.trim(),err?'err':'ok')})}}
+  }catch(e){log('Serial disconnected','warn')}
+}
 
-# Main game loop
-while True:
-    # Wait for start
-    if touches[0].value:
-        print("New game starting!")
-        sequence = []
-        level = 0
-        
-        # Play game
-        while True:
-            level += 1
-            print(f"Level {level}")
-            
-            # Add random pad to sequence
-            sequence.append(random.randint(0, 3))
-            
-            # Show sequence
-            show_sequence()
-            
-            # Get player input
-            correct = True
-            for expected in sequence:
-                player_choice = wait_for_touch()
-                if player_choice != expected:
-                    correct = False
-                    break
-            
-            if not correct:
-                print(f"Game Over! Score: {level - 1}")
-                # Flash all red
-                for _ in range(3):
-                    for j in range(4):
-                        pixels[j] = (255,0,0)
-                    pixels.show()
-                    time.sleep(0.2)
-                    for j in range(4):
-                        pixels[j] = (0,0,0)
-                    pixels.show()
-                    time.sleep(0.2)
-                break
-            else:
-                print("Correct!")
-                time.sleep(0.5)
-    
-    time.sleep(0.1)`
-                },
-                13: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Project</div>
-                            <h1>Project 2: Reaction Timer</h1>
-                            <p>How fast are your reflexes?</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>How It Works</h2>
-                            <ol>
-                                <li>Touch Pad 1 to start</li>
-                                <li>Wait for a random pad to light up</li>
-                                <li>Touch it as FAST as you can!</li>
-                                <li>Your reaction time shows in the console</li>
-                                <li>Try to beat your best time!</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>Real-World Application</h3>
-                            <p>This is physical computing in action!</p>
-                            <ul>
-                                <li>Using time to measure speed</li>
-                                <li>Random numbers for unpredictability</li>
-                                <li>Converting digital data (time) to useful information</li>
-                            </ul>
-                            <p>Professional reaction testers work exactly like this!</p>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Challenges</h3>
-                            <p><strong>Add difficulty levels:</strong> Make the light dimmer for hard mode</p>
-                            <p><strong>Track best score:</strong> Remember and show the fastest time</p>
-                            <p><strong>Wrong pad penalty:</strong> Add time if you touch the wrong pad</p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete(); nextLesson();">Next Lesson</button>
-                        </div>
-                    `,
-                    code: `# Project 2: Reaction Timer
-# How fast are your reflexes?
+function log(m,t='dim'){
+  const b=document.getElementById('conBody');const d=document.createElement('div');d.className='cl '+t;d.textContent=m
+  b.appendChild(d);b.scrollTop=b.scrollHeight;while(b.children.length>300)b.removeChild(b.firstChild)
+}
+function clearCon(){document.getElementById('conBody').innerHTML=''}
 
-import board
-import touchio
-import neopixel
-import time
-import random
-
-# Set up first 10 pads
-touches = [touchio.TouchIn(pin) for pin in [
-    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
-    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10
-]]
-
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
-
-print("=== REACTION TIMER ===")
-print("Touch Pad 1 to start!")
-
-while True:
-    # Wait for Pad 1 to start
-    if touches[0].value:
-        print("Get ready...")
-        
-        # Random delay between 1-3 seconds
-        delay = random.uniform(1, 3)
-        time.sleep(delay)
-        
-        # Pick a random pad (not pad 1)
-        target_pad = random.randint(1, 9)
-        
-        # Light it up!
-        pixels[target_pad] = (0, 255, 0)
-        pixels.show()
-        print("GO!")
-        
-        # Start timing
-        start_time = time.monotonic()
-        
-        # Wait for player to touch it
-        touched_correct = False
-        while not touched_correct:
-            if touches[target_pad].value:
-                # Calculate reaction time
-                reaction_time = time.monotonic() - start_time
-                print(f"Reaction time: {reaction_time:.3f} seconds")
-                
-                # Flash the pad
-                for _ in range(3):
-                    pixels[target_pad] = (0, 0, 0)
-                    pixels.show()
-                    time.sleep(0.1)
-                    pixels[target_pad] = (0, 255, 0)
-                    pixels.show()
-                    time.sleep(0.1)
-                
-                pixels[target_pad] = (0, 0, 0)
-                pixels.show()
-                touched_correct = True
-            
-            # Check if wrong pad touched
-            for i in range(1, 10):
-                if i != target_pad and touches[i].value:
-                    print("Wrong pad! Try again.")
-                    pixels[target_pad] = (0, 0, 0)
-                    pixels[i] = (255, 0, 0)
-                    pixels.show()
-                    time.sleep(0.5)
-                    pixels[i] = (0, 0, 0)
-                    pixels.show()
-                    touched_correct = True
-                    break
-        
-        print("Touch Pad 1 to play again!")
-        print("")
-        
-        # Wait for Pad 1 release
-        while touches[0].value:
-            time.sleep(0.01)
-    
-    time.sleep(0.01)`
-                },
-                14: {
-                    content: `
-                        <div class="lesson-header">
-                            <div class="curriculum-badge">UK National Curriculum KS3 - Project</div>
-                            <h1>Project 3: Light Sequencer</h1>
-                            <p>Record and play back your own light shows!</p>
-                        </div>
-                        
-                        <div class="step-section">
-                            <h2>How It Works</h2>
-                            <ol>
-                                <li>Touch pads 1-9 to "record" colors into a sequence</li>
-                                <li>Touch Pad 10 to "play" your sequence back</li>
-                                <li>Touch Pad 11 to "clear" and start over</li>
-                                <li>Create your own light shows and patterns!</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="info-box">
-                            <h3>Skills Used</h3>
-                            <p>This project uses EVERYTHING:</p>
-                            <ul>
-                                <li>Lists to store the sequence</li>
-                                <li>FOR loops to play it back</li>
-                                <li>Variables to track state</li>
-                                <li>IF statements for each button</li>
-                                <li>Time delays for playback</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="success-box">
-                            <h3>Congratulations!</h3>
-                            <p>You've completed all 14 lessons of SPOKE Learn!</p>
-                            <p>You now know:</p>
-                            <ul>
-                                <li>How to use variables, lists, and loops</li>
-                                <li>How to make decisions with IF statements</li>
-                                <li>How to debug your code</li>
-                                <li>How to build real interactive projects</li>
-                                <li>The fundamentals of physical computing!</li>
-                            </ul>
-                            <p><strong>Keep experimenting and building amazing things with SPOKE!</strong></p>
-                        </div>
-                        
-                        <div class="challenge-box">
-                            <h3>Final Challenges</h3>
-                            <p><strong>Add features:</strong> Make Pad 12 play in reverse</p>
-                            <p><strong>Save patterns:</strong> Use different pads for different saved sequences</p>
-                            <p><strong>Create music:</strong> Combine this with MIDI output!</p>
-                        </div>
-                        
-                        <button class="header-btn" onclick="loadLessonCode()" style="width: 100%; margin: 20px 0; font-size: 14px; padding: 12px;">Load Code</button>
-                        
-                        <div class="nav-buttons">
-                            <button class="nav-btn" onclick="prevLesson()">Previous</button>
-                            <button class="nav-btn primary" onclick="markComplete();">Complete Course!</button>
-                        </div>
-                    `,
-                    code: `# Project 3: Light Sequencer
-# Record and play back light sequences!
-
-import board
-import touchio
-import neopixel
-import time
-
-# Set up pads
-touches = [touchio.TouchIn(pin) for pin in [
-    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
-    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11
-]]
-
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
-
-# Different colors for pads 1-9
-colors = [
-    (255,0,0), (255,100,0), (255,255,0), (0,255,0), (0,255,255),
-    (0,0,255), (100,0,255), (255,0,255), (255,0,100)
-]
-
-# Store the sequence
-sequence = []
-last_touched = [False] * 11
-
-print("=== LIGHT SEQUENCER ===")
-print("Pads 1-9: Record colors")
-print("Pad 10: Play sequence")
-print("Pad 11: Clear sequence")
-print("")
-
-while True:
-    # Check pads 1-9 for recording
-    for i in range(9):
-        if touches[i].value and not last_touched[i]:
-            # Add to sequence
-            sequence.append(i)
-            print(f"Recorded pad {i+1}. Length: {len(sequence)}")
-            
-            # Flash the pad
-            pixels[i] = colors[i]
-            pixels.show()
-            time.sleep(0.2)
-            pixels[i] = (0,0,0)
-            pixels.show()
-            
-            last_touched[i] = True
-        elif not touches[i].value:
-            last_touched[i] = False
-    
-    # Pad 10: Play sequence
-    if touches[9].value and not last_touched[9]:
-        if len(sequence) > 0:
-            print("Playing sequence...")
-            for pad_num in sequence:
-                pixels[pad_num] = colors[pad_num]
-                pixels.show()
-                time.sleep(0.3)
-                pixels[pad_num] = (0,0,0)
-                pixels.show()
-                time.sleep(0.1)
-            print("Done!")
-        else:
-            print("Sequence is empty! Record something first.")
-        last_touched[9] = True
-    elif not touches[9].value:
-        last_touched[9] = False
-    
-    # Pad 11: Clear sequence
-    if touches[10].value and not last_touched[10]:
-        sequence = []
-        print("Sequence cleared!")
-        
-        # Flash all recording pads
-        for i in range(9):
-            pixels[i] = colors[i]
-        pixels.show()
-        time.sleep(0.3)
-        for i in range(9):
-            pixels[i] = (0,0,0)
-        pixels.show()
-        
-        last_touched[10] = True
-    elif not touches[10].value:
-        last_touched[10] = False
-    
-    time.sleep(0.01)`
-                }
-            };
-            
-            return lessons[lessonNum] || {
-                content: '<p>Lesson not found!</p>',
-                code: '# No code available'
-            };
-        }
-        
-        // Load first lesson on startup
-        loadLesson(1);
-    </script>
+// ── INIT ──────────────────────────────────────────────────────────────────────
+buildSB();loadLesson(1)
+</script>
 </body>
 </html>
