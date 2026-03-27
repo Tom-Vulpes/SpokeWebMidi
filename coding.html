@@ -123,6 +123,33 @@ body{font-family:var(--sans);background:var(--bg);color:var(--t1);height:100vh;d
 .con-body::-webkit-scrollbar{width:0}
 .cl{margin-bottom:1px}
 .cl.err{color:#f87171}.cl.ok{color:#4ade80}.cl.info{color:#60a5fa}.cl.warn{color:#fbbf24}.cl.dim{color:var(--t3)}
+
+/* ── SETUP LESSON ── */
+.setup-wrap{flex:1;overflow-y:auto;padding:20px 20px 32px;display:flex;flex-direction:column;gap:6px}
+.setup-wrap::-webkit-scrollbar{width:0}
+.setup-phase{font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);padding:14px 0 4px}
+.setup-phase:first-child{padding-top:0}
+.setup-step{display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:3px;border:1px solid var(--b1);background:var(--s2);transition:all .2s;cursor:default}
+.setup-step.done-step{border-color:rgba(34,197,94,.2);background:rgba(34,197,94,.04)}
+.setup-step.active-step{border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.06)}
+.setup-step.locked{opacity:.35}
+.step-check{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--b2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:10px;transition:all .2s}
+.setup-step.done-step .step-check{border-color:var(--grn);background:rgba(34,197,94,.15);color:var(--grn)}
+.setup-step.active-step .step-check{border-color:var(--acc);animation:pulse-ring 1.5s infinite}
+@keyframes pulse-ring{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,.4)}50%{box-shadow:0 0 0 4px rgba(249,115,22,0)}}
+.step-body{flex:1;min-width:0}
+.step-title{font-size:13px;font-weight:500;color:var(--t1);margin-bottom:2px;line-height:1.3}
+.setup-step.locked .step-title{color:var(--t3)}
+.step-desc{font-size:12px;color:var(--t2);line-height:1.55;margin-bottom:6px}
+.step-desc code{font-family:var(--mono);font-size:11px;color:var(--acc);background:var(--s3);padding:1px 5px;border-radius:2px}
+.step-action{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border:1px solid var(--acc);color:var(--acc);background:transparent;border-radius:2px;cursor:pointer;transition:all .12s}
+.step-action:hover{background:var(--acc);color:#fff}
+.step-action.done-action{border-color:var(--grn);color:var(--grn);cursor:default}
+.step-action.done-action:hover{background:transparent;color:var(--grn)}
+.setup-done{display:flex;flex-direction:column;align-items:center;text-align:center;padding:20px;gap:10px;margin-top:10px;background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.15);border-radius:3px}
+.setup-done-icon{font-family:var(--mono);font-size:24px;color:var(--grn)}
+.setup-done-title{font-size:14px;font-weight:500;color:var(--t1)}
+.setup-done-sub{font-size:12px;color:var(--t2)}
 </style>
 </head>
 <body>
@@ -168,6 +195,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--t1);height:100vh;d
         </div>
         <div class="code-view" id="codeView"></div>
       </div>
+      <!-- SETUP LESSON PANEL (lesson 0 only) -->
+      <div class="setup-wrap" id="setupWrap" style="display:none"></div>
       <textarea class="free-ed" id="freeEd" spellcheck="false" placeholder="# Write your own code here"></textarea>
       <div class="hint-bar" id="hintBar">
         <span class="hint-lbl">Hint</span>
@@ -537,8 +566,338 @@ lines:[
 free:`# Your finished instrument — fully annotated.\n# Every non-obvious line should have a comment.\n\n# Example of a good comment:\n# was_on tracks whether a note is currently playing.\n# Without it, NoteOn would fire hundreds of times per press.`}
 }
 
-// ── MODULES ───────────────────────────────────────────────────────────────────
+// ── SETUP LESSON (lesson 0) ────────────────────────────────────────────────────
+// Steps: each has id, title, desc, action (optional button), autoComplete (set by code)
+const SETUP_STEPS = [
+  {
+    phase: 'Part 1 — Connect the hardware',
+    steps:[
+      {id:'usb', title:'Plug in your SPOKE',
+       desc:'Connect SPOKE to your computer using the USB cable. A drive called <code>CIRCUITPY</code> should appear — it looks just like a USB stick.',
+       check:'I can see the CIRCUITPY drive'},
+      {id:'browser', title:'Check your browser',
+       desc:'This interface needs <code>Chrome</code> or <code>Edge</code>. If you are using Firefox or Safari, open Chrome now and load this page there.',
+       check:'I am using Chrome or Edge'},
+    ]
+  },
+  {
+    phase: 'Part 2 — Open your code file',
+    steps:[
+      {id:'openfile', title:'Click "Connect Board" and open code.py',
+       desc:'Click the <code>Connect Board</code> button at the top right. A file picker will open — navigate to your <code>CIRCUITPY</code> drive and select <code>code.py</code>. This gives the browser permission to save files to your board.',
+       action:'Connect Board', actionFn:'doConnectFile'},
+    ]
+  },
+  {
+    phase: 'Part 3 — Connect the serial monitor',
+    steps:[
+      {id:'serial', title:'Select the CircuitPython serial port',
+       desc:'A second dialog will appear asking you to choose a serial port. Look for a device with <code>CircuitPython</code> or <code>USB Serial</code> in its name. Select it and click Connect. The green dot in the Output panel will light up.',
+       autoComplete: true,
+       note:'This is what lets you see print() output from your board in real time.'},
+    ]
+  },
+  {
+    phase: 'Part 4 — Hello World',
+    steps:[
+      {id:'helloworld', title:'Type your first program',
+       desc:'The exercise panel on the right is now ready. You will type three lines of code one at a time. When done, click <code>Save & Run</code> — your board will restart and you\'ll see the message appear in the Output panel below.',
+       note:'Every time you save, CircuitPython restarts and runs your code from the top.'},
+    ]
+  },
+  {
+    phase: 'Part 5 — Understand the interface',
+    steps:[
+      {id:'interface', title:'What each panel does',
+       desc:'<b>Left panel</b> — lesson instructions and concepts.<br><b>Exercise tab</b> — type code line by line. Press Enter to submit each line.<br><b>Free Edit tab</b> — write or edit code freely, like a text editor.<br><b>Save & Run</b> — saves your code to the board and restarts it.<br><b>Output panel</b> — shows everything your board prints, plus errors.',
+       check:'Got it'},
+    ]
+  },
+]
+
+// Hello World exercise lines for the setup lesson
+const HW_LINES = [
+  {ln:1, prompt:'Import the time library — you will use it in almost every program.',
+   hint:'import time', pfx:'', ans:'import time',
+   toks:[{c:'kw',v:'import'},{c:'pl',v:' time'}]},
+  {ln:2, prompt:'Print a welcome message. Use print() with a string in quotes.',
+   hint:'print("Hello from SPOKE!")', pfx:'', ans:'print("Hello from SPOKE!")',
+   alt:["print('Hello from SPOKE!')"],
+   toks:[{c:'fn',v:'print'},{c:'pl',v:'('},{c:'st',v:'"Hello from SPOKE!"'},{c:'pl',v:')'}]},
+  {ln:3, prompt:'Start the infinite loop.',
+   hint:'while True:', pfx:'', ans:'while True:',
+   toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]},
+  {ln:4, prompt:'Print a heartbeat message every second. 4 spaces, then print("Running...")',
+   hint:'    print("Running...")', pfx:'    ', ans:'print("Running...")',
+   alt:["print('Running...')"],
+   toks:[{c:'pl',v:'    '},{c:'fn',v:'print'},{c:'pl',v:'('},{c:'st',v:'"Running..."'},{c:'pl',v:')'}]},
+  {ln:5, prompt:'Pause for 1 second. 4 spaces, then use time.sleep().',
+   hint:'    time.sleep(1)', pfx:'    ', ans:'time.sleep(1)',
+   toks:[{c:'pl',v:'    '},{c:'fn',v:'time'},{c:'pl',v:'.sleep(1)'}]},
+]
+
+// Track setup state
+let setupChecked = {} // id -> true
+let setupConnectDone = false // file opened
+let setupSerialDone  = false // serial connected
+let hwStep = 0        // hello world typing step
+
+function isSetupLesson(){ return cur === 0 }
+
+function renderSetup(){
+  const wrap = document.getElementById('setupWrap')
+  wrap.innerHTML = ''
+
+  // Check if all real steps done, show hello world exercise or full done state
+  const allConnected = setupConnectDone && setupSerialDone
+
+  SETUP_STEPS.forEach((phase, pi) => {
+    const ph = document.createElement('div')
+    ph.className = 'setup-phase'
+    ph.textContent = phase.phase
+    wrap.appendChild(ph)
+
+    phase.steps.forEach(s => {
+      const div = document.createElement('div')
+      const isDone = isStepDone(s)
+      const isActive = isStepActive(s, pi, phase)
+      const isLocked = !isDone && !isActive
+
+      div.className = 'setup-step' + (isDone?' done-step':'') + (isActive&&!isDone?' active-step':'') + (isLocked?' locked':'')
+      div.id = 'ss-'+s.id
+
+      const chk = document.createElement('div')
+      chk.className = 'step-check'
+      chk.textContent = isDone ? '✓' : ''
+
+      const body = document.createElement('div')
+      body.className = 'step-body'
+
+      const title = document.createElement('div')
+      title.className = 'step-title'
+      title.textContent = s.title
+      body.appendChild(title)
+
+      const desc = document.createElement('div')
+      desc.className = 'step-desc'
+      desc.innerHTML = s.desc
+      body.appendChild(desc)
+
+      if(s.note){
+        const note = document.createElement('div')
+        note.style.cssText = 'font-size:11px;color:var(--t3);font-style:italic;margin-top:4px'
+        note.textContent = s.note
+        body.appendChild(note)
+      }
+
+      if(s.action && !isDone && isActive){
+        const btn = document.createElement('button')
+        btn.className = 'step-action'
+        btn.textContent = s.action
+        btn.onclick = ()=>{ window[s.actionFn]() }
+        body.appendChild(btn)
+      }
+
+      if(s.check && isActive && !isDone){
+        const btn = document.createElement('button')
+        btn.className = 'step-action'
+        btn.textContent = s.check + ' ✓'
+        btn.onclick = ()=>{ setupChecked[s.id]=true; renderSetup(); checkSetupProgress() }
+        body.appendChild(btn)
+      }
+
+      if(isDone && s.action){
+        const tag = document.createElement('span')
+        tag.className = 'step-action done-action'
+        tag.textContent = 'Done ✓'
+        body.appendChild(tag)
+      }
+      if(isDone && s.check){
+        const tag = document.createElement('span')
+        tag.className = 'step-action done-action'
+        tag.textContent = s.check + ' ✓'
+        body.appendChild(tag)
+      }
+
+      div.appendChild(chk)
+      div.appendChild(body)
+      wrap.appendChild(div)
+    })
+  })
+
+  // Hello World exercise area
+  if(allConnected){
+    renderHWExercise(wrap)
+  }
+
+  // Final all-done
+  if(allConnected && isSetupFullyDone()){
+    const done = document.createElement('div')
+    done.className = 'setup-done'
+    done.innerHTML = `<div class="setup-done-icon">✓</div>
+      <div class="setup-done-title">You're set up!</div>
+      <div class="setup-done-sub">Click <b>Done — Next →</b> to start Lesson 1.</div>`
+    wrap.appendChild(done)
+  }
+}
+
+function isStepDone(s){
+  if(s.id === 'openfile') return setupConnectDone
+  if(s.id === 'serial')   return setupSerialDone
+  if(s.id === 'helloworld') return hwStep >= HW_LINES.length
+  if(s.id === 'interface') return setupChecked['interface']
+  return !!setupChecked[s.id]
+}
+
+function isStepActive(s, pi, phase){
+  // Check if all previous phases' steps are done
+  for(let i=0;i<pi;i++){
+    for(const ps of SETUP_STEPS[i].steps){
+      if(!isStepDone(ps)) return false
+    }
+  }
+  // Check all previous steps in same phase are done
+  const idx = phase.steps.indexOf(s)
+  for(let i=0;i<idx;i++){
+    if(!isStepDone(phase.steps[i])) return false
+  }
+  return true
+}
+
+function isSetupFullyDone(){
+  return SETUP_STEPS.every(ph => ph.steps.every(s => isStepDone(s)))
+}
+
+function checkSetupProgress(){
+  if(isSetupFullyDone()) done.add(0)
+  updateProg()
+}
+
+// Hello World exercise renderer (inside setup wrap)
+function renderHWExercise(wrap){
+  const section = document.createElement('div')
+  section.id = 'hw-section'
+  section.style.cssText = 'margin-top:8px'
+
+  const label = document.createElement('div')
+  label.className = 'setup-phase'
+  label.style.cssText = 'padding-top:0'
+  label.textContent = 'Hello World — type it to prove it works'
+  section.appendChild(label)
+
+  const codeBox = document.createElement('div')
+  codeBox.style.cssText = 'background:var(--s2);border:1px solid var(--b1);border-radius:3px;font-family:var(--mono);font-size:12px;line-height:1.9;overflow:hidden'
+
+  HW_LINES.forEach((row, ri) => {
+    if(ri < hwStep){
+      // done — show as context
+      const r = document.createElement('div')
+      r.className = 'code-row ctx'
+      r.style.padding = '0 14px'
+      const ln = document.createElement('span');ln.className='ln-num';ln.textContent=row.ln
+      const tok = document.createElement('span');tok.className='code-tokens'
+      row.toks.forEach(t=>{const s=document.createElement('span');s.className=t.c;s.textContent=t.v;tok.appendChild(s)})
+      r.appendChild(ln);r.appendChild(tok)
+      codeBox.appendChild(r)
+    } else if(ri === hwStep){
+      // current — typing row
+      const r = document.createElement('div')
+      r.className = 'type-row'
+      r.style.cssText = 'padding:0 14px;margin:0'
+      const ln = document.createElement('span');ln.className='ln-num';ln.textContent=row.ln
+      const pre = document.createElement('span');pre.className='type-prefix';pre.textContent=row.pfx||''
+      const inp = document.createElement('input');inp.type='text';inp.className='type-input';inp.id='hw-inp'
+      inp.placeholder='type here, press Enter…'
+      inp.setAttribute('spellcheck','false');inp.setAttribute('autocomplete','off')
+      inp.setAttribute('autocorrect','off');inp.setAttribute('autocapitalize','off')
+      inp.onkeydown = hwKey
+      r.appendChild(ln);r.appendChild(pre);r.appendChild(inp)
+      codeBox.appendChild(r)
+
+      // prompt bar
+      const pb = document.createElement('div')
+      pb.style.cssText = 'padding:8px 14px;background:var(--s1);border-top:1px solid var(--b1);display:flex;align-items:baseline;gap:10px'
+      const sl = document.createElement('span');sl.style.cssText='font-family:var(--mono);font-size:9px;color:var(--t3);flex-shrink:0';sl.textContent=`Line ${ri+1}/${HW_LINES.length}`
+      const sm = document.createElement('span');sm.style.cssText='font-size:12px;color:var(--t2)';sm.id='hw-msg';sm.textContent=row.prompt
+      const hint = document.createElement('button');hint.className='btn';hint.style.cssText='font-size:9px;padding:3px 8px;margin-left:auto';hint.textContent='Hint'
+      hint.onclick=()=>{sm.textContent=row.hint;sm.style.color='var(--ylw)'}
+      pb.appendChild(sl);pb.appendChild(sm);pb.appendChild(hint)
+      codeBox.appendChild(pb)
+    }
+    // future lines: not shown
+  })
+
+  if(hwStep >= HW_LINES.length){
+    const done = document.createElement('div')
+    done.style.cssText = 'padding:12px 14px;background:rgba(34,197,94,.06);border-top:1px solid rgba(34,197,94,.15);display:flex;align-items:center;gap:10px'
+    done.innerHTML = `<span style="color:var(--grn);font-family:var(--mono);font-size:11px">✓ All lines written — click Save & Run to test it</span>`
+    codeBox.appendChild(done)
+    checkSetupProgress()
+  }
+
+  section.appendChild(codeBox)
+  wrap.appendChild(section)
+
+  // Focus
+  setTimeout(()=>{const i=document.getElementById('hw-inp');if(i)i.focus()},40)
+}
+
+function hwKey(e){
+  if(e.key==='Enter'){
+    e.preventDefault()
+    const val = e.target.value
+    const row = HW_LINES[hwStep]
+    const got = norm(val), exp = norm(row.ans), alts = (row.alt||[]).map(norm)
+    if(got===exp||alts.includes(got)){
+      hwStep++; renderSetup()
+    } else {
+      e.target.classList.add('wrong');e.target.style.color='var(--red)'
+      const msg = document.getElementById('hw-msg')
+      if(msg){const orig=msg.textContent;msg.innerHTML='<span style="color:var(--red)">Not quite — check spelling and brackets</span>';setTimeout(()=>{msg.textContent=orig;msg.style.color=''},2200)}
+      setTimeout(()=>{e.target.classList.remove('wrong');e.target.style.color='';e.target.focus()},300)
+    }
+  } else if(e.key==='Tab'){
+    e.preventDefault();const p=e.target.selectionStart
+    e.target.value=e.target.value.slice(0,p)+'    '+e.target.value.slice(p)
+    e.target.selectionStart=e.target.selectionEnd=p+4
+  }
+}
+
+// Called by the Connect Board button when in setup lesson
+async function doConnectFile(){
+  try{
+    if(!('showOpenFilePicker' in window)){
+      log('Use Chrome or Edge for this feature','err')
+      return
+    }
+    log('Opening code.py…','info')
+    const [h] = await window.showOpenFilePicker({types:[{description:'Python',accept:{'text/x-python':['.py']}}]})
+    fileHandle = h
+    setupConnectDone = true
+    log('code.py ready','ok')
+    renderSetup()
+
+    // Now serial
+    if(!('serial' in navigator)){log('Web Serial not supported — use Chrome','err');return}
+    log('Select your CircuitPython serial port…','info')
+    serialPort = await navigator.serial.requestPort()
+    await serialPort.open({baudRate:115200})
+    isConn = true
+    setupSerialDone = true
+    document.getElementById('connectBtn').textContent = 'Connected ✓'
+    document.getElementById('connectBtn').style.color = 'var(--grn)'
+    document.getElementById('runBtn').disabled = false
+    document.getElementById('conDot').classList.add('live')
+    log('Serial connected — Output panel is live','ok')
+    log('You should see CircuitPython output here as you run code','dim')
+    renderSetup()
+    readSerial()
+  } catch(e){
+    if(e.name!=='AbortError') log('Error: '+e.message,'err')
+  }
+}
 const MODS=[
+  {n:'Getting Started',ls:[0]},
   {n:'Module 1 — First Steps',ls:[1,2,3]},
   {n:'Module 2 — Logic',ls:[4]},
   {n:'Module 3 — Loops',ls:[5,6,7]},
@@ -546,6 +905,8 @@ const MODS=[
   {n:'Module 5 — MIDI',ls:[10,11,12]},
   {n:'Module 6 — Project',ls:[13,14]},
 ]
+// Stub lesson entry so sidebar/nav can reference lesson 0
+L[0]={mod:'Getting Started',title:'Setup & Hello World',sub:'Connect your board and run your first program',ks:'',midi:false,info:[],lines:[],free:''}
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let cur=1,done=new Set(),tab='guide',step=0,typeable=[],hintVis=false
@@ -560,7 +921,8 @@ function buildSB(){
       const l=L[n],b=document.createElement('button')
       b.className='sb-btn'+(n===cur?' active':'')+(done.has(n)?' done':'')
       b.onclick=()=>loadLesson(n)
-      b.innerHTML=`<span class="sb-n">${n}</span><span class="sb-t">${l.title}</span>${done.has(n)?'<span class="tick"></span>':''}`
+      const numLabel = n===0 ? '★' : String(n)
+      b.innerHTML=`<span class="sb-n">${numLabel}</span><span class="sb-t">${l.title}</span>${done.has(n)?'<span class="tick"></span>':''}`
       sb.appendChild(b)
     })
   })
@@ -571,8 +933,35 @@ function loadLesson(n){
   cur=n;const l=L[n]
   document.getElementById('crumb').innerHTML=`${l.mod} / <b>${l.title}</b>`
   document.getElementById('midiPill').style.display=l.midi?'':'none'
-  document.getElementById('prevBtn').disabled=(n===1)
+  document.getElementById('prevBtn').disabled=(n===0)
   document.getElementById('nextBtn').textContent=n===14?'Complete ✓':'Done — Next →'
+
+  if(n===0){
+    // Setup lesson — custom rendering
+    let h=`<div class="ks" style="color:var(--acc);border-color:rgba(249,115,22,.3)">Getting Started</div><h1>Setup & Hello World</h1><p class="sub">Connect your board and run your first program</p>`
+    h+=card({t:'info',l:'What this lesson does',p:'You will connect your SPOKE board to this interface step by step, then type a three-line Hello World program and see it run live on the board.'})
+    h+=card({t:'task',l:'You will need',p:'• Your SPOKE board<br>• A USB cable<br>• <b>Chrome or Edge</b> browser (not Firefox or Safari)<br>• This page open on your computer'})
+    h+=card({t:'info',l:'How the interface works',p:'<b>Left panel</b> — instructions (you are reading it now).<br><b>Right panel</b> — code exercise or free editor.<br><b>Output</b> — live output from your board\'s serial port.<br><b>Save & Run</b> — writes your code to the board and restarts it.'})
+    document.getElementById('lpBody').innerHTML=h
+
+    // Show setup panel, hide normal exercise
+    document.getElementById('setupWrap').style.display='flex'
+    document.getElementById('guideWrap').style.display='none'
+    document.getElementById('freeEd').style.display='none'
+    document.getElementById('tabGuide').style.display='none'
+    document.getElementById('tabFree').style.display='none'
+    document.getElementById('hintBar').classList.remove('show')
+    document.getElementById('hintBar').style.display='none'
+    renderSetup()
+    buildSB();updateProg()
+    return
+  }
+
+  // Normal lesson — restore tabs if coming from setup
+  document.getElementById('tabGuide').style.display=''
+  document.getElementById('tabFree').style.display=''
+  document.getElementById('hintBar').style.display=''
+  document.getElementById('setupWrap').style.display='none'
 
   let h=`<div class="ks">${l.ks}</div><h1>${l.title}</h1><p class="sub">${l.sub}</p>`
   l.info.forEach(c=>{h+=card(c)})
@@ -684,37 +1073,30 @@ function setTab(t){
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
 function completeNext(){done.add(cur);if(cur<14)loadLesson(cur+1);else{buildSB();updateProg()}}
-function prevLesson(){if(cur>1)loadLesson(cur-1)}
-function updateProg(){const p=(done.size/14)*100;document.getElementById('progFill').style.width=p+'%';document.getElementById('progLbl').textContent=`${done.size} / 14`}
-
-// ── BOARD ─────────────────────────────────────────────────────────────────────
-async function connectBoard(){
-  if(isConn){saveAndRun();return}
-  try{
-    if(!('showOpenFilePicker' in window)){alert('Use Chrome or Edge');return}
-    log('Opening code.py…','info')
-    const [h]=await window.showOpenFilePicker({types:[{description:'Python',accept:{'text/x-python':['.py']}}]})
-    fileHandle=h;log('code.py ready','ok')
-    if(!('serial' in navigator)){log('Web Serial not available — use Chrome','err');return}
-    log('Select your SPOKE serial port…','info')
-    serialPort=await navigator.serial.requestPort()
-    await serialPort.open({baudRate:115200})
-    isConn=true
-    document.getElementById('connectBtn').textContent='Connected ✓'
-    document.getElementById('connectBtn').style.color='var(--grn)'
-    document.getElementById('runBtn').disabled=false
-    document.getElementById('conDot').classList.add('live')
-    log('Connected — click Save & Run to upload','ok')
-    readSerial()
-  }catch(e){if(e.name!=='AbortError')log('Error: '+e.message,'err')}
+function prevLesson(){if(cur>0)loadLesson(cur-1)}
+function updateProg(){
+  const total=15 // lessons 0-14
+  const p=(done.size/total)*100
+  document.getElementById('progFill').style.width=p+'%'
+  document.getElementById('progLbl').textContent=`${done.size} / ${total}`
 }
 
+// ── BOARD ─────────────────────────────────────────────────────────────────────
 async function saveAndRun(){
   if(!fileHandle){log('Connect your board first','warn');return}
   try{
-    const code=tab==='free'?document.getElementById('freeEd').value:buildExCode()
+    let code
+    if(isSetupLesson()){
+      // Build hello world code from typed lines
+      code = HW_LINES.map(r=>(r.pfx||'')+r.toks.map(t=>t.v).join('')).join('\n')
+    } else if(tab==='free'){
+      code=document.getElementById('freeEd').value
+    } else {
+      code=buildExCode()
+    }
     const w=await fileHandle.createWritable();await w.write(code);await w.close()
     log('Saved — board restarting…','ok')
+    if(isSetupLesson()) log('Watch for "Hello from SPOKE!" in the output below','info')
   }catch(e){log('Save error: '+e.message,'err')}
 }
 
@@ -737,8 +1119,33 @@ function log(m,t='dim'){
 }
 function clearCon(){document.getElementById('conBody').innerHTML=''}
 
+async function connectBoard(){
+  // If in setup lesson, hand off to the setup-specific function
+  if(isSetupLesson()){ doConnectFile(); return }
+  // Already connected — save and run
+  if(isConn){ saveAndRun(); return }
+  // Normal connection (re-connecting from a regular lesson)
+  try{
+    if(!('showOpenFilePicker' in window)){alert('Use Chrome or Edge');return}
+    log('Opening code.py…','info')
+    const [h]=await window.showOpenFilePicker({types:[{description:'Python',accept:{'text/x-python':['.py']}}]})
+    fileHandle=h;log('code.py ready','ok')
+    if(!('serial' in navigator)){log('Web Serial not available — use Chrome','err');return}
+    log('Select your SPOKE serial port…','info')
+    serialPort=await navigator.serial.requestPort()
+    await serialPort.open({baudRate:115200})
+    isConn=true;setupConnectDone=true;setupSerialDone=true
+    document.getElementById('connectBtn').textContent='Connected ✓'
+    document.getElementById('connectBtn').style.color='var(--grn)'
+    document.getElementById('runBtn').disabled=false
+    document.getElementById('conDot').classList.add('live')
+    log('Connected — click Save & Run to upload','ok')
+    readSerial()
+  }catch(e){if(e.name!=='AbortError')log('Error: '+e.message,'err')}
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
-buildSB();loadLesson(1)
+buildSB();loadLesson(0)
 </script>
 </body>
 </html>
