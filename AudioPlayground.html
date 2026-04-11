@@ -259,6 +259,49 @@ select option{background:#1c1c1f;}
 .rec-btn.go{background:var(--danger);color:#fff;border:1px solid var(--danger);animation:rPulse 1s infinite;}
 @keyframes rPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,71,87,.4);}50%{box-shadow:0 0 0 8px rgba(255,71,87,0);}}
 
+/* ── PADS TAB ── */
+.pads-intro{font-size:12px;font-weight:500;color:var(--muted);line-height:1.7;margin-bottom:16px;}
+.pads-legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+.legend-chip{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:5px 12px;border-radius:20px;}
+.legend-chip.os{background:rgba(0,229,160,.13);border:1px solid rgba(0,229,160,.4);color:var(--accent);}
+.legend-chip.gt{background:rgba(124,109,250,.13);border:1px solid rgba(124,109,250,.4);color:var(--accent2);}
+.legend-chip.lp{background:rgba(245,166,35,.13);border:1px solid rgba(245,166,35,.4);color:var(--warn);}
+.pads-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;}
+.pad-card{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--bg3);
+  transition:border-color .15s;
+}
+.pad-card.has-sound{border-color:rgba(0,229,160,.2);}
+.pad-card.mode-gate{border-color:rgba(124,109,250,.25);}
+.pad-card.mode-loop{border-color:rgba(245,166,35,.25);}
+.pad-num{
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:var(--bg4);color:var(--muted);border:1px solid var(--border2);
+}
+.pad-num.os{background:rgba(0,229,160,.15);color:var(--accent);border-color:rgba(0,229,160,.4);}
+.pad-num.gt{background:rgba(124,109,250,.15);color:var(--accent2);border-color:rgba(124,109,250,.4);}
+.pad-num.lp{background:rgba(245,166,35,.15);color:var(--warn);border-color:rgba(245,166,35,.4);}
+.pad-info{flex:1;min-width:0;}
+.pad-sound-name{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);}
+.pad-sound-empty{font-size:11px;color:var(--muted);font-style:italic;}
+.pad-mode-btns{display:flex;gap:4px;flex-shrink:0;}
+.pmb{
+  font-family:var(--font);font-size:10px;font-weight:700;
+  padding:4px 8px;border-radius:5px;border:1px solid var(--border2);
+  background:var(--bg4);color:var(--muted);cursor:pointer;transition:all .14s;
+}
+.pmb:hover{color:var(--text);}
+.pmb.sel-os{background:rgba(0,229,160,.18);border-color:rgba(0,229,160,.5);color:var(--accent);}
+.pmb.sel-gt{background:rgba(124,109,250,.18);border-color:rgba(124,109,250,.5);color:var(--accent2);}
+.pmb.sel-lp{background:rgba(245,166,35,.18);border-color:rgba(245,166,35,.5);color:var(--warn);}
+.pads-bulk{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+/* ── RECORD trim ── */
+.trim-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);margin-top:10px;}
+.trim-info{font-size:12px;color:var(--muted);font-weight:500;}
+
 /* ── FILTER INLINE ── */
 .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
 .filters select{width:auto;min-width:130px;}
@@ -370,6 +413,7 @@ select option{background:#1c1c1f;}
     <nav class="tabs">
       <button class="tab active" data-tab="search">Search</button>
       <button class="tab" data-tab="record">Record</button>
+      <button class="tab" data-tab="pads">Pads</button>
       <button class="tab" data-tab="pack">Pack</button>
     </nav>
     <div class="hpills">
@@ -562,6 +606,24 @@ select option{background:#1c1c1f;}
             <span id="recLabel">Start recording</span>
           </button>
           <div class="st" id="recStatus">Select a device above, then click to record</div>
+
+          <div class="trim-row">
+            <div>
+              <div class="tog-label">Auto-trim silence</div>
+              <div class="tog-sub">Clips leading silence from the start of recordings</div>
+            </div>
+            <label class="tog">
+              <input type="checkbox" id="trimToggle" checked>
+              <span class="tog-track"></span>
+              <span class="tog-thumb"></span>
+            </label>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;" id="threshRow">
+            <span style="font-size:11px;color:var(--muted);white-space:nowrap;">Threshold</span>
+            <input type="range" id="trimThresh" min="0.001" max="0.05" step="0.001" value="0.01" style="flex:1;padding:0;border:none;background:none;">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--muted);min-width:36px;" id="threshVal">0.010</span>
+          </div>
+
           <div style="background:var(--bg3);border-radius:8px;padding:13px;border:1px solid var(--border);">
             <p style="font-size:12px;font-weight:500;color:var(--muted);line-height:1.75;">
               After stopping, go to the <strong style="color:var(--accent);">Board</strong> (always visible on the left) and click any pad to assign your recording to it.
@@ -582,6 +644,27 @@ select option{background:#1c1c1f;}
         </div>
       </div>
 
+    </div>
+
+    <!-- ── PADS ── -->
+    <div class="panel" id="tab-pads">
+      <p class="pads-intro">Assign a playback mode to each pad individually. This overrides the global mode in the sidebar for that pad only. Pads without a sound are shown dimmed.</p>
+
+      <div class="pads-legend">
+        <div class="legend-chip os">▶ One-shot — plays once</div>
+        <div class="legend-chip gt">⏯ Gate — plays while held</div>
+        <div class="legend-chip lp">↻ Loop — toggles on/off</div>
+      </div>
+
+      <div class="pads-bulk">
+        <span style="font-size:11px;color:var(--muted);font-weight:600;align-self:center;">Set all to:</span>
+        <button class="btn sm g" id="allOs">▶ One-shot</button>
+        <button class="btn sm v" id="allGt">⏯ Gate</button>
+        <button class="btn sm o" id="allLp">↻ Loop</button>
+        <button class="btn sm" id="allGlobal" style="margin-left:auto;">↺ Reset to global</button>
+      </div>
+
+      <div class="pads-grid" id="padsGrid"></div>
     </div>
 
     <!-- ── PACK ── -->
@@ -635,7 +718,9 @@ function blocked(t){const l=t.toLowerCase();return BLOCKED.some(b=>{const r=new 
 let AC, gain, analyser, recAnalyser;
 let midi=null;
 const sounds=new Map(), sources=new Map();
-let loaded=0, playMode='oneshot'; // 'oneshot' | 'gate' | 'loop'
+let loaded=0, playMode='oneshot'; // global default: 'oneshot' | 'gate' | 'loop'
+const padModes=new Map(); // per-pad overrides: Map<padIndex, 'oneshot'|'gate'|'loop'>
+let autoTrim=true, trimThreshold=0.01;
 let mRec,mStream,chunks=[],recOn=false,recBuf=null,waitPad=false,selMic=null;
 let query='',page=1,total=0,results=[];
 const previews=new Map();
@@ -665,6 +750,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab==='pads') renderPadsGrid();
   });
 });
 
@@ -706,15 +792,24 @@ class Pad{
   tick(){if(this.on){this.pulse+=.18;if(this.pulse>Math.PI*2){this.on=false;this.pulse=0;}}}
   draw(){
     const has=sounds.has(this.i),active=sources.has(this.i);
+    const myMode=padModes.get(this.i)||playMode; // per-pad or global
     let fill='#1c1c1f',str='rgba(255,255,255,.09)';
     if(active){
-      if(playMode==='loop'){const p=Math.sin(Date.now()/480)*.3+.7;fill=`rgba(245,166,35,${p})`;str='#f5a623';}
-      else if(playMode==='gate'){const p=Math.sin(Date.now()/300)*.25+.75;fill=`rgba(124,109,250,${p})`;str='#7c6dfa';}
+      if(myMode==='loop'){const p=Math.sin(Date.now()/480)*.3+.7;fill=`rgba(245,166,35,${p})`;str='#f5a623';}
+      else if(myMode==='gate'){const p=Math.sin(Date.now()/300)*.25+.75;fill=`rgba(124,109,250,${p})`;str='#7c6dfa';}
       else{fill='#00e5a0';str='#fff';}
-    } else if(has){fill='rgba(0,229,160,.17)';str='rgba(0,229,160,.48)';}
+    } else if(has){
+      // idle colour hints at assigned per-pad mode
+      if(padModes.has(this.i)){
+        const m=padModes.get(this.i);
+        if(m==='gate'){fill='rgba(124,109,250,.15)';str='rgba(124,109,250,.4)';}
+        else if(m==='loop'){fill='rgba(245,166,35,.15)';str='rgba(245,166,35,.4)';}
+        else{fill='rgba(0,229,160,.15)';str='rgba(0,229,160,.45)';}
+      } else{fill='rgba(0,229,160,.15)';str='rgba(0,229,160,.45)';}
+    }
     if(this.on||active){
       const gs=this.sz+Math.sin(this.pulse)*14;
-      const gc=playMode==='loop'?'#f5a623':playMode==='gate'?'#7c6dfa':'#00e5a0';
+      const gc=myMode==='loop'?'#f5a623':myMode==='gate'?'#7c6dfa':'#00e5a0';
       const g=bCtx.createRadialGradient(this.x,this.y,1,this.x,this.y,gs);
       g.addColorStop(0,gc+'44');g.addColorStop(1,gc+'00');
       bCtx.fillStyle=g;bCtx.beginPath();bCtx.arc(this.x,this.y,gs,0,Math.PI*2);bCtx.fill();
@@ -723,7 +818,7 @@ class Pad{
     bCtx.fillStyle=fill;bCtx.fill();bCtx.strokeStyle=str;bCtx.lineWidth=has||active?1.5:1;bCtx.stroke();
     bCtx.fillStyle=has?'rgba(255,255,255,.88)':'rgba(255,255,255,.22)';
     bCtx.font=`${has?'600':'400'} 8px 'Comfortaa'`;bCtx.textAlign='center';bCtx.textBaseline='middle';
-    const lbl=active&&playMode==='loop'?'↻':active&&playMode==='gate'?'⏯':this.i+1;
+    const lbl=active&&myMode==='loop'?'↻':active&&myMode==='gate'?'⏯':this.i+1;
     bCtx.fillText(lbl,this.x,this.y);
   }
   hit(x,y){const d=x-this.x,e=y-this.y;return Math.sqrt(d*d+e*e)<=this.sz+5;}
@@ -769,9 +864,9 @@ bc.addEventListener('mouseup',e=>{
   if(e.button!==0)return;
   const p=padAt(e);if(p)pressEnd(p.i);
 });
-bc.addEventListener('mouseleave',e=>{
-  // release all gates if mouse leaves canvas
-  if(playMode==='gate') sources.forEach((_,i)=>stopPad(i));
+bc.addEventListener('mouseleave',()=>{
+  // release any gate pads (could be per-pad or global gate)
+  sources.forEach((_,i)=>{ if(padEffectiveMode(i)==='gate') stopPad(i); });
 });
 
 // Touch support
@@ -792,16 +887,25 @@ bc.addEventListener('contextmenu',e=>{
   if(p&&sounds.has(p.i)){if(confirm(`Clear pad ${p.i+1}?\n${sounds.get(p.i).name}`))clearPad(p.i);}
 });
 
+function padEffectiveMode(i){ return padModes.get(i)||playMode; }
+
 function pressStart(i){
-  if(playMode==='oneshot') playPad(i);
-  else if(playMode==='gate') startGate(i);
-  else if(playMode==='loop') toggleLoop(i);
+  const m=padEffectiveMode(i);
+  if(m==='oneshot') playPad(i);
+  else if(m==='gate') startGate(i);
+  else if(m==='loop') toggleLoop(i);
 }
 function pressEnd(i){
-  if(playMode==='gate') stopPad(i);
+  if(padEffectiveMode(i)==='gate') stopPad(i);
 }
 
-// ── PLAY MODES ──
+// MIDI routes to the correct mode handler
+function midiPlay(idx,vel){
+  const m=padEffectiveMode(idx);
+  if(m==='oneshot')playPad(idx,vel);
+  else if(m==='gate')startGate(idx,vel);
+  else if(m==='loop')toggleLoop(idx,vel);
+}
 function playPad(i,vel=127){
   if(!sounds.has(i))return;
   initAC();setNP(i);
@@ -861,12 +965,6 @@ function toggleLoop(i,vel=127){
   src.onended=()=>{if(sources.get(i)?.src===src){sources.delete(i);clearNP();}};
 }
 
-// MIDI routes to the correct mode handler
-function midiPlay(idx,vel){
-  if(playMode==='oneshot')playPad(idx,vel);
-  else if(playMode==='gate')startGate(idx,vel);
-  else if(playMode==='loop')toggleLoop(idx,vel);
-}
 function setNP(i){
   const s=sounds.get(i);if(!s)return;
   document.getElementById('npDot').classList.remove('idle');
@@ -934,6 +1032,8 @@ function afterLoad(){
   document.getElementById('sbCount').textContent=`${loaded}/27`;
   document.getElementById('loadedBadge').textContent=loaded;
   updateBoardList();updateExport();
+  // refresh pads tab if open
+  if(document.getElementById('tab-pads').classList.contains('active')) renderPadsGrid();
   const rem=27-loaded,ab=document.getElementById('autoLoadBtn');
   if(rem>0&&results.length>0){ab.style.display='';ab.textContent=`⚡ Auto-load ${Math.min(rem,results.length)}`;}
   else ab.style.display='none';
@@ -966,6 +1066,44 @@ async function enumMics(){
 enumMics();
 document.getElementById('micSelect').addEventListener('change',e=>selMic=e.target.value);
 
+// Trim UI
+const trimToggle=document.getElementById('trimToggle');
+const trimSlider=document.getElementById('trimThresh');
+const threshVal=document.getElementById('threshVal');
+const threshRow=document.getElementById('threshRow');
+trimToggle.addEventListener('change',e=>{
+  autoTrim=e.target.checked;
+  threshRow.style.opacity=autoTrim?'1':'0.35';
+  threshRow.style.pointerEvents=autoTrim?'':'none';
+});
+trimSlider.addEventListener('input',e=>{
+  trimThreshold=parseFloat(e.target.value);
+  threshVal.textContent=trimThreshold.toFixed(3);
+});
+
+// Trim silence from start of AudioBuffer
+function trimSilence(buf, threshold){
+  const nc=buf.numberOfChannels, sr=buf.sampleRate, len=buf.length;
+  let startSample=0;
+  // scan channel 0 (or average) for first sample above threshold
+  const ch0=buf.getChannelData(0);
+  for(let i=0;i<len;i++){
+    if(Math.abs(ch0[i])>threshold){startSample=i;break;}
+  }
+  if(startSample===0) return buf; // nothing to trim
+  // small pre-roll (10ms) so we don't clip the attack transient
+  const preroll=Math.floor(sr*0.01);
+  startSample=Math.max(0, startSample-preroll);
+  const newLen=len-startSample;
+  const newBuf=AC.createBuffer(nc, newLen, sr);
+  for(let ch=0;ch<nc;ch++){
+    const src=buf.getChannelData(ch);
+    const dst=newBuf.getChannelData(ch);
+    for(let i=0;i<newLen;i++) dst[i]=src[startSample+i];
+  }
+  return newBuf;
+}
+
 const recBtn=document.getElementById('recBtn'),recLabel=document.getElementById('recLabel'),recStatus=document.getElementById('recStatus');
 recBtn.addEventListener('click',()=>{recOn?stopRec():startRec();});
 async function startRec(){
@@ -975,12 +1113,21 @@ async function startRec(){
     mRec=new MediaRecorder(mStream);chunks=[];
     mRec.ondataavailable=e=>chunks.push(e.data);
     mRec.onstop=async()=>{
+      recStatus.textContent='Processing…';recStatus.className='st warn';
       const blob=new Blob(chunks,{type:'audio/wav'});
       const ab=await blob.arrayBuffer();
-      recBuf=await AC.decodeAudioData(ab);
+      let buf=await AC.decodeAudioData(ab);
+      if(autoTrim){
+        buf=trimSilence(buf, trimThreshold);
+        const trimmed=((buf.duration)*1000).toFixed(0);
+        recStatus.textContent=`✓ Trimmed & ready (${trimmed}ms) — click a pad to assign`;
+      } else {
+        recStatus.textContent='✓ Done! Click any pad on the board to assign it';
+      }
+      recBuf=buf;
       mStream.getTracks().forEach(t=>t.stop());
       waitPad=true;
-      recStatus.textContent='✓ Done! Click any pad on the board to assign it';recStatus.className='st ok';
+      recStatus.className='st ok';
       recBtn.className='rec-btn idle';recLabel.textContent='Record again';recOn=false;
     };
     mRec.start();recOn=true;
@@ -1067,6 +1214,48 @@ async function autoLoad(){
   btn.disabled=false;
 }
 
+// ── PADS GRID ──
+function renderPadsGrid(){
+  const grid=document.getElementById('padsGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  for(let i=0;i<27;i++){
+    const s=sounds.get(i);
+    const myMode=padModes.get(i)||null;
+    const effMode=myMode||playMode;
+    const numCls=effMode==='gate'?'gt':effMode==='loop'?'lp':'os';
+    const cardCls=['pad-card',s?'has-sound':'',myMode==='gate'?'mode-gate':myMode==='loop'?'mode-loop':''].filter(Boolean).join(' ');
+    const card=document.createElement('div');
+    card.className=cardCls;
+    card.innerHTML=`
+      <div class="pad-num ${numCls}">${i+1}</div>
+      <div class="pad-info">
+        ${s?`<div class="pad-sound-name">${s.name}</div>`:`<div class="pad-sound-empty">empty</div>`}
+      </div>
+      <div class="pad-mode-btns">
+        <button class="pmb ${myMode==='oneshot'?'sel-os':''}" data-pad="${i}" data-m="oneshot" title="One-shot">▶</button>
+        <button class="pmb ${myMode==='gate'?'sel-gt':''}" data-pad="${i}" data-m="gate" title="Gate">⏯</button>
+        <button class="pmb ${myMode==='loop'?'sel-lp':''}" data-pad="${i}" data-m="loop" title="Loop">↻</button>
+        ${myMode?`<button class="pmb" data-pad="${i}" data-m="clear" title="Reset to global" style="opacity:.5;">✕</button>`:''}
+      </div>`;
+    card.querySelectorAll('.pmb').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const pad=parseInt(btn.dataset.pad);
+        const m=btn.dataset.m;
+        if(m==='clear'){padModes.delete(pad);}else{padModes.set(pad,m);}
+        renderPadsGrid();
+      });
+    });
+    grid.appendChild(card);
+  }
+}
+// Bulk-set buttons
+document.getElementById('allOs').addEventListener('click',()=>{for(let i=0;i<27;i++)padModes.set(i,'oneshot');renderPadsGrid();});
+document.getElementById('allGt').addEventListener('click',()=>{for(let i=0;i<27;i++)padModes.set(i,'gate');renderPadsGrid();});
+document.getElementById('allLp').addEventListener('click',()=>{for(let i=0;i<27;i++)padModes.set(i,'loop');renderPadsGrid();});
+document.getElementById('allGlobal').addEventListener('click',()=>{padModes.clear();renderPadsGrid();});
+
+// ─────────────────────────────────────────
 // ── WAV ENCODE ──
 function toWav(buf){
   const nc=buf.numberOfChannels,sr=buf.sampleRate,nf=buf.length;
