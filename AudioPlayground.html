@@ -220,7 +220,17 @@ select option{background:#1c1c1f;}
 .srow-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px;}
 .srow-meta{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--muted);}
 .stag{font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(124,109,250,.12);color:var(--accent2);border:1px solid rgba(124,109,250,.2);}
-.srow-actions{display:flex;gap:7px;flex-shrink:0;}
+.srow-actions{display:flex;gap:7px;flex-shrink:0;align-items:center;}
+.pad-assign{
+  font-family:var(--font);font-size:11px;font-weight:600;
+  padding:5px 8px;border-radius:6px;
+  border:1px solid var(--border2);background:var(--bg4);
+  color:var(--muted);cursor:pointer;outline:none;
+  transition:border-color .14s,color .14s;
+  max-width:90px;
+}
+.pad-assign:focus,.pad-assign:hover{border-color:rgba(0,229,160,.4);color:var(--text);}
+.pad-assign option{background:#1c1c1f;}
 
 /* ── PACK LIST ── */
 .pack-list{display:grid;gap:5px;max-height:220px;overflow-y:auto;padding-right:2px;}
@@ -411,7 +421,7 @@ select option{background:#1c1c1f;}
       <div class="spl-tip"><span class="spl-tip-key">Loop mode</span><span class="spl-tip-val">Toggle in the sidebar — click a looping pad again to stop it</span></div>
       <div class="spl-tip"><span class="spl-tip-key">Record tab</span><span class="spl-tip-val">Capture mic audio, then click any pad to assign it</span></div>
       <div class="spl-tip"><span class="spl-tip-key">Auto-load ⚡</span><span class="spl-tip-val">Fill all 27 pads from search results in a single click</span></div>
-      <div class="spl-tip"><span class="spl-tip-key">Pack tab</span><span class="spl-tip-val">ZIP download or drag in saved .wav files to restore a session</span></div>
+      <div class="spl-tip"><span class="spl-tip-key">Upload / Download</span><span class="spl-tip-val">ZIP download or drag in saved .wav files to restore a session</span></div>
     </div>
 
     <button class="spl-go" id="splEnter">LET'S GO →</button>
@@ -429,7 +439,7 @@ select option{background:#1c1c1f;}
       <button class="tab active" data-tab="search">Search</button>
       <button class="tab" data-tab="record">Record</button>
       <button class="tab" data-tab="pads">Pads</button>
-      <button class="tab" data-tab="pack">Pack</button>
+      <button class="tab" data-tab="pack">Upload / Download</button>
     </nav>
     <div class="hpills">
       <span class="pill green" id="hCount">0 / 27</span>
@@ -1211,6 +1221,32 @@ async function doSearch(append=false){
     afterLoad();
   }catch(e){document.getElementById('soundList').innerHTML=`<div class="empty"><p>Error: ${e.message}</p></div>`;}
 }
+function buildPadOptions(){
+  // Build option list: "Next free" + each pad slot labelled with its sound name if loaded
+  let opts='<option value="">→ Next free pad</option>';
+  for(let i=0;i<27;i++){
+    const s=sounds.get(i);
+    const label=s?`Pad ${i+1}: ${s.name.slice(0,14)}${s.name.length>14?'…':''}`:`Pad ${i+1} (empty)`;
+    opts+=`<option value="${i}">${label}</option>`;
+  }
+  return opts;
+}
+async function loadSoundToPad(url,name,id,padIdx){
+  // padIdx=-1 means next free
+  let idx=padIdx;
+  if(idx===-1){
+    for(let i=0;i<27;i++){if(!sounds.has(i)){idx=i;break;}}
+    if(idx===-1){alert('Board full (27 max). Right-click a pad to clear it.');return;}
+  }
+  try{
+    initAC();
+    // stop anything playing on that pad first
+    if(sources.has(idx)){try{sources.get(idx).src.stop();}catch(e){}sources.delete(idx);}
+    const ab=await(await fetch(url)).arrayBuffer();
+    const buf=await AC.decodeAudioData(ab);
+    sounds.set(idx,{buffer:buf,url,name,id});afterLoad();
+  }catch(e){console.error(e);alert('Load failed: '+e.message);}
+}
 function mkRow(s){
   const d=document.createElement('div');d.className='srow';
   const dur=Math.round(s.duration*10)/10;
@@ -1222,6 +1258,7 @@ function mkRow(s){
     </div>
     <div class="srow-actions">
       <button class="btn sm" data-prev="${s.id}">▶</button>
+      <select class="pad-assign" data-assign="${s.id}" title="Load to specific pad">${buildPadOptions()}</select>
       <button class="btn sm g" data-load="${s.id}">+ Load</button>
     </div>`;
   d.querySelector(`[data-prev]`).addEventListener('click',e=>{
@@ -1232,7 +1269,15 @@ function mkRow(s){
     if(a.paused){a.play();btn.textContent='⏸';btn.classList.add('g');}
     else{a.pause();a.currentTime=0;btn.textContent='▶';btn.classList.remove('g');}
   });
-  d.querySelector(`[data-load]`).addEventListener('click',e=>{loadSound(s.previews['preview-hq-mp3'],s.name,s.id);e.target.textContent='✓';e.target.disabled=true;});
+  const loadBtn=d.querySelector(`[data-load]`);
+  const assignSel=d.querySelector(`[data-assign]`);
+  loadBtn.addEventListener('click',e=>{
+    const padIdx=assignSel.value===''?-1:parseInt(assignSel.value);
+    loadSoundToPad(s.previews['preview-hq-mp3'],s.name,s.id,padIdx);
+    loadBtn.textContent='✓';loadBtn.disabled=true;
+  });
+  // Clicking the dropdown itself refreshes the options so pad names stay current
+  assignSel.addEventListener('mousedown',()=>{assignSel.innerHTML=buildPadOptions();});
   return d;
 }
 async function autoLoad(){
