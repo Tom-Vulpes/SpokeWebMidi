@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freesound API Test - SPOKE Sampler</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .title { font-size: 48px; font-weight: 900; letter-spacing: 3px; margin-bottom: 10px; }
+        .subtitle { font-size: 16px; opacity: 0.8; }
+        .api-key-section {
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        .api-key-title { font-size: 18px; font-weight: 700; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px; }
+        .btn {
+            background: rgba(76,175,80,0.3);
+            border: 2px solid #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        .btn:hover { background: rgba(76,175,80,0.5); transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .info-text { font-size: 13px; opacity: 0.7; line-height: 1.6; }
+        .info-text a { color: #4CAF50; text-decoration: none; }
+        .suggested-searches { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .suggested-btn {
+            background: rgba(33,150,243,0.2);
+            border: 2px solid rgba(33,150,243,0.4);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+        .suggested-btn:hover { background: rgba(33,150,243,0.4); border-color: #2196F3; transform: translateY(-2px); }
+        .search-section {
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        .search-controls { display: flex; gap: 15px; margin-bottom: 20px; }
+        .search-input {
+            flex: 1;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+        }
+        .search-input:focus { border-color: #4CAF50; }
+        .search-btn {
+            background: rgba(33,150,243,0.3);
+            border: 2px solid #2196F3;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        .search-btn:hover { background: rgba(33,150,243,0.5); }
+        .filters { display: flex; gap: 15px; flex-wrap: wrap; }
+        .filter-group { display: flex; align-items: center; gap: 10px; }
+        .filter-group label { font-size: 13px; opacity: 0.8; }
+        .filter-select {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            outline: none;
+        }
+        .filter-select option { background: #1a1a2e; }
+        .results-section {
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .results-title { font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
+        .results-count { font-size: 14px; opacity: 0.7; }
+        .sound-list { display: grid; gap: 15px; }
+        .sound-item {
+            background: rgba(0,0,0,0.3);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        .sound-item:hover { border-color: rgba(255,255,255,0.3); background: rgba(0,0,0,0.5); }
+        .sound-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .sound-info { flex: 1; }
+        .sound-name { font-size: 18px; font-weight: 700; margin-bottom: 5px; }
+        .sound-user { font-size: 13px; opacity: 0.7; margin-bottom: 8px; }
+        .sound-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .tag { background: rgba(33,150,243,0.3); border: 1px solid rgba(33,150,243,0.5); padding: 4px 10px; border-radius: 5px; font-size: 11px; text-transform: uppercase; }
+        .sound-meta { display: flex; gap: 15px; font-size: 12px; opacity: 0.6; }
+        .sound-actions { display: flex; gap: 10px; }
+        .action-btn {
+            background: rgba(76,175,80,0.3);
+            border: 2px solid #4CAF50;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        .action-btn:hover { background: rgba(76,175,80,0.5); }
+        .action-btn.playing { background: rgba(255,152,0,0.3); border-color: #FF9800; }
+        .load-more { text-align: center; margin-top: 20px; }
+        .status-message { text-align: center; padding: 20px; opacity: 0.7; font-size: 14px; }
+        .error-message { background: rgba(244,67,54,0.2); border: 2px solid #F44336; color: white; padding: 15px; border-radius: 10px; margin-top: 15px; }
+        .success-message { background: rgba(76,175,80,0.2); border: 2px solid #4CAF50; color: white; padding: 15px; border-radius: 10px; margin-top: 15px; }
+
+        /* ===== DOWNLOAD PACK SECTION ===== */
+        .pack-section {
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(255,165,0,0.3);
+        }
+        .pack-title { font-size: 18px; font-weight: 700; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 2px; color: #FFA500; }
+        .pack-subtitle { font-size: 13px; opacity: 0.7; margin-bottom: 20px; }
+        .pack-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .pack-col { display: flex; flex-direction: column; gap: 12px; }
+        .pack-col-title { font-size: 14px; font-weight: 600; opacity: 0.9; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+        .pack-btn {
+            background: rgba(255,165,0,0.2);
+            border: 2px solid rgba(255,165,0,0.6);
+            color: white;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        .pack-btn:hover { background: rgba(255,165,0,0.35); transform: translateY(-2px); }
+        .pack-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .pack-btn.import-btn {
+            background: rgba(33,150,243,0.2);
+            border-color: rgba(33,150,243,0.6);
+        }
+        .pack-btn.import-btn:hover { background: rgba(33,150,243,0.35); }
+        .pack-sound-list {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .pack-sound-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            background: rgba(255,255,255,0.05);
+        }
+        .pack-sound-row:last-child { margin-bottom: 0; }
+        .pack-sound-num { color: #FFA500; font-weight: 700; min-width: 28px; }
+        .pack-sound-name { flex: 1; opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 8px; }
+        .pack-sound-dl {
+            background: rgba(76,175,80,0.3);
+            border: 1px solid #4CAF50;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .pack-sound-dl:hover { background: rgba(76,175,80,0.55); }
+        .pack-status { font-size: 13px; opacity: 0.75; text-align: center; padding: 8px; }
+        .drop-zone {
+            border: 2px dashed rgba(33,150,243,0.5);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            opacity: 0.8;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .drop-zone:hover, .drop-zone.drag-over { background: rgba(33,150,243,0.1); border-color: #2196F3; opacity: 1; }
+        .import-status { font-size: 12px; margin-top: 8px; min-height: 18px; text-align: center; }
+        progress {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 6px;
+            display: none;
+        }
+        progress::-webkit-progress-bar { background: rgba(255,255,255,0.1); }
+        progress::-webkit-progress-value { background: #FFA500; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1 class="title">FREESOUND API TEST</h1>
+        <p class="subtitle">Search and download sounds for SPOKE</p>
+    </div>
+
+    <!-- Top Section: Suggested Searches + SPOKE Board -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+        <!-- Suggested Searches -->
+        <div class="api-key-section">
+            <div class="api-key-title">🎵 Popular Sample Categories</div>
+            <div class="suggested-searches">
+                <button class="suggested-btn" data-search="bird chirp">🐦 Bird Chirps</button>
+                <button class="suggested-btn" data-search="drum kick">🥁 Drum Kicks</button>
+                <button class="suggested-btn" data-search="808 bass">🔊 808 Bass</button>
+                <button class="suggested-btn" data-search="piano note">🎹 Piano Notes</button>
+                <button class="suggested-btn" data-search="synth pad">🎛️ Synth Pads</button>
+                <button class="suggested-btn" data-search="clap">👏 Claps</button>
+                <button class="suggested-btn" data-search="snare">🥁 Snares</button>
+                <button class="suggested-btn" data-search="hi-hat">🎶 Hi-Hats</button>
+                <button class="suggested-btn" data-search="ambient drone">🌌 Ambient Drones</button>
+                <button class="suggested-btn" data-search="trumpet">🎺 Trumpet</button>
+                <button class="suggested-btn" data-search="violin">🎻 Violin</button>
+                <button class="suggested-btn" data-search="nature sounds">🌿 Nature Sounds</button>
+            </div>
+        </div>
+
+        <!-- SPOKE Board -->
+        <div class="api-key-section">
+            <div class="api-key-title" style="margin-bottom: 10px;">🎛️ SPOKE Board</div>
+            <div style="display: flex; justify-content: center; margin-bottom: 15px;">
+                <canvas id="spokeCanvas" width="400" height="400"></canvas>
+            </div>
+            <div style="position: relative; height: 80px; margin-bottom: 15px; background: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden;">
+                <canvas id="scopeCanvas" width="400" height="80"></canvas>
+            </div>
+            <div id="nowPlayingInfo" style="background: rgba(0,0,0,0.5); border-radius: 10px; padding: 12px; margin-bottom: 15px; min-height: 60px; display: flex; align-items: center; justify-content: center;">
+                <div style="text-align: center; opacity: 0.6; font-size: 13px;">No sound playing</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.5); border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px; text-align: center;">🎙️ Record Your Own Sound</div>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <button class="btn" id="startRecordBtn" style="flex: 1;">● Record</button>
+                    <button class="btn" id="stopRecordBtn" style="flex: 1; display: none;">■ Stop</button>
+                </div>
+                <div id="recordingStatus" style="text-align: center; font-size: 12px; opacity: 0.7; margin-bottom: 10px;">Click Record, then click a pad to assign</div>
+                <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 13px; font-weight: 600;">Playback Mode</div>
+                            <div style="font-size: 11px; opacity: 0.7; margin-top: 2px;" id="loopModeLabel">One-Shot (play once)</div>
+                        </div>
+                        <label style="position: relative; display: inline-block; width: 50px; height: 26px; cursor: pointer;">
+                            <input type="checkbox" id="loopToggle" style="opacity: 0; width: 0; height: 0;">
+                            <span style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.2); border-radius: 13px; transition: 0.3s;"></span>
+                            <span id="loopToggleSlider" style="position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.3s;"></span>
+                        </label>
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label style="font-size: 12px; opacity: 0.8;">Microphone:</label>
+                    <select id="micSelect" class="filter-select" style="width: 100%; margin-top: 5px;">
+                        <option>Loading devices...</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
+                <button class="btn" id="connectMidiBtn" style="flex: 1;">Connect MIDI</button>
+                <button class="btn" id="clearBoardBtn" style="flex: 1;">Clear Board</button>
+            </div>
+            <div class="info-text" style="text-align: center;">
+                <span id="loadedCount">0 / 27 sounds loaded</span><br>
+                Left-click: Play • Right-click: Clear
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== DOWNLOAD / IMPORT PACK SECTION ===== -->
+    <div class="pack-section">
+        <div class="pack-title">📦 Sample Pack Manager</div>
+        <div class="pack-subtitle">Download your loaded sounds as numbered .wav files, or re-import a saved pack</div>
+
+        <div class="pack-grid">
+            <!-- Export Column -->
+            <div class="pack-col">
+                <div class="pack-col-title">⬇ Export Pack</div>
+
+                <div id="packSoundList" class="pack-sound-list">
+                    <div class="pack-status">No sounds loaded yet</div>
+                </div>
+
+                <button class="pack-btn" id="downloadAllBtn" disabled>⬇ Download All as ZIP</button>
+                <progress id="dlProgress" max="100" value="0"></progress>
+                <div id="dlStatus" class="import-status"></div>
+            </div>
+
+            <!-- Import Column -->
+            <div class="pack-col">
+                <div class="pack-col-title">⬆ Import Pack</div>
+
+                <div class="drop-zone" id="dropZone">
+                    Drop .wav files here<br>
+                    <span style="font-size: 11px; opacity: 0.6;">(e.g. 1.wav, 2.wav … 27.wav)</span>
+                </div>
+
+                <button class="pack-btn import-btn" id="importBtn">⬆ Choose Files to Import</button>
+                <input type="file" id="importFileInput" multiple accept=".wav,.mp3,.ogg,.flac" style="display:none;">
+
+                <div id="importStatus" class="import-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="search-section">
+        <div class="search-controls">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search for sounds...">
+            <button class="search-btn" id="searchBtn">Search</button>
+        </div>
+        <div class="filters">
+            <div class="filter-group">
+                <label>License:</label>
+                <select class="filter-select" id="licenseFilter">
+                    <option value="">Any License</option>
+                    <option value="Attribution">CC BY (Attribution)</option>
+                    <option value="Creative Commons 0">CC0 (Public Domain)</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Duration:</label>
+                <select class="filter-select" id="durationFilter">
+                    <option value="">Any Duration</option>
+                    <option value="[0 TO 2]">0-2 seconds</option>
+                    <option value="[2 TO 5]">2-5 seconds</option>
+                    <option value="[5 TO 10]">5-10 seconds</option>
+                    <option value="[10 TO 30]">10-30 seconds</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Sort by:</label>
+                <select class="filter-select" id="sortFilter">
+                    <option value="score">Relevance</option>
+                    <option value="rating_desc">Rating (High to Low)</option>
+                    <option value="downloads_desc">Most Downloaded</option>
+                    <option value="created_desc">Newest First</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="results-section">
+        <div class="results-header">
+            <div class="results-title">Search Results</div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <button class="btn" id="autoLoadBtn" style="display: none;">⚡ Auto-Load First 27</button>
+                <div class="results-count" id="resultsCount"></div>
+            </div>
+        </div>
+        <div id="soundList" class="sound-list">
+            <div class="status-message">Enter a search query to find sounds</div>
+        </div>
+        <div class="load-more" id="loadMoreContainer" style="display: none;">
+            <button class="btn" id="loadMoreBtn">Load More Results</button>
+        </div>
+    </div>
+</div>
+
+<!-- JSZip for bundled downloads -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script>
+const API_KEY = 'ENXBH14HDdboFnq4ttqKQGed9tV7xxYJOghOaPbo';
+const SPOKE_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36];
+
+const BLOCKED_TERMS = ['sex','sexy','porn','xxx','adult','nsfw','fuck','fucking','shit','bitch','dick','cock','cum','orgasm','masturbat','breast','nude','naked','kill','murder','death','violence','blood','gore','drug','weed','cocaine','meth','heroin','damn','hell','crap','piss'];
+const WHITELIST_TERMS = ['bass','bassist','bassdrum','bassoon','grass','class','glass','pass','mass','assess','classic','cassette'];
+
+function containsBlockedContent(text) {
+    const lowerText = text.toLowerCase();
+    return BLOCKED_TERMS.some(term => {
+        const regex = new RegExp(`\\b${term}\\b`, 'i');
+        if (!regex.test(lowerText)) return false;
+        return !WHITELIST_TERMS.some(w => w.includes(term) && lowerText.includes(w));
+    });
+}
+
+// State
+let apiKey = API_KEY;
+let currentQuery = '';
+let currentPage = 1;
+let totalResults = 0;
+let audioElements = new Map();
+let currentSearchResults = [];
+
+// SPOKE state
+let audioContext;
+let masterGain;
+let midiAccess = null;
+const spokeSounds = new Map();
+const activeSources = new Map();
+let loadedSoundsCount = 0;
+let scopeAnalyser;
+let mediaRecorder, mediaStream;
+let audioChunks = [];
+let isRecording = false;
+let recordedBuffer = null;
+let waitingForPadClick = false;
+let selectedMicDevice = null;
+let loopMode = false;
+
+// Elements
+const searchInput = document.getElementById('searchInput');
+const searchBtn = document.getElementById('searchBtn');
+const soundList = document.getElementById('soundList');
+const resultsCount = document.getElementById('resultsCount');
+const loadMoreBtn = document.getElementById('loadMoreBtn');
+const loadMoreContainer = document.getElementById('loadMoreContainer');
+const autoLoadBtn = document.getElementById('autoLoadBtn');
+const spokeCanvas = document.getElementById('spokeCanvas');
+const scopeCanvas = document.getElementById('scopeCanvas');
+const connectMidiBtn = document.getElementById('connectMidiBtn');
+const clearBoardBtn = document.getElementById('clearBoardBtn');
+const loadedCount = document.getElementById('loadedCount');
+const nowPlayingInfo = document.getElementById('nowPlayingInfo');
+const startRecordBtn = document.getElementById('startRecordBtn');
+const stopRecordBtn = document.getElementById('stopRecordBtn');
+const recordingStatus = document.getElementById('recordingStatus');
+const micSelect = document.getElementById('micSelect');
+const loopToggle = document.getElementById('loopToggle');
+const loopToggleSlider = document.getElementById('loopToggleSlider');
+const loopModeLabel = document.getElementById('loopModeLabel');
+
+// Pack manager elements
+const packSoundList = document.getElementById('packSoundList');
+const downloadAllBtn = document.getElementById('downloadAllBtn');
+const dlProgress = document.getElementById('dlProgress');
+const dlStatus = document.getElementById('dlStatus');
+const dropZone = document.getElementById('dropZone');
+const importBtn = document.getElementById('importBtn');
+const importFileInput = document.getElementById('importFileInput');
+const importStatus = document.getElementById('importStatus');
+
+// ===== AUDIO BUFFER → WAV CONVERSION =====
+function audioBufferToWav(buffer) {
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const format = 1; // PCM
+    const bitDepth = 16;
+    const numFrames = buffer.length;
+    const bytesPerSample = bitDepth / 8;
+    const blockAlign = numChannels * bytesPerSample;
+    const byteRate = sampleRate * blockAlign;
+    const dataSize = numFrames * blockAlign;
+    const arrayBuffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(arrayBuffer);
+
+    function writeString(offset, str) {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    }
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, format, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitDepth, true);
+    writeString(36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    let offset = 44;
+    for (let i = 0; i < numFrames; i++) {
+        for (let ch = 0; ch < numChannels; ch++) {
+            const sample = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
+            view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+            offset += 2;
+        }
+    }
+    return arrayBuffer;
+}
+
+// ===== PACK MANAGER FUNCTIONS =====
+
+function updatePackList() {
+    if (spokeSounds.size === 0) {
+        packSoundList.innerHTML = '<div class="pack-status">No sounds loaded yet</div>';
+        downloadAllBtn.disabled = true;
+        return;
+    }
+
+    downloadAllBtn.disabled = false;
+    packSoundList.innerHTML = '';
+
+    const sorted = Array.from(spokeSounds.entries()).sort((a, b) => a[0] - b[0]);
+    sorted.forEach(([padIndex, sound]) => {
+        const num = padIndex + 1;
+        const row = document.createElement('div');
+        row.className = 'pack-sound-row';
+        row.innerHTML = `
+            <span class="pack-sound-num">${num}.</span>
+            <span class="pack-sound-name" title="${sound.name}">${sound.name}</span>
+            <button class="pack-sound-dl" data-pad="${padIndex}">⬇ WAV</button>
+        `;
+        row.querySelector('.pack-sound-dl').addEventListener('click', () => downloadSinglePad(padIndex));
+        packSoundList.appendChild(row);
+    });
+}
+
+function downloadSinglePad(padIndex) {
+    const sound = spokeSounds.get(padIndex);
+    if (!sound || !sound.buffer) return;
+
+    const wavData = audioBufferToWav(sound.buffer);
+    const blob = new Blob([wavData], { type: 'audio/wav' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${padIndex + 1}.wav`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function downloadAllAsZip() {
+    if (spokeSounds.size === 0) return;
+
+    downloadAllBtn.disabled = true;
+    dlProgress.style.display = 'block';
+    dlStatus.textContent = 'Building ZIP...';
+
+    const zip = new JSZip();
+    const sorted = Array.from(spokeSounds.entries()).sort((a, b) => a[0] - b[0]);
+    let done = 0;
+
+    for (const [padIndex, sound] of sorted) {
+        if (!sound.buffer) { done++; continue; }
+        try {
+            const wavData = audioBufferToWav(sound.buffer);
+            zip.file(`${padIndex + 1}.wav`, wavData);
+        } catch (e) {
+            console.error(`Failed to encode pad ${padIndex + 1}:`, e);
+        }
+        done++;
+        dlProgress.value = Math.round((done / sorted.length) * 80);
+        dlStatus.textContent = `Encoding ${done}/${sorted.length}...`;
+        await new Promise(r => setTimeout(r, 0)); // yield to UI
+    }
+
+    dlStatus.textContent = 'Generating ZIP file...';
+    dlProgress.value = 90;
+
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 3 } });
+    dlProgress.value = 100;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'spoke_pack.zip';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+    dlStatus.textContent = `✓ Downloaded ${sorted.length} sounds`;
+    dlProgress.style.display = 'none';
+    downloadAllBtn.disabled = false;
+}
+
+downloadAllBtn.addEventListener('click', downloadAllAsZip);
+
+// ===== IMPORT FUNCTIONS =====
+
+async function importFiles(files) {
+    if (!files || files.length === 0) return;
+
+    initAudio();
+    importStatus.textContent = `Importing ${files.length} file(s)...`;
+    importStatus.style.color = '#FFA500';
+
+    // Sort files numerically by filename (1.wav before 2.wav etc.)
+    const fileArray = Array.from(files).sort((a, b) => {
+        const numA = parseInt(a.name) || 999;
+        const numB = parseInt(b.name) || 999;
+        return numA - numB;
+    });
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const file of fileArray) {
+        // Determine pad index from filename if possible (e.g. "3.wav" → pad 2)
+        const baseName = file.name.replace(/\.[^.]+$/, '');
+        const parsedNum = parseInt(baseName);
+        let padIndex;
+
+        if (!isNaN(parsedNum) && parsedNum >= 1 && parsedNum <= 27) {
+            padIndex = parsedNum - 1; // use the numbered slot
+        } else {
+            // Find next available slot
+            padIndex = -1;
+            for (let i = 0; i < 27; i++) {
+                if (!spokeSounds.has(i)) { padIndex = i; break; }
+            }
+        }
+
+        if (padIndex === -1) {
+            importStatus.textContent = 'Board full — only 27 pads available';
+            importStatus.style.color = '#F44336';
+            break;
+        }
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+            spokeSounds.set(padIndex, {
+                buffer: audioBuffer,
+                url: null,
+                name: file.name.replace(/\.[^.]+$/, ''),
+                id: `import_${padIndex}_${Date.now()}`
+            });
+            successCount++;
+        } catch (e) {
+            console.warn(`Could not decode ${file.name}:`, e);
+            failCount++;
+        }
+    }
+
+    loadedSoundsCount = spokeSounds.size;
+    updateLoadedCount();
+    updatePackList();
+    drawBoard();
+
+    if (failCount === 0) {
+        importStatus.textContent = `✓ Imported ${successCount} sound(s) successfully`;
+        importStatus.style.color = '#4CAF50';
+    } else {
+        importStatus.textContent = `✓ ${successCount} imported, ${failCount} failed`;
+        importStatus.style.color = '#FFA500';
+    }
+}
+
+importBtn.addEventListener('click', () => importFileInput.click());
+importFileInput.addEventListener('change', (e) => importFiles(e.target.files));
+
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    importFiles(e.dataTransfer.files);
+});
+dropZone.addEventListener('click', () => importFileInput.click());
+
+// ===== EXISTING SPOKE LOGIC (unchanged) =====
+
+document.querySelectorAll('.suggested-btn').forEach(btn => {
+    btn.addEventListener('click', () => { searchInput.value = btn.getAttribute('data-search'); performSearch(); });
+});
+
+searchBtn.addEventListener('click', performSearch);
+searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
+document.getElementById('licenseFilter').addEventListener('change', () => { if (currentQuery) soundList.innerHTML = '<div class="status-message">Filter changed — click Search to apply</div>'; });
+document.getElementById('durationFilter').addEventListener('change', () => { if (currentQuery) soundList.innerHTML = '<div class="status-message">Filter changed — click Search to apply</div>'; });
+document.getElementById('sortFilter').addEventListener('change', () => { if (currentQuery) performSearch(); });
+loadMoreBtn.addEventListener('click', () => { currentPage++; performSearch(true); });
+connectMidiBtn.addEventListener('click', connectMIDI);
+clearBoardBtn.addEventListener('click', clearBoard);
+autoLoadBtn.addEventListener('click', autoLoadFirst27);
+startRecordBtn.addEventListener('click', startRecording);
+stopRecordBtn.addEventListener('click', stopRecording);
+
+loopToggle.addEventListener('change', (e) => {
+    loopMode = e.target.checked;
+    if (loopMode) {
+        loopModeLabel.textContent = 'Looping (continuous)';
+        loopToggleSlider.style.transform = 'translateX(24px)';
+    } else {
+        loopModeLabel.textContent = 'One-Shot (play once)';
+        loopToggleSlider.style.transform = 'translateX(0)';
+        activeSources.forEach((s) => { try { s.source.stop(); } catch(e) {} });
+        activeSources.clear();
+        clearNowPlaying();
+    }
+});
+
+async function enumerateMicrophones() {
+    try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const inputDevices = devices.filter(d => d.kind === 'audioinput');
+        micSelect.innerHTML = '';
+        inputDevices.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId;
+            opt.textContent = d.label || `Microphone ${micSelect.options.length + 1}`;
+            micSelect.appendChild(opt);
+        });
+        if (inputDevices.length > 0) selectedMicDevice = inputDevices[0].deviceId;
+    } catch { micSelect.innerHTML = '<option>Permission denied</option>'; }
+}
+micSelect.addEventListener('change', (e) => { selectedMicDevice = e.target.value; });
+enumerateMicrophones();
+
+async function performSearch(append = false) {
+    const query = searchInput.value.trim();
+    if (!query && !append) { soundList.innerHTML = '<div class="status-message">Enter a search query to find sounds</div>'; return; }
+    if (!append && containsBlockedContent(query)) {
+        soundList.innerHTML = '<div class="error-message">⚠️ This search term is not allowed.</div>';
+        resultsCount.textContent = ''; loadMoreContainer.style.display = 'none'; autoLoadBtn.style.display = 'none'; currentSearchResults = []; return;
+    }
+    if (!append) { currentPage = 1; currentQuery = query; soundList.innerHTML = ''; }
+
+    const licenseFilter = document.getElementById('licenseFilter').value;
+    const durationFilter = document.getElementById('durationFilter').value;
+    const sortFilter = document.getElementById('sortFilter').value;
+
+    let filters = ['is_explicit:false'];
+    ['explicit','adult','nsfw','sex','porn','violence','gore'].forEach(t => filters.push(`-tag:${t}`));
+    if (licenseFilter) filters.push(`license:"${encodeURIComponent(licenseFilter)}"`);
+    if (durationFilter) filters.push(`duration:${durationFilter}`);
+
+    let url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(currentQuery)}&page=${currentPage}&page_size=15&token=${apiKey}&fields=id,name,tags,description,username,duration,license,previews&filter=${filters.join(' ')}`;
+    if (sortFilter) url += `&sort=${sortFilter}`;
+
+    try {
+        if (!append) soundList.innerHTML = '<div class="status-message">Searching...</div>';
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        totalResults = data.count;
+
+        if (data.results.length === 0 && !append) {
+            soundList.innerHTML = '<div class="status-message">No sounds found.</div>';
+            resultsCount.textContent = ''; loadMoreContainer.style.display = 'none'; autoLoadBtn.style.display = 'none'; currentSearchResults = []; return;
+        }
+
+        if (!append) { currentSearchResults = data.results; soundList.innerHTML = ''; }
+        else currentSearchResults = currentSearchResults.concat(data.results);
+
+        data.results.forEach(sound => soundList.appendChild(createSoundItem(sound)));
+        resultsCount.textContent = `Showing ${soundList.children.length} of ${totalResults} results`;
+
+        const remainingSlots = 27 - loadedSoundsCount;
+        if (remainingSlots > 0 && currentSearchResults.length > 0) {
+            const loadCount = Math.min(remainingSlots, currentSearchResults.length);
+            autoLoadBtn.textContent = `⚡ Auto-Load First ${loadCount}`;
+            autoLoadBtn.style.display = 'block';
+        } else { autoLoadBtn.style.display = 'none'; }
+        loadMoreContainer.style.display = data.next ? 'block' : 'none';
+    } catch (error) {
+        soundList.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
+        loadMoreContainer.style.display = 'none';
+    }
+}
+
+function createSoundItem(sound) {
+    const div = document.createElement('div');
+    div.className = 'sound-item';
+    const duration = Math.round(sound.duration * 10) / 10;
+    const tags = sound.tags.slice(0, 5).map(t => `<span class="tag">${t}</span>`).join('');
+    div.innerHTML = `
+        <div class="sound-header">
+            <div class="sound-info">
+                <div class="sound-name">${sound.name}</div>
+                <div class="sound-user">by ${sound.username}</div>
+                <div class="sound-meta"><span>⏱️ ${duration}s</span><span>📜 ${sound.license}</span></div>
+                ${tags ? `<div class="sound-tags">${tags}</div>` : ''}
+            </div>
+            <div class="sound-actions">
+                <button class="action-btn play-btn" data-id="${sound.id}">▶ Play</button>
+                <button class="action-btn load-btn" data-id="${sound.id}" data-url="${sound.previews['preview-hq-mp3']}" data-name="${sound.name}">📥 Load to SPOKE</button>
+                <button class="action-btn" onclick="window.open('https://freesound.org/people/${sound.username}/sounds/${sound.id}/','_blank')">🔗 View</button>
+            </div>
+        </div>`;
+    div.querySelector('.play-btn').addEventListener('click', (e) => togglePlay(sound.id, sound.previews['preview-hq-mp3'], e.target));
+    const loadBtn = div.querySelector('.load-btn');
+    loadBtn.addEventListener('click', () => {
+        loadToSpoke(sound.previews['preview-hq-mp3'], sound.name, sound.id);
+        loadBtn.textContent = '✓ Loaded'; loadBtn.disabled = true; loadBtn.style.opacity = '0.5';
+    });
+    return div;
+}
+
+function togglePlay(soundId, previewUrl, button) {
+    audioElements.forEach((audio, id) => {
+        if (id !== soundId && !audio.paused) {
+            audio.pause(); audio.currentTime = 0;
+            const btn = document.querySelector(`[data-id="${id}"]`);
+            if (btn) { btn.textContent = '▶ Play'; btn.classList.remove('playing'); }
+        }
+    });
+    if (!audioElements.has(soundId)) {
+        const audio = new Audio(previewUrl);
+        audio.addEventListener('ended', () => { button.textContent = '▶ Play'; button.classList.remove('playing'); });
+        audioElements.set(soundId, audio);
+    }
+    const audio = audioElements.get(soundId);
+    if (audio.paused) { audio.play(); button.textContent = '⏸ Pause'; button.classList.add('playing'); }
+    else { audio.pause(); audio.currentTime = 0; button.textContent = '▶ Play'; button.classList.remove('playing'); }
+}
+
+async function startRecording() {
+    try {
+        initAudio();
+        const constraints = { audio: selectedMicDevice ? { deviceId: { exact: selectedMicDevice } } : true };
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        mediaRecorder = new MediaRecorder(mediaStream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+            const blob = new Blob(audioChunks, { type: 'audio/wav' });
+            const ab = await blob.arrayBuffer();
+            recordedBuffer = await audioContext.decodeAudioData(ab);
+            mediaStream.getTracks().forEach(t => t.stop());
+            waitingForPadClick = true;
+            recordingStatus.innerHTML = '✓ Recording saved! Click a pad to assign it';
+            recordingStatus.style.color = '#4CAF50';
+        };
+        mediaRecorder.start(); isRecording = true;
+        startRecordBtn.style.display = 'none'; stopRecordBtn.style.display = 'block';
+        recordingStatus.innerHTML = '🔴 Recording... Click Stop when done';
+        recordingStatus.style.color = '#ff6b6b';
+    } catch (error) { alert('Microphone error: ' + error.message); }
+}
+
+function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop(); isRecording = false;
+        startRecordBtn.style.display = 'block'; stopRecordBtn.style.display = 'none';
+    }
+}
+
+function assignRecordingToPad(padIndex) {
+    if (!recordedBuffer) return;
+    spokeSounds.set(padIndex, { buffer: recordedBuffer, url: null, name: `Recording ${padIndex + 1}`, id: `rec_${Date.now()}` });
+    loadedSoundsCount = spokeSounds.size;
+    updateLoadedCount(); updatePackList(); drawBoard();
+    recordedBuffer = null; waitingForPadClick = false;
+    recordingStatus.innerHTML = 'Click Record, then click a pad to assign';
+    recordingStatus.style.color = '';
+    updateNowPlaying(padIndex);
+    playSpokeSound(padIndex);
+}
+
+function initAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        scopeAnalyser = audioContext.createAnalyser();
+        scopeAnalyser.fftSize = 2048;
+        masterGain = audioContext.createGain();
+        masterGain.gain.value = 0.8;
+        masterGain.connect(scopeAnalyser);
+        scopeAnalyser.connect(audioContext.destination);
+        drawScope();
+    }
+}
+
+function drawScope() {
+    const scopeCtx = scopeCanvas.getContext('2d');
+    const W = scopeCanvas.width, H = scopeCanvas.height;
+    if (!scopeAnalyser) { scopeCtx.fillStyle = 'rgba(0,0,0,0.5)'; scopeCtx.fillRect(0,0,W,H); requestAnimationFrame(drawScope); return; }
+    const bufLen = scopeAnalyser.frequencyBinCount;
+    const data = new Uint8Array(bufLen);
+    scopeAnalyser.getByteTimeDomainData(data);
+    let hasSignal = data.some(v => Math.abs(v - 128) > 2);
+    scopeCtx.fillStyle = 'rgba(0,0,0,0.2)'; scopeCtx.fillRect(0,0,W,H);
+    scopeCtx.lineWidth = 2; scopeCtx.strokeStyle = hasSignal ? '#4CAF50' : 'rgba(76,175,80,0.3)';
+    scopeCtx.beginPath();
+    const sliceW = W / bufLen;
+    data.forEach((v, i) => {
+        const y = (v / 128) * H / 2;
+        i === 0 ? scopeCtx.moveTo(0, y) : scopeCtx.lineTo(i * sliceW, y);
+    });
+    scopeCtx.lineTo(W, H / 2); scopeCtx.stroke();
+    requestAnimationFrame(drawScope);
+}
+
+function updateNowPlaying(padIndex) {
+    if (!spokeSounds.has(padIndex)) return;
+    const s = spokeSounds.get(padIndex);
+    nowPlayingInfo.innerHTML = `<div style="text-align:center;"><div style="font-size:16px;font-weight:700;margin-bottom:5px;">🔊 Pad ${padIndex+1}</div><div style="font-size:13px;opacity:0.8;">${s.name}</div></div>`;
+}
+
+function clearNowPlaying() {
+    setTimeout(() => {
+        if (activeSources.size === 0) nowPlayingInfo.innerHTML = '<div style="text-align:center;opacity:0.6;font-size:13px;">No sound playing</div>';
+    }, 2000);
+}
+
+async function connectMIDI() {
+    try {
+        midiAccess = await navigator.requestMIDIAccess();
+        const inputs = Array.from(midiAccess.inputs.values());
+        if (!inputs.length) { alert('No MIDI devices found'); return; }
+        inputs.forEach(i => i.onmidimessage = handleMIDIMessage);
+        connectMidiBtn.textContent = 'MIDI Connected ✓';
+        connectMidiBtn.style.background = 'rgba(76,175,80,0.5)';
+    } catch (e) { alert('MIDI Error: ' + e.message); }
+}
+
+function handleMIDIMessage(msg) {
+    const [status, midiNote, velocity] = msg.data;
+    const cmd = status & 0xf0;
+    const padIndex = SPOKE_NOTES.indexOf(midiNote);
+    if (padIndex === -1) return;
+    if (cmd === 0x90 && velocity > 0) playSpokeSound(padIndex, velocity);
+}
+
+function playSpokeSound(padIndex, velocity = 127) {
+    if (!spokeSounds.has(padIndex)) return;
+    initAudio();
+    updateNowPlaying(padIndex);
+    if (loopMode && activeSources.has(padIndex)) {
+        try { activeSources.get(padIndex).source.stop(); } catch(e) {}
+        activeSources.delete(padIndex); clearNowPlaying(); return;
+    }
+    if (activeSources.has(padIndex)) {
+        try { activeSources.get(padIndex).source.stop(); } catch(e) {}
+        activeSources.delete(padIndex);
+    }
+    const source = audioContext.createBufferSource();
+    const gain = audioContext.createGain();
+    source.buffer = spokeSounds.get(padIndex).buffer;
+    source.loop = loopMode;
+    gain.gain.value = velocity / 127;
+    source.connect(gain); gain.connect(masterGain);
+    source.start(0);
+    activeSources.set(padIndex, { source, gain });
+    if (pads[padIndex]) pads[padIndex].trigger();
+    source.onended = () => { if (activeSources.get(padIndex)?.source === source) { activeSources.delete(padIndex); clearNowPlaying(); } };
+}
+
+async function loadToSpoke(soundUrl, soundName, soundId) {
+    let padIndex = -1;
+    for (let i = 0; i < 27; i++) { if (!spokeSounds.has(i)) { padIndex = i; break; } }
+    if (padIndex === -1) { alert('Maximum 27 sounds loaded. Clear the board to add more.'); return; }
+    try {
+        initAudio();
+        const response = await fetch(soundUrl);
+        const ab = await response.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(ab);
+        spokeSounds.set(padIndex, { buffer: audioBuffer, url: soundUrl, name: soundName, id: soundId });
+        loadedSoundsCount = spokeSounds.size;
+        updateLoadedCount(); updatePackList(); drawBoard();
+    } catch (error) { alert('Failed to load sound: ' + error.message); }
+}
+
+function clearPad(padIndex) {
+    if (!spokeSounds.has(padIndex)) return;
+    if (activeSources.has(padIndex)) { try { activeSources.get(padIndex).source.stop(); } catch(e) {} activeSources.delete(padIndex); }
+    spokeSounds.delete(padIndex);
+    loadedSoundsCount = spokeSounds.size;
+    updateLoadedCount(); updatePackList(); drawBoard();
+}
+
+function clearBoard() {
+    spokeSounds.clear();
+    activeSources.forEach(s => { try { s.source.stop(); } catch(e) {} });
+    activeSources.clear();
+    loadedSoundsCount = 0;
+    updateLoadedCount(); updatePackList(); drawBoard();
+    if (currentSearchResults.length > 0) {
+        const n = Math.min(27, currentSearchResults.length);
+        autoLoadBtn.textContent = `⚡ Auto-Load First ${n}`; autoLoadBtn.style.display = 'block';
+    }
+}
+
+async function autoLoadFirst27() {
+    const remaining = 27 - loadedSoundsCount;
+    if (remaining === 0 && !confirm('Board is full. Overwrite?')) return;
+    const toLoad = currentSearchResults.slice(0, Math.min(27, currentSearchResults.length));
+    if (!toLoad.length) { alert('No sounds to load!'); return; }
+    autoLoadBtn.disabled = true;
+    for (let i = 0; i < toLoad.length; i++) {
+        autoLoadBtn.textContent = `Loading ${i+1}/${toLoad.length}...`;
+        try { await loadToSpoke(toLoad[i].previews['preview-hq-mp3'], toLoad[i].name, toLoad[i].id); } catch(e) {}
+    }
+    autoLoadBtn.disabled = false;
+    if (loadedSoundsCount >= 27) autoLoadBtn.style.display = 'none';
+    else { autoLoadBtn.textContent = `⚡ Auto-Load First ${Math.min(27-loadedSoundsCount, currentSearchResults.length)}`; }
+    alert(`Loaded ${toLoad.length} sounds!`);
+}
+
+function updateLoadedCount() {
+    loadedCount.textContent = `${loadedSoundsCount} / 27 sounds loaded`;
+}
+
+// Board
+const ctx = spokeCanvas.getContext('2d');
+const width = 400, height = 400;
+
+class Pad {
+    constructor(index, angle, midiNote) {
+        this.index = index; this.angle = angle; this.midiNote = midiNote;
+        const r = Math.min(width, height) * 0.38;
+        this.x = width/2 + Math.cos(angle)*r; this.y = height/2 + Math.sin(angle)*r;
+        this.size = 18; this.active = false; this.activePulse = 0;
+    }
+    update() {
+        if (this.active) { this.activePulse += 0.15; if (this.activePulse > Math.PI*2) { this.active = false; this.activePulse = 0; } }
+    }
+    draw() {
+        const hasSound = spokeSounds.has(this.index);
+        const isLooping = loopMode && activeSources.has(this.index);
+        let color = '#333', borderColor = '#666';
+        if (isLooping) { const p = Math.sin(Date.now()/500)*0.3+0.7; color = `rgba(255,152,0,${p})`; borderColor = '#FF9800'; }
+        else if (this.active) { color = '#4CAF50'; borderColor = '#fff'; }
+        else if (hasSound) { color = '#2e7d32'; borderColor = '#4CAF50'; }
+        if (this.active || isLooping) {
+            const gs = Math.max(this.size*0.5, this.size + Math.sin(this.activePulse)*20);
+            const gc = isLooping ? '#FF9800' : '#4CAF50';
+            const grad = ctx.createRadialGradient(this.x,this.y,this.size*0.3,this.x,this.y,gs);
+            grad.addColorStop(0, gc+'cc'); grad.addColorStop(1, gc+'00');
+            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(this.x,this.y,gs,0,Math.PI*2); ctx.fill();
+        }
+        ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+        ctx.fillStyle = color; ctx.fill();
+        ctx.strokeStyle = borderColor; ctx.lineWidth = (hasSound||isLooping) ? 3 : 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        if (isLooping) { ctx.font = '12px Arial'; ctx.fillText('↻', this.x, this.y); }
+        else { ctx.font = hasSound ? 'bold 10px Arial' : '9px Arial'; ctx.fillText(this.index+1, this.x, this.y); }
+    }
+    trigger() { this.active = true; this.activePulse = 0; }
+    contains(x, y) { const dx=x-this.x,dy=y-this.y; return Math.sqrt(dx*dx+dy*dy) <= this.size; }
+}
+
+const pads = [];
+const angleStep = (Math.PI*2) / SPOKE_NOTES.length;
+SPOKE_NOTES.forEach((note, i) => pads.push(new Pad(i, angleStep*i - Math.PI/2, note)));
+
+function drawBoard() {
+    ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0,0,width,height);
+    const br = Math.min(width,height)*0.42;
+    ctx.beginPath(); ctx.arc(width/2,height/2,br,0,Math.PI*2);
+    ctx.fillStyle = '#1a1a1a'; ctx.fill(); ctx.strokeStyle = '#333'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.beginPath(); ctx.arc(width/2,height/2,br*0.3,0,Math.PI*2);
+    ctx.fillStyle = '#0a0a0f'; ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('SPOKE', width/2, height/2-10);
+    ctx.font = '12px Arial'; ctx.fillStyle = '#4CAF50';
+    ctx.fillText(`${loadedSoundsCount}/27`, width/2, height/2+20);
+    pads.forEach(p => { p.update(); p.draw(); });
+}
+
+function animate() { drawBoard(); requestAnimationFrame(animate); }
+
+spokeCanvas.addEventListener('click', (e) => {
+    const rect = spokeCanvas.getBoundingClientRect();
+    const x = e.clientX-rect.left, y = e.clientY-rect.top;
+    pads.forEach(pad => {
+        if (pad.contains(x,y)) {
+            if (waitingForPadClick && recordedBuffer) assignRecordingToPad(pad.index);
+            else playSpokeSound(pad.index);
+        }
+    });
+});
+
+spokeCanvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    const rect = spokeCanvas.getBoundingClientRect();
+    const x = e.clientX-rect.left, y = e.clientY-rect.top;
+    pads.forEach(pad => {
+        if (pad.contains(x,y) && spokeSounds.has(pad.index)) {
+            const s = spokeSounds.get(pad.index);
+            if (confirm(`Clear Pad ${pad.index+1}?\n\n${s.name}`)) clearPad(pad.index);
+        }
+    });
+});
+
+animate();
+</script>
+</body>
+</html>
