@@ -175,6 +175,23 @@ select option{background:#1c1c1f;}
 .tog-thumb{position:absolute;top:3px;left:3px;width:13px;height:13px;background:var(--muted);border-radius:50%;transition:.2s;}
 .tog input:checked~.tog-thumb{transform:translateX(17px);background:var(--accent);}
 
+/* ── PLAYBACK MODE SELECTOR ── */
+.mode-label{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.mode-btn{
+  font-family:var(--font);font-size:11px;font-weight:600;
+  padding:9px 6px;border-radius:8px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--muted);cursor:pointer;
+  transition:all .16s;text-align:center;line-height:1.4;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.mode-btn .mode-icon{font-size:16px;line-height:1;}
+.mode-btn:hover{border-color:rgba(255,255,255,.2);color:var(--text);}
+.mode-btn.active-oneshot{background:rgba(0,229,160,.13);border-color:rgba(0,229,160,.45);color:var(--accent);}
+.mode-btn.active-gate{background:rgba(124,109,250,.13);border-color:rgba(124,109,250,.45);color:var(--accent2);}
+.mode-btn.active-loop{background:rgba(245,166,35,.13);border-color:rgba(245,166,35,.45);color:var(--warn);}
+.mode-desc{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5;font-weight:500;min-height:28px;}
+
 /* ── SEARCH ── */
 .search-wrap{position:relative;}
 .search-wrap input{padding-left:36px;font-size:13px;}
@@ -371,7 +388,7 @@ select option{background:#1c1c1f;}
         <canvas id="spokeCanvas" width="340" height="340"></canvas>
       </div>
       <div style="margin-top:8px;font-size:10px;color:var(--muted);text-align:center;font-weight:500;">
-        Left-click play &nbsp;·&nbsp; Right-click clear
+        Click to play &nbsp;·&nbsp; Hold for gate &nbsp;·&nbsp; Right-click clear
       </div>
     </div>
 
@@ -400,21 +417,22 @@ select option{background:#1c1c1f;}
     <!-- Playback controls -->
     <div class="sb-section" style="padding-top:10px;">
       <div class="sb-label" style="cursor:pointer;" id="pbToggle">
-        Playback
+        Playback mode
         <svg class="chevron open" id="pbChev" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div class="coll" id="pbBody" style="max-height:160px;">
-        <div class="tog-row">
-          <div>
-            <div class="tog-label">Loop mode</div>
-            <div class="tog-sub" id="loopSub">One-shot — plays once</div>
-          </div>
-          <label class="tog">
-            <input type="checkbox" id="loopToggle">
-            <span class="tog-track"></span>
-            <span class="tog-thumb"></span>
-          </label>
+      <div class="coll" id="pbBody" style="max-height:260px;">
+        <div class="mode-grid">
+          <button class="mode-btn active-oneshot" id="mode-oneshot" data-mode="oneshot">
+            <span class="mode-icon">▶</span>One-shot
+          </button>
+          <button class="mode-btn" id="mode-gate" data-mode="gate">
+            <span class="mode-icon">⏯</span>Gate
+          </button>
+          <button class="mode-btn" id="mode-loop" data-mode="loop">
+            <span class="mode-icon">↻</span>Loop
+          </button>
         </div>
+        <div class="mode-desc" id="modeDesc">Plays the sound once from start to finish on each click.</div>
         <div class="div"></div>
         <div class="btn-row fill">
           <button class="btn g" id="midiBtn">Connect MIDI</button>
@@ -617,7 +635,7 @@ function blocked(t){const l=t.toLowerCase();return BLOCKED.some(b=>{const r=new 
 let AC, gain, analyser, recAnalyser;
 let midi=null;
 const sounds=new Map(), sources=new Map();
-let loaded=0, loopMode=false;
+let loaded=0, playMode='oneshot'; // 'oneshot' | 'gate' | 'loop'
 let mRec,mStream,chunks=[],recOn=false,recBuf=null,waitPad=false,selMic=null;
 let query='',page=1,total=0,results=[];
 const previews=new Map();
@@ -687,22 +705,26 @@ class Pad{
   }
   tick(){if(this.on){this.pulse+=.18;if(this.pulse>Math.PI*2){this.on=false;this.pulse=0;}}}
   draw(){
-    const has=sounds.has(this.i),loop=loopMode&&sources.has(this.i);
+    const has=sounds.has(this.i),active=sources.has(this.i);
     let fill='#1c1c1f',str='rgba(255,255,255,.09)';
-    if(loop){const p=Math.sin(Date.now()/480)*.3+.7;fill=`rgba(245,166,35,${p})`;str='#f5a623';}
-    else if(this.on){fill='#00e5a0';str='#fff';}
-    else if(has){fill='rgba(0,229,160,.17)';str='rgba(0,229,160,.48)';}
-    if(this.on||loop){
-      const gs=this.sz+Math.sin(this.pulse)*14,gc=loop?'#f5a623':'#00e5a0';
+    if(active){
+      if(playMode==='loop'){const p=Math.sin(Date.now()/480)*.3+.7;fill=`rgba(245,166,35,${p})`;str='#f5a623';}
+      else if(playMode==='gate'){const p=Math.sin(Date.now()/300)*.25+.75;fill=`rgba(124,109,250,${p})`;str='#7c6dfa';}
+      else{fill='#00e5a0';str='#fff';}
+    } else if(has){fill='rgba(0,229,160,.17)';str='rgba(0,229,160,.48)';}
+    if(this.on||active){
+      const gs=this.sz+Math.sin(this.pulse)*14;
+      const gc=playMode==='loop'?'#f5a623':playMode==='gate'?'#7c6dfa':'#00e5a0';
       const g=bCtx.createRadialGradient(this.x,this.y,1,this.x,this.y,gs);
       g.addColorStop(0,gc+'44');g.addColorStop(1,gc+'00');
       bCtx.fillStyle=g;bCtx.beginPath();bCtx.arc(this.x,this.y,gs,0,Math.PI*2);bCtx.fill();
     }
     bCtx.beginPath();bCtx.arc(this.x,this.y,this.sz,0,Math.PI*2);
-    bCtx.fillStyle=fill;bCtx.fill();bCtx.strokeStyle=str;bCtx.lineWidth=has||loop?1.5:1;bCtx.stroke();
+    bCtx.fillStyle=fill;bCtx.fill();bCtx.strokeStyle=str;bCtx.lineWidth=has||active?1.5:1;bCtx.stroke();
     bCtx.fillStyle=has?'rgba(255,255,255,.88)':'rgba(255,255,255,.22)';
     bCtx.font=`${has?'600':'400'} 8px 'Comfortaa'`;bCtx.textAlign='center';bCtx.textBaseline='middle';
-    bCtx.fillText(loop?'↻':this.i+1,this.x,this.y);
+    const lbl=active&&playMode==='loop'?'↻':active&&playMode==='gate'?'⏯':this.i+1;
+    bCtx.fillText(lbl,this.x,this.y);
   }
   hit(x,y){const d=x-this.x,e=y-this.y;return Math.sqrt(d*d+e*e)<=this.sz+5;}
   fire(){this.on=true;this.pulse=0;}
@@ -722,29 +744,128 @@ function drawBoard(){
 }
 (function loop(){drawBoard();requestAnimationFrame(loop);})();
 
-bc.addEventListener('click',e=>{
+// ── CANVAS EVENTS (click, hold/gate, touch) ──
+function padAt(e){
   const r=bc.getBoundingClientRect(),sx=bc.width/r.width,sy=bc.height/r.height;
   const x=(e.clientX-r.left)*sx,y=(e.clientY-r.top)*sy;
-  pads.forEach(p=>{if(p.hit(x,y)){waitPad&&recBuf?assignRec(p.i):playPad(p.i);}});
+  return pads.find(p=>p.hit(x,y))||null;
+}
+function touchPadAt(e){
+  const t=e.touches[0]||e.changedTouches[0];
+  const r=bc.getBoundingClientRect(),sx=bc.width/r.width,sy=bc.height/r.height;
+  const x=(t.clientX-r.left)*sx,y=(t.clientY-r.top)*sy;
+  return pads.find(p=>p.hit(x,y))||null;
+}
+
+// Mouse down — start play (all modes) or assign recording
+bc.addEventListener('mousedown',e=>{
+  if(e.button!==0)return;
+  const p=padAt(e);if(!p)return;
+  if(waitPad&&recBuf){assignRec(p.i);return;}
+  pressStart(p.i);
 });
-bc.addEventListener('contextmenu',e=>{
-  e.preventDefault();
-  const r=bc.getBoundingClientRect(),sx=bc.width/r.width,sy=bc.height/r.height;
-  const x=(e.clientX-r.left)*sx,y=(e.clientY-r.top)*sy;
-  pads.forEach(p=>{if(p.hit(x,y)&&sounds.has(p.i)){if(confirm(`Clear pad ${p.i+1}?\n${sounds.get(p.i).name}`))clearPad(p.i);}});
+// Mouse up — gate release
+bc.addEventListener('mouseup',e=>{
+  if(e.button!==0)return;
+  const p=padAt(e);if(p)pressEnd(p.i);
+});
+bc.addEventListener('mouseleave',e=>{
+  // release all gates if mouse leaves canvas
+  if(playMode==='gate') sources.forEach((_,i)=>stopPad(i));
 });
 
-// ── PLAY ──
+// Touch support
+bc.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const p=touchPadAt(e);if(!p)return;
+  if(waitPad&&recBuf){assignRec(p.i);return;}
+  pressStart(p.i);
+},{passive:false});
+bc.addEventListener('touchend',e=>{
+  e.preventDefault();
+  const p=touchPadAt(e);if(p)pressEnd(p.i);
+},{passive:false});
+
+bc.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  const p=padAt(e);
+  if(p&&sounds.has(p.i)){if(confirm(`Clear pad ${p.i+1}?\n${sounds.get(p.i).name}`))clearPad(p.i);}
+});
+
+function pressStart(i){
+  if(playMode==='oneshot') playPad(i);
+  else if(playMode==='gate') startGate(i);
+  else if(playMode==='loop') toggleLoop(i);
+}
+function pressEnd(i){
+  if(playMode==='gate') stopPad(i);
+}
+
+// ── PLAY MODES ──
 function playPad(i,vel=127){
   if(!sounds.has(i))return;
   initAC();setNP(i);
-  if(loopMode&&sources.has(i)){try{sources.get(i).src.stop();}catch(e){}sources.delete(i);clearNP();return;}
+  // one-shot: always restart
   if(sources.has(i)){try{sources.get(i).src.stop();}catch(e){}sources.delete(i);}
   const src=AC.createBufferSource(),g=AC.createGain();
-  src.buffer=sounds.get(i).buffer;src.loop=loopMode;g.gain.value=vel/127;
+  src.buffer=sounds.get(i).buffer;src.loop=false;g.gain.value=vel/127;
   src.connect(g);g.connect(gain);src.start(0);
   sources.set(i,{src,g});if(pads[i])pads[i].fire();
   src.onended=()=>{if(sources.get(i)?.src===src){sources.delete(i);clearNP();}};
+}
+
+function startGate(i,vel=127){
+  if(!sounds.has(i))return;
+  initAC();setNP(i);
+  // gate: restart from beginning each press
+  if(sources.has(i)){try{sources.get(i).src.stop();}catch(e){}sources.delete(i);}
+  const src=AC.createBufferSource(),g=AC.createGain();
+  src.buffer=sounds.get(i).buffer;src.loop=true;g.gain.value=vel/127; // loop while held
+  src.connect(g);g.connect(gain);src.start(0);
+  sources.set(i,{src,g});if(pads[i])pads[i].fire();
+  src.onended=()=>{if(sources.get(i)?.src===src){sources.delete(i);clearNP();}};
+}
+
+function stopPad(i){
+  if(!sources.has(i))return;
+  // fade out quickly to avoid click
+  const entry=sources.get(i);
+  try{
+    const now=AC.currentTime;
+    entry.g.gain.setValueAtTime(entry.g.gain.value,now);
+    entry.g.gain.linearRampToValueAtTime(0,now+0.03);
+    entry.src.stop(now+0.035);
+  }catch(e){}
+  sources.delete(i);clearNP();
+}
+
+function toggleLoop(i,vel=127){
+  if(!sounds.has(i))return;
+  initAC();
+  // if already looping this pad, stop it
+  if(sources.has(i)){
+    const entry=sources.get(i);
+    try{
+      const now=AC.currentTime;
+      entry.g.gain.setValueAtTime(entry.g.gain.value,now);
+      entry.g.gain.linearRampToValueAtTime(0,now+0.04);
+      entry.src.stop(now+0.045);
+    }catch(e){}
+    sources.delete(i);clearNP();return;
+  }
+  setNP(i);
+  const src=AC.createBufferSource(),g=AC.createGain();
+  src.buffer=sounds.get(i).buffer;src.loop=true;g.gain.value=vel/127;
+  src.connect(g);g.connect(gain);src.start(0);
+  sources.set(i,{src,g});if(pads[i])pads[i].fire();
+  src.onended=()=>{if(sources.get(i)?.src===src){sources.delete(i);clearNP();}};
+}
+
+// MIDI routes to the correct mode handler
+function midiPlay(idx,vel){
+  if(playMode==='oneshot')playPad(idx,vel);
+  else if(playMode==='gate')startGate(idx,vel);
+  else if(playMode==='loop')toggleLoop(idx,vel);
 }
 function setNP(i){
   const s=sounds.get(i);if(!s)return;
@@ -754,18 +875,32 @@ function setNP(i){
 }
 function clearNP(){setTimeout(()=>{if(!sources.size){document.getElementById('npDot').classList.add('idle');document.getElementById('npName').textContent='Nothing playing';document.getElementById('npTag').style.display='none';}},1800);}
 
-// ── LOOP / MIDI / CLEAR ──
-document.getElementById('loopToggle').addEventListener('change',e=>{
-  loopMode=e.target.checked;
-  document.getElementById('loopSub').textContent=loopMode?'Looping — continuous':'One-shot — plays once';
-  if(!loopMode){sources.forEach(s=>{try{s.src.stop();}catch(e){}});sources.clear();clearNP();}
+// ── PLAYBACK MODE SELECTOR ──
+const MODE_INFO={
+  oneshot:{cls:'active-oneshot',desc:'Plays the sound once from start to finish on each click.'},
+  gate:   {cls:'active-gate',   desc:'Plays while you hold the pad down — releases when you let go.'},
+  loop:   {cls:'active-loop',   desc:'Toggles continuous looping on/off with each click.'}
+};
+document.querySelectorAll('.mode-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const m=btn.dataset.mode;
+    // stop any active sources when switching mode
+    sources.forEach((_,i)=>{ try{sources.get(i).src.stop();}catch(e){} });
+    sources.clear();clearNP();
+    playMode=m;
+    document.querySelectorAll('.mode-btn').forEach(b=>b.className='mode-btn');
+    btn.classList.add(MODE_INFO[m].cls);
+    document.getElementById('modeDesc').textContent=MODE_INFO[m].desc;
+  });
 });
 document.getElementById('midiBtn').addEventListener('click',async()=>{
   try{
     midi=await navigator.requestMIDIAccess();
-    Array.from(midi.inputs.values()).forEach(i=>i.onmidimessage=m=>{
+    Array.from(midi.inputs.values()).forEach(inp=>inp.onmidimessage=m=>{
       const[st,note,vel]=m.data,cmd=st&0xf0,idx=NOTES.indexOf(note);
-      if(idx!==-1&&cmd===0x90&&vel>0)playPad(idx,vel);
+      if(idx!==-1&&cmd===0x90&&vel>0)midiPlay(idx,vel);
+      // note-off for gate mode
+      if(idx!==-1&&(cmd===0x80||(cmd===0x90&&vel===0))&&playMode==='gate')stopPad(idx);
     });
     document.getElementById('midiBtn').textContent='MIDI ✓';
     document.getElementById('midiBtn').classList.add('g');
@@ -774,7 +909,7 @@ document.getElementById('midiBtn').addEventListener('click',async()=>{
 });
 document.getElementById('clearBtn').addEventListener('click',()=>{
   if(!confirm('Clear all 27 pads?'))return;
-  sources.forEach(s=>{try{s.src.stop();}catch(e){}});sources.clear();sounds.clear();afterLoad();
+  sources.forEach((_,i)=>{try{sources.get(i).src.stop();}catch(e){}});sources.clear();sounds.clear();afterLoad();
 });
 
 // ── LOAD SOUND ──
@@ -861,7 +996,7 @@ function assignRec(i){
   sounds.set(i,{buffer:recBuf,url:null,name:`Recording ${i+1}`,id:`rec_${Date.now()}`});
   recBuf=null;waitPad=false;
   recStatus.textContent='Assigned! Record again to capture another.';recStatus.className='st ok';
-  afterLoad();setNP(i);playPad(i);
+  afterLoad();setNP(i);playPad(i);  // always one-shot preview on assign
 }
 
 // ── SEARCH ──
