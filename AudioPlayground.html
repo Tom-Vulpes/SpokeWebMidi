@@ -337,29 +337,19 @@ select option{background:#1c1c1f;}
 .spl-logo{font-family:var(--font);font-size:48px;font-weight:700;color:#fff;text-align:center;margin-bottom:3px;letter-spacing:1px;}
 .spl-logo span{color:var(--accent);}
 .spl-sub{font-family:var(--font);font-size:14px;font-weight:400;color:rgba(255,255,255,.4);text-align:center;margin-bottom:34px;}
-.spl-wordmark{
-  display:flex;align-items:center;justify-content:center;gap:16px;
-  margin-bottom:32px;
+.spl-butterfly{display:flex;justify-content:center;margin-bottom:24px;}
+.spl-butterfly img{width:120px;height:120px;object-fit:contain;opacity:.92;}
+.spl-features{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:32px;}
+.spl-feat{
+  display:flex;align-items:flex-start;gap:12px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:14px 16px;
 }
-.spl-wordmark-line{flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(0,229,160,.3));}
-.spl-wordmark-line.r{background:linear-gradient(to left,transparent,rgba(0,229,160,.3));}
-.spl-wordmark-dot{
-  width:48px;height:48px;border-radius:50%;
-  border:2px solid rgba(0,229,160,.4);
-  background:rgba(0,229,160,.07);
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--font);font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px;
-}
-.spl-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
-.spl-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:18px 14px;text-align:center;transition:border-color .18s;}
-.spl-card:hover{border-color:rgba(0,229,160,.3);}
-.spl-card-icon{font-size:24px;margin-bottom:8px;}
-.spl-card-title{font-family:var(--font);font-size:13px;font-weight:700;color:#fff;margin-bottom:5px;}
-.spl-card-desc{font-family:var(--font);font-size:11px;font-weight:400;color:rgba(255,255,255,.42);line-height:1.6;}
-.spl-tips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:28px;}
-.spl-tip{display:flex;align-items:flex-start;gap:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:11px 13px;}
-.spl-tip-key{font-family:var(--font);font-size:11px;font-weight:700;color:var(--accent);min-width:80px;flex-shrink:0;padding-top:1px;}
-.spl-tip-val{font-family:var(--font);font-size:11px;color:rgba(255,255,255,.5);line-height:1.5;}
+.spl-feat-icon{font-size:20px;flex-shrink:0;line-height:1.2;}
+.spl-feat-text{}
+.spl-feat-title{font-family:var(--font);font-size:13px;font-weight:700;color:#fff;margin-bottom:3px;}
+.spl-feat-desc{font-family:var(--font);font-size:11px;color:rgba(255,255,255,.45);line-height:1.6;}
+@media(max-width:480px){.spl-features{grid-template-columns:1fr;}}
 .spl-go{
   display:block;width:100%;padding:15px;
   font-family:var(--font);font-size:15px;font-weight:700;letter-spacing:1px;
@@ -384,48 +374,45 @@ select option{background:#1c1c1f;}
 <div id="splash">
   <div class="spl-inner">
     <div class="spl-logo">SPOKE<span>.</span></div>
-    <div class="spl-sub">Audio Playground — load, record and play</div>
+    <div class="spl-sub">Audio Playground</div>
 
-    <div class="spl-wordmark">
-      <div class="spl-wordmark-line"></div>
-      <div class="spl-wordmark-dot">27</div>
-      <div class="spl-wordmark-line r"></div>
+    <div class="spl-butterfly">
+      <img src="graphics/Butterfly.png" alt="SPOKE" onerror="this.style.display='none'">
     </div>
 
-    <div class="spl-cards">
-      <div class="spl-card">
-        <div class="spl-card-icon">🔍</div>
-        <div class="spl-card-title">Search</div>
-        <div class="spl-card-desc">Find sounds on Freesound by keyword or browse quick categories</div>
+    <div class="spl-features">
+      <div class="spl-feat">
+        <div class="spl-feat-icon">🔍</div>
+        <div class="spl-feat-text">
+          <div class="spl-feat-title">Search sounds</div>
+          <div class="spl-feat-desc">Search thousands of free samples on Freesound and load them straight onto the board</div>
+        </div>
       </div>
-      <div class="spl-card">
-        <div class="spl-card-icon">🎛️</div>
-        <div class="spl-card-title">Load</div>
-        <div class="spl-card-desc">Hit + Load on any result — it fills the next free pad automatically</div>
+      <div class="spl-feat">
+        <div class="spl-feat-icon">🎙️</div>
+        <div class="spl-feat-text">
+          <div class="spl-feat-title">Record from mic</div>
+          <div class="spl-feat-desc">Capture audio from your microphone and assign it to any pad — silence is trimmed automatically</div>
+        </div>
       </div>
-      <div class="spl-card">
-        <div class="spl-card-icon">🎵</div>
-        <div class="spl-card-title">Play</div>
-        <div class="spl-card-desc">Click any lit pad, or plug in a MIDI controller to trigger sounds</div>
+      <div class="spl-feat">
+        <div class="spl-feat-icon">📂</div>
+        <div class="spl-feat-text">
+          <div class="spl-feat-title">Upload your files</div>
+          <div class="spl-feat-desc">Drop in your own .wav or .mp3 files, or restore a full session from a saved ZIP</div>
+        </div>
       </div>
-      <div class="spl-card">
-        <div class="spl-card-icon">📦</div>
-        <div class="spl-card-title">Save</div>
-        <div class="spl-card-desc">Export your whole session as a numbered ZIP to reload it later</div>
+      <div class="spl-feat">
+        <div class="spl-feat-icon">🎛️</div>
+        <div class="spl-feat-text">
+          <div class="spl-feat-title">Edit playback modes</div>
+          <div class="spl-feat-desc">Set each pad to one-shot, gate (plays while held), or loop — globally or per pad</div>
+        </div>
       </div>
-    </div>
-
-    <div class="spl-tips">
-      <div class="spl-tip"><span class="spl-tip-key">Left-click pad</span><span class="spl-tip-val">Trigger the assigned sound</span></div>
-      <div class="spl-tip"><span class="spl-tip-key">Right-click pad</span><span class="spl-tip-val">Clear that pad's sound</span></div>
-      <div class="spl-tip"><span class="spl-tip-key">Loop mode</span><span class="spl-tip-val">Toggle in the sidebar — click a looping pad again to stop it</span></div>
-      <div class="spl-tip"><span class="spl-tip-key">Record tab</span><span class="spl-tip-val">Capture mic audio, then click any pad to assign it</span></div>
-      <div class="spl-tip"><span class="spl-tip-key">Auto-load ⚡</span><span class="spl-tip-val">Fill all 27 pads from search results in a single click</span></div>
-      <div class="spl-tip"><span class="spl-tip-key">Upload / Download</span><span class="spl-tip-val">ZIP download or drag in saved .wav files to restore a session</span></div>
     </div>
 
     <button class="spl-go" id="splEnter">LET'S GO →</button>
-    <div class="spl-skip" id="splSkip">skip intro</div>
+    <div class="spl-skip" id="splSkip">skip</div>
   </div>
 </div>
 
@@ -817,14 +804,20 @@ class Pad{
   tick(){if(this.on){this.pulse+=.18;if(this.pulse>Math.PI*2){this.on=false;this.pulse=0;}}}
   draw(){
     const has=sounds.has(this.i),active=sources.has(this.i);
-    const myMode=padModes.get(this.i)||playMode; // per-pad or global
+    const myMode=padModes.get(this.i)||playMode;
     let fill='#1c1c1f',str='rgba(255,255,255,.09)';
+
     if(active){
+      // playing: colour by mode
       if(myMode==='loop'){const p=Math.sin(Date.now()/480)*.3+.7;fill=`rgba(245,166,35,${p})`;str='#f5a623';}
       else if(myMode==='gate'){const p=Math.sin(Date.now()/300)*.25+.75;fill=`rgba(124,109,250,${p})`;str='#7c6dfa';}
       else{fill='#00e5a0';str='#fff';}
+    } else if(this.on){
+      // touched but no sound (or one-shot flash on empty) — dim white highlight
+      fill=has?'rgba(255,255,255,.25)':'rgba(255,255,255,.18)';
+      str='rgba(255,255,255,.55)';
     } else if(has){
-      // idle colour hints at assigned per-pad mode
+      // loaded, idle — hint at per-pad mode colour
       if(padModes.has(this.i)){
         const m=padModes.get(this.i);
         if(m==='gate'){fill='rgba(124,109,250,.15)';str='rgba(124,109,250,.4)';}
@@ -832,17 +825,25 @@ class Pad{
         else{fill='rgba(0,229,160,.15)';str='rgba(0,229,160,.45)';}
       } else{fill='rgba(0,229,160,.15)';str='rgba(0,229,160,.45)';}
     }
-    if(this.on||active){
+
+    // glow ring when active or just touched
+    if(active||this.on){
       const gs=this.sz+Math.sin(this.pulse)*14;
-      const gc=myMode==='loop'?'#f5a623':myMode==='gate'?'#7c6dfa':'#00e5a0';
+      const gc=active?(myMode==='loop'?'#f5a623':myMode==='gate'?'#7c6dfa':'#00e5a0'):'rgba(255,255,255,1)';
       const g=bCtx.createRadialGradient(this.x,this.y,1,this.x,this.y,gs);
-      g.addColorStop(0,gc+'44');g.addColorStop(1,gc+'00');
+      g.addColorStop(0,gc+(active?'44':'22'));g.addColorStop(1,gc+'00');
       bCtx.fillStyle=g;bCtx.beginPath();bCtx.arc(this.x,this.y,gs,0,Math.PI*2);bCtx.fill();
     }
+
     bCtx.beginPath();bCtx.arc(this.x,this.y,this.sz,0,Math.PI*2);
-    bCtx.fillStyle=fill;bCtx.fill();bCtx.strokeStyle=str;bCtx.lineWidth=has||active?1.5:1;bCtx.stroke();
-    bCtx.fillStyle=has?'rgba(255,255,255,.88)':'rgba(255,255,255,.22)';
-    bCtx.font=`${has?'600':'400'} 8px 'Comfortaa'`;bCtx.textAlign='center';bCtx.textBaseline='middle';
+    bCtx.fillStyle=fill;bCtx.fill();
+    bCtx.strokeStyle=str;bCtx.lineWidth=(has||active||this.on)?1.5:1;bCtx.stroke();
+
+    // label text
+    const bright=active||this.on||has;
+    bCtx.fillStyle=bright?'rgba(255,255,255,.88)':'rgba(255,255,255,.22)';
+    bCtx.font=`${(has||active)?'600':'400'} 8px 'Comfortaa'`;
+    bCtx.textAlign='center';bCtx.textBaseline='middle';
     const lbl=active&&myMode==='loop'?'↻':active&&myMode==='gate'?'⏯':this.i+1;
     bCtx.fillText(lbl,this.x,this.y);
   }
@@ -920,6 +921,8 @@ bc.addEventListener('contextmenu',e=>{
 function padEffectiveMode(i){ return padModes.get(i)||playMode; }
 
 function pressStart(i){
+  // Always fire the visual touch indicator regardless of whether a sound is loaded
+  if(pads[i]) pads[i].fire();
   const m=padEffectiveMode(i);
   if(m==='oneshot') playPad(i);
   else if(m==='gate') startGate(i);
@@ -1030,6 +1033,7 @@ document.getElementById('midiBtn').addEventListener('click',async()=>{
       if(idx===-1)return;
       // Note-on
       if(cmd===0x90&&vel>0){
+        if(pads[idx]) pads[idx].fire(); // always show touch
         midiPlay(idx,vel);
         if(padEffectiveMode(idx)==='gate') heldPads.add(idx);
       }
