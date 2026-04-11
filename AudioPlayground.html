@@ -952,15 +952,16 @@ function startGate(i,vel=127){
 
 function stopPad(i){
   if(!sources.has(i))return;
-  // fade out quickly to avoid click
   const entry=sources.get(i);
+  sources.delete(i); // delete first so re-entrant calls bail out above
   try{
     const now=AC.currentTime;
+    entry.g.gain.cancelScheduledValues(now);
     entry.g.gain.setValueAtTime(entry.g.gain.value,now);
-    entry.g.gain.linearRampToValueAtTime(0,now+0.03);
-    entry.src.stop(now+0.035);
-  }catch(e){}
-  sources.delete(i);clearNP();
+    entry.g.gain.linearRampToValueAtTime(0,now+0.04);
+    entry.src.stop(now+0.045);
+  }catch(e){/* already stopped */}
+  clearNP();
 }
 
 function toggleLoop(i,vel=127){
@@ -1016,9 +1017,17 @@ document.getElementById('midiBtn').addEventListener('click',async()=>{
     midi=await navigator.requestMIDIAccess();
     Array.from(midi.inputs.values()).forEach(inp=>inp.onmidimessage=m=>{
       const[st,note,vel]=m.data,cmd=st&0xf0,idx=NOTES.indexOf(note);
-      if(idx!==-1&&cmd===0x90&&vel>0)midiPlay(idx,vel);
-      // note-off for gate mode
-      if(idx!==-1&&(cmd===0x80||(cmd===0x90&&vel===0))&&playMode==='gate')stopPad(idx);
+      if(idx===-1)return;
+      // Note-on
+      if(cmd===0x90&&vel>0){
+        midiPlay(idx,vel);
+        if(padEffectiveMode(idx)==='gate') heldPads.add(idx);
+      }
+      // Note-off (explicit 0x80, or 0x90 with vel=0)
+      if(cmd===0x80||(cmd===0x90&&vel===0)){
+        heldPads.delete(idx);
+        if(padEffectiveMode(idx)==='gate') stopPad(idx);
+      }
     });
     document.getElementById('midiBtn').textContent='MIDI ✓';
     document.getElementById('midiBtn').classList.add('g');
