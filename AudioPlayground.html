@@ -327,8 +327,19 @@ select option{background:#1c1c1f;}
 .spl-logo{font-family:var(--font);font-size:48px;font-weight:700;color:#fff;text-align:center;margin-bottom:3px;letter-spacing:1px;}
 .spl-logo span{color:var(--accent);}
 .spl-sub{font-family:var(--font);font-size:14px;font-weight:400;color:rgba(255,255,255,.4);text-align:center;margin-bottom:34px;}
-.spl-ring{display:flex;justify-content:center;margin-bottom:30px;}
-#splashCanvas{filter:drop-shadow(0 0 24px rgba(0,229,160,.16));}
+.spl-wordmark{
+  display:flex;align-items:center;justify-content:center;gap:16px;
+  margin-bottom:32px;
+}
+.spl-wordmark-line{flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(0,229,160,.3));}
+.spl-wordmark-line.r{background:linear-gradient(to left,transparent,rgba(0,229,160,.3));}
+.spl-wordmark-dot{
+  width:48px;height:48px;border-radius:50%;
+  border:2px solid rgba(0,229,160,.4);
+  background:rgba(0,229,160,.07);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font);font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px;
+}
 .spl-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
 .spl-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:18px 14px;text-align:center;transition:border-color .18s;}
 .spl-card:hover{border-color:rgba(0,229,160,.3);}
@@ -365,7 +376,11 @@ select option{background:#1c1c1f;}
     <div class="spl-logo">SPOKE<span>.</span></div>
     <div class="spl-sub">Audio Playground — load, record and play</div>
 
-    <div class="spl-ring"><canvas id="splashCanvas" width="180" height="180"></canvas></div>
+    <div class="spl-wordmark">
+      <div class="spl-wordmark-line"></div>
+      <div class="spl-wordmark-dot">27</div>
+      <div class="spl-wordmark-line r"></div>
+    </div>
 
     <div class="spl-cards">
       <div class="spl-card">
@@ -687,13 +702,13 @@ select option{background:#1c1c1f;}
         <div class="card">
           <div class="card-head static"><span class="card-label">Import pack</span></div>
           <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
-            <p style="font-size:12px;font-weight:500;color:var(--muted);line-height:1.7;">Drop files named <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:10px;font-family:var(--mono);">1.wav</code>, <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:10px;font-family:var(--mono);">2.wav</code> etc. to reload a saved pack into the exact same pad slots.</p>
+            <p style="font-size:12px;font-weight:500;color:var(--muted);line-height:1.7;">Drop a <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:10px;font-family:var(--mono);">spoke_pack.zip</code> to restore a full session, or drop individual <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:10px;font-family:var(--mono);">.wav</code> files named by pad number.</p>
             <div class="drop-zone" id="dropZone">
               <div style="font-size:22px;margin-bottom:5px;">⬆</div>
-              Drop .wav / .mp3 / .ogg here<br>
+              Drop <strong>spoke_pack.zip</strong> or individual .wav files here<br>
               <span style="font-size:10px;opacity:.55;">or click to choose</span>
             </div>
-            <input type="file" id="importInput" multiple accept=".wav,.mp3,.ogg,.flac" style="display:none;">
+            <input type="file" id="importInput" multiple accept=".wav,.mp3,.ogg,.flac,.zip" style="display:none;">
             <button class="btn v" id="importBtn">Choose files</button>
             <div class="st" id="importStatus"></div>
           </div>
@@ -846,40 +861,45 @@ function padAt(e){
   return pads.find(p=>p.hit(x,y))||null;
 }
 function touchPadAt(e){
-  const t=e.touches[0]||e.changedTouches[0];
+  // changedTouches for touchend, touches for touchstart/move
+  const t=(e.changedTouches||e.touches)[0];
+  if(!t)return null;
   const r=bc.getBoundingClientRect(),sx=bc.width/r.width,sy=bc.height/r.height;
   const x=(t.clientX-r.left)*sx,y=(t.clientY-r.top)*sy;
   return pads.find(p=>p.hit(x,y))||null;
 }
 
-// Mouse down — start play (all modes) or assign recording
+// Track currently held gate pad indices so global release always works
+const heldPads=new Set();
+
 bc.addEventListener('mousedown',e=>{
   if(e.button!==0)return;
   const p=padAt(e);if(!p)return;
   if(waitPad&&recBuf){assignRec(p.i);return;}
+  if(padEffectiveMode(p.i)==='gate') heldPads.add(p.i);
   pressStart(p.i);
 });
-// Mouse up — gate release
-bc.addEventListener('mouseup',e=>{
+
+// Listen on window so release fires even if mouse drifts off canvas
+window.addEventListener('mouseup',e=>{
   if(e.button!==0)return;
-  const p=padAt(e);if(p)pressEnd(p.i);
-});
-bc.addEventListener('mouseleave',()=>{
-  // release any gate pads (could be per-pad or global gate)
-  sources.forEach((_,i)=>{ if(padEffectiveMode(i)==='gate') stopPad(i); });
+  heldPads.forEach(i=>pressEnd(i));
+  heldPads.clear();
 });
 
-// Touch support
 bc.addEventListener('touchstart',e=>{
   e.preventDefault();
   const p=touchPadAt(e);if(!p)return;
   if(waitPad&&recBuf){assignRec(p.i);return;}
+  if(padEffectiveMode(p.i)==='gate') heldPads.add(p.i);
   pressStart(p.i);
 },{passive:false});
-bc.addEventListener('touchend',e=>{
-  e.preventDefault();
-  const p=touchPadAt(e);if(p)pressEnd(p.i);
-},{passive:false});
+
+window.addEventListener('touchend',e=>{
+  // Release all held gate pads on any touchend
+  heldPads.forEach(i=>pressEnd(i));
+  heldPads.clear();
+},{passive:true});
 
 bc.addEventListener('contextmenu',e=>{
   e.preventDefault();
@@ -1309,47 +1329,80 @@ dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');im
 async function importFiles(files){
   if(!files||!files.length)return;
   initAC();
-  const st=document.getElementById('importStatus');st.textContent=`Importing ${files.length} file(s)…`;st.className='st';
-  const sorted=[...files].sort((a,b)=>(parseInt(a.name)||999)-(parseInt(b.name)||999));
+  const st=document.getElementById('importStatus');
+  st.textContent='Reading files…';st.className='st';
+
+  // Separate ZIPs from audio files
+  const zips=[],audioFiles=[];
+  for(const f of files){
+    if(f.name.toLowerCase().endsWith('.zip')) zips.push(f);
+    else audioFiles.push(f);
+  }
+
   let ok=0,fail=0;
+
+  // ── Handle ZIPs ──
+  for(const zipFile of zips){
+    st.textContent=`Extracting ${zipFile.name}…`;
+    try{
+      const ab=await zipFile.arrayBuffer();
+      const zip=await JSZip.loadAsync(ab);
+      const entries=Object.values(zip.files).filter(f=>!f.dir);
+      // Sort by numeric filename (1.wav before 2.wav)
+      entries.sort((a,b)=>{
+        const na=parseInt(a.name.replace(/\.[^.]+$/,''))||999;
+        const nb=parseInt(b.name.replace(/\.[^.]+$/,''))||999;
+        return na-nb;
+      });
+      for(const entry of entries){
+        const base=entry.name.split('/').pop().replace(/\.[^.]+$/,'');
+        const n=parseInt(base);
+        let idx=(!isNaN(n)&&n>=1&&n<=27)?n-1:-1;
+        if(idx===-1)for(let i=0;i<27;i++){if(!sounds.has(i)){idx=i;break;}}
+        if(idx===-1){fail++;continue;}
+        try{
+          const ab2=await entry.async('arraybuffer');
+          const buf=await AC.decodeAudioData(ab2);
+          sounds.set(idx,{buffer:buf,url:null,name:base,id:`zip_${idx}_${Date.now()}`});
+          ok++;
+          st.textContent=`Loaded ${ok} from ZIP…`;
+        }catch(e){console.warn(entry.name,e);fail++;}
+      }
+    }catch(e){console.error('ZIP error',e);st.textContent='Failed to read ZIP';st.className='st err';fail++;}
+  }
+
+  // ── Handle loose audio files ──
+  const sorted=[...audioFiles].sort((a,b)=>(parseInt(a.name)||999)-(parseInt(b.name)||999));
   for(const f of sorted){
     const base=f.name.replace(/\.[^.]+$/,''),n=parseInt(base);
     let idx=(!isNaN(n)&&n>=1&&n<=27)?n-1:-1;
     if(idx===-1)for(let i=0;i<27;i++){if(!sounds.has(i)){idx=i;break;}}
     if(idx===-1){fail++;continue;}
-    try{const ab=await f.arrayBuffer();const buf=await AC.decodeAudioData(ab.slice(0));sounds.set(idx,{buffer:buf,url:null,name:base,id:`imp_${idx}_${Date.now()}`});ok++;}
-    catch(e){console.warn(f.name,e);fail++;}
+    try{
+      const ab=await f.arrayBuffer();
+      const buf=await AC.decodeAudioData(ab.slice(0));
+      sounds.set(idx,{buffer:buf,url:null,name:base,id:`imp_${idx}_${Date.now()}`});
+      ok++;
+    }catch(e){console.warn(f.name,e);fail++;}
   }
-  afterLoad();st.textContent=fail===0?`✓ Imported ${ok} sound(s)`:`✓ ${ok} imported, ${fail} failed`;st.className=fail===0?'st ok':'st warn';
+
+  afterLoad();
+  st.textContent=fail===0?`✓ Imported ${ok} sound(s)`:`✓ ${ok} imported, ${fail} failed`;
+  st.className=fail===0?'st ok':'st warn';
 }
 
 // ── SPLASH ──
 (()=>{
-  const splash=document.getElementById('splash');
-  const sc=document.getElementById('splashCanvas');
-  const c=sc.getContext('2d'),W=180,H=180,CX=90,CY=90,N=27,step=(Math.PI*2)/N;
-  let fr=0;
-  function ring(){
-    c.clearRect(0,0,W,H);
-    c.beginPath();c.arc(CX,CY,80,0,Math.PI*2);c.strokeStyle='rgba(255,255,255,.05)';c.lineWidth=1;c.stroke();
-    for(let i=0;i<N;i++){
-      const a=step*i-Math.PI/2,r=66,px=CX+Math.cos(a)*r,py=CY+Math.sin(a)*r;
-      c.beginPath();c.moveTo(CX,CY);c.lineTo(px,py);c.strokeStyle='rgba(255,255,255,.04)';c.lineWidth=1;c.stroke();
-      const wave=Math.sin(fr*.04+i*(Math.PI*2/N)),lit=wave>.6,glow=Math.max(0,wave);
-      if(lit){const g=c.createRadialGradient(px,py,1,px,py,13);g.addColorStop(0,`rgba(0,229,160,${glow*.45})`);g.addColorStop(1,'rgba(0,229,160,0)');c.fillStyle=g;c.beginPath();c.arc(px,py,13,0,Math.PI*2);c.fill();}
-      c.beginPath();c.arc(px,py,6,0,Math.PI*2);
-      c.fillStyle=lit?`rgba(0,229,160,${.55+glow*.45})`:'rgba(255,255,255,.07)';c.fill();
-      c.strokeStyle=lit?'rgba(0,229,160,.85)':'rgba(255,255,255,.09)';c.lineWidth=1;c.stroke();
-    }
-    c.beginPath();c.arc(CX,CY,20,0,Math.PI*2);c.fillStyle='#0a0b0e';c.fill();c.strokeStyle='rgba(255,255,255,.07)';c.lineWidth=1;c.stroke();
-    c.fillStyle='#fff';c.font="bold 8px 'Comfortaa'";c.textAlign='center';c.textBaseline='middle';c.fillText('SPOKE',CX,CY);
-    fr++;if(!splash.classList.contains('gone'))requestAnimationFrame(ring);
+  function dismiss(){
+    const splash=document.getElementById('splash');
+    splash.classList.add('hide');
+    setTimeout(()=>splash.classList.add('gone'),460);
   }
-  ring();
-  function dismiss(){splash.classList.add('hide');setTimeout(()=>splash.classList.add('gone'),460);}
   document.getElementById('splEnter').addEventListener('click',dismiss);
   document.getElementById('splSkip').addEventListener('click',dismiss);
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!splash.classList.contains('gone'))dismiss();});
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!document.getElementById('splash').classList.contains('gone')) dismiss();
+  });
 })();
 
 // init
