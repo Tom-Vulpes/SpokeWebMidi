@@ -338,7 +338,7 @@ select option{background:#1c1c1f;}
 .spl-logo span{color:var(--accent);}
 .spl-sub{font-family:var(--font);font-size:14px;font-weight:400;color:rgba(255,255,255,.4);text-align:center;margin-bottom:34px;}
 .spl-butterfly{display:flex;justify-content:center;margin-bottom:24px;}
-.spl-butterfly img{width:120px;height:120px;object-fit:contain;opacity:.92;}
+.spl-butterfly img{width:220px;height:220px;object-fit:contain;opacity:.92;}
 .spl-features{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:32px;}
 .spl-feat{
   display:flex;align-items:flex-start;gap:12px;
@@ -374,6 +374,7 @@ select option{background:#1c1c1f;}
 <div id="splash">
   <div class="spl-inner">
     <div class="spl-logo">SPOKE<span>.</span></div>
+    <div style="font-family:var(--font);font-size:28px;font-weight:700;color:var(--accent);text-align:center;margin-bottom:4px;letter-spacing:1px;">Welcome AbleAssembly!</div>
     <div class="spl-sub">Audio Playground</div>
 
     <div class="spl-butterfly">
@@ -801,23 +802,29 @@ class Pad{
     this.x=BW/2+Math.cos(a)*r;this.y=BH/2+Math.sin(a)*r;
     this.sz=15;this.pulse=0;this.on=false;
   }
-  tick(){if(this.on){this.pulse+=.18;if(this.pulse>Math.PI*2){this.on=false;this.pulse=0;}}}
+  tick(){
+    // Only animate the brief touch flash; playing state comes from sources map
+    if(this.on){
+      this.pulse+=.18;
+      if(this.pulse>Math.PI*2){this.on=false;this.pulse=0;}
+    }
+  }
   draw(){
-    const has=sounds.has(this.i),active=sources.has(this.i);
+    const has=sounds.has(this.i);
+    const active=sources.has(this.i);
     const myMode=padModes.get(this.i)||playMode;
-    let fill='#1c1c1f',str='rgba(255,255,255,.09)';
 
+    // Determine fill and stroke colour
+    let fill='#1c1c1f',str='rgba(255,255,255,.09)';
     if(active){
-      // playing: colour by mode
       if(myMode==='loop'){const p=Math.sin(Date.now()/480)*.3+.7;fill=`rgba(245,166,35,${p})`;str='#f5a623';}
       else if(myMode==='gate'){const p=Math.sin(Date.now()/300)*.25+.75;fill=`rgba(124,109,250,${p})`;str='#7c6dfa';}
       else{fill='#00e5a0';str='#fff';}
     } else if(this.on){
-      // touched but no sound (or one-shot flash on empty) — dim white highlight
-      fill=has?'rgba(255,255,255,.25)':'rgba(255,255,255,.18)';
-      str='rgba(255,255,255,.55)';
+      // Brief touch flash (empty pad or just-triggered)
+      const alpha=0.18+Math.sin(this.pulse)*.12;
+      fill=`rgba(255,255,255,${alpha})`;str='rgba(255,255,255,.55)';
     } else if(has){
-      // loaded, idle — hint at per-pad mode colour
       if(padModes.has(this.i)){
         const m=padModes.get(this.i);
         if(m==='gate'){fill='rgba(124,109,250,.15)';str='rgba(124,109,250,.4)';}
@@ -826,12 +833,17 @@ class Pad{
       } else{fill='rgba(0,229,160,.15)';str='rgba(0,229,160,.45)';}
     }
 
-    // glow ring when active or just touched
-    if(active||this.on){
-      const gs=this.sz+Math.sin(this.pulse)*14;
-      const gc=active?(myMode==='loop'?'#f5a623':myMode==='gate'?'#7c6dfa':'#00e5a0'):'rgba(255,255,255,1)';
+    // Glow: use active's own time-based pulse, or the touch flash pulse
+    if(active){
+      const gs=this.sz+8;
+      const gc=myMode==='loop'?'#f5a623':myMode==='gate'?'#7c6dfa':'#00e5a0';
       const g=bCtx.createRadialGradient(this.x,this.y,1,this.x,this.y,gs);
-      g.addColorStop(0,gc+(active?'44':'22'));g.addColorStop(1,gc+'00');
+      g.addColorStop(0,gc+'55');g.addColorStop(1,gc+'00');
+      bCtx.fillStyle=g;bCtx.beginPath();bCtx.arc(this.x,this.y,gs,0,Math.PI*2);bCtx.fill();
+    } else if(this.on){
+      const gs=this.sz+Math.sin(this.pulse)*10+4;
+      const g=bCtx.createRadialGradient(this.x,this.y,1,this.x,this.y,gs);
+      g.addColorStop(0,'rgba(255,255,255,.2)');g.addColorStop(1,'rgba(255,255,255,0)');
       bCtx.fillStyle=g;bCtx.beginPath();bCtx.arc(this.x,this.y,gs,0,Math.PI*2);bCtx.fill();
     }
 
@@ -839,9 +851,7 @@ class Pad{
     bCtx.fillStyle=fill;bCtx.fill();
     bCtx.strokeStyle=str;bCtx.lineWidth=(has||active||this.on)?1.5:1;bCtx.stroke();
 
-    // label text
-    const bright=active||this.on||has;
-    bCtx.fillStyle=bright?'rgba(255,255,255,.88)':'rgba(255,255,255,.22)';
+    bCtx.fillStyle=(has||active||this.on)?'rgba(255,255,255,.88)':'rgba(255,255,255,.22)';
     bCtx.font=`${(has||active)?'600':'400'} 8px 'Comfortaa'`;
     bCtx.textAlign='center';bCtx.textBaseline='middle';
     const lbl=active&&myMode==='loop'?'↻':active&&myMode==='gate'?'⏯':this.i+1;
@@ -942,12 +952,11 @@ function midiPlay(idx,vel){
 function playPad(i,vel=127){
   if(!sounds.has(i))return;
   initAC();setNP(i);
-  // one-shot: always restart
   if(sources.has(i)){try{sources.get(i).src.stop();}catch(e){}sources.delete(i);}
   const src=AC.createBufferSource(),g=AC.createGain();
   src.buffer=sounds.get(i).buffer;src.loop=false;g.gain.value=vel/127;
   src.connect(g);g.connect(gain);src.start(0);
-  sources.set(i,{src,g});if(pads[i])pads[i].fire();
+  sources.set(i,{src,g});
   src.onended=()=>{if(sources.get(i)?.src===src){sources.delete(i);clearNP();}};
 }
 
