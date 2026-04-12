@@ -35,8 +35,8 @@ body{font-family:'Comfortaa',sans-serif;background:#1a1a1a;color:#e0e0e0;padding
 .sensor-label{font-size:11px;color:#ccc;line-height:1.4}
 .sensor-label .sub{font-size:10px;color:#666;display:block}
 .bar-wrap{position:relative;height:26px;background:#111;border-radius:4px;cursor:crosshair;user-select:none;touch-action:none}
-.bar-fill{height:100%;border-radius:4px;background:#1a5c29;pointer-events:none;transition:background .08s}
-.bar-fill.active{background:#c45f00}
+.bar-fill{height:100%;border-radius:4px;background:#c45f00;pointer-events:none;transition:background .08s}
+.bar-fill.active{background:#1a5c29}
 .tline{position:absolute;top:0;height:100%;width:4px;background:#ff9800;border-radius:2px;transform:translateX(-50%);cursor:ew-resize;z-index:2}
 .tline-label{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:#ff9800;white-space:nowrap;pointer-events:none;font-family:'Comfortaa',sans-serif}
 .sensor-vals{font-size:11px;display:flex;flex-direction:column;gap:1px;text-align:right}
@@ -87,8 +87,9 @@ body{font-family:'Comfortaa',sans-serif;background:#1a1a1a;color:#e0e0e0;padding
 <div class="sensors-panel">
   <div class="sensors-header">
     <div class="panel-title">Sensors</div>
-    <div class="legend">
-      Green bar = raw value &nbsp;|&nbsp; Orange marker = threshold (drag to set) &nbsp;|&nbsp; Bar turns orange when triggered
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end">
+      <div class="legend">Orange bar = raw value &nbsp;|&nbsp; Orange marker = threshold (drag to set) &nbsp;|&nbsp; Bar turns green when triggered</div>
+      <button class="btn" style="font-size:11px;padding:6px 12px;background:#555;white-space:nowrap" onclick="resetThresholds()">Reset thresholds</button>
     </div>
   </div>
   <div id="sensorList"></div>
@@ -118,12 +119,9 @@ const PIN_NAMES = ['GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9','GP10',
 const MIDI_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36];
 const N = 27;
 const MAX_RAW = 20000;
-// CircuitPython touchio auto-threshold = resting_value * 1.05
-// Typical SPOKE resting raw ~3000-6000, so default threshold ~6000
-const DEFAULT_THRESHOLD = 6000;
 
 let rawValues = new Array(N).fill(0);
-let thresholds = new Array(N).fill(DEFAULT_THRESHOLD);
+let thresholds = new Array(N).fill(null); // null = not yet received from board
 let userPinned = new Array(N).fill(false);
 let activeFlags = new Array(N).fill(false);
 let fileHandle = null, serialPort = null, serialReader = null, isReading = false;
@@ -135,19 +133,18 @@ function buildSensorList() {
   for (let i = 0; i < N; i++) {
     const row = document.createElement('div');
     row.className = 'sensor-row';
-    const pct = (thresholds[i] / MAX_RAW * 100).toFixed(3);
     row.innerHTML =
       '<div class="sensor-label">' + PIN_NAMES[i] +
       '<span class="sub">Pad ' + (i+1) + ' · Note ' + MIDI_NOTES[i] + '</span></div>' +
       '<div class="bar-wrap" id="bw' + i + '">' +
         '<div class="bar-fill" id="bf' + i + '" style="width:0%"></div>' +
-        '<div class="tline" id="tl' + i + '" style="left:' + pct + '%">' +
-          '<span class="tline-label" id="tlv' + i + '">' + thresholds[i] + '</span>' +
+        '<div class="tline" id="tl' + i + '" style="left:50%;display:none">' +
+          '<span class="tline-label" id="tlv' + i + '">--</span>' +
         '</div>' +
       '</div>' +
       '<div class="sensor-vals">' +
         '<span class="vr">Raw: <span id="rv' + i + '">--</span></span>' +
-        '<span class="vt">Thr: <span id="tv' + i + '">' + thresholds[i] + '</span></span>' +
+        '<span class="vt">Thr: <span id="tv' + i + '">--</span></span>' +
         '<span class="vm">MIDI ' + MIDI_NOTES[i] + '</span>' +
       '</div>';
     list.appendChild(row);
@@ -167,6 +164,7 @@ function initDrag(i) {
     thresholds[i] = v; userPinned[i] = true;
     const pct = (v / MAX_RAW * 100).toFixed(3);
     tl.style.left = pct + '%';
+    tl.style.display = '';
     document.getElementById('tlv' + i).textContent = v;
     document.getElementById('tv' + i).textContent = v;
     refreshBar(i);
@@ -185,12 +183,38 @@ function refreshBar(i) {
   const bf = document.getElementById('bf' + i);
   const rv = document.getElementById('rv' + i);
   if (!bf) return;
-  bf.style.width = (rawValues[i] / MAX_RAW * 100).toFixed(3) + '%';
+  bf.style.width = (Math.min(rawValues[i], MAX_RAW) / MAX_RAW * 100).toFixed(3) + '%';
   rv.textContent = rawValues[i];
-  const triggered = rawValues[i] > 100 && rawValues[i] < thresholds[i];
+  const thr = thresholds[i];
+  const triggered = thr !== null && rawValues[i] > 0 && rawValues[i] < thr;
   bf.classList.toggle('active', triggered);
   activeFlags[i] = triggered;
   document.getElementById('sActive').textContent = activeFlags.filter(Boolean).length;
+}
+
+function setThresholdUI(i, v) {
+  thresholds[i] = v;
+  const pct = (Math.min(v, MAX_RAW) / MAX_RAW * 100).toFixed(3);
+  const tl = document.getElementById('tl' + i);
+  if (tl) { tl.style.left = pct + '%'; tl.style.display = ''; }
+  const tlv = document.getElementById('tlv' + i);
+  if (tlv) tlv.textContent = v;
+  const tv = document.getElementById('tv' + i);
+  if (tv) tv.textContent = v;
+}
+
+function resetThresholds() {
+  for (let i = 0; i < N; i++) {
+    thresholds[i] = null;
+    userPinned[i] = false;
+    const tl = document.getElementById('tl' + i);
+    if (tl) tl.style.display = 'none';
+    const tlv = document.getElementById('tlv' + i);
+    if (tlv) tlv.textContent = '--';
+    const tv = document.getElementById('tv' + i);
+    if (tv) tv.textContent = '--';
+    refreshBar(i);
+  }
 }
 
 async function setupBoard() {
@@ -446,14 +470,7 @@ function processLine(line) {
     if (idx >= 0 && idx < N) {
       rawValues[idx] = raw;
       if (!userPinned[idx]) {
-        thresholds[idx] = thr;
-        const pct = (thr / MAX_RAW * 100).toFixed(3);
-        const tl = document.getElementById('tl' + idx);
-        if (tl) tl.style.left = pct + '%';
-        const tlv = document.getElementById('tlv' + idx);
-        if (tlv) tlv.textContent = thr;
-        const tv = document.getElementById('tv' + idx);
-        if (tv) tv.textContent = thr;
+        setThresholdUI(idx, thr);
       }
       refreshBar(idx);
     }
