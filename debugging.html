@@ -1,1022 +1,397 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPOKE Diagnostic Tool</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
-            background: #1a1a1a;
-            color: #e0e0e0;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            background: #252526;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border: 2px solid #ff6b35;
-        }
-        
-        .title {
-            font-size: 28px;
-            font-weight: 900;
-            color: #ff6b35;
-            margin-bottom: 10px;
-        }
-        
-        .subtitle {
-            color: #999;
-            font-size: 14px;
-        }
-        
-        .controls {
-            background: #252526;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        
-        .btn {
-            background: #ff6b35;
-            border: none;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 14px;
-        }
-        
-        .btn:hover {
-            background: #ff8555;
-            transform: translateY(-2px);
-        }
-        
-        .btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .btn-secondary {
-            background: #3b82f6;
-        }
-        
-        .btn-secondary:hover {
-            background: #5b9df6;
-        }
-        
-        .status {
-            padding: 10px 20px;
-            background: #333;
-            border-radius: 6px;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #666;
-        }
-        
-        .status-dot.connected {
-            background: #4CAF50;
-            box-shadow: 0 0 10px #4CAF50;
-        }
-        
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .panel {
-            background: #252526;
-            border-radius: 10px;
-            padding: 20px;
-            border: 1px solid #3e3e42;
-        }
-        
-        .panel-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            color: #ff6b35;
-        }
-        
-        .console-panel {
-            background: #1e1e1e;
-            border-radius: 10px;
-            padding: 20px;
-            border: 1px solid #3e3e42;
-            height: 500px;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .console-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .console-output {
-            flex: 1;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.5;
-            background: #0a0a0a;
-            padding: 10px;
-            border-radius: 6px;
-        }
-        
-        .console-line {
-            margin-bottom: 2px;
-        }
-        
-        .console-line.error {
-            color: #f44336;
-        }
-        
-        .console-line.warning {
-            color: #ff9800;
-        }
-        
-        .console-line.info {
-            color: #2196F3;
-        }
-        
-        .console-line.success {
-            color: #4CAF50;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .stat-box {
-            background: #252526;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #3e3e42;
-        }
-        
-        .stat-label {
-            font-size: 11px;
-            color: #999;
-            margin-bottom: 5px;
-        }
-        
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .clear-btn {
-            background: transparent;
-            border: 1px solid #666;
-            color: #999;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 11px;
-        }
-        
-        .clear-btn:hover {
-            background: #333;
-            color: white;
-        }
-        
-        .code-block {
-            background: #0a0a0a;
-            padding: 15px;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            line-height: 1.5;
-            margin-top: 15px;
-            border: 1px solid #3e3e42;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .warning-box {
-            background: rgba(255, 152, 0, 0.1);
-            border-left: 4px solid #ff9800;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPOKE Sensor Tool</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,monospace;background:#1a1a1a;color:#e0e0e0;padding:16px}
+.container{max-width:1400px;margin:0 auto}
+.header{background:#252526;padding:16px 20px;border-radius:10px;margin-bottom:16px;border:2px solid #ff6b35;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.title{font-size:22px;font-weight:700;color:#ff6b35}
+.subtitle{color:#999;font-size:12px;margin-top:4px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{background:#ff6b35;border:none;color:#fff;padding:10px 18px;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;transition:background .15s}
+.btn:hover{background:#ff8555}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-blue{background:#3b82f6}.btn-blue:hover{background:#5b9df6}
+.btn-green{background:#22c55e}.btn-green:hover{background:#4ade80}
+.btn-purple{background:#7c3aed}.btn-purple:hover{background:#9d5cf5}
+.status{padding:8px 14px;background:#333;border-radius:6px;font-size:12px;display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:50%;background:#555;flex-shrink:0}
+.dot.on{background:#4CAF50;box-shadow:0 0 6px #4CAF50}
+.dot.warn{background:#ff9800}
+.sensors-panel{background:#252526;border-radius:10px;padding:16px;border:1px solid #3e3e42;margin-bottom:16px}
+.sensors-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.panel-title{font-size:16px;font-weight:700;color:#ff6b35}
+.sensor-row{display:grid;grid-template-columns:100px 1fr 120px;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #2a2a2a}
+.sensor-row:last-child{border-bottom:none}
+.sensor-label{font-size:12px;color:#ccc;font-family:monospace}
+.sensor-label .pad-num{font-size:10px;color:#888;display:block}
+.bar-wrap{position:relative;height:28px;background:#111;border-radius:4px;cursor:ew-resize;user-select:none}
+.bar-fill{height:100%;border-radius:4px;background:#1d6b2a;transition:background .1s;pointer-events:none}
+.bar-fill.active{background:#e07c00}
+.threshold-line{position:absolute;top:0;height:100%;width:3px;background:#ff9800;border-radius:2px;cursor:ew-resize;transform:translateX(-50%)}
+.threshold-line::after{content:attr(data-val);position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:#ff9800;white-space:nowrap;pointer-events:none}
+.sensor-vals{font-family:monospace;font-size:11px;display:flex;flex-direction:column;gap:2px;text-align:right}
+.val-raw{color:#4CAF50}
+.val-thresh{color:#ff9800}
+.val-midi{color:#888;font-size:10px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat{background:#252526;padding:12px;border-radius:8px;border:1px solid #3e3e42}
+.stat-label{font-size:10px;color:#888;margin-bottom:4px}
+.stat-val{font-size:20px;font-weight:700;font-family:monospace}
+.console-wrap{background:#1e1e1e;border-radius:10px;padding:16px;border:1px solid #3e3e42;height:280px;display:flex;flex-direction:column}
+.console-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.console-out{flex:1;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.5;background:#0a0a0a;padding:8px;border-radius:4px}
+.cline{margin-bottom:1px}
+.cline.err{color:#f44336}.cline.warn{color:#ff9800}.cline.info{color:#64b5f6}.cline.ok{color:#4CAF50}
+.clear-btn{background:transparent;border:1px solid #555;color:#888;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:11px}
+.clear-btn:hover{background:#333;color:#fff}
+.hint{font-size:11px;color:#666;text-align:center;padding:6px 0}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="title">🔧 SPOKE Diagnostic Tool</div>
-            <div class="subtitle">Debug touch sensors, NeoPixels, and pin mapping issues</div>
-        </div>
-        
-        <div class="warning-box">
-            <strong>⚠️ Instructions:</strong> This tool will help diagnose your SPOKE board issues. Follow these steps:
-            <ol style="margin-top: 10px; margin-left: 20px; line-height: 1.8;">
-                <li>Click "Setup SPOKE" and select your code.py file</li>
-                <li>Click "Upload Diagnostic Code" to replace your code with test code</li>
-                <li>Watch the sensor readings and NeoPixel display below</li>
-                <li>Touch each pad and observe which sensors trigger and which LEDs light up</li>
-                <li>Share the console output with support if you see mismatches</li>
-            </ol>
-        </div>
-        
-        <div class="controls">
-            <button class="btn" id="setupBtn" onclick="setupBoard()">Setup SPOKE</button>
-            <button class="btn btn-secondary" id="uploadBtn" onclick="uploadDiagnostic()" disabled>Upload Diagnostic Code</button>
-            <button class="btn btn-secondary" onclick="connectSerial()" id="serialBtn" disabled>Connect Serial Monitor</button>
-            <div class="status">
-                <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Not Connected</span>
-            </div>
-        </div>
-        
-        <div class="stats-grid">
-            <div class="stat-box">
-                <div class="stat-label">Touch Events</div>
-                <div class="stat-value" id="touchEvents">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">MIDI Events</div>
-                <div class="stat-value" id="midiEvents">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Total Messages</div>
-                <div class="stat-value" id="totalMessages">0</div>
-            </div>
-        </div>
-        
-        <div class="panel" style="margin-bottom: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div class="panel-title" style="margin: 0;">📈 Raw Sensor Data Graph</div>
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <label style="font-size: 13px; color: #999;">Select Pin:</label>
-                    <select id="pinSelector" onchange="changeSelectedPin()" style="background: #333; color: white; border: 1px solid #555; padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;">
-                        <option value="0">GP1 (Pad 1)</option>
-                        <option value="1">GP2 (Pad 2)</option>
-                        <option value="2">GP3 (Pad 3)</option>
-                        <option value="3">GP4 (Pad 4)</option>
-                        <option value="4">GP5 (Pad 5)</option>
-                        <option value="5">GP6 (Pad 6)</option>
-                        <option value="6">GP7 (Pad 7)</option>
-                        <option value="7">GP8 (Pad 8)</option>
-                        <option value="8">GP9 (Pad 9)</option>
-                        <option value="9">GP10 (Pad 10)</option>
-                        <option value="10">GP11 (Pad 11)</option>
-                        <option value="11">GP12 (Pad 12)</option>
-                        <option value="12">GP13 (Pad 13)</option>
-                        <option value="13">GP14 (Pad 14)</option>
-                        <option value="14">GP15 (Pad 15)</option>
-                        <option value="15">GP16 (Pad 16)</option>
-                        <option value="16">GP17 (Pad 17)</option>
-                        <option value="17">GP18 (Pad 18)</option>
-                        <option value="18">GP19 (Pad 19)</option>
-                        <option value="19">GP20 (Pad 20)</option>
-                        <option value="20">GP21 (Pad 21)</option>
-                        <option value="21">GP22 (Pad 22)</option>
-                        <option value="22">GP25 (Pad 23)</option>
-                        <option value="23">GP26 (Pad 24)</option>
-                        <option value="24">GP27 (Pad 25)</option>
-                        <option value="25">GP28 (Pad 26)</option>
-                        <option value="26">VOLTAGE_MONITOR (Pad 27)</option>
-                    </select>
-                    <div style="font-size: 12px; color: #999;">
-                        Current: <span id="currentRaw" style="color: #4CAF50; font-weight: 700;">--</span> | 
-                        Threshold: <span id="currentThreshold" style="color: #ff9800; font-weight: 700;">--</span>
-                    </div>
-                </div>
-            </div>
-            <canvas id="graphCanvas" width="1400" height="300" style="background: #0a0a0a; border-radius: 8px; width: 100%;"></canvas>
-            <div style="margin-top: 10px; font-size: 11px; color: #666; text-align: center;">
-                Green line = Raw sensor value | Orange line = Threshold | Graph shows last 100 readings
-            </div>
-        </div>
-        
-        <div class="panel" style="margin-bottom: 20px;">
-            <div class="panel-title">📋 Testing Instructions</div>
-            <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; line-height: 1.8;">
-                <div style="margin-bottom: 15px; font-weight: 700; color: #ff6b35;">Please touch the pads in this exact order:</div>
-                <ol style="margin-left: 20px; font-size: 14px;">
-                    <li><strong>Touch pad 1</strong> (far left) - hold for 1 second, then release</li>
-                    <li><strong>Touch pad 2</strong> - hold for 1 second, then release</li>
-                    <li><strong>Continue with pads 3, 4, 5...</strong> all the way to pad 27</li>
-                    <li><strong>After testing all pads individually</strong>, touch pads 1 and 27 at the same time</li>
-                    <li><strong>Finally</strong>, rapidly tap pad 13 five times in quick succession</li>
-                </ol>
-                <div style="margin-top: 15px; padding: 12px; background: rgba(255, 152, 0, 0.1); border-left: 3px solid #ff9800; border-radius: 4px;">
-                    ⚠️ <strong>Important:</strong> Watch the graph above to see sensor behavior in real-time. Select different pins to inspect individual sensors.
-                </div>
-            </div>
-        </div>
-        
-        <div class="console-panel">
-            <div class="console-header">
-                <div class="panel-title" style="margin: 0;">📊 Serial Monitor - Complete Diagnostic Log</div>
-                <button class="clear-btn" onclick="copyConsole()" style="background: #4CAF50; color: white; border: none; padding: 8px 16px;">📋 Copy Output</button>
-                <button class="clear-btn" onclick="clearConsole()">Clear</button>
-            </div>
-            <div class="console-output" id="consoleOutput">
-                <div class="console-line info">Waiting for connection...</div>
-            </div>
-        </div>
-    </div>
+<div class="container">
 
-    <script>
-        // File and Serial handles
-        let fileHandle = null;
-        let serialPort = null;
-        let reader = null;
-        let isReading = false;
-        
-        // Graphing
-        let selectedPinIndex = 0;
-        const sensorDataHistory = Array(27).fill(null).map(() => []);
-        const thresholdHistory = Array(27).fill(null).map(() => []);
-        const MAX_HISTORY = 100;
-        let graphCanvas, graphCtx;
-        let graphAnimationId;
-        
-        // SPOKE configuration
-        const TOUCH_PINS = ['GP1', 'GP2', 'GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9', 
-                            'GP10', 'GP11', 'GP12', 'GP13', 'GP14', 'GP15', 'GP16', 'GP17', 
-                            'GP18', 'GP19', 'GP20', 'GP21', 'GP22', 'GP25', 'GP26', 'GP27', 'GP28', 'VOLTAGE_MONITOR'];
-        
-        // Initialize UI
-        function init() {
-            // Setup graph canvas
-            graphCanvas = document.getElementById('graphCanvas');
-            graphCtx = graphCanvas.getContext('2d');
-            
-            // Start graph animation
-            drawGraph();
-            
-            logConsole('Diagnostic tool ready. Follow steps above to begin.', 'info');
-        }
-        
-        // Setup board
-        async function setupBoard() {
-            try {
-                if (!('showOpenFilePicker' in window)) {
-                    alert('Please use Chrome, Edge, or Opera browser.');
-                    return;
-                }
-                
-                logConsole('Opening code.py...', 'info');
-                const [handle] = await window.showOpenFilePicker({
-                    types: [{
-                        description: 'Python Files',
-                        accept: {'text/x-python': ['.py']}
-                    }]
-                });
-                
-                fileHandle = handle;
-                const file = await fileHandle.getFile();
-                
-                logConsole('✓ code.py opened successfully', 'success');
-                document.getElementById('statusText').textContent = 'File Connected';
-                document.getElementById('statusDot').classList.add('connected');
-                document.getElementById('uploadBtn').disabled = false;
-                document.getElementById('serialBtn').disabled = false;
-                
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    logConsole('Error: ' + error.message, 'error');
-                }
-            }
-        }
-        
-        // Upload diagnostic code
-        async function uploadDiagnostic() {
-            if (!fileHandle) {
-                alert('Please setup SPOKE first');
-                return;
-            }
-            
-            const diagnosticCode = `# SPOKE Diagnostic Code
-# This code tests all sensors, NeoPixels, and MIDI output
-import board
-import touchio
-import neopixel
-import usb_midi
-import adafruit_midi
+<div class="header">
+  <div>
+    <div class="title">SPOKE Sensor Monitor</div>
+    <div class="subtitle">Live sensor bars · drag thresholds · download config</div>
+  </div>
+  <div class="controls">
+    <button class="btn" id="setupBtn" onclick="setupBoard()">Open code.py</button>
+    <button class="btn btn-blue" id="uploadBtn" onclick="uploadDiagnostic()" disabled>Upload diagnostic</button>
+    <button class="btn btn-blue" id="serialBtn" onclick="connectSerial()" disabled>Connect serial</button>
+    <button class="btn btn-green" onclick="downloadThresholds()">Download thresholds</button>
+    <div class="status"><div class="dot" id="dot"></div><span id="statusTxt">Not connected</span></div>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat"><div class="stat-label">Touch events</div><div class="stat-val" id="sTouchEvents">0</div></div>
+  <div class="stat"><div class="stat-label">MIDI events</div><div class="stat-val" id="sMidiEvents">0</div></div>
+  <div class="stat"><div class="stat-label">Active sensors</div><div class="stat-val" id="sActive">0</div></div>
+  <div class="stat"><div class="stat-label">Total messages</div><div class="stat-val" id="sTotal">0</div></div>
+</div>
+
+<div class="sensors-panel">
+  <div class="sensors-header">
+    <div class="panel-title">Sensor bars</div>
+    <div style="font-size:11px;color:#888">Green bar = raw value &nbsp;|&nbsp; Orange marker = threshold (drag to adjust) &nbsp;|&nbsp; Bar turns orange when triggered</div>
+  </div>
+  <div id="sensorList"></div>
+</div>
+
+<div class="console-wrap">
+  <div class="console-head">
+    <div class="panel-title" style="font-size:14px">Serial monitor</div>
+    <div style="display:flex;gap:8px">
+      <button class="clear-btn" style="background:#22c55e;color:#fff;border:none" onclick="copyLog()">Copy log</button>
+      <button class="clear-btn" onclick="clearLog()">Clear</button>
+    </div>
+  </div>
+  <div class="console-out" id="consoleOut"><div class="cline info">Waiting for connection...</div></div>
+</div>
+
+</div>
+<script>
+const PIN_NAMES = ['GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9','GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17','GP18','GP19','GP20','GP21','GP22','GP25','GP26','GP27','GP28','VOLTAGE_MONITOR'];
+const MIDI_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36];
+const N = 27;
+const MAX_RAW = 65535;
+
+let rawValues = new Array(N).fill(0);
+let thresholds = new Array(N).fill(30000);
+let activeFlags = new Array(N).fill(false);
+
+let fileHandle = null;
+let serialPort = null;
+let isReading = false;
+
+function buildSensorList() {
+  const list = document.getElementById('sensorList');
+  list.innerHTML = '';
+  for (let i = 0; i < N; i++) {
+    const row = document.createElement('div');
+    row.className = 'sensor-row';
+    row.innerHTML = `
+      <div class="sensor-label">
+        <span>${PIN_NAMES[i]}</span>
+        <span class="pad-num">Pad ${i+1} &middot; Note ${MIDI_NOTES[i]}</span>
+      </div>
+      <div class="bar-wrap" id="bw${i}">
+        <div class="bar-fill" id="bf${i}" style="width:0%"></div>
+        <div class="threshold-line" id="tl${i}" data-val="${thresholds[i]}" style="left:${(thresholds[i]/MAX_RAW*100).toFixed(2)}%"></div>
+      </div>
+      <div class="sensor-vals">
+        <span class="val-raw">Raw: <span id="rv${i}">--</span></span>
+        <span class="val-thresh">Thresh: <span id="tv${i}">${thresholds[i]}</span></span>
+        <span class="val-midi">MIDI ${MIDI_NOTES[i]}</span>
+      </div>`;
+    list.appendChild(row);
+    setupThresholdDrag(i);
+  }
+}
+
+function setupThresholdDrag(i) {
+  const bw = document.getElementById('bw'+i);
+  const tl = document.getElementById('tl'+i);
+  let dragging = false;
+
+  function getVal(clientX) {
+    const rect = bw.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return Math.round(pct * MAX_RAW);
+  }
+
+  tl.addEventListener('mousedown', e => { dragging = true; e.preventDefault(); });
+  bw.addEventListener('mousedown', e => {
+    if (e.target === tl) return;
+    dragging = true;
+    thresholds[i] = getVal(e.clientX);
+    updateThresholdUI(i);
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    thresholds[i] = getVal(e.clientX);
+    updateThresholdUI(i);
+  });
+  window.addEventListener('mouseup', () => { dragging = false; });
+
+  tl.addEventListener('touchstart', e => { dragging = true; e.preventDefault(); }, {passive:false});
+  bw.addEventListener('touchstart', e => {
+    if (e.target === tl) return;
+    dragging = true;
+    thresholds[i] = getVal(e.touches[0].clientX);
+    updateThresholdUI(i);
+    e.preventDefault();
+  }, {passive:false});
+  window.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    thresholds[i] = getVal(e.touches[0].clientX);
+    updateThresholdUI(i);
+  }, {passive:false});
+  window.addEventListener('touchend', () => { dragging = false; });
+}
+
+function updateThresholdUI(i) {
+  const tl = document.getElementById('tl'+i);
+  const pct = (thresholds[i] / MAX_RAW * 100).toFixed(2);
+  tl.style.left = pct + '%';
+  tl.setAttribute('data-val', thresholds[i]);
+  document.getElementById('tv'+i).textContent = thresholds[i];
+  updateBarUI(i);
+}
+
+function updateBarUI(i) {
+  const bf = document.getElementById('bf'+i);
+  const rv = document.getElementById('rv'+i);
+  const pct = (rawValues[i] / MAX_RAW * 100).toFixed(2);
+  bf.style.width = pct + '%';
+  rv.textContent = rawValues[i];
+  const triggered = rawValues[i] > 0 && rawValues[i] < thresholds[i];
+  bf.classList.toggle('active', triggered);
+  activeFlags[i] = triggered;
+  document.getElementById('sActive').textContent = activeFlags.filter(Boolean).length;
+}
+
+async function setupBoard() {
+  try {
+    if (!('showOpenFilePicker' in window)) { alert('Use Chrome, Edge or Opera.'); return; }
+    const [h] = await window.showOpenFilePicker({ types:[{description:'Python',accept:{'text/x-python':['.py']}}] });
+    fileHandle = h;
+    log('code.py opened', 'ok');
+    document.getElementById('statusTxt').textContent = 'File open';
+    document.getElementById('dot').className = 'dot on';
+    document.getElementById('uploadBtn').disabled = false;
+    document.getElementById('serialBtn').disabled = false;
+  } catch(e) { if (e.name !== 'AbortError') log('Error: '+e.message,'err'); }
+}
+
+async function uploadDiagnostic() {
+  if (!fileHandle) { alert('Open code.py first'); return; }
+  const code = buildDiagnosticCode();
+  try {
+    const w = await fileHandle.createWritable();
+    await w.write(code);
+    await w.close();
+    log('Diagnostic code uploaded — board restarting...','ok');
+  } catch(e) { log('Upload error: '+e.message,'err'); }
+}
+
+function buildDiagnosticCode() {
+  const threshStr = thresholds.map(t => t).join(', ');
+  return `# SPOKE Diagnostic — generated by SPOKE Sensor Monitor
+import board, touchio, neopixel, usb_midi, adafruit_midi, time
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
-import time
 
-# All touch pins
 touch_pins_raw = [
-    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8, board.GP9,
-    board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
-    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP25, board.GP26, board.GP27, board.GP28, board.VOLTAGE_MONITOR
+    board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8,board.GP9,
+    board.GP10,board.GP11,board.GP12,board.GP13,board.GP14,board.GP15,board.GP16,board.GP17,
+    board.GP18,board.GP19,board.GP20,board.GP21,board.GP22,board.GP25,board.GP26,board.GP27,board.GP28
 ]
+pin_names = ['GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9',
+             'GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17',
+             'GP18','GP19','GP20','GP21','GP22','GP25','GP26','GP27','GP28']
+MIDI_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36]
+THRESHOLDS = [${threshStr}]
 
-pin_names = ['GP1', 'GP2', 'GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9',
-             'GP10', 'GP11', 'GP12', 'GP13', 'GP14', 'GP15', 'GP16', 'GP17',
-             'GP18', 'GP19', 'GP20', 'GP21', 'GP22', 'GP25', 'GP26', 'GP27', 'GP28', 'VOLTAGE_MONITOR']
-
-# MIDI note mapping (default SPOKE mapping)
-MIDI_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
-
-# Initialize MIDI
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
-print("INIT: MIDI OK")
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
 
-# Initialize touch sensors
 touch_sensors = []
 for i, pin in enumerate(touch_pins_raw):
     try:
-        sensor = touchio.TouchIn(pin)
-        touch_sensors.append(sensor)
-        print(f"INIT: {pin_names[i]} OK")
+        s = touchio.TouchIn(pin)
+        s.threshold = THRESHOLDS[i]
+        touch_sensors.append(s)
+        print(f"INIT: {pin_names[i]} OK threshold={THRESHOLDS[i]}")
     except Exception as e:
         touch_sensors.append(None)
         print(f"INIT: {pin_names[i]} FAILED - {e}")
 
-# Initialize NeoPixels
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
-print("INIT: NeoPixels OK")
-print("DIAGNOSTIC: Starting sensor monitoring...")
-
-# Turn all pixels off
-for i in range(27):
-    pixels[i] = (0, 0, 0)
+prev = [False]*len(touch_sensors)
+loop = 0
+for i in range(27): pixels[i]=(0,0,0)
 pixels.show()
 
-# Track previous states
-previous_states = [False] * len(touch_sensors)
-
-# Main diagnostic loop
-loop_count = 0
 while True:
-    loop_count += 1
-    
-    # Check each sensor
-    for i, sensor in enumerate(touch_sensors):
-        if sensor is not None:
-            try:
-                is_touched = sensor.value
-                raw_value = sensor.raw_value
-                threshold = sensor.threshold
-                
-                # Detect state changes
-                if is_touched != previous_states[i]:
-                    previous_states[i] = is_touched
-                    
-                    if is_touched:
-                        # Touched - send note on
-                        if i < 27:
-                            midi_note = MIDI_NOTES[i]
-                            midi.send(NoteOn(midi_note, 100))
-                            pixels[i] = (0, 255, 0)  # Green when touched
-                            print(f"TOUCH_ON: {pin_names[i]} (index {i}) | Raw: {raw_value} | Threshold: {threshold} | MIDI: Note {midi_note} ON")
-                        else:
-                            print(f"TOUCH_ON: {pin_names[i]} (index {i}) | Raw: {raw_value} | Threshold: {threshold}")
-                    else:
-                        # Released - send note off
-                        if i < 27:
-                            midi_note = MIDI_NOTES[i]
-                            midi.send(NoteOff(midi_note, 0))
-                            pixels[i] = (0, 0, 0)  # Off when not touched
-                            print(f"TOUCH_OFF: {pin_names[i]} (index {i}) | Raw: {raw_value} | Threshold: {threshold} | MIDI: Note {midi_note} OFF")
-                        else:
-                            print(f"TOUCH_OFF: {pin_names[i]} (index {i}) | Raw: {raw_value} | Threshold: {threshold}")
-                
-            except Exception as e:
-                print(f"ERROR: {pin_names[i]} - {e}")
-    
-    # Update NeoPixels
+    loop += 1
+    for i,s in enumerate(touch_sensors):
+        if s is None: continue
+        try:
+            touched = s.value
+            raw = s.raw_value
+            thresh = s.threshold
+            if touched != prev[i]:
+                prev[i] = touched
+                if touched:
+                    midi.send(NoteOn(MIDI_NOTES[i],100))
+                    pixels[i]=(0,200,0)
+                    print(f"TOUCH_ON: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh} | MIDI: Note {MIDI_NOTES[i]} ON")
+                else:
+                    midi.send(NoteOff(MIDI_NOTES[i],0))
+                    pixels[i]=(0,0,0)
+                    print(f"TOUCH_OFF: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh} | MIDI: Note {MIDI_NOTES[i]} OFF")
+            else:
+                print(f"RAW: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh}")
+        except Exception as e:
+            print(f"ERROR: {pin_names[i]} - {e}")
     pixels.show()
-    
-    # Print detailed summary every 100 loops
-    if loop_count % 100 == 0:
-        active_count = sum(1 for s in touch_sensors if s and s.value)
-        print(f"STATUS: Loop {loop_count}, Active sensors: {active_count}")
-        
-        # Print raw values for all sensors
-        raw_values = []
-        for i, sensor in enumerate(touch_sensors):
-            if sensor is not None:
-                try:
-                    raw_values.append(f"{pin_names[i]}:{sensor.raw_value}")
-                except:
-                    pass
-        if raw_values:
-            print(f"RAW_VALUES: {' | '.join(raw_values[:10])}")  # Print first 10 to avoid spam
-    
-    time.sleep(0.01)  # 10ms delay
+    if loop % 50 == 0:
+        print(f"STATUS: Loop {loop}, active={sum(1 for s in touch_sensors if s and s.value)}")
+    time.sleep(0.02)
 `;
-            
-            try {
-                const writable = await fileHandle.createWritable();
-                await writable.write(diagnosticCode);
-                await writable.close();
-                
-                logConsole('✓ Diagnostic code uploaded!', 'success');
-                logConsole('Board is restarting...', 'info');
-                logConsole('Connect serial monitor to see output', 'info');
-                
-            } catch (error) {
-                logConsole('Upload error: ' + error.message, 'error');
-            }
-        }
-        
-        // Connect serial
-        async function connectSerial() {
-            try {
-                if (!('serial' in navigator)) {
-                    alert('Web Serial not supported. Use Chrome, Edge, or Opera.');
-                    return;
-                }
-                
-                logConsole('Requesting serial port...', 'info');
-                serialPort = await navigator.serial.requestPort();
-                await serialPort.open({ baudRate: 115200 });
-                
-                logConsole('✓ Serial connected!', 'success');
-                document.getElementById('statusText').textContent = 'Serial Connected';
-                
-                // Start reading
-                isReading = true;
-                readSerial();
-                
-            } catch (error) {
-                logConsole('Serial error: ' + error.message, 'error');
-            }
-        }
-        
-        // Read serial data
-        async function readSerial() {
-            if (!serialPort) return;
-            
-            try {
-                const decoder = new TextDecoderStream();
-                serialPort.readable.pipeTo(decoder.writable);
-                reader = decoder.readable.getReader();
-                
-                while (isReading) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    
-                    if (value) {
-                        const lines = value.split('\n');
-                        lines.forEach(line => {
-                            if (line.trim()) {
-                                processSerialLine(line.trim());
-                            }
-                        });
-                    }
-                }
-            } catch (error) {
-                if (isReading) {
-                    logConsole('Read error: ' + error.message, 'error');
-                }
-            }
-        }
-        
-        // Process serial line
-        function processSerialLine(line) {
-            // Determine message type for color coding
-            let type = 'info';
-            if (line.includes('ERROR')) type = 'error';
-            else if (line.includes('INIT')) type = 'info';
-            else if (line.includes('TOUCH_ON')) type = 'success';
-            else if (line.includes('TOUCH_OFF')) type = 'warning';
-            else if (line.includes('MIDI')) type = 'success';
-            
-            // Log everything to console
-            logConsole(line, type);
-            
-            // Parse and store raw sensor data
-            if (line.includes('TOUCH_ON:') || line.includes('TOUCH_OFF:')) {
-                const match = line.match(/(\w+) \(index (\d+)\) \| Raw: (\d+) \| Threshold: (\d+)/);
-                if (match) {
-                    const index = parseInt(match[2]);
-                    const rawValue = parseInt(match[3]);
-                    const threshold = parseInt(match[4]);
-                    
-                    // Store in history
-                    if (index < 27) {
-                        sensorDataHistory[index].push(rawValue);
-                        thresholdHistory[index].push(threshold);
-                        
-                        // Keep only last MAX_HISTORY readings
-                        if (sensorDataHistory[index].length > MAX_HISTORY) {
-                            sensorDataHistory[index].shift();
-                            thresholdHistory[index].shift();
-                        }
-                        
-                        // Update current values if this is the selected pin
-                        if (index === selectedPinIndex) {
-                            document.getElementById('currentRaw').textContent = rawValue;
-                            document.getElementById('currentThreshold').textContent = threshold;
-                        }
-                    }
-                }
-            }
-            
-            // Count touch events
-            if (line.includes('TOUCH_ON') || line.includes('TOUCH_OFF')) {
-                const touchCount = parseInt(document.getElementById('touchEvents').textContent);
-                document.getElementById('touchEvents').textContent = touchCount + 1;
-            }
-            
-            // Count MIDI events
-            if (line.includes('MIDI: Note')) {
-                const midiCount = parseInt(document.getElementById('midiEvents').textContent);
-                document.getElementById('midiEvents').textContent = midiCount + 1;
-            }
-            
-            // Update total message count
-            const totalCount = parseInt(document.getElementById('totalMessages').textContent);
-            document.getElementById('totalMessages').textContent = totalCount + 1;
-        }
-        
-        // Change selected pin for graphing
-        function changeSelectedPin() {
-            selectedPinIndex = parseInt(document.getElementById('pinSelector').value);
-            
-            // Update current values display
-            const history = sensorDataHistory[selectedPinIndex];
-            const thresholds = thresholdHistory[selectedPinIndex];
-            
-            if (history.length > 0) {
-                document.getElementById('currentRaw').textContent = history[history.length - 1];
-                document.getElementById('currentThreshold').textContent = thresholds[thresholds.length - 1];
-            } else {
-                document.getElementById('currentRaw').textContent = '--';
-                document.getElementById('currentThreshold').textContent = '--';
-            }
-        }
-        
-        // Draw graph
-        function drawGraph() {
-            graphAnimationId = requestAnimationFrame(drawGraph);
-            
-            if (!graphCtx) return;
-            
-            const width = graphCanvas.width;
-            const height = graphCanvas.height;
-            const padding = 40;
-            const graphWidth = width - padding * 2;
-            const graphHeight = height - padding * 2;
-            
-            // Clear canvas
-            graphCtx.fillStyle = '#0a0a0a';
-            graphCtx.fillRect(0, 0, width, height);
-            
-            // Get data for selected pin
-            const data = sensorDataHistory[selectedPinIndex];
-            const thresholds = thresholdHistory[selectedPinIndex];
-            
-            if (data.length === 0) {
-                // No data yet
-                graphCtx.fillStyle = '#666';
-                graphCtx.font = '14px monospace';
-                graphCtx.textAlign = 'center';
-                graphCtx.fillText('Waiting for sensor data...', width / 2, height / 2);
-                return;
-            }
-            
-            // Find min/max for scaling
-            const allValues = [...data, ...thresholds];
-            const minVal = Math.min(...allValues) - 1000;
-            const maxVal = Math.max(...allValues) + 1000;
-            const range = maxVal - minVal;
-            
-            // Draw grid lines
-            graphCtx.strokeStyle = '#222';
-            graphCtx.lineWidth = 1;
-            
-            for (let i = 0; i <= 5; i++) {
-                const y = padding + (graphHeight / 5) * i;
-                graphCtx.beginPath();
-                graphCtx.moveTo(padding, y);
-                graphCtx.lineTo(width - padding, y);
-                graphCtx.stroke();
-                
-                // Y-axis labels
-                const val = maxVal - (range / 5) * i;
-                graphCtx.fillStyle = '#666';
-                graphCtx.font = '10px monospace';
-                graphCtx.textAlign = 'right';
-                graphCtx.fillText(Math.round(val), padding - 5, y + 3);
-            }
-            
-            // Draw threshold line (orange)
-            if (thresholds.length > 0) {
-                const threshold = thresholds[thresholds.length - 1];
-                const y = padding + graphHeight - ((threshold - minVal) / range) * graphHeight;
-                
-                graphCtx.strokeStyle = '#ff9800';
-                graphCtx.lineWidth = 2;
-                graphCtx.setLineDash([5, 5]);
-                graphCtx.beginPath();
-                graphCtx.moveTo(padding, y);
-                graphCtx.lineTo(width - padding, y);
-                graphCtx.stroke();
-                graphCtx.setLineDash([]);
-            }
-            
-            // Draw sensor data line (green)
-            graphCtx.strokeStyle = '#4CAF50';
-            graphCtx.lineWidth = 2;
-            graphCtx.beginPath();
-            
-            for (let i = 0; i < data.length; i++) {
-                const x = padding + (graphWidth / (MAX_HISTORY - 1)) * i;
-                const y = padding + graphHeight - ((data[i] - minVal) / range) * graphHeight;
-                
-                if (i === 0) {
-                    graphCtx.moveTo(x, y);
-                } else {
-                    graphCtx.lineTo(x, y);
-                }
-            }
-            
-            graphCtx.stroke();
-            
-            // Draw axes
-            graphCtx.strokeStyle = '#444';
-            graphCtx.lineWidth = 2;
-            graphCtx.beginPath();
-            graphCtx.moveTo(padding, padding);
-            graphCtx.lineTo(padding, height - padding);
-            graphCtx.lineTo(width - padding, height - padding);
-            graphCtx.stroke();
-            
-            // Labels
-            graphCtx.fillStyle = '#999';
-            graphCtx.font = '12px monospace';
-            graphCtx.textAlign = 'center';
-            graphCtx.fillText('Time (last 100 readings) →', width / 2, height - 10);
-            
-            graphCtx.save();
-            graphCtx.translate(15, height / 2);
-            graphCtx.rotate(-Math.PI / 2);
-            graphCtx.fillText('Raw Capacitance Value', 0, 0);
-            graphCtx.restore();
-        }
-        
-        // Copy console to clipboard
-        function copyConsole() {
-            const consoleOutput = document.getElementById('consoleOutput');
-            const logText = Array.from(consoleOutput.children)
-                .map(line => line.textContent)
-                .join('\n');
-            
-            // Create comprehensive diagnostic prompt
-            const diagnosticPrompt = `# SPOKE Hardware Diagnostic Report
-Generated: ${new Date().toLocaleString()}
+}
 
-## HARDWARE SPECIFICATIONS
+function downloadThresholds() {
+  const lines = PIN_NAMES.slice(0,N).map((p,i)=>`    ${thresholds[i]},  # ${p} (Pad ${i+1}, Note ${MIDI_NOTES[i]})`).join('\n');
+  const code = `# SPOKE custom thresholds — generated by SPOKE Sensor Monitor
+# Paste this THRESHOLDS list into your code.py
+THRESHOLDS = [\n${lines}\n]\n\n# Apply in your init loop:\n# s = touchio.TouchIn(pin)\n# s.threshold = THRESHOLDS[i]\n`;
+  const blob = new Blob([code], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'spoke_thresholds.py';
+  a.click();
+  log('Thresholds downloaded as spoke_thresholds.py','ok');
+}
 
-**Device:** SPOKE - Custom CircuitPython MIDI Controller
-**MCU:** Raspberry Pi Pico (RP2040)
-**CircuitPython Version:** 9.x
+async function connectSerial() {
+  try {
+    if (!('serial' in navigator)) { alert('Web Serial not supported. Use Chrome/Edge/Opera.'); return; }
+    serialPort = await navigator.serial.requestPort();
+    await serialPort.open({baudRate:115200});
+    log('Serial connected','ok');
+    document.getElementById('statusTxt').textContent = 'Serial connected';
+    document.getElementById('dot').className = 'dot on';
+    isReading = true;
+    readSerial();
+  } catch(e) { log('Serial error: '+e.message,'err'); }
+}
 
-### Touch Sensor Configuration
-- **Total Pads:** 27 capacitive touch sensors
-- **Technology:** touchio library (built-in capacitive sensing)
-- **GPIO Pins Used:** GP1-GP22, GP25-GP28, VOLTAGE_MONITOR
-- **Pin Mapping:** Direct 1:1 mapping (Pad 1 = GP1, Pad 2 = GP2, etc.)
-  - Pads 1-22: GP1-GP22
-  - Pad 23: GP25
-  - Pad 24: GP26
-  - Pad 25: GP27
-  - Pad 26: GP28
-  - Pad 27: VOLTAGE_MONITOR
+async function readSerial() {
+  try {
+    const dec = new TextDecoderStream();
+    serialPort.readable.pipeTo(dec.writable);
+    const reader = dec.readable.getReader();
+    let buf = '';
+    while (isReading) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      buf += value;
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      lines.forEach(l => { if (l.trim()) processLine(l.trim()); });
+    }
+  } catch(e) { if (isReading) log('Read error: '+e.message,'err'); }
+}
 
-### NeoPixel Configuration
-- **Total LEDs:** 27 RGB NeoPixels (WS2812B)
-- **Data Pin:** GP0
-- **Mapping:** Direct index mapping (Sensor index 0 → NeoPixel 0)
-- **Brightness:** 10% (0.1)
-- **Expected Behavior:** Green (0, 255, 0) when touched, Off (0, 0, 0) when released
+function processLine(line) {
+  let cls = 'info';
+  if (line.includes('ERROR')) cls = 'err';
+  else if (line.includes('TOUCH_ON')) cls = 'ok';
+  else if (line.includes('TOUCH_OFF')) cls = 'warn';
+  log(line, cls);
 
-### MIDI Configuration
-- **Output:** USB MIDI (usb_midi.ports[1])
-- **Channel:** 0
-- **Velocity:** Fixed at 100
-- **Note Mapping:** Custom chromatic scale (high to low)
-  - Pad 1 (GP1): Note 98
-  - Pad 2 (GP2): Note 96
-  - Pad 3 (GP3): Note 93
-  - Pad 4 (GP4): Note 91
-  - Pad 5 (GP5): Note 88
-  - Pad 6 (GP6): Note 86
-  - Pad 7 (GP7): Note 84
-  - Pad 8 (GP8): Note 81
-  - Pad 9 (GP9): Note 79
-  - Pad 10 (GP10): Note 76
-  - Pad 11 (GP11): Note 74
-  - Pad 12 (GP12): Note 72
-  - Pad 13 (GP13): Note 69
-  - Pad 14 (GP14): Note 67
-  - Pad 15 (GP15): Note 64
-  - Pad 16 (GP16): Note 62
-  - Pad 17 (GP17): Note 60
-  - Pad 18 (GP18): Note 57
-  - Pad 19 (GP19): Note 55
-  - Pad 20 (GP20): Note 52
-  - Pad 21 (GP21): Note 50
-  - Pad 22 (GP22): Note 48
-  - Pad 23 (GP25): Note 45
-  - Pad 24 (GP26): Note 43
-  - Pad 25 (GP27): Note 40
-  - Pad 26 (GP28): Note 38
-  - Pad 27 (VOLTAGE_MONITOR): Note 36
+  const raw_match = line.match(/\(index (\d+)\) \| Raw: (\d+) \| Threshold: (\d+)/);
+  if (raw_match) {
+    const idx = parseInt(raw_match[1]);
+    const raw = parseInt(raw_match[2]);
+    const thr = parseInt(raw_match[3]);
+    if (idx < N) {
+      rawValues[idx] = raw;
+      if (!userSetThreshold[idx]) thresholds[idx] = thr;
+      updateBarUI(idx);
+      updateThresholdUI(idx);
+    }
+  }
 
-## DIAGNOSTIC CODE BEHAVIOR
+  if (line.includes('TOUCH_ON')||line.includes('TOUCH_OFF')) {
+    document.getElementById('sTouchEvents').textContent = parseInt(document.getElementById('sTouchEvents').textContent)+1;
+  }
+  if (line.includes('MIDI: Note')) {
+    document.getElementById('sMidiEvents').textContent = parseInt(document.getElementById('sMidiEvents').textContent)+1;
+  }
+  document.getElementById('sTotal').textContent = parseInt(document.getElementById('sTotal').textContent)+1;
+}
 
-**Testing Pattern:** Sequential pad testing (1-27), dual touch test (1+27), rapid tap test (pad 13 x5)
+const userSetThreshold = new Array(N).fill(false);
 
-**Capacitive Touch Operation:**
-- Each sensor has a \`raw_value\` (0-65535) representing measured capacitance
-- Each sensor has a \`threshold\` value (auto-calibrated by CircuitPython)
-- Touch detected when: raw_value < threshold
-- Typical values:
-  - Untouched: 40000-60000
-  - Touched: 15000-25000
-  - Healthy margin: 10000+ between resting value and threshold
+function log(msg, cls='info') {
+  const out = document.getElementById('consoleOut');
+  const d = document.createElement('div');
+  d.className = 'cline '+cls;
+  d.textContent = '['+new Date().toLocaleTimeString()+'] '+msg;
+  out.appendChild(d);
+  out.scrollTop = out.scrollHeight;
+}
 
-**State Change Detection:**
-- Code only logs TOUCH_ON and TOUCH_OFF events (not continuous polling)
-- TOUCH_ON: Sensor crosses below threshold
-- TOUCH_OFF: Sensor crosses above threshold
+function clearLog() { document.getElementById('consoleOut').innerHTML=''; log('Cleared','info'); }
 
-**Expected Log Format:**
-\`\`\`
-INIT: GP1 OK
-TOUCH_ON: GP5 (index 4) | Raw: 45823 | Threshold: 30000 | MIDI: Note 88 ON
-TOUCH_OFF: GP5 (index 4) | Raw: 28941 | Threshold: 30000 | MIDI: Note 88 OFF
-STATUS: Loop 100, Active sensors: 2
-RAW_VALUES: GP1:28450 | GP2:29100 | GP3:27800 | ...
-\`\`\`
+function copyLog() {
+  const text = Array.from(document.getElementById('consoleOut').children).map(c=>c.textContent).join('\n');
+  navigator.clipboard.writeText(text).then(()=>alert('Log copied to clipboard.'));
+}
 
-## COMMON ISSUES TO IDENTIFY
+window.addEventListener('mousedown', e => {
+  const tl = e.target.closest('.threshold-line');
+  if (tl) {
+    const row = tl.closest('.sensor-row');
+    if (row) {
+      const idx = Array.from(document.getElementById('sensorList').children).indexOf(row);
+      if (idx >= 0) userSetThreshold[idx] = true;
+    }
+  }
+});
 
-### 1. Stuttering/Bouncing
-**Symptoms:** Rapid TOUCH_ON/TOUCH_OFF events without user action
-**Cause:** Raw value oscillating near threshold
-**Example:**
-\`\`\`
-TOUCH_ON: GP12 | Raw: 30100 | Threshold: 30000
-TOUCH_OFF: GP12 | Raw: 29900 | Threshold: 30000
-TOUCH_ON: GP12 | Raw: 30050 | Threshold: 30000
-\`\`\`
-**Solution:** Threshold too close to resting value, electrical noise, or poor connection
-
-### 2. Pin/LED Mismatch
-**Symptoms:** Wrong NeoPixel lights up, or wrong GPIO triggers
-**Example:** User touches Pad 5, but GP12 logs the event
-**Cause:** Hardware wiring error or incorrect GPIO mapping
-**Solution:** Check physical connections and pin definitions
-
-### 3. MIDI Note Mismatch
-**Symptoms:** Wrong MIDI note sent for a given pad
-**Example:** Pad 5 should send Note 88, but sends Note 74
-**Cause:** Incorrect MIDI_NOTES array or index mapping error
-**Solution:** Verify MIDI_NOTES array matches expected mapping
-
-### 4. Missing Note OFF Events
-**Symptoms:** Multiple TOUCH_ON events without corresponding TOUCH_OFF
-**Example:**
-\`\`\`
-TOUCH_ON: GP5 | Note 88 ON
-TOUCH_ON: GP5 | Note 88 ON  ← No OFF between!
-\`\`\`
-**Cause:** Threshold too high, sensor not releasing properly
-**Solution:** Adjust threshold or check sensor calibration
-
-### 5. Dead/Unresponsive Sensor
-**Symptoms:** No TOUCH_ON events, or raw value always very low
-**Example:** GP15 shows raw values of 12000-15000 (never reaches threshold)
-**Cause:** Broken wire, poor solder joint, or damaged sensor pad
-**Solution:** Hardware repair required
-
-### 6. Weak/Inconsistent Response
-**Symptoms:** Touch sometimes works, sometimes doesn't
-**Example:** Raw value drops to 31000 when threshold is 30000 (only 1000 margin)
-**Cause:** Insufficient capacitive coupling, poor ground plane
-**Solution:** Improve sensor pad design or increase sensor area
-
-### 7. Electrical Noise/EMI
-**Symptoms:** Raw values fluctuate wildly (±5000) even when untouched
-**Example:** GP8 shows: 45000 → 52000 → 43000 → 49000 (unstable baseline)
-**Cause:** Electromagnetic interference, poor shielding, nearby power source
-**Solution:** Add filtering capacitors, improve grounding, relocate board
-
-### 8. Crosstalk Between Sensors
-**Symptoms:** Touching one pad affects neighboring pads
-**Example:** Touch Pad 5, both GP5 and GP6 register TOUCH_ON
-**Cause:** Insufficient spacing between sensor pads, poor ground isolation
-**Solution:** Physical redesign with better pad spacing
-
-## DIAGNOSTIC LOG DATA
-
-Below is the complete serial output from the SPOKE diagnostic session:
-
----
-
-${logText}
-
----
-
-## ANALYSIS REQUEST
-
-Please analyze the above diagnostic log and identify:
-
-1. **Any stuttering or bouncing sensors** - Look for rapid ON/OFF cycles
-2. **Pin/LED mapping mismatches** - Verify GPIO pins match expected pad numbers
-3. **MIDI note correctness** - Confirm each pad sends the correct MIDI note number
-4. **Missing Note OFF events** - Check for stuck notes
-5. **Dead or unresponsive sensors** - Identify pads that never trigger
-6. **Weak sensors** - Find pads with raw values too close to threshold
-7. **Electrical noise issues** - Spot unstable raw value baselines
-8. **Crosstalk problems** - Detect multiple pads triggering from single touch
-
-For each issue found, please:
-- Specify the pad number and GPIO pin
-- Quote the relevant log lines
-- Explain the likely root cause
-- Suggest specific remediation steps
-
-If the log shows the testing sequence was incomplete, note which pads were not tested.
-
-Thank you for your analysis!`;
-
-            // Copy to clipboard
-            navigator.clipboard.writeText(diagnosticPrompt).then(() => {
-                alert('✓ Complete diagnostic report copied to clipboard!\n\nThis includes:\n• Full hardware specifications\n• MIDI note mapping\n• Common issues guide\n• Complete serial log\n• Analysis instructions\n\nYou can now paste this into ChatGPT, Claude, or any LLM for automated analysis.');
-            }).catch(err => {
-                // Fallback: select and copy manually
-                const textarea = document.createElement('textarea');
-                textarea.value = diagnosticPrompt;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                alert('✓ Complete diagnostic report copied to clipboard!');
-            });
-        }
-        
-        // Log to console
-        function logConsole(message, type = 'info') {
-            const console = document.getElementById('consoleOutput');
-            const line = document.createElement('div');
-            line.className = `console-line ${type}`;
-            
-            const timestamp = new Date().toLocaleTimeString();
-            line.textContent = `[${timestamp}] ${message}`;
-            
-            console.appendChild(line);
-            console.scrollTop = console.scrollHeight;
-        }
-        
-        // Clear console
-        function clearConsole() {
-            document.getElementById('consoleOutput').innerHTML = '';
-            logConsole('Console cleared', 'info');
-        }
-        
-        // Initialize on load
-        init();
-    </script>
+buildSensorList();
+log('SPOKE Sensor Monitor ready. Open code.py then connect serial.','info');
+</script>
 </body>
 </html>
