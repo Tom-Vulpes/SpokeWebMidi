@@ -3,53 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SPOKE Sensor Tool</title>
+<title>SPOKE Sensor Monitor</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,monospace;background:#1a1a1a;color:#e0e0e0;padding:16px}
-.container{max-width:1400px;margin:0 auto}
-.header{background:#252526;padding:16px 20px;border-radius:10px;margin-bottom:16px;border:2px solid #ff6b35;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-.title{font-size:22px;font-weight:700;color:#ff6b35}
-.subtitle{color:#999;font-size:12px;margin-top:4px}
-.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.btn{background:#ff6b35;border:none;color:#fff;padding:10px 18px;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;transition:background .15s}
+.container{max-width:1300px;margin:0 auto}
+.header{background:#252526;padding:14px 18px;border-radius:10px;margin-bottom:14px;border:2px solid #ff6b35;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.title{font-size:20px;font-weight:700;color:#ff6b35}
+.subtitle{color:#888;font-size:11px;margin-top:3px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{background:#ff6b35;border:none;color:#fff;padding:9px 16px;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;transition:background .15s}
 .btn:hover{background:#ff8555}
-.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:disabled{opacity:.35;cursor:not-allowed}
 .btn-blue{background:#3b82f6}.btn-blue:hover{background:#5b9df6}
-.btn-green{background:#22c55e}.btn-green:hover{background:#4ade80}
-.btn-purple{background:#7c3aed}.btn-purple:hover{background:#9d5cf5}
-.status{padding:8px 14px;background:#333;border-radius:6px;font-size:12px;display:flex;align-items:center;gap:8px}
-.dot{width:9px;height:9px;border-radius:50%;background:#555;flex-shrink:0}
-.dot.on{background:#4CAF50;box-shadow:0 0 6px #4CAF50}
+.btn-green{background:#22c55e;color:#052e16}.btn-green:hover{background:#4ade80}
+.status-bar{background:#252526;padding:8px 14px;border-radius:8px;margin-bottom:12px;font-size:12px;color:#888;display:flex;align-items:center;gap:10px;border:1px solid #3e3e42}
+.dot{width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0}
+.dot.on{background:#4CAF50}
 .dot.warn{background:#ff9800}
-.sensors-panel{background:#252526;border-radius:10px;padding:16px;border:1px solid #3e3e42;margin-bottom:16px}
-.sensors-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
-.panel-title{font-size:16px;font-weight:700;color:#ff6b35}
-.sensor-row{display:grid;grid-template-columns:100px 1fr 120px;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #2a2a2a}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.stat{background:#252526;padding:10px 14px;border-radius:8px;border:1px solid #3e3e42}
+.stat-label{font-size:10px;color:#888;margin-bottom:3px}
+.stat-val{font-size:22px;font-weight:700;font-family:monospace}
+.sensors-panel{background:#252526;border-radius:10px;padding:14px;border:1px solid #3e3e42}
+.sensors-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.panel-title{font-size:15px;font-weight:700;color:#ff6b35}
+.legend{font-size:10px;color:#666;text-align:right;line-height:1.6}
+.sensor-row{display:grid;grid-template-columns:90px 1fr 100px;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #222}
 .sensor-row:last-child{border-bottom:none}
-.sensor-label{font-size:12px;color:#ccc;font-family:monospace}
-.sensor-label .pad-num{font-size:10px;color:#888;display:block}
-.bar-wrap{position:relative;height:28px;background:#111;border-radius:4px;cursor:ew-resize;user-select:none}
-.bar-fill{height:100%;border-radius:4px;background:#1d6b2a;transition:background .1s;pointer-events:none}
-.bar-fill.active{background:#e07c00}
-.threshold-line{position:absolute;top:0;height:100%;width:3px;background:#ff9800;border-radius:2px;cursor:ew-resize;transform:translateX(-50%)}
-.threshold-line::after{content:attr(data-val);position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:#ff9800;white-space:nowrap;pointer-events:none}
-.sensor-vals{font-family:monospace;font-size:11px;display:flex;flex-direction:column;gap:2px;text-align:right}
-.val-raw{color:#4CAF50}
-.val-thresh{color:#ff9800}
-.val-midi{color:#888;font-size:10px}
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
-.stat{background:#252526;padding:12px;border-radius:8px;border:1px solid #3e3e42}
-.stat-label{font-size:10px;color:#888;margin-bottom:4px}
-.stat-val{font-size:20px;font-weight:700;font-family:monospace}
-.console-wrap{background:#1e1e1e;border-radius:10px;padding:16px;border:1px solid #3e3e42;height:280px;display:flex;flex-direction:column}
-.console-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.console-out{flex:1;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.5;background:#0a0a0a;padding:8px;border-radius:4px}
-.cline{margin-bottom:1px}
-.cline.err{color:#f44336}.cline.warn{color:#ff9800}.cline.info{color:#64b5f6}.cline.ok{color:#4CAF50}
-.clear-btn{background:transparent;border:1px solid #555;color:#888;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:11px}
-.clear-btn:hover{background:#333;color:#fff}
-.hint{font-size:11px;color:#666;text-align:center;padding:6px 0}
+.sensor-label{font-size:11px;color:#ccc;font-family:monospace;line-height:1.4}
+.sensor-label .sub{font-size:10px;color:#666;display:block}
+.bar-wrap{position:relative;height:26px;background:#111;border-radius:4px;cursor:crosshair;user-select:none;touch-action:none}
+.bar-fill{height:100%;border-radius:4px;background:#1a5c29;pointer-events:none;transition:background .08s}
+.bar-fill.active{background:#c45f00}
+.tline{position:absolute;top:0;height:100%;width:4px;background:#ff9800;border-radius:2px;transform:translateX(-50%);cursor:ew-resize;z-index:2}
+.tline-label{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:#ff9800;white-space:nowrap;pointer-events:none;font-family:monospace}
+.sensor-vals{font-family:monospace;font-size:11px;display:flex;flex-direction:column;gap:1px;text-align:right}
+.vr{color:#4CAF50}
+.vt{color:#ff9800}
+.vm{color:#666;font-size:9px}
 </style>
 </head>
 <body>
@@ -58,41 +50,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,monospace;ba
 <div class="header">
   <div>
     <div class="title">SPOKE Sensor Monitor</div>
-    <div class="subtitle">Live sensor bars · drag thresholds · download config</div>
+    <div class="subtitle">Live bars · drag thresholds · download config</div>
   </div>
   <div class="controls">
-    <button class="btn" id="setupBtn" onclick="setupBoard()">Open code.py</button>
+    <button class="btn" onclick="setupBoard()">Open code.py</button>
     <button class="btn btn-blue" id="uploadBtn" onclick="uploadDiagnostic()" disabled>Upload diagnostic</button>
     <button class="btn btn-blue" id="serialBtn" onclick="connectSerial()" disabled>Connect serial</button>
     <button class="btn btn-green" onclick="downloadThresholds()">Download thresholds</button>
-    <div class="status"><div class="dot" id="dot"></div><span id="statusTxt">Not connected</span></div>
   </div>
+</div>
+
+<div class="status-bar">
+  <div class="dot" id="dot"></div>
+  <span id="statusTxt">Not connected — open code.py to begin</span>
 </div>
 
 <div class="stats-row">
   <div class="stat"><div class="stat-label">Touch events</div><div class="stat-val" id="sTouchEvents">0</div></div>
   <div class="stat"><div class="stat-label">MIDI events</div><div class="stat-val" id="sMidiEvents">0</div></div>
   <div class="stat"><div class="stat-label">Active sensors</div><div class="stat-val" id="sActive">0</div></div>
-  <div class="stat"><div class="stat-label">Total messages</div><div class="stat-val" id="sTotal">0</div></div>
 </div>
 
 <div class="sensors-panel">
   <div class="sensors-header">
-    <div class="panel-title">Sensor bars</div>
-    <div style="font-size:11px;color:#888">Green bar = raw value &nbsp;|&nbsp; Orange marker = threshold (drag to adjust) &nbsp;|&nbsp; Bar turns orange when triggered</div>
-  </div>
-  <div id="sensorList"></div>
-</div>
-
-<div class="console-wrap">
-  <div class="console-head">
-    <div class="panel-title" style="font-size:14px">Serial monitor</div>
-    <div style="display:flex;gap:8px">
-      <button class="clear-btn" style="background:#22c55e;color:#fff;border:none" onclick="copyLog()">Copy log</button>
-      <button class="clear-btn" onclick="clearLog()">Clear</button>
+    <div class="panel-title">Sensors</div>
+    <div class="legend">
+      Green bar = raw value &nbsp;|&nbsp; Orange marker = threshold (drag to set) &nbsp;|&nbsp; Bar turns orange when triggered
     </div>
   </div>
-  <div class="console-out" id="consoleOut"><div class="cline info">Waiting for connection...</div></div>
+  <div id="sensorList"></div>
 </div>
 
 </div>
@@ -102,130 +88,117 @@ const MIDI_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,
 const N = 27;
 const MAX_RAW = 65535;
 
+// Default thresholds matching CircuitPython touchio auto-calibration (~1.05x resting ~16000 baseline)
+// touchio sets threshold = raw_baseline * 1.05, typical resting ~15000-17000 → threshold ~17000-18000
+const DEFAULT_THRESHOLD = 17500;
+
 let rawValues = new Array(N).fill(0);
-let thresholds = new Array(N).fill(30000);
+let thresholds = new Array(N).fill(DEFAULT_THRESHOLD);
+let userPinned = new Array(N).fill(false);
 let activeFlags = new Array(N).fill(false);
 
 let fileHandle = null;
 let serialPort = null;
 let isReading = false;
+let serialReader = null;
 
+let touchCount = 0, midiCount = 0;
+
+// Build UI
 function buildSensorList() {
   const list = document.getElementById('sensorList');
   list.innerHTML = '';
   for (let i = 0; i < N; i++) {
     const row = document.createElement('div');
     row.className = 'sensor-row';
-    row.innerHTML = `
-      <div class="sensor-label">
-        <span>${PIN_NAMES[i]}</span>
-        <span class="pad-num">Pad ${i+1} &middot; Note ${MIDI_NOTES[i]}</span>
-      </div>
-      <div class="bar-wrap" id="bw${i}">
-        <div class="bar-fill" id="bf${i}" style="width:0%"></div>
-        <div class="threshold-line" id="tl${i}" data-val="${thresholds[i]}" style="left:${(thresholds[i]/MAX_RAW*100).toFixed(2)}%"></div>
-      </div>
-      <div class="sensor-vals">
-        <span class="val-raw">Raw: <span id="rv${i}">--</span></span>
-        <span class="val-thresh">Thresh: <span id="tv${i}">${thresholds[i]}</span></span>
-        <span class="val-midi">MIDI ${MIDI_NOTES[i]}</span>
-      </div>`;
+    const pct = (thresholds[i] / MAX_RAW * 100).toFixed(3);
+    row.innerHTML =
+      '<div class="sensor-label">' + PIN_NAMES[i] +
+      '<span class="sub">Pad ' + (i+1) + ' \u00b7 Note ' + MIDI_NOTES[i] + '</span></div>' +
+      '<div class="bar-wrap" id="bw' + i + '">' +
+        '<div class="bar-fill" id="bf' + i + '" style="width:0%"></div>' +
+        '<div class="tline" id="tl' + i + '" style="left:' + pct + '%">' +
+          '<span class="tline-label" id="tlv' + i + '">' + thresholds[i] + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="sensor-vals">' +
+        '<span class="vr">Raw: <span id="rv' + i + '">--</span></span>' +
+        '<span class="vt">Thr: <span id="tv' + i + '">' + thresholds[i] + '</span></span>' +
+        '<span class="vm">MIDI ' + MIDI_NOTES[i] + '</span>' +
+      '</div>';
     list.appendChild(row);
-    setupThresholdDrag(i);
+    initDrag(i);
   }
 }
 
-function setupThresholdDrag(i) {
-  const bw = document.getElementById('bw'+i);
-  const tl = document.getElementById('tl'+i);
-  let dragging = false;
+function initDrag(i) {
+  const bw = document.getElementById('bw' + i);
+  const tl = document.getElementById('tl' + i);
+  let active = false;
 
-  function getVal(clientX) {
-    const rect = bw.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    return Math.round(pct * MAX_RAW);
+  function calcVal(clientX) {
+    const r = bw.getBoundingClientRect();
+    return Math.round(Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * MAX_RAW);
+  }
+  function apply(v) {
+    thresholds[i] = v;
+    userPinned[i] = true;
+    const pct = (v / MAX_RAW * 100).toFixed(3);
+    tl.style.left = pct + '%';
+    document.getElementById('tlv' + i).textContent = v;
+    document.getElementById('tv' + i).textContent = v;
+    refreshBar(i);
   }
 
-  tl.addEventListener('mousedown', e => { dragging = true; e.preventDefault(); });
-  bw.addEventListener('mousedown', e => {
-    if (e.target === tl) return;
-    dragging = true;
-    thresholds[i] = getVal(e.clientX);
-    updateThresholdUI(i);
-    e.preventDefault();
-  });
+  tl.addEventListener('mousedown', e => { active = true; e.stopPropagation(); e.preventDefault(); });
+  bw.addEventListener('mousedown', e => { active = true; apply(calcVal(e.clientX)); e.preventDefault(); });
+  window.addEventListener('mousemove', e => { if (active) apply(calcVal(e.clientX)); });
+  window.addEventListener('mouseup', () => { active = false; });
 
-  window.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    thresholds[i] = getVal(e.clientX);
-    updateThresholdUI(i);
-  });
-  window.addEventListener('mouseup', () => { dragging = false; });
-
-  tl.addEventListener('touchstart', e => { dragging = true; e.preventDefault(); }, {passive:false});
-  bw.addEventListener('touchstart', e => {
-    if (e.target === tl) return;
-    dragging = true;
-    thresholds[i] = getVal(e.touches[0].clientX);
-    updateThresholdUI(i);
-    e.preventDefault();
-  }, {passive:false});
-  window.addEventListener('touchmove', e => {
-    if (!dragging) return;
-    thresholds[i] = getVal(e.touches[0].clientX);
-    updateThresholdUI(i);
-  }, {passive:false});
-  window.addEventListener('touchend', () => { dragging = false; });
+  tl.addEventListener('touchstart', e => { active = true; e.stopPropagation(); e.preventDefault(); }, {passive:false});
+  bw.addEventListener('touchstart', e => { active = true; apply(calcVal(e.touches[0].clientX)); e.preventDefault(); }, {passive:false});
+  window.addEventListener('touchmove', e => { if (active) apply(calcVal(e.touches[0].clientX)); }, {passive:false});
+  window.addEventListener('touchend', () => { active = false; });
 }
 
-function updateThresholdUI(i) {
-  const tl = document.getElementById('tl'+i);
-  const pct = (thresholds[i] / MAX_RAW * 100).toFixed(2);
-  tl.style.left = pct + '%';
-  tl.setAttribute('data-val', thresholds[i]);
-  document.getElementById('tv'+i).textContent = thresholds[i];
-  updateBarUI(i);
-}
-
-function updateBarUI(i) {
-  const bf = document.getElementById('bf'+i);
-  const rv = document.getElementById('rv'+i);
-  const pct = (rawValues[i] / MAX_RAW * 100).toFixed(2);
+function refreshBar(i) {
+  const bf = document.getElementById('bf' + i);
+  const rv = document.getElementById('rv' + i);
+  if (!bf) return;
+  const pct = (rawValues[i] / MAX_RAW * 100).toFixed(3);
   bf.style.width = pct + '%';
   rv.textContent = rawValues[i];
-  const triggered = rawValues[i] > 0 && rawValues[i] < thresholds[i];
+  const triggered = rawValues[i] > 100 && rawValues[i] < thresholds[i];
   bf.classList.toggle('active', triggered);
   activeFlags[i] = triggered;
   document.getElementById('sActive').textContent = activeFlags.filter(Boolean).length;
 }
 
+// File + upload
 async function setupBoard() {
   try {
     if (!('showOpenFilePicker' in window)) { alert('Use Chrome, Edge or Opera.'); return; }
     const [h] = await window.showOpenFilePicker({ types:[{description:'Python',accept:{'text/x-python':['.py']}}] });
     fileHandle = h;
-    log('code.py opened', 'ok');
-    document.getElementById('statusTxt').textContent = 'File open';
-    document.getElementById('dot').className = 'dot on';
+    setStatus('on', 'code.py open');
     document.getElementById('uploadBtn').disabled = false;
     document.getElementById('serialBtn').disabled = false;
-  } catch(e) { if (e.name !== 'AbortError') log('Error: '+e.message,'err'); }
+  } catch(e) { if (e.name !== 'AbortError') setStatus('warn', 'Error: ' + e.message); }
 }
 
 async function uploadDiagnostic() {
-  if (!fileHandle) { alert('Open code.py first'); return; }
-  const code = buildDiagnosticCode();
+  if (!fileHandle) return;
   try {
     const w = await fileHandle.createWritable();
-    await w.write(code);
+    await w.write(buildCode());
     await w.close();
-    log('Diagnostic code uploaded — board restarting...','ok');
-  } catch(e) { log('Upload error: '+e.message,'err'); }
+    setStatus('on', 'Diagnostic uploaded — board restarting, connect serial when ready');
+  } catch(e) { setStatus('warn', 'Upload error: ' + e.message); }
 }
 
-function buildDiagnosticCode() {
-  const threshStr = thresholds.map(t => t).join(', ');
-  return `# SPOKE Diagnostic — generated by SPOKE Sensor Monitor
+function buildCode() {
+  const thStr = thresholds.join(', ');
+  return `# SPOKE Diagnostic — SPOKE Sensor Monitor
 import board, touchio, neopixel, usb_midi, adafruit_midi, time
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
@@ -239,10 +212,12 @@ pin_names = ['GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9',
              'GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17',
              'GP18','GP19','GP20','GP21','GP22','GP25','GP26','GP27','GP28']
 MIDI_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36]
-THRESHOLDS = [${threshStr}]
+THRESHOLDS = [${thStr}]
 
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
 pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+for i in range(27): pixels[i]=(0,0,0)
+pixels.show()
 
 touch_sensors = []
 for i, pin in enumerate(touch_pins_raw):
@@ -250,24 +225,20 @@ for i, pin in enumerate(touch_pins_raw):
         s = touchio.TouchIn(pin)
         s.threshold = THRESHOLDS[i]
         touch_sensors.append(s)
-        print(f"INIT: {pin_names[i]} OK threshold={THRESHOLDS[i]}")
-    except Exception as e:
+    except:
         touch_sensors.append(None)
-        print(f"INIT: {pin_names[i]} FAILED - {e}")
 
 prev = [False]*len(touch_sensors)
 loop = 0
-for i in range(27): pixels[i]=(0,0,0)
-pixels.show()
-
 while True:
     loop += 1
     for i,s in enumerate(touch_sensors):
         if s is None: continue
         try:
-            touched = s.value
             raw = s.raw_value
             thresh = s.threshold
+            touched = raw < thresh
+            print(f"RAW: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh}")
             if touched != prev[i]:
                 prev[i] = touched
                 if touched:
@@ -278,120 +249,96 @@ while True:
                     midi.send(NoteOff(MIDI_NOTES[i],0))
                     pixels[i]=(0,0,0)
                     print(f"TOUCH_OFF: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh} | MIDI: Note {MIDI_NOTES[i]} OFF")
-            else:
-                print(f"RAW: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh}")
         except Exception as e:
-            print(f"ERROR: {pin_names[i]} - {e}")
+            pass
     pixels.show()
-    if loop % 50 == 0:
-        print(f"STATUS: Loop {loop}, active={sum(1 for s in touch_sensors if s and s.value)}")
-    time.sleep(0.02)
+    time.sleep(0.05)
 `;
 }
 
+// Download thresholds
 function downloadThresholds() {
-  const lines = PIN_NAMES.slice(0,N).map((p,i)=>`    ${thresholds[i]},  # ${p} (Pad ${i+1}, Note ${MIDI_NOTES[i]})`).join('\n');
-  const code = `# SPOKE custom thresholds — generated by SPOKE Sensor Monitor
-# Paste this THRESHOLDS list into your code.py
-THRESHOLDS = [\n${lines}\n]\n\n# Apply in your init loop:\n# s = touchio.TouchIn(pin)\n# s.threshold = THRESHOLDS[i]\n`;
-  const blob = new Blob([code], {type:'text/plain'});
+  const lines = PIN_NAMES.slice(0,N).map((p,i) => '    ' + thresholds[i] + ',  # ' + p + ' (Pad ' + (i+1) + ', Note ' + MIDI_NOTES[i] + ')').join('\n');
+  const code = '# SPOKE custom thresholds — SPOKE Sensor Monitor\nTHRESHOLDS = [\n' + lines + '\n]\n\n# In your init loop:\n# s = touchio.TouchIn(pin)\n# s.threshold = THRESHOLDS[i]\n';
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  a.href = URL.createObjectURL(new Blob([code], {type:'text/plain'}));
   a.download = 'spoke_thresholds.py';
   a.click();
-  log('Thresholds downloaded as spoke_thresholds.py','ok');
 }
 
+// Serial
 async function connectSerial() {
   try {
-    if (!('serial' in navigator)) { alert('Web Serial not supported. Use Chrome/Edge/Opera.'); return; }
+    if (!('serial' in navigator)) { alert('Use Chrome/Edge/Opera for Web Serial.'); return; }
     serialPort = await navigator.serial.requestPort();
     await serialPort.open({baudRate:115200});
-    log('Serial connected','ok');
-    document.getElementById('statusTxt').textContent = 'Serial connected';
-    document.getElementById('dot').className = 'dot on';
+    setStatus('on', 'Serial connected — touch pads to see bars update');
     isReading = true;
     readSerial();
-  } catch(e) { log('Serial error: '+e.message,'err'); }
+  } catch(e) { setStatus('warn', 'Serial error: ' + e.message); }
 }
 
 async function readSerial() {
   try {
     const dec = new TextDecoderStream();
     serialPort.readable.pipeTo(dec.writable);
-    const reader = dec.readable.getReader();
+    serialReader = dec.readable.getReader();
     let buf = '';
     while (isReading) {
-      const {value, done} = await reader.read();
+      const {value, done} = await serialReader.read();
       if (done) break;
       buf += value;
-      const lines = buf.split('\n');
-      buf = lines.pop();
-      lines.forEach(l => { if (l.trim()) processLine(l.trim()); });
+      let nl;
+      while ((nl = buf.indexOf('\n')) !== -1) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (line) processLine(line);
+      }
+      // safety: don't let buffer grow huge
+      if (buf.length > 2000) buf = buf.slice(-500);
     }
-  } catch(e) { if (isReading) log('Read error: '+e.message,'err'); }
+  } catch(e) {
+    setStatus('warn', 'Serial read error: ' + e.message);
+  }
 }
 
 function processLine(line) {
-  let cls = 'info';
-  if (line.includes('ERROR')) cls = 'err';
-  else if (line.includes('TOUCH_ON')) cls = 'ok';
-  else if (line.includes('TOUCH_OFF')) cls = 'warn';
-  log(line, cls);
-
-  const raw_match = line.match(/\(index (\d+)\) \| Raw: (\d+) \| Threshold: (\d+)/);
-  if (raw_match) {
-    const idx = parseInt(raw_match[1]);
-    const raw = parseInt(raw_match[2]);
-    const thr = parseInt(raw_match[3]);
-    if (idx < N) {
+  const m = line.match(/\(index (\d+)\) \| Raw: (\d+) \| Threshold: (\d+)/);
+  if (m) {
+    const idx = parseInt(m[1]);
+    const raw = parseInt(m[2]);
+    const thr = parseInt(m[3]);
+    if (idx >= 0 && idx < N) {
       rawValues[idx] = raw;
-      if (!userSetThreshold[idx]) thresholds[idx] = thr;
-      updateBarUI(idx);
-      updateThresholdUI(idx);
+      if (!userPinned[idx]) {
+        thresholds[idx] = thr;
+        const pct = (thr / MAX_RAW * 100).toFixed(3);
+        const tl = document.getElementById('tl' + idx);
+        if (tl) tl.style.left = pct + '%';
+        const tlv = document.getElementById('tlv' + idx);
+        if (tlv) tlv.textContent = thr;
+        const tv = document.getElementById('tv' + idx);
+        if (tv) tv.textContent = thr;
+      }
+      refreshBar(idx);
     }
   }
-
-  if (line.includes('TOUCH_ON')||line.includes('TOUCH_OFF')) {
-    document.getElementById('sTouchEvents').textContent = parseInt(document.getElementById('sTouchEvents').textContent)+1;
+  if (line.includes('TOUCH_ON') || line.includes('TOUCH_OFF')) {
+    touchCount++;
+    document.getElementById('sTouchEvents').textContent = touchCount;
   }
   if (line.includes('MIDI: Note')) {
-    document.getElementById('sMidiEvents').textContent = parseInt(document.getElementById('sMidiEvents').textContent)+1;
+    midiCount++;
+    document.getElementById('sMidiEvents').textContent = midiCount;
   }
-  document.getElementById('sTotal').textContent = parseInt(document.getElementById('sTotal').textContent)+1;
 }
 
-const userSetThreshold = new Array(N).fill(false);
-
-function log(msg, cls='info') {
-  const out = document.getElementById('consoleOut');
-  const d = document.createElement('div');
-  d.className = 'cline '+cls;
-  d.textContent = '['+new Date().toLocaleTimeString()+'] '+msg;
-  out.appendChild(d);
-  out.scrollTop = out.scrollHeight;
+function setStatus(state, msg) {
+  document.getElementById('dot').className = 'dot' + (state === 'on' ? ' on' : state === 'warn' ? ' warn' : '');
+  document.getElementById('statusTxt').textContent = msg;
 }
-
-function clearLog() { document.getElementById('consoleOut').innerHTML=''; log('Cleared','info'); }
-
-function copyLog() {
-  const text = Array.from(document.getElementById('consoleOut').children).map(c=>c.textContent).join('\n');
-  navigator.clipboard.writeText(text).then(()=>alert('Log copied to clipboard.'));
-}
-
-window.addEventListener('mousedown', e => {
-  const tl = e.target.closest('.threshold-line');
-  if (tl) {
-    const row = tl.closest('.sensor-row');
-    if (row) {
-      const idx = Array.from(document.getElementById('sensorList').children).indexOf(row);
-      if (idx >= 0) userSetThreshold[idx] = true;
-    }
-  }
-});
 
 buildSensorList();
-log('SPOKE Sensor Monitor ready. Open code.py then connect serial.','info');
 </script>
 </body>
 </html>
