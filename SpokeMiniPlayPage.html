@@ -1,960 +1,1491 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPOKE Mini - Freesound API Sampler</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: white;
-            overflow-x: hidden;
-            position: relative;
-        }
-        
-        /* Background oscilloscope */
-        #backgroundScope {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            opacity: 0.15;
-            pointer-events: none;
-        }
-        
-        .container {
-            position: relative;
-            z-index: 1;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .title {
-            font-size: 48px;
-            font-weight: 900;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
-        }
-        
-        .subtitle {
-            font-size: 18px;
-            opacity: 0.9;
-            margin-bottom: 20px;
-        }
-        
-        /* Controls at top */
-        .top-controls {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 20px 30px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 30px;
-            flex-wrap: wrap;
-        }
-        
-        .control-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #666;
-        }
-        
-        .status-indicator.active {
-            background: #4CAF50;
-            box-shadow: 0 0 10px #4CAF50;
-        }
-        
-        .volume-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .volume-control input {
-            width: 150px;
-        }
-        
-        /* Main Grid Layout */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-        
-        /* SPOKE Mini Board */
-        .board-section {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .board-title {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .mini-board {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            padding: 30px 20px;
-            display: flex;
-            gap: 30px;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .pad-column {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .pad {
-            width: 120px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-        }
-        
-        .pad:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.05);
-        }
-        
-        .pad.active {
-            background: rgba(74, 158, 255, 0.8);
-            border-color: rgba(74, 158, 255, 1);
-            box-shadow: 0 0 20px rgba(74, 158, 255, 0.6);
-            transform: scale(1.1);
-        }
-        
-        .pad.has-sample {
-            background: rgba(76, 175, 80, 0.3);
-            border-color: rgba(76, 175, 80, 0.8);
-        }
-        
-        .pad-number {
-            font-size: 12px;
-            opacity: 0.8;
-        }
-        
-        .pad-name {
-            position: absolute;
-            bottom: 3px;
-            font-size: 9px;
-            opacity: 0.7;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 90%;
-        }
-        
-        /* Search Panel */
-        .search-panel {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .search-title {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 20px;
-        }
-        
-        .search-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .search-input {
-            flex: 1;
-            padding: 12px 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 14px;
-            outline: none;
-        }
-        
-        .search-input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-        
-        .search-input option {
-            background: #2d2d2d;
-            color: white;
-        }
-        
-        .btn {
-            padding: 12px 24px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-        
-        .btn-primary {
-            background: rgba(74, 158, 255, 0.6);
-            border-color: rgba(74, 158, 255, 1);
-        }
-        
-        .results {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .result-item {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .result-item:hover {
-            background: rgba(0, 0, 0, 0.3);
-            border-color: rgba(74, 158, 255, 0.5);
-        }
-        
-        .result-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .result-meta {
-            font-size: 12px;
-            opacity: 0.7;
-        }
-        
-        .result-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-        
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 20px;
-            opacity: 0.7;
-        }
-        
-        .error {
-            background: rgba(244, 67, 54, 0.2);
-            border: 1px solid rgba(244, 67, 54, 0.5);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.5);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPOKE-MINI — Audio Playground</title>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0d0d0f;
+  --bg2:     #141416;
+  --bg3:     #1c1c1f;
+  --bg4:     #242428;
+  --border:  rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text:    #e8e8ec;
+  --muted:   #6b6b78;
+  --accent:  #00e5a0;
+  --accent2: #7c6dfa;
+  --warn:    #f5a623;
+  --danger:  #ff4757;
+  --r:       10px;
+  --font:    'Comfortaa', cursive;
+  --mono:    'Space Mono', monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);}
+
+/* ── APP SHELL ── */
+.app{display:grid;grid-template-columns:320px 1fr;grid-template-rows:52px 1fr;height:100vh;}
+
+/* ── HEADER ── */
+header{
+  grid-column:1/-1;
+  background:rgba(13,13,15,0.9);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 20px;gap:0;
+  z-index:50;
+}
+.logo{
+  font-family:var(--font);font-size:17px;font-weight:700;
+  color:#fff;letter-spacing:2px;margin-right:28px;white-space:nowrap;
+}
+.logo span{color:var(--accent);}
+.tabs{display:flex;gap:0;flex:1;}
+.tab{
+  font-family:var(--font);font-size:13px;font-weight:600;
+  color:var(--muted);padding:0 18px;height:52px;line-height:52px;
+  cursor:pointer;border:none;background:none;
+  border-bottom:2px solid transparent;
+  transition:color .18s,border-color .18s;white-space:nowrap;
+}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.hpills{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.pill{
+  font-family:var(--font);font-size:11px;font-weight:600;
+  padding:4px 11px;border-radius:20px;letter-spacing:.3px;
+}
+.pill.green{background:rgba(0,229,160,.1);color:var(--accent);border:1px solid rgba(0,229,160,.25);}
+.pill.purple{background:rgba(124,109,250,.1);color:var(--accent2);border:1px solid rgba(124,109,250,.25);}
+
+/* ── SIDEBAR (permanent board) ── */
+.sidebar{
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow-y:auto;overflow-x:hidden;
+}
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* ── MAIN CONTENT ── */
+.main{overflow-y:auto;overflow-x:hidden;}
+.main::-webkit-scrollbar{width:5px;}
+.main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* ── PANELS ── */
+.panel{display:none;padding:22px;animation:fadeUp .2s ease;}
+.panel.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px;}
+.card:last-child{margin-bottom:0;}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  cursor:pointer;user-select:none;
+}
+.card-head.static{cursor:default;}
+.card-label{
+  font-family:var(--font);font-size:11px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;color:var(--muted);
+}
+.card-label em{color:var(--accent);font-style:normal;}
+.card-body{padding:16px;}
+.chevron{width:15px;height:15px;opacity:.35;transition:transform .22s;flex-shrink:0;}
+.chevron.open{transform:rotate(180deg);}
+.coll{overflow:hidden;transition:max-height .28s cubic-bezier(.4,0,.2,1),opacity .22s;}
+.coll.shut{max-height:0!important;opacity:0;}
+
+/* ── SIDEBAR SECTIONS ── */
+.sb-section{padding:14px;}
+.sb-section+.sb-section{border-top:1px solid var(--border);}
+.sb-label{
+  font-family:var(--font);font-size:10px;font-weight:700;
+  letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);
+  margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;
+}
+.sb-label em{color:var(--accent);font-style:normal;font-size:11px;}
+
+/* board wrap */
+.board-wrap{display:flex;justify-content:center;background:#080809;border-radius:8px;padding:6px;}
+
+/* scope */
+.scope-wrap{background:#080809;border-radius:7px;overflow:hidden;}
+
+/* now playing */
+.np{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;
+}
+.np-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+.np-dot.idle{background:var(--muted);animation:none;}
+.np-name{font-size:12px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.np-tag{font-family:var(--mono);font-size:10px;color:var(--accent);background:rgba(0,229,160,.1);padding:2px 7px;border-radius:4px;flex-shrink:0;}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  font-family:var(--font);font-size:12px;font-weight:600;
+  padding:8px 16px;border-radius:8px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text);cursor:pointer;
+  transition:background .15s,border-color .15s,transform .1s;white-space:nowrap;
+}
+.btn:hover{background:var(--bg4);border-color:rgba(255,255,255,.2);}
+.btn:active{transform:scale(.97);}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+.btn.g{background:rgba(0,229,160,.12);border-color:rgba(0,229,160,.35);color:var(--accent);}
+.btn.g:hover{background:rgba(0,229,160,.2);}
+.btn.v{background:rgba(124,109,250,.12);border-color:rgba(124,109,250,.35);color:var(--accent2);}
+.btn.v:hover{background:rgba(124,109,250,.2);}
+.btn.o{background:rgba(245,166,35,.12);border-color:rgba(245,166,35,.35);color:var(--warn);}
+.btn.o:hover{background:rgba(245,166,35,.2);}
+.btn.r{background:rgba(255,71,87,.12);border-color:rgba(255,71,87,.35);color:var(--danger);}
+.btn.r:hover{background:rgba(255,71,87,.22);}
+.btn.sm{font-size:11px;padding:5px 11px;border-radius:6px;}
+.btn-row{display:flex;gap:8px;}
+.btn-row.fill .btn{flex:1;}
+
+/* ── INPUTS ── */
+input,select,textarea{
+  font-family:var(--font);font-size:13px;font-weight:400;
+  padding:9px 13px;border-radius:8px;
+  border:1px solid var(--border2);background:var(--bg3);
+  color:var(--text);outline:none;width:100%;transition:border .14s;
+}
+input:focus,select:focus{border-color:rgba(0,229,160,.4);box-shadow:0 0 0 3px rgba(0,229,160,.06);}
+select option{background:#1c1c1f;}
+.field-label{display:block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+
+/* ── TOGGLE ── */
+.tog-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;}
+.tog-label{font-size:13px;font-weight:500;}
+.tog-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.tog{position:relative;width:38px;height:21px;flex-shrink:0;}
+.tog input{opacity:0;width:0;height:0;position:absolute;}
+.tog-track{position:absolute;inset:0;background:var(--bg4);border:1px solid var(--border2);border-radius:11px;transition:.2s;}
+.tog input:checked~.tog-track{background:rgba(0,229,160,.25);border-color:rgba(0,229,160,.4);}
+.tog-thumb{position:absolute;top:3px;left:3px;width:13px;height:13px;background:var(--muted);border-radius:50%;transition:.2s;}
+.tog input:checked~.tog-thumb{transform:translateX(17px);background:var(--accent);}
+
+/* ── PLAYBACK MODE SELECTOR ── */
+.mode-label{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.mode-btn{
+  font-family:var(--font);font-size:11px;font-weight:600;
+  padding:9px 6px;border-radius:8px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--muted);cursor:pointer;
+  transition:all .16s;text-align:center;line-height:1.4;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.mode-btn .mode-icon{font-size:16px;line-height:1;}
+.mode-btn:hover{border-color:rgba(255,255,255,.2);color:var(--text);}
+.mode-btn.active-oneshot{background:rgba(0,229,160,.13);border-color:rgba(0,229,160,.45);color:var(--accent);}
+.mode-btn.active-gate{background:rgba(124,109,250,.13);border-color:rgba(124,109,250,.45);color:var(--accent2);}
+.mode-btn.active-loop{background:rgba(245,166,35,.13);border-color:rgba(245,166,35,.45);color:var(--warn);}
+.mode-desc{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5;font-weight:500;min-height:28px;}
+
+/* ── SEARCH ── */
+.search-wrap{position:relative;}
+.search-wrap input{padding-left:36px;font-size:13px;}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:14px;}
+.search-go{position:absolute;right:7px;top:50%;transform:translateY(-50%);}
+
+/* ── TAGS ── */
+.tag-grid{display:flex;flex-wrap:wrap;gap:7px;}
+.tag-chip{
+  font-family:var(--font);font-size:11px;font-weight:600;
+  padding:5px 12px;border-radius:20px;
+  border:1px solid var(--border2);background:var(--bg3);color:var(--muted);
+  cursor:pointer;transition:all .14s;
+}
+.tag-chip:hover{border-color:rgba(0,229,160,.35);color:var(--accent);background:rgba(0,229,160,.07);}
+
+/* ── SOUND ROWS ── */
+.sound-list{display:grid;gap:8px;margin-top:14px;}
+.srow{
+  display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;
+  padding:12px 14px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;transition:border-color .14s;
+}
+.srow:hover{border-color:var(--border2);}
+.srow-info{min-width:0;}
+.srow-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px;}
+.srow-meta{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--muted);}
+.stag{font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(124,109,250,.12);color:var(--accent2);border:1px solid rgba(124,109,250,.2);}
+.srow-actions{display:flex;gap:7px;flex-shrink:0;align-items:center;}
+.pad-assign{
+  font-family:var(--font);font-size:11px;font-weight:600;
+  padding:5px 8px;border-radius:6px;
+  border:1px solid var(--border2);background:var(--bg4);
+  color:var(--muted);cursor:pointer;outline:none;
+  transition:border-color .14s,color .14s;
+  max-width:90px;
+}
+.pad-assign:focus,.pad-assign:hover{border-color:rgba(0,229,160,.4);color:var(--text);}
+.pad-assign option{background:#1c1c1f;}
+
+/* ── PACK LIST ── */
+.pack-list{display:grid;gap:5px;max-height:220px;overflow-y:auto;padding-right:2px;}
+.pack-list::-webkit-scrollbar{width:3px;}
+.pack-list::-webkit-scrollbar-thumb{background:var(--border2);}
+.prow{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);}
+.prow-num{font-family:var(--mono);font-size:10px;color:var(--warn);min-width:20px;}
+.prow-name{flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ── DROP ZONE ── */
+.drop-zone{
+  border:1px dashed var(--border2);border-radius:8px;padding:24px;
+  text-align:center;cursor:pointer;transition:all .18s;color:var(--muted);font-size:13px;font-weight:500;
+}
+.drop-zone:hover,.drop-zone.over{border-color:rgba(124,109,250,.5);background:rgba(124,109,250,.05);color:var(--accent2);}
+
+/* ── PROGRESS ── */
+.prog{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;margin-top:8px;}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .18s;width:0%;}
+
+/* ── STATUS ── */
+.st{font-size:12px;color:var(--muted);text-align:center;padding:7px 0;font-weight:500;}
+.st.ok{color:var(--accent);}
+.st.warn{color:var(--warn);}
+.st.err{color:var(--danger);}
+
+/* ── RECORD BTN ── */
+.rec-btn{
+  width:100%;padding:13px;border-radius:9px;
+  font-family:var(--font);font-size:14px;font-weight:700;letter-spacing:.3px;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  cursor:pointer;border:none;transition:all .2s;
+}
+.rec-btn.idle{background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.3);color:var(--danger);}
+.rec-btn.idle:hover{background:rgba(255,71,87,.22);}
+.rec-btn.go{background:var(--danger);color:#fff;border:1px solid var(--danger);animation:rPulse 1s infinite;}
+@keyframes rPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,71,87,.4);}50%{box-shadow:0 0 0 8px rgba(255,71,87,0);}}
+
+/* ── PADS TAB ── */
+.pads-intro{font-size:12px;font-weight:500;color:var(--muted);line-height:1.7;margin-bottom:16px;}
+.pads-legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+.legend-chip{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:5px 12px;border-radius:20px;}
+.legend-chip.os{background:rgba(0,229,160,.13);border:1px solid rgba(0,229,160,.4);color:var(--accent);}
+.legend-chip.gt{background:rgba(124,109,250,.13);border:1px solid rgba(124,109,250,.4);color:var(--accent2);}
+.legend-chip.lp{background:rgba(245,166,35,.13);border:1px solid rgba(245,166,35,.4);color:var(--warn);}
+.pads-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;}
+.pad-card{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--bg3);
+  transition:border-color .15s;
+}
+.pad-card.has-sound{border-color:rgba(0,229,160,.2);}
+.pad-card.mode-gate{border-color:rgba(124,109,250,.25);}
+.pad-card.mode-loop{border-color:rgba(245,166,35,.25);}
+.pad-num{
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:var(--bg4);color:var(--muted);border:1px solid var(--border2);
+}
+.pad-num.os{background:rgba(0,229,160,.15);color:var(--accent);border-color:rgba(0,229,160,.4);}
+.pad-num.gt{background:rgba(124,109,250,.15);color:var(--accent2);border-color:rgba(124,109,250,.4);}
+.pad-num.lp{background:rgba(245,166,35,.15);color:var(--warn);border-color:rgba(245,166,35,.4);}
+.pad-info{flex:1;min-width:0;}
+.pad-sound-name{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);}
+.pad-sound-empty{font-size:11px;color:var(--muted);font-style:italic;}
+.pad-mode-btns{display:flex;gap:4px;flex-shrink:0;}
+.pmb{
+  font-family:var(--font);font-size:10px;font-weight:700;
+  padding:4px 8px;border-radius:5px;border:1px solid var(--border2);
+  background:var(--bg4);color:var(--muted);cursor:pointer;transition:all .14s;
+}
+.pmb:hover{color:var(--text);}
+.pmb.sel-os{background:rgba(0,229,160,.18);border-color:rgba(0,229,160,.5);color:var(--accent);}
+.pmb.sel-gt{background:rgba(124,109,250,.18);border-color:rgba(124,109,250,.5);color:var(--accent2);}
+.pmb.sel-lp{background:rgba(245,166,35,.18);border-color:rgba(245,166,35,.5);color:var(--warn);}
+.pads-bulk{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+/* ── RECORD trim ── */
+.trim-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);margin-top:10px;}
+.trim-info{font-size:12px;color:var(--muted);font-weight:500;}
+
+/* ── FILTER INLINE ── */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+.filters select{width:auto;min-width:130px;}
+
+/* ── DIVIDER ── */
+.div{height:1px;background:var(--border);margin:12px 0;}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:32px 16px;color:var(--muted);}
+.empty .ico{font-size:28px;margin-bottom:8px;opacity:.45;}
+.empty p{font-size:12px;font-weight:500;}
+
+/* ── SPLASH ── */
+#splash{
+  position:fixed;inset:0;z-index:999;background:#0a0b0e;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow-y:auto;padding:28px 20px;
+}
+#splash.hide{pointer-events:none;}
+#splash.hide .spl-inner{opacity:0;transform:scale(.97);}
+#splash.gone{display:none;}
+.spl-inner{transition:opacity .42s ease,transform .42s ease;max-width:760px;width:100%;}
+.spl-logo{font-family:var(--font);font-size:48px;font-weight:700;color:#fff;text-align:center;margin-bottom:3px;letter-spacing:1px;}
+.spl-logo span{color:var(--accent);}
+.spl-sub{font-family:var(--font);font-size:14px;font-weight:400;color:rgba(255,255,255,.4);text-align:center;margin-bottom:34px;}
+.spl-butterfly{display:flex;justify-content:center;margin-bottom:24px;}
+.spl-butterfly img{width:220px;height:220px;object-fit:contain;opacity:.92;}
+.spl-features{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:32px;}
+.spl-feat{
+  display:flex;align-items:flex-start;gap:12px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:14px 16px;
+}
+.spl-feat-icon{font-size:20px;flex-shrink:0;line-height:1.2;}
+.spl-feat-text{}
+.spl-feat-title{font-family:var(--font);font-size:13px;font-weight:700;color:#fff;margin-bottom:3px;}
+.spl-feat-desc{font-family:var(--font);font-size:11px;color:rgba(255,255,255,.45);line-height:1.6;}
+@media(max-width:480px){.spl-features{grid-template-columns:1fr;}}
+.spl-go{
+  display:block;width:100%;padding:15px;
+  font-family:var(--font);font-size:15px;font-weight:700;letter-spacing:1px;
+  color:#0a0b0e;background:var(--accent);border:none;border-radius:11px;
+  cursor:pointer;transition:background .18s,transform .12s;margin-bottom:12px;
+}
+.spl-go:hover{background:#00fdb5;transform:translateY(-1px);}
+.spl-skip{font-family:var(--font);font-size:12px;color:rgba(255,255,255,.28);text-align:center;cursor:pointer;transition:color .18s;}
+.spl-skip:hover{color:rgba(255,255,255,.55);}
+@media(max-width:580px){
+  .spl-cards{grid-template-columns:1fr 1fr;}
+  .spl-tips{grid-template-columns:1fr;}
+  .spl-logo{font-size:34px;}
+  .app{grid-template-columns:1fr;grid-template-rows:52px auto 1fr;}
+  .sidebar{border-right:none;border-bottom:1px solid var(--border);}
+}
+</style>
 </head>
 <body>
-    <!-- Background oscilloscope -->
-    <canvas id="backgroundScope"></canvas>
-    
-    <div class="container">
-        <div class="header">
-            <h1 class="title">SPOKE MINI SAMPLER</h1>
-            <p class="subtitle">Freesound API • 26 Touch Pads</p>
-        </div>
-        
-        <!-- Top Controls -->
-        <div class="top-controls">
-            <div class="control-item">
-                <span class="status-indicator" id="midiStatus"></span>
-                <button class="btn btn-primary" onclick="connectMIDI()">Connect MIDI</button>
-            </div>
-            
-            <div class="control-item">
-                <button class="btn" id="recordBtn" onclick="toggleRecord()">🎤 Record to Pad</button>
-            </div>
-            
-            <div class="control-item">
-                <button class="btn" onclick="clearAllSamples()">🗑️ Clear All Samples</button>
-            </div>
-            
-            <div class="control-item volume-control">
-                <span>🔊 Volume:</span>
-                <input type="range" min="0" max="100" value="80" oninput="setVolume(this.value)">
-            </div>
-        </div>
-        
-        <div class="main-grid">
-            <!-- SPOKE Mini Board -->
-            <div class="board-section">
-                <div class="board-title">SPOKE Mini - 26 Touch Pads</div>
-                <div class="mini-board">
-                    <div class="pad-column" id="leftColumn">
-                        <!-- Left 13 pads (1-13) -->
-                    </div>
-                    <div class="pad-column" id="rightColumn">
-                        <!-- Right 13 pads (14-26) -->
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Search Panel -->
-            <div class="search-panel">
-                <div class="search-title">🔍 Search Freesound</div>
-                
-                <div class="search-box">
-                    <input type="text" id="searchInput" class="search-input" placeholder="Search sounds..." onkeypress="if(event.key==='Enter') searchSounds()">
-                    <select id="durationFilter" class="search-input" style="width: auto; flex: 0 0 auto;">
-                        <option value="any">Any Duration</option>
-                        <option value="0.5">Under 0.5s</option>
-                        <option value="1" selected>Under 1s</option>
-                        <option value="2">Under 2s</option>
-                        <option value="5">Under 5s</option>
-                        <option value="10">Under 10s</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="searchSounds()">Search</button>
-                </div>
-                
-                <div id="results" class="results"></div>
-            </div>
-        </div>
+
+<!-- ════ SPLASH ════ -->
+<div id="splash">
+  <div class="spl-inner">
+    <div class="spl-logo">SPOKE<span>-MINI</span></div>
+    <div style="font-family:var(--font);font-size:28px;font-weight:700;color:var(--accent);text-align:center;margin-bottom:4px;letter-spacing:1px;">Welcome AbleAssembly!</div>
+    <div class="spl-sub">Audio Playground</div>
+
+    <div class="spl-butterfly">
+      <img src="graphics/Butterfly.png" alt="SPOKE" onerror="this.style.display='none'">
     </div>
 
-    <script>
-        // Embedded API key
-        const API_KEY = 'ENXBH14HDdboFnq4ttqKQGed9tV7xxYJOghOaPbo';
-        
-        // Configuration - All 26 SPOKE Mini MIDI notes
-        const SPOKE_MINI_NOTES = [36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 
-                                   67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96];
-        
-        // Content safety filters
-        const BLOCKED_TERMS = [
-            'sex', 'sexy', 'porn', 'xxx', 'adult', 'nsfw',
-            'fuck', 'fucking', 'shit', 'bitch', 'dick', 'cock',
-            'cum', 'orgasm', 'masturbat', 'breast', 'nude', 'naked',
-            'kill', 'murder', 'death', 'violence', 'blood', 'gore',
-            'drug', 'weed', 'cocaine', 'meth', 'heroin',
-            'damn', 'hell', 'crap', 'piss'
-        ];
-        
-        // Whitelist of legitimate terms that contain blocked substrings
-        const WHITELIST_TERMS = [
-            'bass', 'bassist', 'bassdrum', 'bassoon', 
-            'grass', 'class', 'glass', 'pass', 'mass',
-            'assess', 'classic', 'cassette',
-            'kickass' // as in "kickass beat" - slang but not offensive in music context
-        ];
-        
-        function containsBlockedContent(text) {
-            const lowerText = text.toLowerCase();
-            
-            // First check if any whitelisted terms are present
-            for (const whitelist of WHITELIST_TERMS) {
-                if (lowerText.includes(whitelist)) {
-                    // Check if the whitelisted term contains any blocked term
-                    const matchedBlocked = BLOCKED_TERMS.find(blocked => whitelist.includes(blocked));
-                    if (matchedBlocked) {
-                        // Remove the whitelisted term temporarily to check the rest
-                        const textWithoutWhitelist = lowerText.replace(new RegExp(whitelist, 'gi'), '');
-                        // Check if blocked term appears elsewhere
-                        const regex = new RegExp(`\\b${matchedBlocked}\\b`, 'i');
-                        if (!regex.test(textWithoutWhitelist)) {
-                            continue; // This blocked term only appears in whitelist, skip it
-                        }
-                    }
-                }
-            }
-            
-            // Check for whole word matches of blocked terms
-            return BLOCKED_TERMS.some(term => {
-                const regex = new RegExp(`\\b${term}\\b`, 'i');
-                return regex.test(lowerText);
-            });
-        }
-        
-        function sanitizeSearchQuery(query) {
-            if (containsBlockedContent(query)) {
-                return null; // Block the search
-            }
-            return query;
-        }
-        
-        // State
-        let audioContext;
-        let masterGain;
-        let midiAccess = null;
-        const padSamples = new Map(); // padIndex -> {buffer, name}
-        const activeSources = new Map();
-        let selectedPad = null;
-        
-        // Recording state
-        let isRecording = false;
-        let mediaRecorder = null;
-        let recordedChunks = [];
-        
-        // Preview audio
-        let currentPreview = null;
-        
-        // Background oscilloscope
-        let backgroundScope;
-        let backgroundAnalyser;
-        let backgroundDataArray;
-        let backgroundAnimationId;
-        
-        // Initialize
-        function init() {
-            createPads();
-            initBackgroundScope();
-            console.log('✅ SPOKE Mini Freesound Sampler ready with embedded API key');
-            
-            // Initialize audio context
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            masterGain = audioContext.createGain();
-            masterGain.gain.value = 0.8;
-            masterGain.connect(audioContext.destination);
-            
-            // Setup background analyser
-            backgroundAnalyser = audioContext.createAnalyser();
-            backgroundAnalyser.fftSize = 2048;
-            const bufferLength = backgroundAnalyser.frequencyBinCount;
-            backgroundDataArray = new Uint8Array(bufferLength);
-            
-            // Connect master gain to analyser
-            masterGain.connect(backgroundAnalyser);
-            
-            // Start scope animation
-            drawBackgroundScope();
-        }
-        
-        // Initialize background oscilloscope
-        function initBackgroundScope() {
-            backgroundScope = document.getElementById('backgroundScope');
-            backgroundScope.width = window.innerWidth;
-            backgroundScope.height = window.innerHeight;
-            
-            window.addEventListener('resize', () => {
-                backgroundScope.width = window.innerWidth;
-                backgroundScope.height = window.innerHeight;
-            });
-        }
-        
-        // Draw background oscilloscope
-        function drawBackgroundScope() {
-            backgroundAnimationId = requestAnimationFrame(drawBackgroundScope);
-            
-            if (!backgroundAnalyser) return;
-            
-            backgroundAnalyser.getByteTimeDomainData(backgroundDataArray);
-            
-            const canvas = backgroundScope;
-            const ctx = canvas.getContext('2d');
-            const width = canvas.width;
-            const height = canvas.height;
-            
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-            ctx.fillRect(0, 0, width, height);
-            
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.beginPath();
-            
-            const sliceWidth = width / backgroundDataArray.length;
-            let x = 0;
-            
-            for (let i = 0; i < backgroundDataArray.length; i++) {
-                const v = backgroundDataArray[i] / 128.0;
-                const y = (v * height) / 2;
-                
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-                
-                x += sliceWidth;
-            }
-            
-            ctx.lineTo(width, height / 2);
-            ctx.stroke();
-        }
-        
-        // Toggle recording
-        async function toggleRecord() {
-            const btn = document.getElementById('recordBtn');
-            
-            if (!isRecording) {
-                // Start recording
-                if (selectedPad === null) {
-                    alert('Please select a pad first (click on a pad)');
-                    return;
-                }
-                
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    recordedChunks = [];
-                    
-                    mediaRecorder.ondataavailable = (e) => {
-                        if (e.data.size > 0) {
-                            recordedChunks.push(e.data);
-                        }
-                    };
-                    
-                    mediaRecorder.onstop = async () => {
-                        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-                        const arrayBuffer = await blob.arrayBuffer();
-                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                        
-                        // Store sample
-                        padSamples.set(selectedPad, {
-                            buffer: audioBuffer,
-                            name: `Recording ${selectedPad + 1}`
-                        });
-                        
-                        // Update UI
-                        document.getElementById(`pad-${selectedPad}`).classList.add('has-sample');
-                        document.getElementById(`padName-${selectedPad}`).textContent = `Rec ${selectedPad + 1}`;
-                        
-                        // Stop all tracks
-                        stream.getTracks().forEach(track => track.stop());
-                        
-                        // Auto-select next pad
-                        if (selectedPad < 25) {
-                            selectPad(selectedPad + 1);
-                        }
-                    };
-                    
-                    mediaRecorder.start();
-                    isRecording = true;
-                    btn.textContent = '⏹️ Stop Recording';
-                    btn.style.background = 'rgba(244, 67, 54, 0.6)';
-                    
-                } catch (error) {
-                    alert('Microphone access denied: ' + error.message);
-                }
-                
-            } else {
-                // Stop recording
-                mediaRecorder.stop();
-                isRecording = false;
-                btn.textContent = '🎤 Record to Pad';
-                btn.style.background = '';
-            }
-        }
-        
-        // Create pad elements - 13 on left, 13 on right
-        function createPads() {
-            const leftColumn = document.getElementById('leftColumn');
-            const rightColumn = document.getElementById('rightColumn');
-            
-            // Left column: Pads 1-13
-            for (let i = 0; i < 13; i++) {
-                const pad = document.createElement('div');
-                pad.className = 'pad';
-                pad.id = `pad-${i}`;
-                pad.innerHTML = `
-                    <div style="text-align: center;">
-                        <div class="pad-number">Pad ${i + 1}</div>
-                        <div class="pad-name" id="padName-${i}">Empty</div>
-                    </div>
-                `;
-                pad.onclick = () => selectPad(i);
-                leftColumn.appendChild(pad);
-            }
-            
-            // Right column: Pads 14-26
-            for (let i = 13; i < 26; i++) {
-                const pad = document.createElement('div');
-                pad.className = 'pad';
-                pad.id = `pad-${i}`;
-                pad.innerHTML = `
-                    <div style="text-align: center;">
-                        <div class="pad-number">Pad ${i + 1}</div>
-                        <div class="pad-name" id="padName-${i}">Empty</div>
-                    </div>
-                `;
-                pad.onclick = () => selectPad(i);
-                rightColumn.appendChild(pad);
-            }
-        }
-        
-        // Select pad for sample assignment
-        function selectPad(index) {
-            // Deselect all
-            document.querySelectorAll('.pad').forEach(p => p.classList.remove('active'));
-            
-            // Select this pad
-            selectedPad = index;
-            document.getElementById(`pad-${index}`).classList.add('active');
-            
-            console.log(`Selected pad ${index + 1}`);
-        }
-        
-        // Search Freesound
-        async function searchSounds() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) {
-                alert('Please enter a search term');
-                return;
-            }
-            
-            // Sanitize search query
-            const sanitized = sanitizeSearchQuery(query);
-            if (!sanitized) {
-                document.getElementById('results').innerHTML = `
-                    <div class="error">
-                        <strong>Search Blocked</strong><br>
-                        This search term contains inappropriate content and cannot be processed.
-                    </div>
-                `;
-                return;
-            }
-            
-            const results = document.getElementById('results');
-            results.innerHTML = '<div class="loading">Searching...</div>';
-            
-            try {
-                const url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(sanitized)}&token=${API_KEY}&fields=id,name,duration,username&page_size=20`;
-                const response = await fetch(url);
-                
-                if (!response.ok) {
-                    throw new Error('API request failed. Check your API key.');
-                }
-                
-                const data = await response.json();
-                
-                // Get duration filter
-                const durationFilter = document.getElementById('durationFilter').value;
-                
-                // Filter results for inappropriate content and duration
-                let filteredResults = data.results.filter(sound => 
-                    !containsBlockedContent(sound.name) && 
-                    !containsBlockedContent(sound.username)
-                );
-                
-                // Apply duration filter
-                if (durationFilter !== 'any') {
-                    const maxDuration = parseFloat(durationFilter);
-                    filteredResults = filteredResults.filter(sound => sound.duration <= maxDuration);
-                }
-                
-                displayResults(filteredResults);
-                
-            } catch (error) {
-                results.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            }
-        }
-        
-        // Display search results
-        function displayResults(sounds) {
-            const results = document.getElementById('results');
-            
-            if (sounds.length === 0) {
-                results.innerHTML = '<div class="loading">No results found matching your criteria</div>';
-                return;
-            }
-            
-            results.innerHTML = sounds.map(sound => `
-                <div class="result-item">
-                    <div class="result-name">${sound.name}</div>
-                    <div class="result-meta">
-                        ${sound.duration.toFixed(1)}s • by ${sound.username}
-                    </div>
-                    <div class="result-actions">
-                        <button class="btn btn-small" onclick="previewSound(${sound.id})" id="preview-${sound.id}">▶ Preview</button>
-                        <button class="btn btn-small" onclick="stopPreview()" style="display: none;" id="stop-${sound.id}">⏹ Stop</button>
-                        <button class="btn btn-small btn-primary" onclick="assignSound(${sound.id}, '${sound.name.replace(/'/g, "\\'")}')">Assign to Pad</button>
-                    </div>
+    <div class="spl-features">
+      <div class="spl-feat">
+        <div class="spl-feat-icon">🔍</div>
+        <div class="spl-feat-text">
+          <div class="spl-feat-title">Search sounds</div>
+          <div class="spl-feat-desc">Search thousands of free samples on Freesound and load them straight onto the board</div>
+        </div>
+      </div>
+      <div class="spl-feat">
+        <div class="spl-feat-icon">🎙️</div>
+        <div class="spl-feat-text">
+          <div class="spl-feat-title">Record from mic</div>
+          <div class="spl-feat-desc">Capture audio from your microphone and assign it to any pad — silence is trimmed automatically</div>
+        </div>
+      </div>
+      <div class="spl-feat">
+        <div class="spl-feat-icon">📂</div>
+        <div class="spl-feat-text">
+          <div class="spl-feat-title">Upload your files</div>
+          <div class="spl-feat-desc">Drop in your own .wav or .mp3 files, or restore a full session from a saved ZIP</div>
+        </div>
+      </div>
+      <div class="spl-feat">
+        <div class="spl-feat-icon">🎛️</div>
+        <div class="spl-feat-text">
+          <div class="spl-feat-title">Edit playback modes</div>
+          <div class="spl-feat-desc">Set each pad to one-shot, gate (plays while held), or loop — globally or per pad</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="spl-go" id="splEnter">LET'S GO →</button>
+    <div class="spl-skip" id="splSkip">skip</div>
+  </div>
+</div>
+
+<!-- ════ APP SHELL ════ -->
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">SPOKE<span>-MINI</span></div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="search">Search</button>
+      <button class="tab" data-tab="record">Record</button>
+      <button class="tab" data-tab="pads">Pads</button>
+      <button class="tab" data-tab="pack">Upload / Download</button>
+    </nav>
+    <div class="hpills">
+      <span class="pill green" id="hCount">0 / 26</span>
+      <span class="pill purple" id="hMidi" style="display:none;">MIDI ●</span>
+    </div>
+  </header>
+
+  <!-- SIDEBAR: permanent board -->
+  <aside class="sidebar">
+
+    <!-- Board canvas -->
+    <div class="sb-section" style="padding-bottom:10px;">
+      <div class="sb-label">Board <em id="sbCount">0/26</em></div>
+      <div class="board-wrap">
+        <canvas id="spokeCanvas" width="260" height="380"></canvas>
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--muted);text-align:center;font-weight:500;">
+        Click to play &nbsp;·&nbsp; Hold for gate &nbsp;·&nbsp; Right-click clear
+      </div>
+    </div>
+
+    <!-- Now playing -->
+    <div class="sb-section" style="padding-top:10px;padding-bottom:10px;">
+      <div class="np">
+        <div class="np-dot idle" id="npDot"></div>
+        <span class="np-name" id="npName">Nothing playing</span>
+        <span class="np-tag" id="npTag" style="display:none;"></span>
+      </div>
+    </div>
+
+    <!-- Scope -->
+    <div class="sb-section" style="padding-top:10px;padding-bottom:10px;">
+      <div class="sb-label" style="cursor:pointer;" id="scopeToggle">
+        Scope
+        <svg class="chevron open" id="scopeChev" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="coll" id="scopeBody" style="max-height:90px;">
+        <div class="scope-wrap" style="height:60px;">
+          <canvas id="scopeCanvas" width="500" height="60" style="width:100%;height:60px;display:block;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Playback controls -->
+    <div class="sb-section" style="padding-top:10px;">
+      <div class="sb-label" style="cursor:pointer;" id="pbToggle">
+        Playback mode
+        <svg class="chevron open" id="pbChev" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="coll" id="pbBody" style="max-height:260px;">
+        <div class="mode-grid">
+          <button class="mode-btn active-oneshot" id="mode-oneshot" data-mode="oneshot">
+            <span class="mode-icon">▶</span>One-shot
+          </button>
+          <button class="mode-btn" id="mode-gate" data-mode="gate">
+            <span class="mode-icon">⏯</span>Gate
+          </button>
+          <button class="mode-btn" id="mode-loop" data-mode="loop">
+            <span class="mode-icon">↻</span>Loop
+          </button>
+        </div>
+        <div class="mode-desc" id="modeDesc">Plays the sound once from start to finish on each click.</div>
+        <div class="div"></div>
+        <div class="btn-row fill">
+          <button class="btn g" id="midiBtn">Connect MIDI</button>
+          <button class="btn r" id="clearBtn">Clear all</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loaded sounds -->
+    <div class="sb-section" style="padding-top:10px;">
+      <div class="sb-label" style="cursor:pointer;" id="loadedToggle">
+        Sounds loaded <em id="loadedBadge">0</em>
+        <svg class="chevron open" id="loadedChev" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="coll" id="loadedBody" style="max-height:280px;">
+        <div class="pack-list" id="boardList">
+          <div class="empty"><div class="ico">🎵</div><p>No sounds yet</p></div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- MAIN: tabbed content -->
+  <main class="main">
+
+    <!-- ── SEARCH ── -->
+    <div class="panel active" id="tab-search">
+
+      <div class="card">
+        <div class="card-head static">
+          <span class="card-label">Freesound search</span>
+        </div>
+        <div class="card-body">
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input type="search" id="searchInput" placeholder="e.g. kick drum, bird, piano pad…">
+            <button class="btn g sm search-go" id="searchBtn">Go</button>
+          </div>
+          <!-- Filters toggle -->
+          <div style="margin-top:12px;">
+            <div style="display:flex;align-items:center;gap:7px;cursor:pointer;" id="filterToggle">
+              <span style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);">Filters</span>
+              <svg class="chevron" id="filterChev" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="coll shut" id="filterBody" style="max-height:70px;">
+              <div class="filters">
+                <div><label class="field-label">Licence</label>
+                  <select id="licFilter"><option value="">Any</option><option value="Attribution">CC BY</option><option value="Creative Commons 0">CC0</option></select>
                 </div>
-            `).join('');
-        }
-        
-        // Preview sound
-        async function previewSound(soundId) {
-            // Stop any current preview
-            stopPreview();
-            
-            try {
-                const url = `https://freesound.org/apiv2/sounds/${soundId}/?token=${API_KEY}&fields=previews`;
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                currentPreview = new Audio(data.previews['preview-hq-mp3']);
-                currentPreview.volume = masterGain.gain.value;
-                currentPreview.play();
-                
-                // Show stop button, hide preview button
-                const previewBtn = document.getElementById(`preview-${soundId}`);
-                const stopBtn = document.getElementById(`stop-${soundId}`);
-                if (previewBtn) previewBtn.style.display = 'none';
-                if (stopBtn) stopBtn.style.display = 'inline-block';
-                
-                // When audio ends, reset buttons
-                currentPreview.onended = () => {
-                    if (previewBtn) previewBtn.style.display = 'inline-block';
-                    if (stopBtn) stopBtn.style.display = 'none';
-                    currentPreview = null;
-                };
-                
-            } catch (error) {
-                alert('Preview failed: ' + error.message);
-            }
-        }
-        
-        // Stop preview
-        function stopPreview() {
-            if (currentPreview) {
-                currentPreview.pause();
-                currentPreview.currentTime = 0;
-                currentPreview = null;
-                
-                // Reset all buttons
-                document.querySelectorAll('[id^="preview-"]').forEach(btn => btn.style.display = 'inline-block');
-                document.querySelectorAll('[id^="stop-"]').forEach(btn => btn.style.display = 'none');
-            }
-        }
-        
-        // Assign sound to selected pad
-        async function assignSound(soundId, soundName) {
-            if (selectedPad === null) {
-                alert('Please select a pad first (click on a pad)');
-                return;
-            }
-            
-            try {
-                // Get sound details
-                const url = `https://freesound.org/apiv2/sounds/${soundId}/?token=${API_KEY}&fields=previews,name`;
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                // Download audio
-                const audioResponse = await fetch(data.previews['preview-hq-mp3']);
-                const arrayBuffer = await audioResponse.arrayBuffer();
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                
-                // Store sample
-                padSamples.set(selectedPad, {
-                    buffer: audioBuffer,
-                    name: data.name
-                });
-                
-                // Update UI
-                document.getElementById(`pad-${selectedPad}`).classList.add('has-sample');
-                document.getElementById(`padName-${selectedPad}`).textContent = data.name.substring(0, 20);
-                
-                alert(`Assigned "${data.name}" to Pad ${selectedPad + 1}`);
-                
-                // Auto-select next pad
-                if (selectedPad < 25) {
-                    selectPad(selectedPad + 1);
-                }
-                
-            } catch (error) {
-                alert('Assignment failed: ' + error.message);
-            }
-        }
-        
-        // Play sample
-        function playSample(padIndex, velocity = 127) {
-            if (!padSamples.has(padIndex)) return;
-            
-            // Stop previous
-            if (activeSources.has(padIndex)) {
-                try {
-                    activeSources.get(padIndex).stop();
-                } catch (e) {}
-            }
-            
-            const source = audioContext.createBufferSource();
-            const gainNode = audioContext.createGain();
-            
-            source.buffer = padSamples.get(padIndex).buffer;
-            gainNode.gain.value = velocity / 127;
-            
-            source.connect(gainNode);
-            gainNode.connect(masterGain);
-            source.start(0);
-            
-            activeSources.set(padIndex, source);
-            
-            // Visual feedback
-            const pad = document.getElementById(`pad-${padIndex}`);
-            pad.style.transform = 'scale(1.15)';
-            setTimeout(() => {
-                pad.style.transform = '';
-            }, 100);
-            
-            source.onended = () => {
-                if (activeSources.get(padIndex) === source) {
-                    activeSources.delete(padIndex);
-                }
-            };
-        }
-        
-        // MIDI connection
-        async function connectMIDI() {
-            try {
-                midiAccess = await navigator.requestMIDIAccess();
-                const inputs = Array.from(midiAccess.inputs.values());
-                
-                if (inputs.length === 0) {
-                    alert('No MIDI devices found');
-                    return;
-                }
-                
-                inputs.forEach(input => {
-                    input.onmidimessage = handleMIDIMessage;
-                });
-                
-                document.getElementById('midiStatus').classList.add('active');
-                alert('MIDI Connected!');
-                
-            } catch (error) {
-                alert('MIDI Error: ' + error.message);
-            }
-        }
-        
-        // Handle MIDI messages
-        function handleMIDIMessage(message) {
-            const [status, note, velocity] = message.data;
-            const command = status & 0xf0;
-            
-            const padIndex = SPOKE_MINI_NOTES.indexOf(note);
-            if (padIndex === -1) return;
-            
-            const pad = document.getElementById(`pad-${padIndex}`);
-            
-            if (command === 0x90 && velocity > 0) {
-                // Note On - play sample and highlight pad
-                playSample(padIndex, velocity);
-                
-                // Visual feedback - bright flash
-                if (pad) {
-                    pad.style.background = 'rgba(255, 255, 255, 0.9)';
-                    pad.style.borderColor = 'rgba(255, 255, 255, 1)';
-                    pad.style.boxShadow = '0 0 30px rgba(255, 255, 255, 0.8)';
-                }
-            } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
-                // Note Off - reset pad appearance
-                if (pad) {
-                    setTimeout(() => {
-                        if (pad.classList.contains('has-sample')) {
-                            pad.style.background = '';
-                            pad.style.borderColor = '';
-                            pad.style.boxShadow = '';
-                        } else {
-                            pad.style.background = '';
-                            pad.style.borderColor = '';
-                            pad.style.boxShadow = '';
-                        }
-                    }, 100);
-                }
-            }
-        }
-        
-        // Clear all samples
-        function clearAllSamples() {
-            if (!confirm('Clear all samples?')) return;
-            
-            padSamples.clear();
-            activeSources.forEach(source => {
-                try { source.stop(); } catch (e) {}
-            });
-            activeSources.clear();
-            
-            for (let i = 0; i < 26; i++) {
-                document.getElementById(`pad-${i}`).classList.remove('has-sample', 'active');
-                document.getElementById(`padName-${i}`).textContent = 'Empty';
-            }
-            
-            selectedPad = null;
-        }
-        
-        // Set master volume
-        function setVolume(value) {
-            if (masterGain) {
-                masterGain.gain.value = value / 100;
-            }
-        }
-        
-        // Initialize on load
-        init();
-    </script>
+                <div><label class="field-label">Duration</label>
+                  <select id="durFilter"><option value="">Any</option><option value="[0 TO 2]">0–2s</option><option value="[2 TO 5]">2–5s</option><option value="[5 TO 10]">5–10s</option><option value="[10 TO 30]">10–30s</option></select>
+                </div>
+                <div><label class="field-label">Sort</label>
+                  <select id="sortFilter"><option value="score">Relevance</option><option value="rating_desc">Rating</option><option value="downloads_desc">Downloads</option><option value="created_desc">Newest</option></select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" id="catHead">
+          <span class="card-label">Quick categories</span>
+          <svg class="chevron open" id="catChev" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="coll" id="catBody" style="max-height:130px;">
+          <div class="card-body">
+            <div class="tag-grid">
+              <span class="tag-chip" data-s="kick drum">Kick</span>
+              <span class="tag-chip" data-s="snare">Snare</span>
+              <span class="tag-chip" data-s="hi-hat">Hi-hat</span>
+              <span class="tag-chip" data-s="clap">Clap</span>
+              <span class="tag-chip" data-s="808 bass">808 Bass</span>
+              <span class="tag-chip" data-s="synth pad">Synth Pad</span>
+              <span class="tag-chip" data-s="piano note">Piano</span>
+              <span class="tag-chip" data-s="trumpet">Trumpet</span>
+              <span class="tag-chip" data-s="violin">Violin</span>
+              <span class="tag-chip" data-s="bird chirp">Bird</span>
+              <span class="tag-chip" data-s="ambient drone">Drone</span>
+              <span class="tag-chip" data-s="nature sounds">Nature</span>
+              <span class="tag-chip" data-s="foley">Foley</span>
+              <span class="tag-chip" data-s="vinyl crackle">Vinyl</span>
+              <span class="tag-chip" data-s="bass guitar">Bass Guitar</span>
+              <span class="tag-chip" data-s="cymbal">Cymbal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resultsCard" class="card" style="display:none;">
+        <div class="card-head static">
+          <span class="card-label">Results</span>
+          <div style="display:flex;gap:9px;align-items:center;">
+            <button class="btn o sm" id="autoLoadBtn" style="display:none;">⚡ Auto-load</button>
+            <span style="font-size:11px;color:var(--muted);" id="resCount"></span>
+          </div>
+        </div>
+        <div class="card-body" style="padding-top:0;">
+          <div class="sound-list" id="soundList"></div>
+          <div id="moreRow" style="display:none;text-align:center;margin-top:12px;">
+            <button class="btn" id="moreBtn">Load more</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="searchEmpty" class="empty" style="margin-top:40px;">
+        <div class="ico">🔍</div>
+        <p>Search or pick a category to browse sounds</p>
+      </div>
+
+    </div>
+
+    <!-- ── RECORD ── -->
+    <div class="panel" id="tab-record">
+
+      <div class="card">
+        <div class="card-head static"><span class="card-label">Microphone recording</span></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label class="field-label">Input device</label>
+            <select id="micSelect"><option>Loading devices…</option></select>
+          </div>
+          <button class="rec-btn idle" id="recBtn">
+            <span id="recDot" style="width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;"></span>
+            <span id="recLabel">Start recording</span>
+          </button>
+          <div class="st" id="recStatus">Select a device above, then click to record</div>
+
+          <div class="trim-row">
+            <div>
+              <div class="tog-label">Auto-trim silence</div>
+              <div class="tog-sub">Clips leading silence from the start of recordings</div>
+            </div>
+            <label class="tog">
+              <input type="checkbox" id="trimToggle" checked>
+              <span class="tog-track"></span>
+              <span class="tog-thumb"></span>
+            </label>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;" id="threshRow">
+            <span style="font-size:11px;color:var(--muted);white-space:nowrap;">Threshold</span>
+            <input type="range" id="trimThresh" min="0.001" max="0.05" step="0.001" value="0.01" style="flex:1;padding:0;border:none;background:none;">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--muted);min-width:36px;" id="threshVal">0.010</span>
+          </div>
+
+          <div style="background:var(--bg3);border-radius:8px;padding:13px;border:1px solid var(--border);">
+            <p style="font-size:12px;font-weight:500;color:var(--muted);line-height:1.75;">
+              After stopping, go to the <strong style="color:var(--accent);">Board</strong> (always visible on the left) and click any pad to assign your recording to it.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" id="recScopeHead">
+          <span class="card-label">Live input scope</span>
+          <svg class="chevron open" id="recScopeChev" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="coll" id="recScopeBody" style="max-height:110px;">
+          <div class="scope-wrap" style="margin:12px;height:70px;">
+            <canvas id="recScopeCanvas" width="600" height="70" style="width:100%;height:70px;display:block;"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── PADS ── -->
+    <div class="panel" id="tab-pads">
+      <p class="pads-intro">Assign a playback mode to each pad individually. This overrides the global mode in the sidebar for that pad only. Pads without a sound are shown dimmed.</p>
+
+      <div class="pads-legend">
+        <div class="legend-chip os">▶ One-shot — plays once</div>
+        <div class="legend-chip gt">⏯ Gate — plays while held</div>
+        <div class="legend-chip lp">↻ Loop — toggles on/off</div>
+      </div>
+
+      <div class="pads-bulk">
+        <span style="font-size:11px;color:var(--muted);font-weight:600;align-self:center;">Set all to:</span>
+        <button class="btn sm g" id="allOs">▶ One-shot</button>
+        <button class="btn sm v" id="allGt">⏯ Gate</button>
+        <button class="btn sm o" id="allLp">↻ Loop</button>
+        <button class="btn sm" id="allGlobal" style="margin-left:auto;">↺ Reset to global</button>
+      </div>
+
+      <div class="pads-grid" id="padsGrid"></div>
+    </div>
+
+    <!-- ── PACK ── -->
+    <div class="panel" id="tab-pack">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+        <div class="card">
+          <div class="card-head static"><span class="card-label">Export pack</span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+            <p style="font-size:12px;font-weight:500;color:var(--muted);line-height:1.7;">Downloads all loaded sounds as <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:10px;font-family:var(--mono);">1.wav</code> … <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:10px;font-family:var(--mono);">26.wav</code> so you can reload them in the same positions later.</p>
+            <div class="pack-list" id="exportList">
+              <div class="empty"><div class="ico">📦</div><p>No sounds loaded</p></div>
+            </div>
+            <button class="btn o" id="dlAllBtn" disabled>⬇ Download all as ZIP</button>
+            <div class="prog" id="dlProg" style="display:none;"><div class="prog-fill" id="dlFill"></div></div>
+            <div class="st" id="dlStatus"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head static"><span class="card-label">Import pack</span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+            <p style="font-size:12px;font-weight:500;color:var(--muted);line-height:1.7;">Drop a <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:10px;font-family:var(--mono);">spoke_pack.zip</code> to restore a full session, or drop individual <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:10px;font-family:var(--mono);">.wav</code> files named by pad number.</p>
+            <div class="drop-zone" id="dropZone">
+              <div style="font-size:22px;margin-bottom:5px;">⬆</div>
+              Drop <strong>spoke_pack.zip</strong> or individual .wav files here<br>
+              <span style="font-size:10px;opacity:.55;">or click to choose</span>
+            </div>
+            <input type="file" id="importInput" multiple accept=".wav,.mp3,.ogg,.flac,.zip" style="display:none;">
+            <button class="btn v" id="importBtn">Choose files</button>
+            <div class="st" id="importStatus"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div><!-- end .app -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// ── CONFIG ──
+const API_KEY = 'ENXBH14HDdboFnq4ttqKQGed9tV7xxYJOghOaPbo';
+// SPOKE-MINI: 26 pads, 13 per side
+const NOTES   = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38];
+const PAD_COUNT = 26;
+const BLOCKED = ['sex','sexy','porn','xxx','adult','nsfw','fuck','fucking','shit','bitch','dick','cock','cum','orgasm','breast','nude','naked','kill','murder','violence','blood','gore','drug','weed','cocaine','meth','heroin'];
+const OK_WORDS= ['bass','bassist','bassdrum','bassoon','grass','class','glass','pass','mass','classic','cassette'];
+function blocked(t){const l=t.toLowerCase();return BLOCKED.some(b=>{const r=new RegExp(`\\b${b}\\b`,'i');if(!r.test(l))return false;return!OK_WORDS.some(w=>w.includes(b)&&l.includes(w));});}
+
+// ── STATE ──
+let AC, gain, analyser, recAnalyser;
+let midi=null;
+const sounds=new Map(), sources=new Map();
+let loaded=0, playMode='oneshot'; // global default: 'oneshot' | 'gate' | 'loop'
+const padModes=new Map(); // per-pad overrides: Map<padIndex, 'oneshot'|'gate'|'loop'>
+let autoTrim=true, trimThreshold=0.01;
+let mRec,mStream,chunks=[],recOn=false,recBuf=null,waitPad=false,selMic=null;
+let query='',page=1,total=0,results=[];
+const previews=new Map();
+
+// ── COLLAPSE HELPERS ──
+function mkColl(toggleId, bodyId, chevId){
+  const t=document.getElementById(toggleId),b=document.getElementById(bodyId),c=document.getElementById(chevId);
+  if(!t||!b)return;
+  t.addEventListener('click',()=>{const s=b.classList.toggle('shut');if(c)c.classList.toggle('open',!s);});
+}
+mkColl('scopeToggle','scopeBody','scopeChev');
+mkColl('pbToggle','pbBody','pbChev');
+mkColl('loadedToggle','loadedBody','loadedChev');
+mkColl('catHead','catBody','catChev');
+mkColl('recScopeHead','recScopeBody','recScopeChev');
+
+// filter toggle
+(()=>{
+  const t=document.getElementById('filterToggle'),b=document.getElementById('filterBody'),c=document.getElementById('filterChev');
+  t.addEventListener('click',()=>{const s=b.classList.toggle('shut');c.classList.toggle('open',!s);});
+})();
+
+// ── TABS ──
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab==='pads') renderPadsGrid();
+  });
+});
+
+// ── AUDIO ──
+function initAC(){
+  if(AC)return;
+  AC=new(window.AudioContext||window.webkitAudioContext)();
+  analyser=AC.createAnalyser();analyser.fftSize=2048;
+  gain=AC.createGain();gain.gain.value=0.8;
+  gain.connect(analyser);analyser.connect(AC.destination);
+  scopeLoop(document.getElementById('scopeCanvas'),()=>analyser,'#00e5a0');
+  scopeLoop(document.getElementById('recScopeCanvas'),()=>recAnalyser,'#7c6dfa');
+}
+function scopeLoop(canvas,getA,col){
+  const c=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+  (function loop(){
+    requestAnimationFrame(loop);
+    const a=getA();
+    c.fillStyle='rgba(8,8,9,.22)';c.fillRect(0,0,W,H);
+    if(!a){c.fillStyle='#080809';c.fillRect(0,0,W,H);return;}
+    const d=new Uint8Array(a.frequencyBinCount);a.getByteTimeDomainData(d);
+    const sig=d.some(v=>Math.abs(v-128)>2);
+    c.lineWidth=1.5;c.strokeStyle=sig?col:'rgba(255,255,255,.05)';
+    c.beginPath();d.forEach((v,i)=>{const y=(v/128)*H/2;i?c.lineTo(i*(W/d.length),y):c.moveTo(0,y);});
+    c.lineTo(W,H/2);c.stroke();
+  })();
+}
+
+// ── BOARD ──
+// SPOKE-MINI: 26 pads in two columns of 13. Left: pads 1-13 top→bottom. Right: pads 14-26 top→bottom.
+const bc=document.getElementById('spokeCanvas'),bCtx=bc.getContext('2d');
+const BW=260,BH=380;
+const PAD_SZ=14;
+const PAD_ROWS=13;
+const COL_X_L=34, COL_X_R=BW-34;
+const ROW_TOP=26, ROW_BOT=BH-26;
+const ROW_STEP=(ROW_BOT-ROW_TOP)/(PAD_ROWS-1);
+
+class Pad{
+  constructor(i){
+    this.i=i;this.sz=PAD_SZ;this.pulse=0;this.on=false;
+    if(i<13){ this.x=COL_X_L; this.y=ROW_TOP+i*ROW_STEP; }
+    else     { this.x=COL_X_R; this.y=ROW_TOP+(i-13)*ROW_STEP; }
+  }
+  tick(){
+    if(this.on){this.pulse+=.18;if(this.pulse>Math.PI*2){this.on=false;this.pulse=0;}}
+  }
+  draw(){
+    const has=sounds.has(this.i),active=sources.has(this.i);
+    const myMode=padModes.get(this.i)||playMode;
+    let fill='#1c1c1f',str='rgba(255,255,255,.09)';
+    if(active){
+      if(myMode==='loop'){const p=Math.sin(Date.now()/480)*.3+.7;fill=`rgba(245,166,35,${p})`;str='#f5a623';}
+      else if(myMode==='gate'){const p=Math.sin(Date.now()/300)*.25+.75;fill=`rgba(124,109,250,${p})`;str='#7c6dfa';}
+      else{fill='#00e5a0';str='#fff';}
+    } else if(this.on){
+      const alpha=0.18+Math.sin(this.pulse)*.12;
+      fill=`rgba(255,255,255,${alpha})`;str='rgba(255,255,255,.55)';
+    } else if(has){
+      if(padModes.has(this.i)){
+        const m=padModes.get(this.i);
+        if(m==='gate'){fill='rgba(124,109,250,.15)';str='rgba(124,109,250,.4)';}
+        else if(m==='loop'){fill='rgba(245,166,35,.15)';str='rgba(245,166,35,.4)';}
+        else{fill='rgba(0,229,160,.15)';str='rgba(0,229,160,.45)';}
+      } else{fill='rgba(0,229,160,.15)';str='rgba(0,229,160,.45)';}
+    }
+    if(active){
+      const gs=this.sz+8,gc=myMode==='loop'?'#f5a623':myMode==='gate'?'#7c6dfa':'#00e5a0';
+      const g=bCtx.createRadialGradient(this.x,this.y,1,this.x,this.y,gs);
+      g.addColorStop(0,gc+'55');g.addColorStop(1,gc+'00');
+      bCtx.fillStyle=g;bCtx.beginPath();bCtx.arc(this.x,this.y,gs,0,Math.PI*2);bCtx.fill();
+    } else if(this.on){
+      const gs=this.sz+Math.sin(this.pulse)*10+4;
+      const g=bCtx.createRadialGradient(this.x,this.y,1,this.x,this.y,gs);
+      g.addColorStop(0,'rgba(255,255,255,.2)');g.addColorStop(1,'rgba(255,255,255,0)');
+      bCtx.fillStyle=g;bCtx.beginPath();bCtx.arc(this.x,this.y,gs,0,Math.PI*2);bCtx.fill();
+    }
+    bCtx.beginPath();bCtx.arc(this.x,this.y,this.sz,0,Math.PI*2);
+    bCtx.fillStyle=fill;bCtx.fill();bCtx.strokeStyle=str;bCtx.lineWidth=(has||active||this.on)?1.5:1;bCtx.stroke();
+    bCtx.fillStyle=(has||active||this.on)?'rgba(255,255,255,.88)':'rgba(255,255,255,.22)';
+    bCtx.font=`${(has||active)?'600':'400'} 8px 'Comfortaa'`;
+    bCtx.textAlign='center';bCtx.textBaseline='middle';
+    const lbl=active&&myMode==='loop'?'↻':active&&myMode==='gate'?'⏯':this.i+1;
+    bCtx.fillText(lbl,this.x,this.y);
+  }
+  hit(x,y){const d=x-this.x,e=y-this.y;return Math.sqrt(d*d+e*e)<=this.sz+5;}
+  fire(){this.on=true;this.pulse=0;}
+}
+
+const pads=NOTES.map((n,i)=>new Pad(i));
+
+function drawBoard(){
+  bCtx.clearRect(0,0,BW,BH);
+
+  // Main body rectangle
+  const bodyX=COL_X_L-PAD_SZ-10, bodyY=ROW_TOP-PAD_SZ-8;
+  const bodyW=(COL_X_R-COL_X_L)+PAD_SZ*2+20, bodyH=(ROW_BOT-ROW_TOP)+PAD_SZ*2+16;
+  bCtx.fillStyle='#101012';bCtx.strokeStyle='rgba(255,255,255,.07)';bCtx.lineWidth=1.5;
+  bCtx.beginPath();bCtx.roundRect(bodyX,bodyY,bodyW,bodyH,10);bCtx.fill();bCtx.stroke();
+
+  // Centre label
+  const cx=BW/2, cy=BH/2;
+  bCtx.fillStyle='rgba(255,255,255,.05)';
+  bCtx.beginPath();bCtx.roundRect(cx-32,cy-20,64,42,7);bCtx.fill();
+  bCtx.fillStyle='rgba(255,255,255,.75)';bCtx.font="bold 10px 'Comfortaa'";
+  bCtx.textAlign='center';bCtx.textBaseline='middle';bCtx.fillText('SPOKE',cx,cy-8);
+  bCtx.fillStyle='rgba(255,255,255,.45)';bCtx.font="bold 8px 'Comfortaa'";bCtx.fillText('MINI',cx,cy+4);
+  bCtx.fillStyle='#00e5a0';bCtx.font="600 7px 'Comfortaa'";bCtx.fillText(`${loaded}/26`,cx,cy+16);
+
+  // Connector lines from pad edge to body edge
+  pads.forEach(p=>{
+    const edgeX=p.i<13?bodyX:bodyX+bodyW;
+    const padEdgeX=p.i<13?p.x+p.sz:p.x-p.sz;
+    bCtx.beginPath();bCtx.moveTo(padEdgeX,p.y);bCtx.lineTo(edgeX,p.y);
+    bCtx.strokeStyle='rgba(255,255,255,.05)';bCtx.lineWidth=1;bCtx.stroke();
+  });
+
+  pads.forEach(p=>{p.tick();p.draw();});
+}
+(function loop(){drawBoard();requestAnimationFrame(loop);})();
+
+// ── CANVAS EVENTS (click, hold/gate, touch) ──
+function padAt(e){
+  const r=bc.getBoundingClientRect(),sx=bc.width/r.width,sy=bc.height/r.height;
+  const x=(e.clientX-r.left)*sx,y=(e.clientY-r.top)*sy;
+  return pads.find(p=>p.hit(x,y))||null;
+}
+function touchPadAt(e){
+  // changedTouches for touchend, touches for touchstart/move
+  const t=(e.changedTouches||e.touches)[0];
+  if(!t)return null;
+  const r=bc.getBoundingClientRect(),sx=bc.width/r.width,sy=bc.height/r.height;
+  const x=(t.clientX-r.left)*sx,y=(t.clientY-r.top)*sy;
+  return pads.find(p=>p.hit(x,y))||null;
+}
+
+// Track currently held gate pad indices so global release always works
+const heldPads=new Set();
+
+bc.addEventListener('mousedown',e=>{
+  if(e.button!==0)return;
+  const p=padAt(e);if(!p)return;
+  if(waitPad&&recBuf){assignRec(p.i);return;}
+  if(padEffectiveMode(p.i)==='gate') heldPads.add(p.i);
+  pressStart(p.i);
+});
+
+// Listen on window so release fires even if mouse drifts off canvas
+window.addEventListener('mouseup',e=>{
+  if(e.button!==0)return;
+  heldPads.forEach(i=>pressEnd(i));
+  heldPads.clear();
+});
+
+bc.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const p=touchPadAt(e);if(!p)return;
+  if(waitPad&&recBuf){assignRec(p.i);return;}
+  if(padEffectiveMode(p.i)==='gate') heldPads.add(p.i);
+  pressStart(p.i);
+},{passive:false});
+
+window.addEventListener('touchend',e=>{
+  // Release all held gate pads on any touchend
+  heldPads.forEach(i=>pressEnd(i));
+  heldPads.clear();
+},{passive:true});
+
+bc.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  const p=padAt(e);
+  if(p&&sounds.has(p.i)){if(confirm(`Clear pad ${p.i+1}?\n${sounds.get(p.i).name}`))clearPad(p.i);}
+});
+
+function padEffectiveMode(i){ return padModes.get(i)||playMode; }
+
+function pressStart(i){
+  // Always fire the visual touch indicator regardless of whether a sound is loaded
+  if(pads[i]) pads[i].fire();
+  const m=padEffectiveMode(i);
+  if(m==='oneshot') playPad(i);
+  else if(m==='gate') startGate(i);
+  else if(m==='loop') toggleLoop(i);
+}
+function pressEnd(i){
+  if(padEffectiveMode(i)==='gate') stopPad(i);
+}
+
+// MIDI routes to the correct mode handler
+function midiPlay(idx,vel){
+  const m=padEffectiveMode(idx);
+  if(m==='oneshot')playPad(idx,vel);
+  else if(m==='gate')startGate(idx,vel);
+  else if(m==='loop')toggleLoop(idx,vel);
+}
+function playPad(i,vel=127){
+  if(!sounds.has(i))return;
+  initAC();setNP(i);
+  if(sources.has(i)){try{sources.get(i).src.stop();}catch(e){}sources.delete(i);}
+  const src=AC.createBufferSource(),g=AC.createGain();
+  src.buffer=sounds.get(i).buffer;src.loop=false;g.gain.value=vel/127;
+  src.connect(g);g.connect(gain);src.start(0);
+  sources.set(i,{src,g});
+  src.onended=()=>{if(sources.get(i)?.src===src){sources.delete(i);clearNP();}};
+}
+
+function startGate(i,vel=127){
+  if(!sounds.has(i))return;
+  initAC();setNP(i);
+  // gate: restart from beginning each press
+  if(sources.has(i)){try{sources.get(i).src.stop();}catch(e){}sources.delete(i);}
+  const src=AC.createBufferSource(),g=AC.createGain();
+  src.buffer=sounds.get(i).buffer;src.loop=true;g.gain.value=vel/127; // loop while held
+  src.connect(g);g.connect(gain);src.start(0);
+  sources.set(i,{src,g});if(pads[i])pads[i].fire();
+  src.onended=()=>{if(sources.get(i)?.src===src){sources.delete(i);clearNP();}};
+}
+
+function stopPad(i){
+  if(!sources.has(i))return;
+  const entry=sources.get(i);
+  sources.delete(i); // delete first so re-entrant calls bail out above
+  try{
+    const now=AC.currentTime;
+    entry.g.gain.cancelScheduledValues(now);
+    entry.g.gain.setValueAtTime(entry.g.gain.value,now);
+    entry.g.gain.linearRampToValueAtTime(0,now+0.04);
+    entry.src.stop(now+0.045);
+  }catch(e){/* already stopped */}
+  clearNP();
+}
+
+function toggleLoop(i,vel=127){
+  if(!sounds.has(i))return;
+  initAC();
+  // if already looping this pad, stop it
+  if(sources.has(i)){
+    const entry=sources.get(i);
+    try{
+      const now=AC.currentTime;
+      entry.g.gain.setValueAtTime(entry.g.gain.value,now);
+      entry.g.gain.linearRampToValueAtTime(0,now+0.04);
+      entry.src.stop(now+0.045);
+    }catch(e){}
+    sources.delete(i);clearNP();return;
+  }
+  setNP(i);
+  const src=AC.createBufferSource(),g=AC.createGain();
+  src.buffer=sounds.get(i).buffer;src.loop=true;g.gain.value=vel/127;
+  src.connect(g);g.connect(gain);src.start(0);
+  sources.set(i,{src,g});if(pads[i])pads[i].fire();
+  src.onended=()=>{if(sources.get(i)?.src===src){sources.delete(i);clearNP();}};
+}
+
+function setNP(i){
+  const s=sounds.get(i);if(!s)return;
+  document.getElementById('npDot').classList.remove('idle');
+  document.getElementById('npName').textContent=s.name;
+  const t=document.getElementById('npTag');t.textContent=`PAD ${i+1}`;t.style.display='';
+}
+function clearNP(){setTimeout(()=>{if(!sources.size){document.getElementById('npDot').classList.add('idle');document.getElementById('npName').textContent='Nothing playing';document.getElementById('npTag').style.display='none';}},1800);}
+
+// ── PLAYBACK MODE SELECTOR ──
+const MODE_INFO={
+  oneshot:{cls:'active-oneshot',desc:'Plays the sound once from start to finish on each click.'},
+  gate:   {cls:'active-gate',   desc:'Plays while you hold the pad down — releases when you let go.'},
+  loop:   {cls:'active-loop',   desc:'Toggles continuous looping on/off with each click.'}
+};
+document.querySelectorAll('.mode-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const m=btn.dataset.mode;
+    // stop any active sources when switching mode
+    sources.forEach((_,i)=>{ try{sources.get(i).src.stop();}catch(e){} });
+    sources.clear();clearNP();
+    playMode=m;
+    document.querySelectorAll('.mode-btn').forEach(b=>b.className='mode-btn');
+    btn.classList.add(MODE_INFO[m].cls);
+    document.getElementById('modeDesc').textContent=MODE_INFO[m].desc;
+  });
+});
+document.getElementById('midiBtn').addEventListener('click',async()=>{
+  try{
+    midi=await navigator.requestMIDIAccess();
+    Array.from(midi.inputs.values()).forEach(inp=>inp.onmidimessage=m=>{
+      const[st,note,vel]=m.data,cmd=st&0xf0,idx=NOTES.indexOf(note);
+      if(idx===-1)return;
+      // Note-on
+      if(cmd===0x90&&vel>0){
+        if(pads[idx]) pads[idx].fire(); // always show touch
+        midiPlay(idx,vel);
+        if(padEffectiveMode(idx)==='gate') heldPads.add(idx);
+      }
+      // Note-off (explicit 0x80, or 0x90 with vel=0)
+      if(cmd===0x80||(cmd===0x90&&vel===0)){
+        heldPads.delete(idx);
+        if(padEffectiveMode(idx)==='gate') stopPad(idx);
+      }
+    });
+    document.getElementById('midiBtn').textContent='MIDI ✓';
+    document.getElementById('midiBtn').classList.add('g');
+    document.getElementById('hMidi').style.display='';
+  }catch(e){alert('MIDI: '+e.message);}
+});
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  if(!confirm('Clear all 26 pads?'))return;
+  sources.forEach((_,i)=>{try{sources.get(i).src.stop();}catch(e){}});sources.clear();sounds.clear();afterLoad();
+});
+
+// ── LOAD SOUND ──
+async function loadSound(url,name,id){
+  let idx=-1;for(let i=0;i<26;i++){if(!sounds.has(i)){idx=i;break;}}
+  if(idx===-1){alert('Board full (26 max). Right-click a pad to clear it.');return;}
+  try{
+    initAC();
+    const ab=await(await fetch(url)).arrayBuffer();
+    const buf=await AC.decodeAudioData(ab);
+    sounds.set(idx,{buffer:buf,url,name,id});afterLoad();
+  }catch(e){console.error(e);alert('Load failed: '+e.message);}
+}
+function clearPad(i){
+  if(!sounds.has(i))return;
+  if(sources.has(i)){try{sources.get(i).src.stop();}catch(e){}sources.delete(i);}
+  sounds.delete(i);afterLoad();
+}
+function afterLoad(){
+  loaded=sounds.size;
+  document.getElementById('hCount').textContent=`${loaded} / 26`;
+  document.getElementById('sbCount').textContent=`${loaded}/26`;
+  document.getElementById('loadedBadge').textContent=loaded;
+  updateBoardList();updateExport();
+  // refresh pads tab if open
+  if(document.getElementById('tab-pads').classList.contains('active')) renderPadsGrid();
+  const rem=26-loaded,ab=document.getElementById('autoLoadBtn');
+  if(rem>0&&results.length>0){ab.style.display='';ab.textContent=`⚡ Auto-load ${Math.min(rem,results.length)}`;}
+  else ab.style.display='none';
+}
+function updateBoardList(){
+  const el=document.getElementById('boardList');
+  if(!sounds.size){el.innerHTML='<div class="empty"><div class="ico">🎵</div><p>No sounds yet</p></div>';return;}
+  el.innerHTML='';
+  [...sounds.entries()].sort((a,b)=>a[0]-b[0]).forEach(([i,s])=>{
+    const r=document.createElement('div');r.className='prow';
+    r.innerHTML=`<span class="prow-num">${i+1}</span><span class="prow-name" title="${s.name}">${s.name}</span>
+      <button class="btn sm" data-pp="${i}" style="margin-left:auto;">▶</button>
+      <button class="btn sm r" data-pc="${i}">✕</button>`;
+    r.querySelector(`[data-pp]`).addEventListener('click',()=>playPad(i));
+    r.querySelector(`[data-pc]`).addEventListener('click',()=>{if(confirm(`Clear pad ${i+1}?`))clearPad(i);});
+    el.appendChild(r);
+  });
+}
+
+// ── RECORD ──
+async function enumMics(){
+  try{
+    await navigator.mediaDevices.getUserMedia({audio:true});
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    const sel=document.getElementById('micSelect');sel.innerHTML='';
+    devs.filter(d=>d.kind==='audioinput').forEach(d=>{const o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||`Mic ${sel.options.length+1}`;sel.appendChild(o);});
+    if(sel.options.length)selMic=sel.options[0].value;
+  }catch{document.getElementById('micSelect').innerHTML='<option>Permission denied</option>';}
+}
+enumMics();
+document.getElementById('micSelect').addEventListener('change',e=>selMic=e.target.value);
+
+// Trim UI
+const trimToggle=document.getElementById('trimToggle');
+const trimSlider=document.getElementById('trimThresh');
+const threshVal=document.getElementById('threshVal');
+const threshRow=document.getElementById('threshRow');
+trimToggle.addEventListener('change',e=>{
+  autoTrim=e.target.checked;
+  threshRow.style.opacity=autoTrim?'1':'0.35';
+  threshRow.style.pointerEvents=autoTrim?'':'none';
+});
+trimSlider.addEventListener('input',e=>{
+  trimThreshold=parseFloat(e.target.value);
+  threshVal.textContent=trimThreshold.toFixed(3);
+});
+
+// Trim silence from start of AudioBuffer
+function trimSilence(buf, threshold){
+  const nc=buf.numberOfChannels, sr=buf.sampleRate, len=buf.length;
+  let startSample=0;
+  // scan channel 0 (or average) for first sample above threshold
+  const ch0=buf.getChannelData(0);
+  for(let i=0;i<len;i++){
+    if(Math.abs(ch0[i])>threshold){startSample=i;break;}
+  }
+  if(startSample===0) return buf; // nothing to trim
+  // small pre-roll (10ms) so we don't clip the attack transient
+  const preroll=Math.floor(sr*0.01);
+  startSample=Math.max(0, startSample-preroll);
+  const newLen=len-startSample;
+  const newBuf=AC.createBuffer(nc, newLen, sr);
+  for(let ch=0;ch<nc;ch++){
+    const src=buf.getChannelData(ch);
+    const dst=newBuf.getChannelData(ch);
+    for(let i=0;i<newLen;i++) dst[i]=src[startSample+i];
+  }
+  return newBuf;
+}
+
+const recBtn=document.getElementById('recBtn'),recLabel=document.getElementById('recLabel'),recStatus=document.getElementById('recStatus');
+recBtn.addEventListener('click',()=>{recOn?stopRec():startRec();});
+async function startRec(){
+  try{
+    initAC();
+    mStream=await navigator.mediaDevices.getUserMedia({audio:selMic?{deviceId:{exact:selMic}}:true});
+    mRec=new MediaRecorder(mStream);chunks=[];
+    mRec.ondataavailable=e=>chunks.push(e.data);
+    mRec.onstop=async()=>{
+      recStatus.textContent='Processing…';recStatus.className='st warn';
+      const blob=new Blob(chunks,{type:'audio/wav'});
+      const ab=await blob.arrayBuffer();
+      let buf=await AC.decodeAudioData(ab);
+      if(autoTrim){
+        buf=trimSilence(buf, trimThreshold);
+        const trimmed=((buf.duration)*1000).toFixed(0);
+        recStatus.textContent=`✓ Trimmed & ready (${trimmed}ms) — click a pad to assign`;
+      } else {
+        recStatus.textContent='✓ Done! Click any pad on the board to assign it';
+      }
+      recBuf=buf;
+      mStream.getTracks().forEach(t=>t.stop());
+      waitPad=true;
+      recStatus.className='st ok';
+      recBtn.className='rec-btn idle';recLabel.textContent='Record again';recOn=false;
+    };
+    mRec.start();recOn=true;
+    recBtn.className='rec-btn go';recLabel.textContent='Stop recording';
+    recStatus.textContent='Recording… click to stop';recStatus.className='st warn';
+    const src=AC.createMediaStreamSource(mStream);
+    recAnalyser=AC.createAnalyser();recAnalyser.fftSize=2048;src.connect(recAnalyser);
+  }catch(e){alert('Mic: '+e.message);}
+}
+function stopRec(){if(mRec&&recOn){mRec.stop();recOn=false;}}
+function assignRec(i){
+  if(!recBuf)return;
+  sounds.set(i,{buffer:recBuf,url:null,name:`Recording ${i+1}`,id:`rec_${Date.now()}`});
+  recBuf=null;waitPad=false;
+  recStatus.textContent='Assigned! Record again to capture another.';recStatus.className='st ok';
+  afterLoad();setNP(i);playPad(i);  // always one-shot preview on assign
+}
+
+// ── SEARCH ──
+document.getElementById('searchBtn').addEventListener('click',()=>doSearch());
+document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+document.querySelectorAll('.tag-chip').forEach(c=>c.addEventListener('click',()=>{document.getElementById('searchInput').value=c.dataset.s;doSearch();}));
+document.getElementById('sortFilter').addEventListener('change',()=>{if(query)doSearch();});
+document.getElementById('moreBtn').addEventListener('click',()=>{page++;doSearch(true);});
+document.getElementById('autoLoadBtn').addEventListener('click',autoLoad);
+
+async function doSearch(append=false){
+  const q=document.getElementById('searchInput').value.trim();
+  if(!q)return;
+  if(!append&&blocked(q)){document.getElementById('soundList').innerHTML='<div class="empty"><div class="ico">⚠️</div><p>Search term not permitted</p></div>';document.getElementById('resultsCard').style.display='';document.getElementById('searchEmpty').style.display='none';return;}
+  if(!append){page=1;query=q;results=[];}
+
+  const lic=document.getElementById('licFilter').value,dur=document.getElementById('durFilter').value,srt=document.getElementById('sortFilter').value;
+  let filters=['is_explicit:false'];
+  ['explicit','adult','nsfw','sex','porn','violence','gore'].forEach(t=>filters.push(`-tag:${t}`));
+  if(lic)filters.push(`license:"${encodeURIComponent(lic)}"`);
+  if(dur)filters.push(`duration:${dur}`);
+  let url=`https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(q)}&page=${page}&page_size=15&token=${API_KEY}&fields=id,name,tags,username,duration,license,previews&filter=${filters.join(' ')}`;
+  if(srt)url+=`&sort=${srt}`;
+
+  if(!append)document.getElementById('soundList').innerHTML='<div class="empty"><p>Searching…</p></div>';
+  document.getElementById('resultsCard').style.display='';document.getElementById('searchEmpty').style.display='none';
+  try{
+    const data=await(await fetch(url)).json();
+    total=data.count;
+    if(!append){results=data.results;document.getElementById('soundList').innerHTML='';}
+    else results=[...results,...data.results];
+    if(!data.results.length&&!append){document.getElementById('soundList').innerHTML='<div class="empty"><div class="ico">🔎</div><p>No results</p></div>';return;}
+    data.results.forEach(s=>document.getElementById('soundList').appendChild(mkRow(s)));
+    document.getElementById('resCount').textContent=`${document.getElementById('soundList').children.length} of ${total}`;
+    document.getElementById('moreRow').style.display=data.next?'block':'none';
+    afterLoad();
+  }catch(e){document.getElementById('soundList').innerHTML=`<div class="empty"><p>Error: ${e.message}</p></div>`;}
+}
+function buildPadOptions(){
+  // Build option list: "Next free" + each pad slot labelled with its sound name if loaded
+  let opts='<option value="">→ Next free pad</option>';
+  for(let i=0;i<26;i++){
+    const s=sounds.get(i);
+    const label=s?`Pad ${i+1}: ${s.name.slice(0,14)}${s.name.length>14?'…':''}`:`Pad ${i+1} (empty)`;
+    opts+=`<option value="${i}">${label}</option>`;
+  }
+  return opts;
+}
+async function loadSoundToPad(url,name,id,padIdx){
+  // padIdx=-1 means next free
+  let idx=padIdx;
+  if(idx===-1){
+    for(let i=0;i<26;i++){if(!sounds.has(i)){idx=i;break;}}
+    if(idx===-1){alert('Board full (26 max). Right-click a pad to clear it.');return;}
+  }
+  try{
+    initAC();
+    // stop anything playing on that pad first
+    if(sources.has(idx)){try{sources.get(idx).src.stop();}catch(e){}sources.delete(idx);}
+    const ab=await(await fetch(url)).arrayBuffer();
+    const buf=await AC.decodeAudioData(ab);
+    sounds.set(idx,{buffer:buf,url,name,id});afterLoad();
+  }catch(e){console.error(e);alert('Load failed: '+e.message);}
+}
+function mkRow(s){
+  const d=document.createElement('div');d.className='srow';
+  const dur=Math.round(s.duration*10)/10;
+  const tags=s.tags.slice(0,3).map(t=>`<span class="stag">${t}</span>`).join('');
+  d.innerHTML=`
+    <div class="srow-info">
+      <div class="srow-name">${s.name}</div>
+      <div class="srow-meta"><span>by ${s.username}</span><span>·</span><span>${dur}s</span>${tags?'<span>·</span>'+tags:''}</div>
+    </div>
+    <div class="srow-actions">
+      <button class="btn sm" data-prev="${s.id}">▶</button>
+      <select class="pad-assign" data-assign="${s.id}" title="Load to specific pad">${buildPadOptions()}</select>
+      <button class="btn sm g" data-load="${s.id}">+ Load</button>
+    </div>`;
+  d.querySelector(`[data-prev]`).addEventListener('click',e=>{
+    const btn=e.target;
+    previews.forEach((a,id)=>{if(id!==s.id&&!a.paused){a.pause();a.currentTime=0;const b=document.querySelector(`[data-prev="${id}"]`);if(b){b.textContent='▶';b.classList.remove('g');}}});
+    if(!previews.has(s.id)){const a=new Audio(s.previews['preview-hq-mp3']);a.addEventListener('ended',()=>{btn.textContent='▶';btn.classList.remove('g');});previews.set(s.id,a);}
+    const a=previews.get(s.id);
+    if(a.paused){a.play();btn.textContent='⏸';btn.classList.add('g');}
+    else{a.pause();a.currentTime=0;btn.textContent='▶';btn.classList.remove('g');}
+  });
+  const loadBtn=d.querySelector(`[data-load]`);
+  const assignSel=d.querySelector(`[data-assign]`);
+  loadBtn.addEventListener('click',e=>{
+    const padIdx=assignSel.value===''?-1:parseInt(assignSel.value);
+    loadSoundToPad(s.previews['preview-hq-mp3'],s.name,s.id,padIdx);
+    loadBtn.textContent='✓';loadBtn.disabled=true;
+  });
+  // Clicking the dropdown itself refreshes the options so pad names stay current
+  assignSel.addEventListener('mousedown',()=>{assignSel.innerHTML=buildPadOptions();});
+  return d;
+}
+async function autoLoad(){
+  const rem=26-loaded;if(rem===0&&!confirm('Board full — overwrite?'))return;
+  const toLoad=results.slice(0,Math.min(26,results.length));
+  const btn=document.getElementById('autoLoadBtn');btn.disabled=true;
+  for(let i=0;i<toLoad.length;i++){btn.textContent=`Loading ${i+1}/${toLoad.length}…`;try{await loadSound(toLoad[i].previews['preview-hq-mp3'],toLoad[i].name,toLoad[i].id);}catch(e){}}
+  btn.disabled=false;
+}
+
+// ── PADS GRID ──
+function renderPadsGrid(){
+  const grid=document.getElementById('padsGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  for(let i=0;i<26;i++){
+    const s=sounds.get(i);
+    const myMode=padModes.get(i)||null;
+    const effMode=myMode||playMode;
+    const numCls=effMode==='gate'?'gt':effMode==='loop'?'lp':'os';
+    const cardCls=['pad-card',s?'has-sound':'',myMode==='gate'?'mode-gate':myMode==='loop'?'mode-loop':''].filter(Boolean).join(' ');
+    const card=document.createElement('div');
+    card.className=cardCls;
+    card.innerHTML=`
+      <div class="pad-num ${numCls}">${i+1}</div>
+      <div class="pad-info">
+        ${s?`<div class="pad-sound-name">${s.name}</div>`:`<div class="pad-sound-empty">empty</div>`}
+      </div>
+      <div class="pad-mode-btns">
+        <button class="pmb ${myMode==='oneshot'?'sel-os':''}" data-pad="${i}" data-m="oneshot" title="One-shot">▶</button>
+        <button class="pmb ${myMode==='gate'?'sel-gt':''}" data-pad="${i}" data-m="gate" title="Gate">⏯</button>
+        <button class="pmb ${myMode==='loop'?'sel-lp':''}" data-pad="${i}" data-m="loop" title="Loop">↻</button>
+        ${myMode?`<button class="pmb" data-pad="${i}" data-m="clear" title="Reset to global" style="opacity:.5;">✕</button>`:''}
+      </div>`;
+    card.querySelectorAll('.pmb').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const pad=parseInt(btn.dataset.pad);
+        const m=btn.dataset.m;
+        if(m==='clear'){padModes.delete(pad);}else{padModes.set(pad,m);}
+        renderPadsGrid();
+      });
+    });
+    grid.appendChild(card);
+  }
+}
+// Bulk-set buttons
+document.getElementById('allOs').addEventListener('click',()=>{for(let i=0;i<26;i++)padModes.set(i,'oneshot');renderPadsGrid();});
+document.getElementById('allGt').addEventListener('click',()=>{for(let i=0;i<26;i++)padModes.set(i,'gate');renderPadsGrid();});
+document.getElementById('allLp').addEventListener('click',()=>{for(let i=0;i<26;i++)padModes.set(i,'loop');renderPadsGrid();});
+document.getElementById('allGlobal').addEventListener('click',()=>{padModes.clear();renderPadsGrid();});
+
+// ─────────────────────────────────────────
+// ── WAV ENCODE ──
+function toWav(buf){
+  const nc=buf.numberOfChannels,sr=buf.sampleRate,nf=buf.length;
+  const ab=new ArrayBuffer(44+nf*nc*2);const v=new DataView(ab);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF');v.setUint32(4,36+nf*nc*2,true);ws(8,'WAVE');ws(12,'fmt ');
+  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,nc,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*nc*2,true);v.setUint16(32,nc*2,true);v.setUint16(34,16,true);
+  ws(36,'data');v.setUint32(40,nf*nc*2,true);
+  let off=44;for(let i=0;i<nf;i++)for(let ch=0;ch<nc;ch++){const s=Math.max(-1,Math.min(1,buf.getChannelData(ch)[i]));v.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;}
+  return ab;
+}
+function dl(ab,fn){const u=URL.createObjectURL(new Blob([ab],{type:'audio/wav'}));const a=document.createElement('a');a.href=u;a.download=fn;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+
+function updateExport(){
+  const el=document.getElementById('exportList'),btn=document.getElementById('dlAllBtn');
+  if(!sounds.size){el.innerHTML='<div class="empty"><div class="ico">📦</div><p>No sounds loaded</p></div>';btn.disabled=true;return;}
+  btn.disabled=false;el.innerHTML='';
+  [...sounds.entries()].sort((a,b)=>a[0]-b[0]).forEach(([i,s])=>{
+    const r=document.createElement('div');r.className='prow';
+    r.innerHTML=`<span class="prow-num">${i+1}.</span><span class="prow-name" title="${s.name}">${s.name}</span><button class="btn sm o" data-dl="${i}">⬇ WAV</button>`;
+    r.querySelector(`[data-dl]`).addEventListener('click',()=>dl(toWav(s.buffer),`${i+1}.wav`));
+    el.appendChild(r);
+  });
+}
+document.getElementById('dlAllBtn').addEventListener('click',async()=>{
+  const btn=document.getElementById('dlAllBtn'),fill=document.getElementById('dlFill'),
+        wrap=document.getElementById('dlProg'),st=document.getElementById('dlStatus');
+  btn.disabled=true;wrap.style.display='block';fill.style.width='0%';st.textContent='';
+  const zip=new JSZip(),sorted=[...sounds.entries()].sort((a,b)=>a[0]-b[0]);
+  for(let i=0;i<sorted.length;i++){
+    const[idx,s]=sorted[i];if(s.buffer)zip.file(`${idx+1}.wav`,toWav(s.buffer));
+    fill.style.width=`${Math.round((i+1)/sorted.length*80)}%`;st.textContent=`Encoding ${i+1}/${sorted.length}…`;
+    await new Promise(r=>setTimeout(r,0));
+  }
+  st.textContent='Zipping…';fill.style.width='90%';
+  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
+  fill.style.width='100%';
+  const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='spoke_pack.zip';a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);
+  st.textContent=`✓ Downloaded ${sorted.length} sounds`;st.className='st ok';wrap.style.display='none';btn.disabled=false;
+});
+
+// ── IMPORT ──
+document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importInput').click());
+document.getElementById('importInput').addEventListener('change',e=>importFiles(e.target.files));
+const dz=document.getElementById('dropZone');
+dz.addEventListener('click',()=>document.getElementById('importInput').click());
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');importFiles(e.dataTransfer.files);});
+async function importFiles(files){
+  if(!files||!files.length)return;
+  initAC();
+  const st=document.getElementById('importStatus');
+  st.textContent='Reading files…';st.className='st';
+
+  // Separate ZIPs from audio files
+  const zips=[],audioFiles=[];
+  for(const f of files){
+    if(f.name.toLowerCase().endsWith('.zip')) zips.push(f);
+    else audioFiles.push(f);
+  }
+
+  let ok=0,fail=0;
+
+  // ── Handle ZIPs ──
+  for(const zipFile of zips){
+    st.textContent=`Extracting ${zipFile.name}…`;
+    try{
+      const ab=await zipFile.arrayBuffer();
+      const zip=await JSZip.loadAsync(ab);
+      const entries=Object.values(zip.files).filter(f=>!f.dir);
+      // Sort by numeric filename (1.wav before 2.wav)
+      entries.sort((a,b)=>{
+        const na=parseInt(a.name.replace(/\.[^.]+$/,''))||999;
+        const nb=parseInt(b.name.replace(/\.[^.]+$/,''))||999;
+        return na-nb;
+      });
+      for(const entry of entries){
+        const base=entry.name.split('/').pop().replace(/\.[^.]+$/,'');
+        const n=parseInt(base);
+        let idx=(!isNaN(n)&&n>=1&&n<=26)?n-1:-1;
+        if(idx===-1)for(let i=0;i<26;i++){if(!sounds.has(i)){idx=i;break;}}
+        if(idx===-1){fail++;continue;}
+        try{
+          const ab2=await entry.async('arraybuffer');
+          const buf=await AC.decodeAudioData(ab2);
+          sounds.set(idx,{buffer:buf,url:null,name:base,id:`zip_${idx}_${Date.now()}`});
+          ok++;
+          st.textContent=`Loaded ${ok} from ZIP…`;
+        }catch(e){console.warn(entry.name,e);fail++;}
+      }
+    }catch(e){console.error('ZIP error',e);st.textContent='Failed to read ZIP';st.className='st err';fail++;}
+  }
+
+  // ── Handle loose audio files ──
+  const sorted=[...audioFiles].sort((a,b)=>(parseInt(a.name)||999)-(parseInt(b.name)||999));
+  for(const f of sorted){
+    const base=f.name.replace(/\.[^.]+$/,''),n=parseInt(base);
+    let idx=(!isNaN(n)&&n>=1&&n<=26)?n-1:-1;
+    if(idx===-1)for(let i=0;i<26;i++){if(!sounds.has(i)){idx=i;break;}}
+    if(idx===-1){fail++;continue;}
+    try{
+      const ab=await f.arrayBuffer();
+      const buf=await AC.decodeAudioData(ab.slice(0));
+      sounds.set(idx,{buffer:buf,url:null,name:base,id:`imp_${idx}_${Date.now()}`});
+      ok++;
+    }catch(e){console.warn(f.name,e);fail++;}
+  }
+
+  afterLoad();
+  st.textContent=fail===0?`✓ Imported ${ok} sound(s)`:`✓ ${ok} imported, ${fail} failed`;
+  st.className=fail===0?'st ok':'st warn';
+}
+
+// ── SPLASH ──
+(()=>{
+  function dismiss(){
+    const splash=document.getElementById('splash');
+    splash.classList.add('hide');
+    setTimeout(()=>splash.classList.add('gone'),460);
+  }
+  document.getElementById('splEnter').addEventListener('click',dismiss);
+  document.getElementById('splSkip').addEventListener('click',dismiss);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!document.getElementById('splash').classList.contains('gone')) dismiss();
+  });
+})();
+
+// init
+updateExport();
+</script>
 </body>
 </html>
