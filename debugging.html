@@ -4,15 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SPOKE Sensor Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,monospace;background:#1a1a1a;color:#e0e0e0;padding:16px}
+body{font-family:'Comfortaa',sans-serif;background:#1a1a1a;color:#e0e0e0;padding:16px}
 .container{max-width:1300px;margin:0 auto}
 .header{background:#252526;padding:14px 18px;border-radius:10px;margin-bottom:14px;border:2px solid #ff6b35;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .title{font-size:20px;font-weight:700;color:#ff6b35}
 .subtitle{color:#888;font-size:11px;margin-top:3px}
 .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.btn{background:#ff6b35;border:none;color:#fff;padding:9px 16px;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;transition:background .15s}
+.btn{font-family:'Comfortaa',sans-serif;background:#ff6b35;border:none;color:#fff;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px;transition:background .15s}
 .btn:hover{background:#ff8555}
 .btn:disabled{opacity:.35;cursor:not-allowed}
 .btn-blue{background:#3b82f6}.btn-blue:hover{background:#5b9df6}
@@ -24,24 +25,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,monospace;ba
 .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
 .stat{background:#252526;padding:10px 14px;border-radius:8px;border:1px solid #3e3e42}
 .stat-label{font-size:10px;color:#888;margin-bottom:3px}
-.stat-val{font-size:22px;font-weight:700;font-family:monospace}
+.stat-val{font-size:22px;font-weight:700}
 .sensors-panel{background:#252526;border-radius:10px;padding:14px;border:1px solid #3e3e42}
 .sensors-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .panel-title{font-size:15px;font-weight:700;color:#ff6b35}
 .legend{font-size:10px;color:#666;text-align:right;line-height:1.6}
 .sensor-row{display:grid;grid-template-columns:90px 1fr 100px;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #222}
 .sensor-row:last-child{border-bottom:none}
-.sensor-label{font-size:11px;color:#ccc;font-family:monospace;line-height:1.4}
+.sensor-label{font-size:11px;color:#ccc;line-height:1.4}
 .sensor-label .sub{font-size:10px;color:#666;display:block}
 .bar-wrap{position:relative;height:26px;background:#111;border-radius:4px;cursor:crosshair;user-select:none;touch-action:none}
 .bar-fill{height:100%;border-radius:4px;background:#1a5c29;pointer-events:none;transition:background .08s}
 .bar-fill.active{background:#c45f00}
 .tline{position:absolute;top:0;height:100%;width:4px;background:#ff9800;border-radius:2px;transform:translateX(-50%);cursor:ew-resize;z-index:2}
-.tline-label{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:#ff9800;white-space:nowrap;pointer-events:none;font-family:monospace}
-.sensor-vals{font-family:monospace;font-size:11px;display:flex;flex-direction:column;gap:1px;text-align:right}
+.tline-label{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:#ff9800;white-space:nowrap;pointer-events:none;font-family:'Comfortaa',sans-serif}
+.sensor-vals{font-size:11px;display:flex;flex-direction:column;gap:1px;text-align:right}
 .vr{color:#4CAF50}
 .vt{color:#ff9800}
 .vm{color:#666;font-size:9px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#252526;border-radius:12px;border:1px solid #3e3e42;width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column}
+.modal-head{padding:16px 20px;border-bottom:1px solid #3e3e42;display:flex;justify-content:space-between;align-items:center}
+.modal-head-title{font-size:15px;font-weight:700;color:#ff6b35}
+.modal-close{background:transparent;border:1px solid #555;color:#aaa;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:16px;font-family:'Comfortaa',sans-serif;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:#333;color:#fff}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px}
+.modal-section-label{font-size:12px;color:#888;margin-bottom:6px}
+.code-block{background:#0d0d0d;border:1px solid #3e3e42;border-radius:6px;padding:12px;font-family:'Comfortaa',sans-serif;font-size:11px;line-height:1.7;color:#d4d4d4;white-space:pre;overflow-x:auto;flex:1}
+.copy-btn{font-family:'Comfortaa',sans-serif;background:#3b82f6;border:none;color:#fff;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;align-self:flex-end}
+.copy-btn:hover{background:#5b9df6}
+.tab-row{display:flex;gap:4px;margin-bottom:2px}
+.tab{font-family:'Comfortaa',sans-serif;background:transparent;border:1px solid #3e3e42;color:#888;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+.tab.active{background:#ff6b35;border-color:#ff6b35;color:#fff;font-weight:700}
 </style>
 </head>
 <body>
@@ -56,7 +72,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,monospace;ba
     <button class="btn" onclick="setupBoard()">Open code.py</button>
     <button class="btn btn-blue" id="uploadBtn" onclick="uploadDiagnostic()" disabled>Upload diagnostic</button>
     <button class="btn btn-blue" id="serialBtn" onclick="connectSerial()" disabled>Connect serial</button>
-    <button class="btn btn-green" onclick="downloadThresholds()">Download thresholds</button>
+    <button class="btn btn-green" onclick="openModal()">Download thresholds</button>
   </div>
 </div>
 
@@ -82,29 +98,53 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,monospace;ba
 </div>
 
 </div>
+
+<div class="modal-bg" id="modalBg" onclick="bgClick(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-head-title">Threshold export</div>
+      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="tab-row">
+        <button class="tab active" id="tab0" onclick="switchTab(0)">Download .py file</button>
+        <button class="tab" id="tab1" onclick="switchTab(1)">Paste into your code</button>
+      </div>
+
+      <div id="panel0" style="display:flex;flex-direction:column;gap:10px">
+        <div class="modal-section-label">A standalone .py snippet — import or reference from your main code.py</div>
+        <pre class="code-block" id="codeDownload"></pre>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="copy-btn" onclick="copyBlock('codeDownload')">Copy</button>
+          <button class="copy-btn" style="background:#22c55e;color:#052e16" onclick="doDownload()">Download file</button>
+        </div>
+      </div>
+
+      <div id="panel1" style="display:none;flex-direction:column;gap:10px">
+        <div class="modal-section-label">Drop-in replacement for your existing code.py — thresholds baked in and applied at startup</div>
+        <pre class="code-block" id="codePaste"></pre>
+        <button class="copy-btn" onclick="copyBlock('codePaste')">Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-const PIN_NAMES = ['GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9','GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17','GP18','GP19','GP20','GP21','GP22','GP25','GP26','GP27','GP28','VOLTAGE_MONITOR'];
+const PIN_NAMES = ['GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9','GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17','GP18','GP19','GP20','GP21','GP22','GP23','GP24','GP25','GP28','VOLTAGE_MONITOR'];
 const MIDI_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36];
 const N = 27;
 const MAX_RAW = 65535;
-
-// Default thresholds matching CircuitPython touchio auto-calibration (~1.05x resting ~16000 baseline)
-// touchio sets threshold = raw_baseline * 1.05, typical resting ~15000-17000 → threshold ~17000-18000
-const DEFAULT_THRESHOLD = 17500;
+// CircuitPython touchio auto-threshold = resting_value * 1.05
+// Typical SPOKE resting raw ~3000-6000, so default threshold ~6000
+const DEFAULT_THRESHOLD = 6000;
 
 let rawValues = new Array(N).fill(0);
 let thresholds = new Array(N).fill(DEFAULT_THRESHOLD);
 let userPinned = new Array(N).fill(false);
 let activeFlags = new Array(N).fill(false);
-
-let fileHandle = null;
-let serialPort = null;
-let isReading = false;
-let serialReader = null;
-
+let fileHandle = null, serialPort = null, serialReader = null, isReading = false;
 let touchCount = 0, midiCount = 0;
 
-// Build UI
 function buildSensorList() {
   const list = document.getElementById('sensorList');
   list.innerHTML = '';
@@ -114,7 +154,7 @@ function buildSensorList() {
     const pct = (thresholds[i] / MAX_RAW * 100).toFixed(3);
     row.innerHTML =
       '<div class="sensor-label">' + PIN_NAMES[i] +
-      '<span class="sub">Pad ' + (i+1) + ' \u00b7 Note ' + MIDI_NOTES[i] + '</span></div>' +
+      '<span class="sub">Pad ' + (i+1) + ' · Note ' + MIDI_NOTES[i] + '</span></div>' +
       '<div class="bar-wrap" id="bw' + i + '">' +
         '<div class="bar-fill" id="bf' + i + '" style="width:0%"></div>' +
         '<div class="tline" id="tl' + i + '" style="left:' + pct + '%">' +
@@ -135,26 +175,22 @@ function initDrag(i) {
   const bw = document.getElementById('bw' + i);
   const tl = document.getElementById('tl' + i);
   let active = false;
-
-  function calcVal(clientX) {
+  function calcVal(cx) {
     const r = bw.getBoundingClientRect();
-    return Math.round(Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * MAX_RAW);
+    return Math.round(Math.max(0, Math.min(1, (cx - r.left) / r.width)) * MAX_RAW);
   }
   function apply(v) {
-    thresholds[i] = v;
-    userPinned[i] = true;
+    thresholds[i] = v; userPinned[i] = true;
     const pct = (v / MAX_RAW * 100).toFixed(3);
     tl.style.left = pct + '%';
     document.getElementById('tlv' + i).textContent = v;
     document.getElementById('tv' + i).textContent = v;
     refreshBar(i);
   }
-
   tl.addEventListener('mousedown', e => { active = true; e.stopPropagation(); e.preventDefault(); });
   bw.addEventListener('mousedown', e => { active = true; apply(calcVal(e.clientX)); e.preventDefault(); });
   window.addEventListener('mousemove', e => { if (active) apply(calcVal(e.clientX)); });
   window.addEventListener('mouseup', () => { active = false; });
-
   tl.addEventListener('touchstart', e => { active = true; e.stopPropagation(); e.preventDefault(); }, {passive:false});
   bw.addEventListener('touchstart', e => { active = true; apply(calcVal(e.touches[0].clientX)); e.preventDefault(); }, {passive:false});
   window.addEventListener('touchmove', e => { if (active) apply(calcVal(e.touches[0].clientX)); }, {passive:false});
@@ -165,8 +201,7 @@ function refreshBar(i) {
   const bf = document.getElementById('bf' + i);
   const rv = document.getElementById('rv' + i);
   if (!bf) return;
-  const pct = (rawValues[i] / MAX_RAW * 100).toFixed(3);
-  bf.style.width = pct + '%';
+  bf.style.width = (rawValues[i] / MAX_RAW * 100).toFixed(3) + '%';
   rv.textContent = rawValues[i];
   const triggered = rawValues[i] > 100 && rawValues[i] < thresholds[i];
   bf.classList.toggle('active', triggered);
@@ -174,7 +209,6 @@ function refreshBar(i) {
   document.getElementById('sActive').textContent = activeFlags.filter(Boolean).length;
 }
 
-// File + upload
 async function setupBoard() {
   try {
     if (!('showOpenFilePicker' in window)) { alert('Use Chrome, Edge or Opera.'); return; }
@@ -190,15 +224,15 @@ async function uploadDiagnostic() {
   if (!fileHandle) return;
   try {
     const w = await fileHandle.createWritable();
-    await w.write(buildCode());
+    await w.write(buildDiagCode());
     await w.close();
-    setStatus('on', 'Diagnostic uploaded — board restarting, connect serial when ready');
+    setStatus('on', 'Diagnostic uploaded — connect serial when board restarts');
   } catch(e) { setStatus('warn', 'Upload error: ' + e.message); }
 }
 
-function buildCode() {
+function buildDiagCode() {
   const thStr = thresholds.join(', ');
-  return `# SPOKE Diagnostic — SPOKE Sensor Monitor
+  return `# SPOKE Diagnostic — generated by SPOKE Sensor Monitor
 import board, touchio, neopixel, usb_midi, adafruit_midi, time
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
@@ -206,11 +240,12 @@ from adafruit_midi.note_off import NoteOff
 touch_pins_raw = [
     board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8,board.GP9,
     board.GP10,board.GP11,board.GP12,board.GP13,board.GP14,board.GP15,board.GP16,board.GP17,
-    board.GP18,board.GP19,board.GP20,board.GP21,board.GP22,board.GP25,board.GP26,board.GP27,board.GP28
+    board.GP18,board.GP19,board.GP20,board.GP21,board.GP22,board.GP23,board.GP24,board.GP25,
+    board.GP28,board.VOLTAGE_MONITOR
 ]
 pin_names = ['GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9',
              'GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17',
-             'GP18','GP19','GP20','GP21','GP22','GP25','GP26','GP27','GP28']
+             'GP18','GP19','GP20','GP21','GP22','GP23','GP24','GP25','GP28','VOLTAGE_MONITOR']
 MIDI_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36]
 THRESHOLDS = [${thStr}]
 
@@ -228,40 +263,156 @@ for i, pin in enumerate(touch_pins_raw):
     except:
         touch_sensors.append(None)
 
-prev = [False]*len(touch_sensors)
-loop = 0
+# Dim blue on all pads at startup to show they are alive
+for i in range(27): pixels[i] = (0, 0, 30)
+pixels.show()
+
+IDLE_COLOR  = (0, 0, 30)      # dim blue  — alive, untouched
+TOUCH_COLOR = (0, 220, 0)     # green     — held
+FLASH_COLOR = (255, 255, 255) # white     — moment of contact
+
+prev        = [False] * len(touch_sensors)
+flash_timer = [0]     * len(touch_sensors)
+
 while True:
-    loop += 1
-    for i,s in enumerate(touch_sensors):
+    for i, s in enumerate(touch_sensors):
         if s is None: continue
         try:
-            raw = s.raw_value
+            raw    = s.raw_value
             thresh = s.threshold
             touched = raw < thresh
             print(f"RAW: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh}")
+
             if touched != prev[i]:
                 prev[i] = touched
                 if touched:
-                    midi.send(NoteOn(MIDI_NOTES[i],100))
-                    pixels[i]=(0,200,0)
+                    midi.send(NoteOn(MIDI_NOTES[i], 100))
+                    pixels[i]    = FLASH_COLOR
+                    flash_timer[i] = 3
                     print(f"TOUCH_ON: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh} | MIDI: Note {MIDI_NOTES[i]} ON")
                 else:
-                    midi.send(NoteOff(MIDI_NOTES[i],0))
-                    pixels[i]=(0,0,0)
+                    midi.send(NoteOff(MIDI_NOTES[i], 0))
+                    pixels[i]    = IDLE_COLOR
+                    flash_timer[i] = 0
                     print(f"TOUCH_OFF: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh} | MIDI: Note {MIDI_NOTES[i]} OFF")
-        except Exception as e:
+            elif flash_timer[i] > 0:
+                flash_timer[i] -= 1
+                if flash_timer[i] == 0:
+                    pixels[i] = TOUCH_COLOR if touched else IDLE_COLOR
+
+        except Exception:
             pass
+
     pixels.show()
     time.sleep(0.05)
 `;
 }
 
-// Download thresholds
-function downloadThresholds() {
-  const lines = PIN_NAMES.slice(0,N).map((p,i) => '    ' + thresholds[i] + ',  # ' + p + ' (Pad ' + (i+1) + ', Note ' + MIDI_NOTES[i] + ')').join('\n');
-  const code = '# SPOKE custom thresholds — SPOKE Sensor Monitor\nTHRESHOLDS = [\n' + lines + '\n]\n\n# In your init loop:\n# s = touchio.TouchIn(pin)\n# s.threshold = THRESHOLDS[i]\n';
+// Modal
+function buildSnippetCode() {
+  const lines = thresholds.map((t,i) => '    ' + t + ',  # ' + PIN_NAMES[i] + ' — Pad ' + (i+1) + ', MIDI note ' + MIDI_NOTES[i]).join('\n');
+  return `# ─── SPOKE custom thresholds ─────────────────────────────
+# Generated by SPOKE Sensor Monitor
+# Each value is the trigger point for that pad's touch sensor.
+# Lower = more sensitive. Typical auto range: 15000–20000.
+THRESHOLDS = [
+${lines}
+]
+
+# ─── Apply thresholds in your init loop ──────────────────
+# Replace your existing touch sensor setup with this block:
+
+touch_sensors = []
+for i, pin in enumerate(touch_pins_raw):
+    s = touchio.TouchIn(pin)
+    s.threshold = THRESHOLDS[i]   # apply custom threshold
+    touch_sensors.append(s)
+`;
+}
+
+function buildPasteCode() {
+  const thStr = thresholds.join(', ');
+  return `# ─── SPOKE code.py — thresholds set by SPOKE Sensor Monitor ─
+import board, touchio, neopixel, usb_midi, adafruit_midi, time
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+# Touch pin order
+touch_pins_raw = [
+    board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8,board.GP9,
+    board.GP10,board.GP11,board.GP12,board.GP13,board.GP14,board.GP15,board.GP16,board.GP17,
+    board.GP18,board.GP19,board.GP20,board.GP21,board.GP22,board.GP23,board.GP24,board.GP25,
+    board.GP28,board.VOLTAGE_MONITOR
+]
+
+# MIDI note for each pad (high → low)
+MIDI_NOTES  = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36]
+
+# Custom thresholds — set in SPOKE Sensor Monitor
+# Lower value = more sensitive. Drag the orange markers to tune.
+THRESHOLDS  = [${thStr}]
+
+# ─── Init ────────────────────────────────────────────────
+midi   = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
+for i in range(27): pixels[i] = (0, 0, 0)
+pixels.show()
+
+touch_sensors = []
+for i, pin in enumerate(touch_pins_raw):
+    s = touchio.TouchIn(pin)
+    s.threshold = THRESHOLDS[i]
+    touch_sensors.append(s)
+
+prev = [False] * len(touch_sensors)
+
+# ─── Main loop ───────────────────────────────────────────
+while True:
+    for i, s in enumerate(touch_sensors):
+        try:
+            touched = s.value
+            if touched != prev[i]:
+                prev[i] = touched
+                if touched:
+                    midi.send(NoteOn(MIDI_NOTES[i], 100))
+                    pixels[i] = (0, 200, 0)
+                else:
+                    midi.send(NoteOff(MIDI_NOTES[i], 0))
+                    pixels[i] = (0, 0, 0)
+        except Exception:
+            pass
+    pixels.show()
+    time.sleep(0.005)
+`;
+}
+
+let activeTab = 0;
+function openModal() {
+  document.getElementById('codeDownload').textContent = buildSnippetCode();
+  document.getElementById('codePaste').textContent = buildPasteCode();
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+function bgClick(e) { if (e.target === document.getElementById('modalBg')) closeModal(); }
+function switchTab(n) {
+  activeTab = n;
+  document.getElementById('panel0').style.display = n === 0 ? 'flex' : 'none';
+  document.getElementById('panel1').style.display = n === 1 ? 'flex' : 'none';
+  document.getElementById('tab0').classList.toggle('active', n === 0);
+  document.getElementById('tab1').classList.toggle('active', n === 1);
+}
+function copyBlock(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+function doDownload() {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([code], {type:'text/plain'}));
+  a.href = URL.createObjectURL(new Blob([document.getElementById('codeDownload').textContent], {type:'text/plain'}));
   a.download = 'spoke_thresholds.py';
   a.click();
 }
@@ -294,20 +445,15 @@ async function readSerial() {
         buf = buf.slice(nl + 1);
         if (line) processLine(line);
       }
-      // safety: don't let buffer grow huge
       if (buf.length > 2000) buf = buf.slice(-500);
     }
-  } catch(e) {
-    setStatus('warn', 'Serial read error: ' + e.message);
-  }
+  } catch(e) { setStatus('warn', 'Serial read error: ' + e.message); }
 }
 
 function processLine(line) {
   const m = line.match(/\(index (\d+)\) \| Raw: (\d+) \| Threshold: (\d+)/);
   if (m) {
-    const idx = parseInt(m[1]);
-    const raw = parseInt(m[2]);
-    const thr = parseInt(m[3]);
+    const idx = parseInt(m[1]), raw = parseInt(m[2]), thr = parseInt(m[3]);
     if (idx >= 0 && idx < N) {
       rawValues[idx] = raw;
       if (!userPinned[idx]) {
@@ -334,7 +480,7 @@ function processLine(line) {
 }
 
 function setStatus(state, msg) {
-  document.getElementById('dot').className = 'dot' + (state === 'on' ? ' on' : state === 'warn' ? ' warn' : '');
+  document.getElementById('dot').className = 'dot' + (state==='on'?' on':state==='warn'?' warn':'');
   document.getElementById('statusTxt').textContent = msg;
 }
 
