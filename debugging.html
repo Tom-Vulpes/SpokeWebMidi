@@ -53,8 +53,16 @@ body{font-family:'Comfortaa',sans-serif;background:#1a1a1a;color:#e0e0e0;padding
 .modal-body{padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px}
 .modal-section-label{font-size:12px;color:#888;margin-bottom:6px}
 .code-block{background:#0d0d0d;border:1px solid #3e3e42;border-radius:6px;padding:12px;font-family:'Comfortaa',sans-serif;font-size:11px;line-height:1.7;color:#d4d4d4;white-space:pre;overflow-x:auto;flex:1}
-.copy-btn{font-family:'Comfortaa',sans-serif;background:#3b82f6;border:none;color:#fff;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;align-self:flex-end}
-.copy-btn:hover{background:#5b9df6}
+.guide{background:#252526;border-radius:10px;padding:16px 20px;margin-bottom:12px;border:1px solid #3e3e42}
+.guide-title{font-size:13px;font-weight:700;color:#ff6b35;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.guide-title span{font-size:11px;color:#666;font-weight:400}
+.guide-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.guide-step{background:#1e1e1e;border-radius:8px;padding:12px;border:1px solid #2e2e2e}
+.step-num{display:inline-block;background:#ff6b35;color:#fff;font-size:10px;font-weight:700;width:20px;height:20px;border-radius:50%;text-align:center;line-height:20px;margin-bottom:8px}
+.step-head{font-size:12px;font-weight:700;color:#e0e0e0;margin-bottom:5px}
+.step-body{font-size:11px;color:#888;line-height:1.6}
+.step-body b{color:#ccc;font-weight:700}
+.guide-collapsed .guide-steps{display:none}
 </style>
 </head>
 <body>
@@ -78,7 +86,56 @@ body{font-family:'Comfortaa',sans-serif;background:#1a1a1a;color:#e0e0e0;padding
   <span id="statusTxt">Not connected — open code.py to begin</span>
 </div>
 
-<div class="stats-row">
+<div class="guide" id="guide">
+  <div class="guide-title" onclick="toggleGuide()">
+    How to use SPOKE Sensor Monitor
+    <span id="guideToggle">click to collapse ▲</span>
+  </div>
+  <div class="guide-steps">
+    <div class="guide-step">
+      <div class="step-num">1</div>
+      <div class="step-head">Connect your SPOKE</div>
+      <div class="step-body">Plug your SPOKE into your computer with a <b>data-capable USB cable</b>. It should appear as a drive called <b>CIRCUITPY</b> in your file explorer.</div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">2</div>
+      <div class="step-head">Open code.py</div>
+      <div class="step-body">Click <b>Open code.py</b> above. Navigate to the <b>CIRCUITPY</b> drive and select <b>code.py</b>. This tool needs access to write back to it later.</div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">3</div>
+      <div class="step-head">Upload diagnostic code</div>
+      <div class="step-body">Click <b>Upload diagnostic</b>. This temporarily replaces your code.py with test code that streams live sensor data. The board will restart automatically.</div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">4</div>
+      <div class="step-head">Connect serial monitor</div>
+      <div class="step-body">Click <b>Connect serial</b> and select your SPOKE from the port list. The sensor bars will come to life — you'll see the orange bars move and threshold markers appear.</div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">5</div>
+      <div class="step-head">Touch your pads</div>
+      <div class="step-body">Touch each pad on your SPOKE. The bar for that sensor will <b>turn green</b> when it triggers. If it doesn't trigger, the threshold marker may be set too low.</div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">6</div>
+      <div class="step-head">Adjust thresholds</div>
+      <div class="step-body"><b>Drag the orange marker</b> on any bar left or right to change the trigger threshold for that pad. Lower = more sensitive. Higher = less sensitive. Touch the pad to test it.</div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">7</div>
+      <div class="step-head">Save to your device</div>
+      <div class="step-body">When you're happy, click <b>Download thresholds</b>. A preview of your updated code.py will appear. Click <b>Save to device</b> to write it directly to your SPOKE — done!</div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">8</div>
+      <div class="step-head">Tips</div>
+      <div class="step-body">Use <b>Reset thresholds</b> to clear all markers back to blank. The board auto-calibrates on each restart, so thresholds may shift slightly between sessions.</div>
+    </div>
+  </div>
+</div>
+
+
   <div class="stat"><div class="stat-label">Touch events</div><div class="stat-val" id="sTouchEvents">0</div></div>
   <div class="stat"><div class="stat-label">MIDI events</div><div class="stat-val" id="sMidiEvents">0</div></div>
   <div class="stat"><div class="stat-label">Active sensors</div><div class="stat-val" id="sActive">0</div></div>
@@ -201,6 +258,13 @@ function setThresholdUI(i, v) {
   if (tlv) tlv.textContent = v;
   const tv = document.getElementById('tv' + i);
   if (tv) tv.textContent = v;
+}
+
+function toggleGuide() {
+  const g = document.getElementById('guide');
+  const t = document.getElementById('guideToggle');
+  g.classList.toggle('guide-collapsed');
+  t.textContent = g.classList.contains('guide-collapsed') ? 'click to expand ▼' : 'click to collapse ▲';
 }
 
 function resetThresholds() {
