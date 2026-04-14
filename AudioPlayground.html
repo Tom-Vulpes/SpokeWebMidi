@@ -1212,12 +1212,15 @@ async function doSearch(append=false){
   if(!append){page=1;query=q;results=[];}
 
   const lic=document.getElementById('licFilter').value,dur=document.getElementById('durFilter').value,srt=document.getElementById('sortFilter').value;
-  let filters=['is_explicit:false'];
-  ['explicit','adult','nsfw','sex','porn','violence','gore'].forEach(t=>filters.push(`-tag:${t}`));
-  if(lic)filters.push(`license:"${encodeURIComponent(lic)}"`);
-  if(dur)filters.push(`duration:${dur}`);
-  let url=`https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(q)}&page=${page}&page_size=15&token=${API_KEY}&fields=id,name,tags,username,duration,license,previews&filter=${filters.join(' ')}`;
-  if(srt)url+=`&sort=${srt}`;
+
+  // Build only valid Freesound filter params (Solr syntax)
+  const filters=[];
+  if(lic) filters.push(`license:"${lic}"`);
+  if(dur) filters.push(`duration:${dur}`);
+
+  let url=`https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(q)}&page=${page}&page_size=15&token=${API_KEY}&fields=id,name,tags,username,duration,license,previews`;
+  if(filters.length) url+=`&filter=${encodeURIComponent(filters.join(' '))}`;
+  if(srt) url+=`&sort=${srt}`;
 
   if(!append)document.getElementById('soundList').innerHTML='<div class="empty"><p>Searching…</p></div>';
   document.getElementById('resultsCard').style.display='';document.getElementById('searchEmpty').style.display='none';
