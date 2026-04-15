@@ -2,66 +2,103 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>SPOKE — Story Mode (Classroom)</title>
+<title>SPOKE — Story Mode</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
 :root{
-  --bg:#362D3D;
-  --panel:#9F83BC33;
-  --blue:#A6CBE9;
-  --pink:#D44977;
-  --lav:#9F83BC;
-  --txt:#FBF8FF;
+  --bg:#362d3d;
+  --panel:#9f83bc33;
+  --blue:#a6cbe9;
+  --pink:#d44977;
+  --lav:#9f83bc;
+  --txt:#fbf8ff;
 }
-html,body{margin:0;height:100%;background:var(--bg);font-family:Comfortaa;color:var(--txt);}
-.app{display:grid;grid-template-rows:auto 1fr auto;height:100vh}
+html,body{margin:0;height:100%;font-family:Comfortaa;background:var(--bg);color:var(--txt);}
+.app{display:grid;grid-template-rows:auto auto 1fr auto;height:100vh}
 
-/* HEADER */
+/* Header */
 header{padding:12px 16px;font-size:14px}
 header strong{color:var(--blue)}
 
-/* TURN BAR */
-.turn-bar{
+/* Turn bar */
+.turn{
+  margin:8px 14px;
+  padding:10px 14px;
   background:var(--panel);
-  margin:10px 14px;
   border-radius:14px;
-  padding:12px;
   text-align:center;
 }
-.turn-bar span{color:var(--pink);font-weight:700}
-.turn-bar button{
-  margin-left:12px;
-  border:none;background:var(--blue);
-  color:#201a26;font-weight:700;
-  padding:6px 14px;border-radius:20px;
+.turn span{color:var(--pink);font-weight:700}
+.turn button{
+  margin-left:10px;
+  background:var(--blue);
+  border:none;
+  border-radius:20px;
+  padding:6px 14px;
+  font-weight:700;
+  cursor:pointer;
 }
 
-/* STAGE */
-.stage{display:flex;flex-direction:column;align-items:center;justify-content:center}
-canvas{width:480px;height:480px;max-width:90vw}
+/* Canvas stage */
+.stage{display:flex;justify-content:center;align-items:center}
+canvas{width:540px;height:540px;max-width:90vw}
 
-/* PANELS */
-.bottom{display:grid;grid-template-columns:1fr 280px;gap:14px;padding:14px}
-.panel{background:var(--panel);border-radius:16px;padding:14px}
-h3{margin:0 0 10px;font-size:12px;letter-spacing:1px;color:var(--blue);text-transform:uppercase}
+/* Bottom panels */
+.bottom{
+  display:grid;
+  grid-template-columns:1fr 320px;
+  gap:12px;
+  padding:12px;
+}
+.panel{
+  background:var(--panel);
+  border-radius:16px;
+  padding:12px;
+}
+h3{
+  margin:0 0 10px;
+  font-size:12px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--blue);
+}
 
-/* SOUND CARDS */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+/* Sound cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .card{
   background:rgba(255,255,255,.12);
-  padding:12px;border-radius:14px;
-  cursor:pointer;transition:.15s;
+  border-radius:14px;
+  padding:12px;
+  cursor:pointer;
+  transition:.15s;
 }
 .card:hover{background:rgba(255,255,255,.22)}
-.icon{font-size:26px}
+.icon{font-size:28px}
 .name{font-weight:700;font-size:13px}
-.desc{font-size:11px;opacity:.8}
+.desc{font-size:11px;opacity:.75}
 
-/* MOBILE */
-@media(max-width:820px){
+/* Recorder */
+.rec{
+  margin-top:10px;
+  background:rgba(0,0,0,.25);
+  border-radius:12px;
+  padding:10px;
+  text-align:center;
+}
+.rec button{
+  background:var(--pink);
+  color:white;
+  border:none;
+  border-radius:20px;
+  padding:8px 16px;
+  font-weight:700;
+}
+
+/* Mobile */
+@media(max-width:900px){
   .bottom{grid-template-columns:1fr}
 }
 </style>
@@ -72,97 +109,90 @@ h3{margin:0 0 10px;font-size:12px;letter-spacing:1px;color:var(--blue);text-tran
 <div class="app">
 
 <header>
-  <strong>SPOKE — Story Mode</strong> · build a story together
+  <strong>SPOKE — Story Mode</strong> · tell a story with sound
 </header>
 
-<!-- TURN INDICATOR -->
-<div class="turn-bar">
-  🎤 <span id="turnName">Student 1</span>'s turn to add a sound
+<div class="turn">
+  🎤 <span id="player">Student 1</span>'s turn to add a sound
   <button onclick="nextTurn()">Pass turn</button>
 </div>
 
-<!-- STAGE -->
 <div class="stage">
-  <canvas id="wheel" width="480" height="480"></canvas>
+  <canvas id="board" width="540" height="540"></canvas>
 </div>
 
-<!-- PANELS -->
 <div class="bottom">
 
-  <!-- SOUND LIBRARY -->
   <div class="panel">
     <h3>Sound Library</h3>
-    <div class="grid" id="soundGrid"></div>
+    <input id="search" placeholder="search sounds…" style="width:100%;margin-bottom:8px">
+    <button onclick="doSearch()">Search</button>
+    <div class="grid" id="results"></div>
   </div>
 
-  <!-- STORY HELP -->
   <div class="panel">
-    <h3>How it works</h3>
-    <p>Choose a sound on your turn.</p>
-    <p>Tap a space on the wheel to place it.</p>
-    <p>Everyone can tap buttons to play.</p>
-    <p><strong>Tell the story together.</strong></p>
+    <h3>Narration</h3>
+    <p>Tap a story button, then record your voice.</p>
+    <div class="rec">
+      <button id="recBtn">🎤 Record narration</button>
+      <div id="recStatus"></div>
+    </div>
   </div>
 
 </div>
 </div>
 
 <script>
-/* ── AUDIO SETUP ── */
-const AudioCtx = new (window.AudioContext||window.webkitAudioContext)();
-const gain = AudioCtx.createGain();
-gain.connect(AudioCtx.destination);
+/* CONFIG */
+const API_KEY = 'PASTE_YOUR_FREESOUND_API_KEY_HERE';
+const STUDENTS = ['Student 1','Student 2','Student 3','Student 4'];
 
-const SOUND_LIBRARY = [
-  {name:'Frog',icon:'🐸',file:'sounds/frog.wav',loop:false},
-  {name:'Rain',icon:'🌧',file:'sounds/rain.wav',loop:true},
-  {name:'Owl', icon:'🦉',file:'sounds/owl.wav', loop:false},
-  {name:'Magic',icon:'✨',file:'sounds/magic.wav',loop:false}
-];
+/* AUDIO */
+const AC = new (window.AudioContext||webkitAudioContext)();
+const master = AC.createGain();
+master.gain.value = 0.9;
+master.connect(AC.destination);
 
-const buffers = {};
-async function loadSounds(){
-  for(const s of SOUND_LIBRARY){
-    const ab = await fetch(s.file).then(r=>r.arrayBuffer());
-    buffers[s.name] = {
-      buffer: await AudioCtx.decodeAudioData(ab),
-      loop:s.loop
-    };
-  }
+/* STATE */
+let turn=0, selectedSound=null, selectedPad=null;
+const pads = Array.from({length:27},()=>({
+  sound:null,
+  narration:null
+}));
+
+/* TURN */
+function nextTurn(){
+  turn=(turn+1)%STUDENTS.length;
+  document.getElementById('player').textContent=STUDENTS[turn];
 }
-loadSounds();
 
-/* ── COLLAB STATE ── */
-const students=['Student 1','Student 2','Student 3','Student 4'];
-let turn=0;
-let selected=null;
+/* CANVAS */
+const c = document.getElementById('board');
+const ctx = c.getContext('2d');
+const C = 270, R = 210;
 
-/* ── STORY WHEEL ── */
-const canvas=document.getElementById('wheel'),ctx=canvas.getContext('2d');
-const C=240,R=180,SLOTS=12;
-const placed=Array(SLOTS).fill(null);
-const playing=new Map();
-
-const butterfly=new Image();
-butterfly.src='graphics/Butterfly.png';
+const butterfly = new Image();
+butterfly.src = 'graphics/Butterfly.png';
 
 function draw(){
-  ctx.clearRect(0,0,480,480);
-  ctx.strokeStyle='rgba(255,255,255,.2)';
-  ctx.lineWidth=3;
+  ctx.clearRect(0,0,540,540);
+  ctx.strokeStyle='rgba(255,255,255,.25)';
+  ctx.lineWidth=4;
   ctx.beginPath();ctx.arc(C,C,R,0,Math.PI*2);ctx.stroke();
 
-  for(let i=0;i<SLOTS;i++){
-    const a=(Math.PI*2/SLOTS)*i-Math.PI/2;
-    const x=C+Math.cos(a)*R,y=C+Math.sin(a)*R;
+  pads.forEach((p,i)=>{
+    const a=(Math.PI*2/27)*i-Math.PI/2;
+    const x=C+Math.cos(a)*R;
+    const y=C+Math.sin(a)*R;
     ctx.beginPath();ctx.arc(x,y,18,0,Math.PI*2);
-    ctx.fillStyle=placed[i]?varBlue(): 'rgba(255,255,255,.3)';
+    ctx.fillStyle=p.sound?'#a6cbe9':'rgba(255,255,255,.3)';
     ctx.fill();
-    ctx.fillStyle='#231c2a';
+    ctx.fillStyle='#241e2b';
     ctx.font='10px Comfortaa';
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(placed[i]?'♪':i+1,x,y);
-  }
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(i+1,x,y);
+  });
 
   if(butterfly.complete){
     ctx.drawImage(butterfly,C-40,C-40,80,80);
@@ -171,60 +201,87 @@ function draw(){
 }
 draw();
 
-function varBlue(){return '#A6CBE9'}
+/* BOARD CLICK */
+c.addEventListener('click',e=>{
+  const r=c.getBoundingClientRect();
+  const x=(e.clientX-r.left)*(c.width/r.width);
+  const y=(e.clientY-r.top)*(c.height/r.height);
 
-/* ── INTERACTION ── */
-canvas.addEventListener('click',e=>{
-  const r=canvas.getBoundingClientRect();
-  const x=e.clientX-r.left,y=e.clientY-r.top;
-
-  for(let i=0;i<SLOTS;i++){
-    const a=(Math.PI*2/SLOTS)*i-Math.PI/2;
-    const px=C+Math.cos(a)*R,py=C+Math.sin(a)*R;
-    if(Math.hypot(x-px,y-py)<20){
-      if(selected && !placed[i]){
-        placed[i]=selected;
-        selected=null;
+  pads.forEach((p,i)=>{
+    const a=(Math.PI*2/27)*i-Math.PI/2;
+    const px=C+Math.cos(a)*R;
+    const py=C+Math.sin(a)*R;
+    if(Math.hypot(x-px,y-py)<22){
+      selectedPad=i;
+      if(selectedSound && !p.sound){
+        p.sound = selectedSound;
+        selectedSound=null;
         nextTurn();
-      }else if(placed[i]){
-        playSound(i);
+      } else if(p.sound){
+        playPad(i);
       }
     }
-  }
+  });
 });
 
-function playSound(i){
-  const s=placed[i];
-  if(!s || !buffers[s.name])return;
-
-  if(buffers[s.name].loop && playing.has(i)){
-    playing.get(i).stop();
-    playing.delete(i);
-    return;
+/* PLAY */
+function playPad(i){
+  const p=pads[i];
+  if(p.narration){
+    const n=AC.createBufferSource();
+    n.buffer=p.narration;
+    n.connect(master);
+    n.start();
   }
-
-  const src=AudioCtx.createBufferSource();
-  src.buffer=buffers[s.name].buffer;
-  src.loop=buffers[s.name].loop;
-  src.connect(gain);
-  src.start();
-  if(src.loop)playing.set(i,src);
+  if(p.sound){
+    const s=AC.createBufferSource();
+    s.buffer=p.sound;
+    s.connect(master);
+    s.start(AC.currentTime+0.15);
+  }
 }
 
-function nextTurn(){
-  turn=(turn+1)%students.length;
-  document.getElementById('turnName').textContent=students[turn];
+/* FREESOUND */
+async function doSearch(){
+  const q=document.getElementById('search').value;
+  const res=await fetch(
+    `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(q)}&token=${API_KEY}&fields=id,name,previews`
+  ).then(r=>r.json());
+  const grid=document.getElementById('results');
+  grid.innerHTML='';
+  res.results.slice(0,8).forEach(s=>{
+    const d=document.createElement('div');
+    d.className='card';
+    d.innerHTML=`<div class="icon">🎵</div><div class="name">${s.name}</div><div class="desc">tap to select</div>`;
+    d.onclick=async ()=>{
+      const ab=await fetch(s.previews['preview-hq-mp3']).then(r=>r.arrayBuffer());
+      selectedSound=await AC.decodeAudioData(ab);
+    };
+    grid.appendChild(d);
+  });
 }
 
-/* ── SOUND CARDS ── */
-const grid=document.getElementById('soundGrid');
-for(const s of SOUND_LIBRARY){
-  const d=document.createElement('div');
-  d.className='card';
-  d.innerHTML=`<div class="icon">${s.icon}</div><div class="name">${s.name}</div><div class="desc">${s.loop?'Repeats':'Plays once'}</div>`;
-  d.onclick=()=>selected=s;
-  grid.appendChild(d);
-}
+/* NARRATION RECORDING */
+let recorder, recChunks=[];
+const recBtn=document.getElementById('recBtn');
+const recStatus=document.getElementById('recStatus');
+
+recBtn.onclick=async()=>{
+  if(selectedPad==null){recStatus.textContent='Select a story button first';return;}
+  const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  recorder=new MediaRecorder(stream);
+  recChunks=[];
+  recorder.ondataavailable=e=>recChunks.push(e.data);
+  recorder.onstop=async()=>{
+    const blob=new Blob(recChunks);
+    const ab=await blob.arrayBuffer();
+    pads[selectedPad].narration=await AC.decodeAudioData(ab);
+    recStatus.textContent='Narration saved!';
+  };
+  recorder.start();
+  recStatus.textContent='Recording… click again to stop';
+  recBtn.onclick=()=>recorder.stop();
+};
 </script>
 
 </body>
