@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SPOKE — Story Mode (Classroom)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#362D3D;
+  --panel:#9F83BC33;
+  --blue:#A6CBE9;
+  --pink:#D44977;
+  --lav:#9F83BC;
+  --txt:#FBF8FF;
+}
+html,body{margin:0;height:100%;background:var(--bg);font-family:Comfortaa;color:var(--txt);}
+.app{display:grid;grid-template-rows:auto 1fr auto;height:100vh}
+
+/* HEADER */
+header{padding:12px 16px;font-size:14px}
+header strong{color:var(--blue)}
+
+/* TURN BAR */
+.turn-bar{
+  background:var(--panel);
+  margin:10px 14px;
+  border-radius:14px;
+  padding:12px;
+  text-align:center;
+}
+.turn-bar span{color:var(--pink);font-weight:700}
+.turn-bar button{
+  margin-left:12px;
+  border:none;background:var(--blue);
+  color:#201a26;font-weight:700;
+  padding:6px 14px;border-radius:20px;
+}
+
+/* STAGE */
+.stage{display:flex;flex-direction:column;align-items:center;justify-content:center}
+canvas{width:480px;height:480px;max-width:90vw}
+
+/* PANELS */
+.bottom{display:grid;grid-template-columns:1fr 280px;gap:14px;padding:14px}
+.panel{background:var(--panel);border-radius:16px;padding:14px}
+h3{margin:0 0 10px;font-size:12px;letter-spacing:1px;color:var(--blue);text-transform:uppercase}
+
+/* SOUND CARDS */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.card{
+  background:rgba(255,255,255,.12);
+  padding:12px;border-radius:14px;
+  cursor:pointer;transition:.15s;
+}
+.card:hover{background:rgba(255,255,255,.22)}
+.icon{font-size:26px}
+.name{font-weight:700;font-size:13px}
+.desc{font-size:11px;opacity:.8}
+
+/* MOBILE */
+@media(max-width:820px){
+  .bottom{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+  <strong>SPOKE — Story Mode</strong> · build a story together
+</header>
+
+<!-- TURN INDICATOR -->
+<div class="turn-bar">
+  🎤 <span id="turnName">Student 1</span>'s turn to add a sound
+  <button onclick="nextTurn()">Pass turn</button>
+</div>
+
+<!-- STAGE -->
+<div class="stage">
+  <canvas id="wheel" width="480" height="480"></canvas>
+</div>
+
+<!-- PANELS -->
+<div class="bottom">
+
+  <!-- SOUND LIBRARY -->
+  <div class="panel">
+    <h3>Sound Library</h3>
+    <div class="grid" id="soundGrid"></div>
+  </div>
+
+  <!-- STORY HELP -->
+  <div class="panel">
+    <h3>How it works</h3>
+    <p>Choose a sound on your turn.</p>
+    <p>Tap a space on the wheel to place it.</p>
+    <p>Everyone can tap buttons to play.</p>
+    <p><strong>Tell the story together.</strong></p>
+  </div>
+
+</div>
+</div>
+
+<script>
+/* ── AUDIO SETUP ── */
+const AudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+const gain = AudioCtx.createGain();
+gain.connect(AudioCtx.destination);
+
+const SOUND_LIBRARY = [
+  {name:'Frog',icon:'🐸',file:'sounds/frog.wav',loop:false},
+  {name:'Rain',icon:'🌧',file:'sounds/rain.wav',loop:true},
+  {name:'Owl', icon:'🦉',file:'sounds/owl.wav', loop:false},
+  {name:'Magic',icon:'✨',file:'sounds/magic.wav',loop:false}
+];
+
+const buffers = {};
+async function loadSounds(){
+  for(const s of SOUND_LIBRARY){
+    const ab = await fetch(s.file).then(r=>r.arrayBuffer());
+    buffers[s.name] = {
+      buffer: await AudioCtx.decodeAudioData(ab),
+      loop:s.loop
+    };
+  }
+}
+loadSounds();
+
+/* ── COLLAB STATE ── */
+const students=['Student 1','Student 2','Student 3','Student 4'];
+let turn=0;
+let selected=null;
+
+/* ── STORY WHEEL ── */
+const canvas=document.getElementById('wheel'),ctx=canvas.getContext('2d');
+const C=240,R=180,SLOTS=12;
+const placed=Array(SLOTS).fill(null);
+const playing=new Map();
+
+const butterfly=new Image();
+butterfly.src='graphics/Butterfly.png';
+
+function draw(){
+  ctx.clearRect(0,0,480,480);
+  ctx.strokeStyle='rgba(255,255,255,.2)';
+  ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(C,C,R,0,Math.PI*2);ctx.stroke();
+
+  for(let i=0;i<SLOTS;i++){
+    const a=(Math.PI*2/SLOTS)*i-Math.PI/2;
+    const x=C+Math.cos(a)*R,y=C+Math.sin(a)*R;
+    ctx.beginPath();ctx.arc(x,y,18,0,Math.PI*2);
+    ctx.fillStyle=placed[i]?varBlue(): 'rgba(255,255,255,.3)';
+    ctx.fill();
+    ctx.fillStyle='#231c2a';
+    ctx.font='10px Comfortaa';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(placed[i]?'♪':i+1,x,y);
+  }
+
+  if(butterfly.complete){
+    ctx.drawImage(butterfly,C-40,C-40,80,80);
+  }
+  requestAnimationFrame(draw);
+}
+draw();
+
+function varBlue(){return '#A6CBE9'}
+
+/* ── INTERACTION ── */
+canvas.addEventListener('click',e=>{
+  const r=canvas.getBoundingClientRect();
+  const x=e.clientX-r.left,y=e.clientY-r.top;
+
+  for(let i=0;i<SLOTS;i++){
+    const a=(Math.PI*2/SLOTS)*i-Math.PI/2;
+    const px=C+Math.cos(a)*R,py=C+Math.sin(a)*R;
+    if(Math.hypot(x-px,y-py)<20){
+      if(selected && !placed[i]){
+        placed[i]=selected;
+        selected=null;
+        nextTurn();
+      }else if(placed[i]){
+        playSound(i);
+      }
+    }
+  }
+});
+
+function playSound(i){
+  const s=placed[i];
+  if(!s || !buffers[s.name])return;
+
+  if(buffers[s.name].loop && playing.has(i)){
+    playing.get(i).stop();
+    playing.delete(i);
+    return;
+  }
+
+  const src=AudioCtx.createBufferSource();
+  src.buffer=buffers[s.name].buffer;
+  src.loop=buffers[s.name].loop;
+  src.connect(gain);
+  src.start();
+  if(src.loop)playing.set(i,src);
+}
+
+function nextTurn(){
+  turn=(turn+1)%students.length;
+  document.getElementById('turnName').textContent=students[turn];
+}
+
+/* ── SOUND CARDS ── */
+const grid=document.getElementById('soundGrid');
+for(const s of SOUND_LIBRARY){
+  const d=document.createElement('div');
+  d.className='card';
+  d.innerHTML=`<div class="icon">${s.icon}</div><div class="name">${s.name}</div><div class="desc">${s.loop?'Repeats':'Plays once'}</div>`;
+  d.onclick=()=>selected=s;
+  grid.appendChild(d);
+}
+</script>
+
+</body>
+</html>
