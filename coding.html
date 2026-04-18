@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SPOKE Learn</title>
+<title>SPOKE Learning</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -272,8 +272,7 @@ lines:[
      n:'Line 7 — asking a yes/no question',
      title:'if touch1.value: — is someone touching it?',
      body:'<ic>touch1.value</ic> is always either <b>True</b> (finger on pad) or <b>False</b> (nothing there). There is no in-between.<br><br>The word <ic>if</ic> means: only run the next line if this is True. If it is False, skip it entirely and jump to <ic>else</ic>.<br><br>The <b>4 spaces</b> before <ic>if</ic> are critical — they tell Python this line lives <b>inside</b> the while loop. Python uses indentation (spaces) to understand structure, not brackets like some other languages.',
-     code:'<span class="kw">while</span> True:
-<span class="kw">    if</span> touch1.value:  <span class="co"># 4 spaces = inside the loop</span>'
+     code:'<span class="kw">while</span> True:\n<span class="kw">    if</span> touch1.value:  <span class="co"># 4 spaces = inside the loop</span>'
    },
    toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch1.value:'}]},
   {ln:8,
@@ -293,10 +292,7 @@ lines:[
      n:'Line 9 — the other path',
      title:'else: — what to do when the answer is False',
      body:'<ic>else:</ic> is the fallback case. If <ic>touch1.value</ic> was False (nothing touching), Python skips the green line and comes here instead.<br><br>Together, <ic>if</ic> and <ic>else</ic> guarantee <b>one branch always runs</b> — never both, never neither. The program is making a binary decision: touched or not touched. This decision-making is called <b>selection</b>.',
-     code:'<span class="kw">    if</span> touch1.value:    <span class="co"># True path</span>
-        ...
-<span class="kw">    else</span>:              <span class="co"># False path</span>
-        ...'
+     code:'<span class="kw">    if</span> touch1.value:    <span class="co"># True path</span>\n        ...\n<span class="kw">    else</span>:              <span class="co"># False path</span>\n        ...'
    },
    toks:[{c:'pl',v:'    '},{c:'kw',v:'else'},{c:'pl',v:':'}]},
   {ln:10,
@@ -1036,198 +1032,7 @@ function isStepDone(s){
 }
 
 function isStepActive(s, pi, phase){
-  // Check if all previous phases' steps are done
-  for(let i=0;i<pi;i++){
-    for(const ps of SETUP_STEPS[i].steps){
-      if(!isStepDone(ps)) return false
-    }
-  }
-  // Check all previous steps in same phase are done
-  const idx = phase.steps.indexOf(s)
-  for(let i=0;i<idx;i++){
-    if(!isStepDone(phase.steps[i])) return false
-  }
-  return true
-}
-
-function isSetupFullyDone(){
-  return SETUP_STEPS.every(ph => ph.steps.every(s => isStepDone(s)))
-}
-
-function checkSetupProgress(){
-  if(isSetupFullyDone()) done.add(0)
-  updateProg()
-}
-
-// Hello World exercise renderer (inside setup wrap)
-function renderHWExercise(wrap){
-  const section = document.createElement('div')
-  section.id = 'hw-section'
-  section.style.cssText = 'margin-top:8px'
-
-  const label = document.createElement('div')
-  label.className = 'setup-phase'
-  label.style.cssText = 'padding-top:0'
-  label.textContent = 'Hello World — type it to prove it works'
-  section.appendChild(label)
-
-  const codeBox = document.createElement('div')
-  codeBox.style.cssText = 'background:var(--s2);border:1px solid var(--b1);border-radius:3px;font-family:var(--mono);font-size:12px;line-height:1.9;overflow:hidden'
-
-  HW_LINES.forEach((row, ri) => {
-    if(ri < hwStep){
-      // done — show as context
-      const r = document.createElement('div')
-      r.className = 'code-row ctx'
-      r.style.padding = '0 14px'
-      const ln = document.createElement('span');ln.className='ln-num';ln.textContent=row.ln
-      const tok = document.createElement('span');tok.className='code-tokens'
-      row.toks.forEach(t=>{const s=document.createElement('span');s.className=t.c;s.textContent=t.v;tok.appendChild(s)})
-      r.appendChild(ln);r.appendChild(tok)
-      codeBox.appendChild(r)
-    } else if(ri === hwStep){
-      // current — typing row
-      const r = document.createElement('div')
-      r.className = 'type-row'
-      r.style.cssText = 'padding:0 14px;margin:0'
-      const ln = document.createElement('span');ln.className='ln-num';ln.textContent=row.ln
-      const pre = document.createElement('span');pre.className='type-prefix';pre.textContent=row.pfx||''
-      const inp = document.createElement('input');inp.type='text';inp.className='type-input';inp.id='hw-inp'
-      inp.placeholder='type here, press Enter…'
-      inp.setAttribute('spellcheck','false');inp.setAttribute('autocomplete','off')
-      inp.setAttribute('autocorrect','off');inp.setAttribute('autocapitalize','off')
-      inp.onkeydown = hwKey
-      r.appendChild(ln);r.appendChild(pre);r.appendChild(inp)
-      codeBox.appendChild(r)
-
-      // prompt bar
-      const pb = document.createElement('div')
-      pb.style.cssText = 'padding:8px 14px;background:var(--s1);border-top:1px solid var(--b1);display:flex;align-items:baseline;gap:10px'
-      const sl = document.createElement('span');sl.style.cssText='font-family:var(--mono);font-size:9px;color:var(--t3);flex-shrink:0';sl.textContent=`Line ${ri+1}/${HW_LINES.length}`
-      const sm = document.createElement('span');sm.style.cssText='font-size:12px;color:var(--t2)';sm.id='hw-msg';sm.textContent=row.prompt
-      const hint = document.createElement('button');hint.className='btn';hint.style.cssText='font-size:9px;padding:3px 8px;margin-left:auto';hint.textContent='Hint'
-      hint.onclick=()=>{sm.textContent=row.hint;sm.style.color='var(--ylw)'}
-      pb.appendChild(sl);pb.appendChild(sm);pb.appendChild(hint)
-      codeBox.appendChild(pb)
-    }
-    // future lines: not shown
-  })
-
-  if(hwStep >= HW_LINES.length){
-    const done = document.createElement('div')
-    done.style.cssText = 'padding:12px 14px;background:rgba(34,197,94,.06);border-top:1px solid rgba(34,197,94,.15);display:flex;align-items:center;gap:10px'
-    done.innerHTML = `<span style="color:var(--grn);font-family:var(--mono);font-size:11px">✓ All lines written — click Save & Run to test it</span>`
-    codeBox.appendChild(done)
-    checkSetupProgress()
-  }
-
-  section.appendChild(codeBox)
-  wrap.appendChild(section)
-
-  // Focus
-  setTimeout(()=>{const i=document.getElementById('hw-inp');if(i)i.focus()},40)
-}
-
-function hwKey(e){
-  if(e.key==='Enter'){
-    e.preventDefault()
-    const val = e.target.value
-    const row = HW_LINES[hwStep]
-    const got = norm(val), exp = norm(row.ans), alts = (row.alt||[]).map(norm)
-    if(got===exp||alts.includes(got)){
-      hwStep++; renderSetup()
-    } else {
-      e.target.classList.add('wrong');e.target.style.color='var(--red)'
-      const msg = document.getElementById('hw-msg')
-      if(msg){const orig=msg.textContent;msg.innerHTML='<span style="color:var(--red)">Not quite — check spelling and brackets</span>';setTimeout(()=>{msg.textContent=orig;msg.style.color=''},2200)}
-      setTimeout(()=>{e.target.classList.remove('wrong');e.target.style.color='';e.target.focus()},300)
-    }
-  } else if(e.key==='Tab'){
-    e.preventDefault();const p=e.target.selectionStart
-    e.target.value=e.target.value.slice(0,p)+'    '+e.target.value.slice(p)
-    e.target.selectionStart=e.target.selectionEnd=p+4
-  }
-}
-
-// Called by the Connect Board button when in setup lesson
-async function doConnectFile(){
-  try{
-    if(!('showOpenFilePicker' in window)){
-      log('Use Chrome or Edge for this feature','err')
-      return
-    }
-    log('Opening code.py…','info')
-    const [h] = await window.showOpenFilePicker({types:[{description:'Python',accept:{'text/x-python':['.py']}}]})
-    fileHandle = h
-    setupConnectDone = true
-    log('code.py ready','ok')
-    renderSetup()
-
-    // Now serial
-    if(!('serial' in navigator)){log('Web Serial not supported — use Chrome','err');return}
-    log('Select your CircuitPython serial port…','info')
-    serialPort = await navigator.serial.requestPort()
-    await serialPort.open({baudRate:115200})
-    isConn = true
-    setupSerialDone = true
-    document.getElementById('connectBtn').textContent = 'Connected ✓'
-    document.getElementById('connectBtn').style.color = 'var(--grn)'
-    document.getElementById('runBtn').disabled = false
-    document.getElementById('conDot').classList.add('live')
-    log('Serial connected — Output panel is live','ok')
-    log('You should see CircuitPython output here as you run code','dim')
-    renderSetup()
-    readSerial()
-  } catch(e){
-    if(e.name!=='AbortError') log('Error: '+e.message,'err')
-  }
-}
-const MODS=[
-  {n:'Getting Started',ls:[0]},
-  {n:'Module 1 — First Steps',ls:[1,2,3]},
-  {n:'Module 2 — Logic',ls:[4]},
-  {n:'Module 3 — Loops',ls:[5,6,7]},
-  {n:'Module 4 — Functions',ls:[8,9]},
-  {n:'Module 5 — MIDI',ls:[10,11,12]},
-  {n:'Module 6 — Project',ls:[13,14]},
-]
-// Stub lesson entry so sidebar/nav can reference lesson 0
-L[0]={mod:'Getting Started',title:'Setup & Hello World',sub:'Connect your board and run your first program',ks:'',midi:false,info:[],lines:[],free:''}
-
-// ── STATE ─────────────────────────────────────────────────────────────────────
-let cur=1,done=new Set(),tab='guide',step=0,typeable=[],hintVis=false
-let fileHandle=null,serialPort=null,isConn=false
-
-// ── SIDEBAR ───────────────────────────────────────────────────────────────────
-function buildSB(){
-  const sb=document.getElementById('sidebar');sb.innerHTML=''
-  MODS.forEach(m=>{
-    const h=document.createElement('div');h.className='mod-lbl';h.textContent=m.n;sb.appendChild(h)
-    m.ls.forEach(n=>{
-      const l=L[n],b=document.createElement('button')
-      b.className='sb-btn'+(n===cur?' active':'')+(done.has(n)?' done':'')
-      b.onclick=()=>loadLesson(n)
-      const numLabel = n===0 ? '★' : String(n)
-      b.innerHTML=`<span class="sb-n">${numLabel}</span><span class="sb-t">${l.title}</span>${done.has(n)?'<span class="tick"></span>':''}`
-      sb.appendChild(b)
-    })
-  })
-}
-
-// ── LOAD LESSON ───────────────────────────────────────────────────────────────
-function loadLesson(n){
-  cur=n;const l=L[n]
-  document.getElementById('crumb').innerHTML=`${l.mod} / <b>${l.title}</b>`
-  document.getElementById('midiPill').style.display=l.midi?'':'none'
-  document.getElementById('prevBtn').disabled=(n===0)
-  document.getElementById('nextBtn').textContent=n===14?'Complete ✓':'Done — Next →'
-
-  if(n===0){
-    // Setup lesson — custom rendering
-    let h=`<div class="ks" style="color:var(--acc);border-color:rgba(249,115,22,.3)">Getting Started</div><h1>Setup & Hello World</h1><p class="sub">Connect your board and run your first program</p>`
-    h+=card({t:'info',l:'What this lesson does',p:'You will connect your SPOKE board to this interface step by step, then type a three-line Hello World program and see it run live on the board.'})
-    h+=card({t:'task',l:'You will need',p:'• Your SPOKE board<br>• A USB cable<br>• <b>Chrome or Edge</b> browser (not Firefox or Safari)<br>• This page open on your computer'})
-    h+=card({t:'info',l:'How the interface works',p:'<b>Left panel</b> — instructions (you are reading it now).<br><b>Right panel</b> — code exercise or free editor.<br><b>Output</b> — live output from your board\'s serial port.<br><b>Save & Run</b> — writes your code to the board and restarts it.'})
+  // Check if all previous phases' steps are done\n  for(let i=0;i<pi;i++){\n    for(const ps of SETUP_STEPS[i].steps){\n      if(!isStepDone(ps)) return false\n    }\n  }\n  // Check all previous steps in same phase are done\n  const idx = phase.steps.indexOf(s)\n  for(let i=0;i<idx;i++){\n    if(!isStepDone(phase.steps[i])) return false\n  }\n  return true\n}\n\nfunction isSetupFullyDone(){\n  return SETUP_STEPS.every(ph => ph.steps.every(s => isStepDone(s)))\n}\n\nfunction checkSetupProgress(){\n  if(isSetupFullyDone()) done.add(0)\n  updateProg()\n}\n\n// Hello World exercise renderer (inside setup wrap)\nfunction renderHWExercise(wrap){\n  const section = document.createElement('div')\n  section.id = 'hw-section'\n  section.style.cssText = 'margin-top:8px'\n\n  const label = document.createElement('div')\n  label.className = 'setup-phase'\n  label.style.cssText = 'padding-top:0'\n  label.textContent = 'Hello World — type it to prove it works'\n  section.appendChild(label)\n\n  const codeBox = document.createElement('div')\n  codeBox.style.cssText = 'background:var(--s2);border:1px solid var(--b1);border-radius:3px;font-family:var(--mono);font-size:12px;line-height:1.9;overflow:hidden'\n\n  HW_LINES.forEach((row, ri) => {\n    if(ri < hwStep){\n      // done — show as context\n      const r = document.createElement('div')\n      r.className = 'code-row ctx'\n      r.style.padding = '0 14px'\n      const ln = document.createElement('span');ln.className='ln-num';ln.textContent=row.ln\n      const tok = document.createElement('span');tok.className='code-tokens'\n      row.toks.forEach(t=>{const s=document.createElement('span');s.className=t.c;s.textContent=t.v;tok.appendChild(s)})\n      r.appendChild(ln);r.appendChild(tok)\n      codeBox.appendChild(r)\n    } else if(ri === hwStep){\n      // current — typing row\n      const r = document.createElement('div')\n      r.className = 'type-row'\n      r.style.cssText = 'padding:0 14px;margin:0'\n      const ln = document.createElement('span');ln.className='ln-num';ln.textContent=row.ln\n      const pre = document.createElement('span');pre.className='type-prefix';pre.textContent=row.pfx||''\n      const inp = document.createElement('input');inp.type='text';inp.className='type-input';inp.id='hw-inp'\n      inp.placeholder='type here, press Enter…'\n      inp.setAttribute('spellcheck','false');inp.setAttribute('autocomplete','off')\n      inp.setAttribute('autocorrect','off');inp.setAttribute('autocapitalize','off')\n      inp.onkeydown = hwKey\n      r.appendChild(ln);r.appendChild(pre);r.appendChild(inp)\n      codeBox.appendChild(r)\n\n      // prompt bar\n      const pb = document.createElement('div')\n      pb.style.cssText = 'padding:8px 14px;background:var(--s1);border-top:1px solid var(--b1);display:flex;align-items:baseline;gap:10px'\n      const sl = document.createElement('span');sl.style.cssText='font-family:var(--mono);font-size:9px;color:var(--t3);flex-shrink:0';sl.textContent=`Line ${ri+1}/${HW_LINES.length}`\n      const sm = document.createElement('span');sm.style.cssText='font-size:12px;color:var(--t2)';sm.id='hw-msg';sm.textContent=row.prompt\n      const hint = document.createElement('button');hint.className='btn';hint.style.cssText='font-size:9px;padding:3px 8px;margin-left:auto';hint.textContent='Hint'\n      hint.onclick=()=>{sm.textContent=row.hint;sm.style.color='var(--ylw)'}\n      pb.appendChild(sl);pb.appendChild(sm);pb.appendChild(hint)\n      codeBox.appendChild(pb)\n    }\n    // future lines: not shown\n  })\n\n  if(hwStep >= HW_LINES.length){\n    const done = document.createElement('div')\n    done.style.cssText = 'padding:12px 14px;background:rgba(34,197,94,.06);border-top:1px solid rgba(34,197,94,.15);display:flex;align-items:center;gap:10px'\n    done.innerHTML = `<span style="color:var(--grn);font-family:var(--mono);font-size:11px">✓ All lines written — click Save & Run to test it</span>`\n    codeBox.appendChild(done)\n    checkSetupProgress()\n  }\n\n  section.appendChild(codeBox)\n  wrap.appendChild(section)\n\n  // Focus\n  setTimeout(()=>{const i=document.getElementById('hw-inp');if(i)i.focus()},40)\n}\n\nfunction hwKey(e){\n  if(e.key==='Enter'){\n    e.preventDefault()\n    const val = e.target.value\n    const row = HW_LINES[hwStep]\n    const got = norm(val), exp = norm(row.ans), alts = (row.alt||[]).map(norm)\n    if(got===exp||alts.includes(got)){\n      hwStep++; renderSetup()\n    } else {\n      e.target.classList.add('wrong');e.target.style.color='var(--red)'\n      const msg = document.getElementById('hw-msg')\n      if(msg){const orig=msg.textContent;msg.innerHTML='<span style="color:var(--red)">Not quite — check spelling and brackets</span>';setTimeout(()=>{msg.textContent=orig;msg.style.color=''},2200)}\n      setTimeout(()=>{e.target.classList.remove('wrong');e.target.style.color='';e.target.focus()},300)\n    }\n  } else if(e.key==='Tab'){\n    e.preventDefault();const p=e.target.selectionStart\n    e.target.value=e.target.value.slice(0,p)+'    '+e.target.value.slice(p)\n    e.target.selectionStart=e.target.selectionEnd=p+4\n  }\n}\n\n// Called by the Connect Board button when in setup lesson\nasync function doConnectFile(){\n  try{\n    if(!('showOpenFilePicker' in window)){\n      log('Use Chrome or Edge for this feature','err')\n      return\n    }\n    log('Opening code.py…','info')\n    const [h] = await window.showOpenFilePicker({types:[{description:'Python',accept:{'text/x-python':['.py']}}]})\n    fileHandle = h\n    setupConnectDone = true\n    log('code.py ready','ok')\n    renderSetup()\n\n    // Now serial\n    if(!('serial' in navigator)){log('Web Serial not supported — use Chrome','err');return}\n    log('Select your CircuitPython serial port…','info')\n    serialPort = await navigator.serial.requestPort()\n    await serialPort.open({baudRate:115200})\n    isConn = true\n    setupSerialDone = true\n    document.getElementById('connectBtn').textContent = 'Connected ✓'\n    document.getElementById('connectBtn').style.color = 'var(--grn)'\n    document.getElementById('runBtn').disabled = false\n    document.getElementById('conDot').classList.add('live')\n    log('Serial connected — Output panel is live','ok')\n    log('You should see CircuitPython output here as you run code','dim')\n    renderSetup()\n    readSerial()\n  } catch(e){\n    if(e.name!=='AbortError') log('Error: '+e.message,'err')\n  }\n}\nconst MODS=[\n  {n:'Getting Started',ls:[0]},\n  {n:'Module 1 — First Steps',ls:[1,2,3]},\n  {n:'Module 2 — Logic',ls:[4]},\n  {n:'Module 3 — Loops',ls:[5,6,7]},\n  {n:'Module 4 — Functions',ls:[8,9]},\n  {n:'Module 5 — MIDI',ls:[10,11,12]},\n  {n:'Module 6 — Project',ls:[13,14]},\n]\n// Stub lesson entry so sidebar/nav can reference lesson 0\nL[0]={mod:'Getting Started',title:'Setup & Hello World',sub:'Connect your board and run your first program',ks:'',midi:false,info:[],lines:[],free:''}\n\n// ── STATE ─────────────────────────────────────────────────────────────────────\nlet cur=1,done=new Set(),tab='guide',step=0,typeable=[],hintVis=false\nlet fileHandle=null,serialPort=null,isConn=false\n\n// ── SIDEBAR ───────────────────────────────────────────────────────────────────\nfunction buildSB(){\n  const sb=document.getElementById('sidebar');sb.innerHTML=''\n  MODS.forEach(m=>{\n    const h=document.createElement('div');h.className='mod-lbl';h.textContent=m.n;sb.appendChild(h)\n    m.ls.forEach(n=>{\n      const l=L[n],b=document.createElement('button')\n      b.className='sb-btn'+(n===cur?' active':'')+(done.has(n)?' done':'')\n      b.onclick=()=>loadLesson(n)\n      const numLabel = n===0 ? '★' : String(n)\n      b.innerHTML=`<span class="sb-n">${numLabel}</span><span class="sb-t">${l.title}</span>${done.has(n)?'<span class="tick"></span>':''}`\n      sb.appendChild(b)\n    })\n  })\n}\n\n// ── LOAD LESSON ───────────────────────────────────────────────────────────────\nfunction loadLesson(n){\n  cur=n;const l=L[n]\n  document.getElementById('crumb').innerHTML=`${l.mod} / <b>${l.title}</b>`\n  document.getElementById('midiPill').style.display=l.midi?'':'none'\n  document.getElementById('prevBtn').disabled=(n===0)\n  document.getElementById('nextBtn').textContent=n===14?'Complete ✓':'Done — Next →'\n\n  if(n===0){\n    // Setup lesson — custom rendering\n    let h=`<div class="ks" style="color:var(--acc);border-color:rgba(249,115,22,.3)">Getting Started</div><h1>Setup & Hello World</h1><p class="sub">Connect your board and run your first program</p>`\n    h+=card({t:'info',l:'What this lesson does',p:'You will connect your SPOKE board to this interface step by step, then type a three-line Hello World program and see it run live on the board.'})\n    h+=card({t:'task',l:'You will need',p:'• Your SPOKE board<br>• A USB cable<br>• <b>Chrome or Edge</b> browser (not Firefox or Safari)<br>• This page open on your computer'})\n    h+=card({t:'info',l:'How the interface works',p:'<b>Left panel</b> — instructions (you are reading it now).<br><b>Right panel</b> — code exercise or free editor.<br><b>Output</b> — live output from your board\'s serial port.<br><b>Save & Run</b> — writes your code to the board and restarts it.'})
     document.getElementById('lpBody').innerHTML=h
 
     // Show setup panel, hide normal exercise
