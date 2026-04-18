@@ -991,6 +991,14 @@
                 <div class="template-name">Phrase Typer</div>
                 <div class="template-desc">Types a phrase per pad</div>
             </div>
+            <div class="template-item" onclick="loadTemplate('shortcuts', this)">
+                <div class="template-name">Shortcuts</div>
+                <div class="template-desc">Keyboard shortcut macros</div>
+            </div>
+            <div class="template-item" onclick="loadTemplate('consumer', this)">
+                <div class="template-name">Media Keys</div>
+                <div class="template-desc">Mute, volume, next track…</div>
+            </div>
         </div>
 
         <!-- Editor -->
@@ -2012,6 +2020,182 @@ while True:
                     kpd.release_all()  # Release all keys
                     time.sleep(0.1)  # Adjust delay as needed
             time.sleep(0.5)  # Add a small delay between phrases
+`,
+
+shortcuts: `# SPOKE Mini — Keyboard Shortcut Macros
+# Each pad fires a multi-key shortcut (e.g. Ctrl+C, Ctrl+Z).
+# Edit the SHORTCUTS list to assign any combo you like.
+import time
+import board
+import touchio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+
+kpd = Keyboard(usb_hid.devices)
+
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22,
+    board.GP26, board.GP27, board.GP28
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# Shortcut configuration — (label, [keycodes to hold together])
+# Add as many keycodes as you need per combo.
+SHORTCUTS = [
+    ("Copy",              [Keycode.CONTROL, Keycode.C]),
+    ("Cut",               [Keycode.CONTROL, Keycode.X]),
+    ("Paste",             [Keycode.CONTROL, Keycode.V]),
+    ("Undo",              [Keycode.CONTROL, Keycode.Z]),
+    ("Redo",              [Keycode.CONTROL, Keycode.Y]),
+    ("Select All",        [Keycode.CONTROL, Keycode.A]),
+    ("Save",              [Keycode.CONTROL, Keycode.S]),
+    ("Save As",           [Keycode.CONTROL, Keycode.SHIFT, Keycode.S]),
+    ("New",               [Keycode.CONTROL, Keycode.N]),
+    ("Open",              [Keycode.CONTROL, Keycode.O]),
+    ("Find",              [Keycode.CONTROL, Keycode.F]),
+    ("Bold",              [Keycode.CONTROL, Keycode.B]),
+    ("Italic",            [Keycode.CONTROL, Keycode.I]),
+    ("Underline",         [Keycode.CONTROL, Keycode.U]),
+    ("Close Tab",         [Keycode.CONTROL, Keycode.W]),
+    ("Reopen Tab",        [Keycode.CONTROL, Keycode.SHIFT, Keycode.T]),
+    ("New Tab",           [Keycode.CONTROL, Keycode.T]),
+    ("Switch App",        [Keycode.ALT, Keycode.TAB]),
+    ("Screenshot",        [Keycode.WINDOWS, Keycode.SHIFT, Keycode.S]),
+    ("Lock Screen",       [Keycode.WINDOWS, Keycode.L]),
+    ("Show Desktop",      [Keycode.WINDOWS, Keycode.D]),
+    ("Task Manager",      [Keycode.CONTROL, Keycode.SHIFT, Keycode.ESCAPE]),
+    ("Fullscreen",        [Keycode.F11]),
+    ("Zoom In",           [Keycode.CONTROL, Keycode.EQUALS]),
+    ("Zoom Out",          [Keycode.CONTROL, Keycode.MINUS]),
+    ("Reset Zoom",        [Keycode.CONTROL, Keycode.ZERO]),
+]
+
+# State tracking — only fire once per touch
+triggered = [False] * len(touch_pins)
+
+print("Shortcut pad ready!")
+for i, (label, keys) in enumerate(SHORTCUTS):
+    print(f"  Pad {i+1:2d}: {label}")
+
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not triggered[i]:
+                label, keys = SHORTCUTS[i]
+                print(f"Firing: {label}")
+                kpd.press(*keys)        # Hold all keys simultaneously
+                time.sleep(0.05)        # Brief hold so the OS registers it
+                kpd.release_all()
+                triggered[i] = True
+        else:
+            triggered[i] = False
+    time.sleep(0.01)
+`,
+
+consumer: `# SPOKE Mini — Media & Consumer Controls
+# Uses the ConsumerControl HID device for system-level keys
+# that can't be sent as regular keycodes (mute, volume, play, etc.)
+# The last few pads fall back to standard keyboard media keys.
+import time
+import board
+import touchio
+import usb_hid
+from adafruit_hid.consumer_control import ConsumerControl
+from adafruit_hid.consumer_control_code import ConsumerControlCode
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+
+cc = ConsumerControl(usb_hid.devices)
+kpd = Keyboard(usb_hid.devices)
+
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22,
+    board.GP26, board.GP27, board.GP28
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# Action types
+CONSUMER = "consumer"   # Sent via ConsumerControl
+KEYBOARD = "keyboard"   # Sent via Keyboard (multi-key combo)
+
+# (label, type, code_or_keycodes)
+ACTIONS = [
+    # Playback
+    ("Play / Pause",      CONSUMER,  ConsumerControlCode.PLAY_PAUSE),
+    ("Stop",              CONSUMER,  ConsumerControlCode.STOP),
+    ("Next Track",        CONSUMER,  ConsumerControlCode.SCAN_NEXT_TRACK),
+    ("Previous Track",    CONSUMER,  ConsumerControlCode.SCAN_PREVIOUS_TRACK),
+    ("Rewind",            CONSUMER,  ConsumerControlCode.REWIND),
+    ("Fast Forward",      CONSUMER,  ConsumerControlCode.FAST_FORWARD),
+    # Volume
+    ("Mute",              CONSUMER,  ConsumerControlCode.MUTE),
+    ("Volume Up",         CONSUMER,  ConsumerControlCode.VOLUME_INCREMENT),
+    ("Volume Down",       CONSUMER,  ConsumerControlCode.VOLUME_DECREMENT),
+    # Brightness (laptops)
+    ("Brightness Up",     CONSUMER,  ConsumerControlCode.BRIGHTNESS_INCREMENT),
+    ("Brightness Down",   CONSUMER,  ConsumerControlCode.BRIGHTNESS_DECREMENT),
+    # App launch
+    ("Launch Browser",    CONSUMER,  ConsumerControlCode.AL_INTERNET_BROWSER),
+    ("Launch Calculator", CONSUMER,  ConsumerControlCode.AL_CALCULATOR),
+    ("Launch Files",      CONSUMER,  ConsumerControlCode.AL_LOCAL_MACHINE_BROWSER),
+    ("Launch Email",      CONSUMER,  ConsumerControlCode.AL_EMAIL_READER),
+    # System
+    ("Sleep",             CONSUMER,  ConsumerControlCode.AL_TERMINAL_LOCK_SCREENSAVER),
+    # Keyboard shortcuts
+    ("Screenshot",        KEYBOARD,  [Keycode.WINDOWS, Keycode.SHIFT, Keycode.S]),
+    ("Lock Screen",       KEYBOARD,  [Keycode.WINDOWS, Keycode.L]),
+    ("Show Desktop",      KEYBOARD,  [Keycode.WINDOWS, Keycode.D]),
+    ("Task Manager",      KEYBOARD,  [Keycode.CONTROL, Keycode.SHIFT, Keycode.ESCAPE]),
+    ("Virtual Desktop L", KEYBOARD,  [Keycode.CONTROL, Keycode.WINDOWS, Keycode.LEFT_ARROW]),
+    ("Virtual Desktop R", KEYBOARD,  [Keycode.CONTROL, Keycode.WINDOWS, Keycode.RIGHT_ARROW]),
+    ("Notification Panel",KEYBOARD,  [Keycode.WINDOWS, Keycode.N]),
+    ("Emoji Picker",      KEYBOARD,  [Keycode.WINDOWS, Keycode.PERIOD]),
+    ("Clipboard History", KEYBOARD,  [Keycode.WINDOWS, Keycode.V]),
+    ("Settings",          KEYBOARD,  [Keycode.WINDOWS, Keycode.I]),
+]
+
+# State tracking — fire once per touch, not continuously
+triggered = [False] * len(touch_pins)
+
+print("Media / consumer pad ready!")
+for i, (label, kind, _) in enumerate(ACTIONS):
+    print(f"  Pad {i+1:2d}: {label}")
+
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not triggered[i]:
+                label, kind, code = ACTIONS[i]
+                print(f"Sending: {label}")
+                if kind == CONSUMER:
+                    cc.send(code)
+                else:
+                    kpd.press(*code)
+                    time.sleep(0.05)
+                    kpd.release_all()
+                triggered[i] = True
+        else:
+            triggered[i] = False
+    time.sleep(0.01)
 `,
 
 gaming: `# SPOKE Mini — Gaming Controls (Keyboard + Mouse HID)
