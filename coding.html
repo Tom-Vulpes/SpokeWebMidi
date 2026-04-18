@@ -271,7 +271,7 @@ lines:[
    explain:{
      n:'Line 7 — asking a yes/no question',
      title:'if touch1.value: — is someone touching it?',
-     body:'<ic>touch1.value</ic> is always either <b>True</b> (finger on pad) or <b>False</b> (nothing there). There is no "maybe".<br><br>The word <ic>if</ic> means: only run the next line if this is True. If it is False, skip it entirely and jump to <ic>else</ic>.<br><br>The <b>4 spaces</b> before <ic>if</ic> are critical — they tell Python this line lives <b>inside</b> the while loop. Python uses indentation (spaces) to understand structure, not brackets like some other languages.',
+     body:'<ic>touch1.value</ic> is always either <b>True</b> (finger on pad) or <b>False</b> (nothing there). There is no in-between.<br><br>The word <ic>if</ic> means: only run the next line if this is True. If it is False, skip it entirely and jump to <ic>else</ic>.<br><br>The <b>4 spaces</b> before <ic>if</ic> are critical — they tell Python this line lives <b>inside</b> the while loop. Python uses indentation (spaces) to understand structure, not brackets like some other languages.',
      code:'<span class="kw">while</span> True:
 <span class="kw">    if</span> touch1.value:  <span class="co"># 4 spaces = inside the loop</span>'
    },
@@ -292,7 +292,7 @@ lines:[
    explain:{
      n:'Line 9 — the other path',
      title:'else: — what to do when the answer is False',
-     body:'<ic>else:</ic> is the "otherwise" case. If <ic>touch1.value</ic> was False (nothing touching), Python skips the green line and comes here instead.<br><br>Together, <ic>if</ic> and <ic>else</ic> guarantee <b>one branch always runs</b> — never both, never neither. The program is making a binary decision: touched or not touched. This decision-making is called <b>selection</b>.',
+     body:'<ic>else:</ic> is the fallback case. If <ic>touch1.value</ic> was False (nothing touching), Python skips the green line and comes here instead.<br><br>Together, <ic>if</ic> and <ic>else</ic> guarantee <b>one branch always runs</b> — never both, never neither. The program is making a binary decision: touched or not touched. This decision-making is called <b>selection</b>.',
      code:'<span class="kw">    if</span> touch1.value:    <span class="co"># True path</span>
         ...
 <span class="kw">    else</span>:              <span class="co"># False path</span>
@@ -305,7 +305,7 @@ lines:[
    explain:{
      n:'Line 10 — switching off',
      title:'(0, 0, 0) — zero of everything means off',
-     body:'There is no "turn off" command. Instead, you set the colour to <ic>(0, 0, 0)</ic>: zero red, zero green, zero blue. No light output at all — which looks black, or off.<br><br>This is the pattern throughout all your programs: set a colour to turn on, set <ic>(0, 0, 0)</ic> to turn off. Always the same idea.',
+     body:'There is no separate turn-off command. Instead, you set the colour to <ic>(0, 0, 0)</ic>: zero red, zero green, zero blue. No light output at all — which looks black, or off.<br><br>This is the pattern throughout all your programs: set a colour to turn on, set <ic>(0, 0, 0)</ic> to turn off. Always the same idea.',
      code:'<span class="pl">        pixels[0] = (</span><span class="nu">0</span><span class="pl">, </span><span class="nu">0</span><span class="pl">, </span><span class="nu">0</span><span class="pl">)  </span><span class="co"># 0+0+0 = no light = off</span>'
    },
    toks:[{c:'pl',v:'        pixels[0] = (0, 0, 0)'}]},
@@ -339,7 +339,7 @@ lines:[
    explain:{
      n:'Lines 3–5 — setting up each pad',
      title:'touch1 = touchio.TouchIn(board.GP1) — registering a sensor',
-     body:'<ic>touchio.TouchIn(board.GP1)</ic> tells the board: "watch the physical pin called GP1 and tell me when a finger is there". <b>GP</b> stands for General Purpose pin — a physical connection point on SPOKE.<br><br>We store the result in a variable called <ic>touch1</ic>. A <b>variable</b> is a named container — like a labelled box. Later, when we write <ic>touch1.value</ic>, Python opens that box and checks: is someone touching it right now?<br><br>You write the same line three times, once per pad — only the number changes.',
+     body:'<ic>touchio.TouchIn(board.GP1)</ic> tells the board to monitor pin GP1 for finger contact. We store the result in a variable called <ic>touch1</ic>. A <b>variable</b> is a named container — like a labelled box. Later, when we write <ic>touch1.value</ic>, Python checks that box and returns True or False: is someone touching it right now?<br><br>You write this same line three times, once per pad — only the pin number changes.'
      code:'touch1 = touchio.TouchIn(board.<span class="kw">GP1</span>)\ntouch2 = touchio.TouchIn(board.<span class="kw">GP2</span>)\ntouch3 = touchio.TouchIn(board.<span class="kw">GP3</span>)'
    },
    toks:[{c:'pl',v:'touch1 = touchio.TouchIn(board.GP1)'}]},
@@ -349,7 +349,7 @@ lines:[
    explain:{
      n:'Lines 3–5 — setting up each pad',
      title:'touch1 = touchio.TouchIn(board.GP1) — registering a sensor',
-     body:'<ic>touchio.TouchIn(board.GP1)</ic> tells the board: "watch the physical pin called GP1 and tell me when a finger is there". <b>GP</b> stands for General Purpose pin — a physical connection point on SPOKE.<br><br>We store the result in a variable called <ic>touch1</ic>. A <b>variable</b> is a named container — like a labelled box. Later, when we write <ic>touch1.value</ic>, Python opens that box and checks: is someone touching it right now?<br><br>You write the same line three times, once per pad — only the number changes.',
+     body:'<ic>touchio.TouchIn(board.GP1)</ic> tells the board to monitor pin GP1 for finger contact. We store the result in a variable called <ic>touch1</ic>. A <b>variable</b> is a named container — like a labelled box. Later, when we write <ic>touch1.value</ic>, Python checks that box and returns True or False: is someone touching it right now?<br><br>You write this same line three times, once per pad — only the pin number changes.'
      code:'touch1 = touchio.TouchIn(board.<span class="kw">GP1</span>)\ntouch2 = touchio.TouchIn(board.<span class="kw">GP2</span>)\ntouch3 = touchio.TouchIn(board.<span class="kw">GP3</span>)'
    },
    toks:[{c:'pl',v:'touch2 = touchio.TouchIn(board.GP2)'}]},
@@ -359,7 +359,7 @@ lines:[
    explain:{
      n:'Lines 3–5 — setting up each pad',
      title:'touch1 = touchio.TouchIn(board.GP1) — registering a sensor',
-     body:'<ic>touchio.TouchIn(board.GP1)</ic> tells the board: "watch the physical pin called GP1 and tell me when a finger is there". <b>GP</b> stands for General Purpose pin — a physical connection point on SPOKE.<br><br>We store the result in a variable called <ic>touch1</ic>. A <b>variable</b> is a named container — like a labelled box. Later, when we write <ic>touch1.value</ic>, Python opens that box and checks: is someone touching it right now?<br><br>You write the same line three times, once per pad — only the number changes.',
+     body:'<ic>touchio.TouchIn(board.GP1)</ic> tells the board to monitor pin GP1 for finger contact. We store the result in a variable called <ic>touch1</ic>. A <b>variable</b> is a named container — like a labelled box. Later, when we write <ic>touch1.value</ic>, Python checks that box and returns True or False: is someone touching it right now?<br><br>You write this same line three times, once per pad — only the pin number changes.'
      code:'touch1 = touchio.TouchIn(board.<span class="kw">GP1</span>)\ntouch2 = touchio.TouchIn(board.<span class="kw">GP2</span>)\ntouch3 = touchio.TouchIn(board.<span class="kw">GP3</span>)'
    },
    toks:[{c:'pl',v:'touch3 = touchio.TouchIn(board.GP3)'}]},
@@ -372,7 +372,7 @@ lines:[
    explain:{
      n:'Lines 9–11 — the Pad 1 block',
      title:'Three lines that handle one pad completely',
-     body:'This block does everything needed for one pad: check if it is touched, light it up if yes, turn it off if no.<br><br>Step by step: <ic>if touch1.value:</ic> asks the question. <ic>pixels[0] = (255,0,0)</ic> gives the "yes" answer (red). <ic>else: pixels[0] = (0,0,0)</ic> gives the "no" answer (off).<br><br>You will write this exact structure for Pad 2 and Pad 3. The <b>only differences</b> are: which <ic>touch</ic> variable you check, which <ic>pixels[n]</ic> you set, and which colour you use.',
+     body:'This block does everything needed for one pad: check if it is touched, light it up if yes, turn it off if no.<br><br>Step by step: <ic>if touch1.value:</ic> asks the question. If True, <ic>pixels[0] = (255,0,0)</ic> sets the colour to red. If False, <ic>else: pixels[0] = (0,0,0)</ic> turns it off.<br><br>You will write this exact structure for Pad 2 and Pad 3. The <b>only differences</b> are: which touch variable you check, which pixels index you set, and which colour you use.',
      code:'<span class="kw">    if</span> touch1.value:\n        pixels[0] = (<span class="nu">255</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># red</span>\n<span class="kw">    else</span>: pixels[0] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># off</span>'
    },
    toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch1.value:'}]},
@@ -382,7 +382,7 @@ lines:[
    explain:{
      n:'Lines 9–11 — the Pad 1 block',
      title:'Three lines that handle one pad completely',
-     body:'This block does everything needed for one pad: check if it is touched, light it up if yes, turn it off if no.<br><br>Step by step: <ic>if touch1.value:</ic> asks the question. <ic>pixels[0] = (255,0,0)</ic> gives the "yes" answer (red). <ic>else: pixels[0] = (0,0,0)</ic> gives the "no" answer (off).<br><br>You will write this exact structure for Pad 2 and Pad 3. The <b>only differences</b> are: which <ic>touch</ic> variable you check, which <ic>pixels[n]</ic> you set, and which colour you use.',
+     body:'This block does everything needed for one pad: check if it is touched, light it up if yes, turn it off if no.<br><br>Step by step: <ic>if touch1.value:</ic> asks the question. If True, <ic>pixels[0] = (255,0,0)</ic> sets the colour to red. If False, <ic>else: pixels[0] = (0,0,0)</ic> turns it off.<br><br>You will write this exact structure for Pad 2 and Pad 3. The <b>only differences</b> are: which touch variable you check, which pixels index you set, and which colour you use.',
      code:'<span class="kw">    if</span> touch1.value:\n        pixels[0] = (<span class="nu">255</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># red</span>\n<span class="kw">    else</span>: pixels[0] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># off</span>'
    },
    toks:[{c:'pl',v:'        pixels[0] = (255, 0, 0)'}]},
@@ -392,7 +392,7 @@ lines:[
    explain:{
      n:'Lines 9–11 — the Pad 1 block',
      title:'Three lines that handle one pad completely',
-     body:'This block does everything needed for one pad: check if it is touched, light it up if yes, turn it off if no.<br><br>Step by step: <ic>if touch1.value:</ic> asks the question. <ic>pixels[0] = (255,0,0)</ic> gives the "yes" answer (red). <ic>else: pixels[0] = (0,0,0)</ic> gives the "no" answer (off).<br><br>You will write this exact structure for Pad 2 and Pad 3. The <b>only differences</b> are: which <ic>touch</ic> variable you check, which <ic>pixels[n]</ic> you set, and which colour you use.',
+     body:'This block does everything needed for one pad: check if it is touched, light it up if yes, turn it off if no.<br><br>Step by step: <ic>if touch1.value:</ic> asks the question. If True, <ic>pixels[0] = (255,0,0)</ic> sets the colour to red. If False, <ic>else: pixels[0] = (0,0,0)</ic> turns it off.<br><br>You will write this exact structure for Pad 2 and Pad 3. The <b>only differences</b> are: which touch variable you check, which pixels index you set, and which colour you use.',
      code:'<span class="kw">    if</span> touch1.value:\n        pixels[0] = (<span class="nu">255</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># red</span>\n<span class="kw">    else</span>: pixels[0] = (<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>)  <span class="co"># off</span>'
    },
    toks:[{c:'pl',v:'    else: pixels[0] = (0, 0, 0)'}]},
@@ -580,8 +580,8 @@ free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1);t2=touchio.To
 intro:`<p class="explain-intro">So far your programs have reacted to what is happening <b>right now</b>. Variables let you <b>remember things over time</b> — like how many times a pad has been pressed.</p>
 <p class="explain-intro">A variable is a named storage box. You choose the name, you put a value in, and you can read or change it at any point in the program. This is one of the most fundamental ideas in all of programming.</p>`,
 info:[
-  {t:'info',l:'How variables work',p:'<ic>count = 0</ic> creates a box called "count" and puts 0 inside. <ic>count = count + 1</ic> reads what is in the box, adds 1, and puts the new value back in. The variable has been updated.'},
-  {t:'info',l:'Why we need was_touched',p:'The while loop runs hundreds of times per second. Without a flag, a single half-second press would add 50+ to the count. <ic>was_touched</ic> records "we already counted this press" so it only counts once per touch, no matter how long you hold it.'},
+  {t:'info',l:'How variables work',p:'<ic>count = 0</ic> creates a variable called count and stores 0 in it. <ic>count = count + 1</ic> reads what is stored, adds 1, and puts the new number back. The variable has been updated.'},
+  {t:'info',l:'Why we need was_touched',p:'The while loop runs hundreds of times per second. Without a flag, a single half-second press would add 50+ to the count. <ic>was_touched</ic> records that this press has already been counted, so it only registers once no matter how long you hold the pad.'},
 ],
 challenge:{t:'task',l:'Challenge',p:'Make Pad 2 reset the count to 0. You need to set up <ic>t2</ic> and add <ic>if t2.value: count = 0</ic> inside the loop.'},
 lines:[
@@ -634,7 +634,7 @@ free:`import board,touchio,neopixel\nt1=touchio.TouchIn(board.GP1)\npixels=neopi
 intro:`<p class="explain-intro">The loop counter <ic>i</ic> changes every iteration — that means you can use it to make <b>different things happen at different positions</b>. Instead of every pad being the same colour, you can create patterns.</p>
 <p class="explain-intro">The key tool is the <b>modulo operator</b> <ic>%</ic> — it gives the remainder after division. This turns out to be incredibly useful for creating repeating patterns.</p>`,
 info:[
-  {t:'info',l:'What % (modulo) does',p:'<ic>i % 2</ic> divides i by 2 and gives the <b>remainder</b>. When i=0: 0÷2=0 remainder 0. When i=1: 1÷2=0 remainder 1. When i=2: 2÷2=1 remainder 0. The result alternates: 0,1,0,1,0,1... — perfect for "every other one".'},
+  {t:'info',l:'What % (modulo) does',p:'<ic>i % 2</ic> divides i by 2 and gives the <b>remainder</b>. When i=0: remainder is 0. When i=1: remainder is 1. When i=2: remainder is 0 again. It alternates — 0,1,0,1,0,1... — perfect for coloring every other pad differently.'},
   {t:'info',l:'if inside for',p:'You can put an <ic>if</ic> statement inside a <ic>for</ic> loop. Every time the loop runs, the condition is checked with the current value of <ic>i</ic>. So the colour you pick can depend on the position.'},
 ],
 challenge:{t:'task',l:'Challenge',p:'Change the pattern: make every 3rd pad white using <ic>if i % 3 == 0</ic>. You will need three branches: 0, 1, and 2. What colours will you pick for each?'},
@@ -784,7 +784,7 @@ free:`import board,touchio,neopixel,usb_midi,adafruit_midi\nfrom adafruit_midi.n
 
 12:{mod:'Module 5 — MIDI',title:'Colour + Note per Pad',sub:'Each pad: its own note, colour, and pin',ks:'KS3 · Data Structures',midi:true,
 info:[
-  {t:'info',l:'Dictionaries',p:'<ic>{"note":60,"colour":(255,0,0)}</ic> maps keys to values. Access with <ic>pad["note"]</ic>. A list of dicts configures each pad individually.'},
+  {t:'info',l:'Dictionaries',p:'A dictionary maps labels (keys) to values: <ic>{note: 60, colour: (255,0,0)}</ic>. You access a value by its key — <ic>pad[note]</ic> gives you the note number. A list of dictionaries lets you configure each pad individually with its own settings.'},
   {t:'info',l:'Design thinking',p:'Low notes often feel warm; high notes feel cool. There is no right answer — this is an artistic choice.'},
 ],
 challenge:{t:'task',l:'Challenge',p:'Add a 9th pad with your own note (try 48 for bass) and colour.'},
