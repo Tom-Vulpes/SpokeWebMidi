@@ -6,52 +6,35 @@
 <title>SPOKE Learn</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <style>
-/* ── RESET & BASE ────────────────────────────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box}
 
 :root{
-  /* Backgrounds */
-  --bg:#0e0e0e;--s1:#161616;--s2:#1d1d1d;--s3:#252525;
-  /* Borders */
-  --b1:#2e2e2e;--b2:#3d3d3d;
-  /* Text — all pass WCAG AA on dark surfaces */
-  --t1:#ececec;   /* primary — 13:1 on --bg */
-  --t2:#a8a8a8;   /* secondary — 7:1 on --s2 */
-  --t3:#717171;   /* muted chrome only, never body text — 3.6:1 */
-  /* Accent colours */
-  --acc:#f97316;--acc2:#fb923c;
-  --grn:#22c55e;--blu:#60a5fa;--red:#f87171;--ylw:#fbbf24;--pur:#c084fc;
-  /* Typography */
+  --bg:#0e0e0e; --s1:#161616; --s2:#1d1d1d; --s3:#252525;
+  --b1:#2e2e2e; --b2:#3d3d3d;
+  --t1:#ececec; --t2:#a8a8a8; --t3:#717171;
+  --acc:#f97316; --acc2:#fb923c;
+  --grn:#22c55e; --blu:#60a5fa; --red:#f87171; --ylw:#fbbf24; --pur:#c084fc;
   --mono:'Space Mono',monospace;
   --sans:'DM Sans',sans-serif;
-  /* Focus ring */
-  --focus:2px solid #f97316;
 }
 
 body{
   font-family:var(--sans);
-  background:var(--bg);
-  color:var(--t1);
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  font-size:15px;
-  line-height:1.5;
+  background:var(--bg);color:var(--t1);
+  height:100vh;display:flex;flex-direction:column;
+  overflow:hidden;font-size:16px;line-height:1.6;
   -webkit-font-smoothing:antialiased;
 }
-
-/* ── FOCUS (a11y) ────────────────────────────────────────────────────────── */
 :focus{outline:none}
-:focus-visible{outline:var(--focus);outline-offset:2px;border-radius:2px}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:2px}
 
-/* ── TOP BAR ─────────────────────────────────────────────────────────────── */
+/* ── TOP BAR ── */
 .bar{
-  height:48px;background:var(--s1);border-bottom:1px solid var(--b1);
-  display:flex;align-items:center;padding:0 16px;gap:14px;flex-shrink:0;
+  height:50px;background:var(--s1);border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;padding:0 18px;gap:14px;flex-shrink:0;
 }
 .logo{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--acc);letter-spacing:3px}
-.sep{width:1px;height:20px;background:var(--b2)}
+.sep{width:1px;height:22px;background:var(--b2)}
 .crumb{font-family:var(--mono);font-size:11px;color:var(--t3)}
 .crumb b{color:var(--t2);font-weight:400}
 .bar-r{margin-left:auto;display:flex;align-items:center;gap:10px}
@@ -59,16 +42,14 @@ body{
 .prog-lbl{font-family:var(--mono);font-size:11px;color:var(--t2)}
 .prog-track{width:110px;height:3px;background:var(--b2);border-radius:2px;overflow:hidden}
 .prog-fill{height:100%;background:var(--acc);transition:width .4s;border-radius:2px}
-
-/* ── BUTTONS ─────────────────────────────────────────────────────────────── */
 .btn{
   font-family:var(--mono);font-size:11px;font-weight:700;
-  letter-spacing:1px;text-transform:uppercase;
-  padding:7px 14px;border:1px solid var(--b2);
+  letter-spacing:0.5px;text-transform:uppercase;
+  padding:8px 16px;border:1px solid var(--b2);
   background:transparent;color:var(--t2);
   cursor:pointer;border-radius:3px;transition:all .12s;
 }
-.btn:hover{border-color:var(--acc);color:var(--acc);background:rgba(249,115,22,.06)}
+.btn:hover{border-color:var(--acc);color:var(--acc);background:rgba(249,115,22,.07)}
 .btn.go{background:var(--acc);border-color:var(--acc);color:#0d0d0d;font-weight:700}
 .btn.go:hover{background:var(--acc2);border-color:var(--acc2);color:#0d0d0d}
 .btn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
@@ -78,17 +59,16 @@ body{
   border:1px solid rgba(192,132,252,.3);color:var(--pur);border-radius:3px;
 }
 
-/* ── LAYOUT ──────────────────────────────────────────────────────────────── */
+/* ── LAYOUT ── */
 .main{display:flex;flex:1;overflow:hidden}
 
-/* ── SIDEBAR ─────────────────────────────────────────────────────────────── */
+/* ── SIDEBAR ── */
 .sidebar{
-  width:208px;background:var(--s1);border-right:1px solid var(--b1);
+  width:210px;background:var(--s1);border-right:1px solid var(--b1);
   overflow-y:auto;flex-shrink:0;
 }
 .sidebar::-webkit-scrollbar{width:4px}
 .sidebar::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
-
 .mod-lbl{
   padding:14px 14px 6px;
   font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
@@ -96,7 +76,7 @@ body{
 }
 .sb-btn{
   display:flex;align-items:center;width:100%;
-  padding:9px 14px;background:transparent;border:none;
+  padding:10px 14px;background:transparent;border:none;
   border-left:3px solid transparent;cursor:pointer;gap:10px;
   transition:background .1s;text-align:left;
 }
@@ -110,264 +90,230 @@ body{
 .sb-btn.active .sb-t{color:var(--t1)}
 .tick{width:6px;height:6px;border-radius:50%;background:var(--grn);margin-left:auto;flex-shrink:0}
 
-/* ── CONTENT AREA ────────────────────────────────────────────────────────── */
+/* ── CONTENT ── */
 .content{flex:1;display:flex;overflow:hidden}
 
-/* ── LESSON PANEL ────────────────────────────────────────────────────────── */
-.lp{width:40%;min-width:290px;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
-.lp-body{flex:1;overflow-y:auto;padding:24px 24px 16px}
-.lp-body::-webkit-scrollbar{width:4px}
-.lp-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+/* ── LEFT PANEL ── */
+.lp{
+  width:42%;min-width:300px;border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;overflow:hidden;
+}
 
+/* Static lesson header — always visible */
+.lp-header{
+  padding:22px 24px 16px;border-bottom:1px solid var(--b1);flex-shrink:0;
+}
 .ks{
   display:inline-block;font-family:var(--mono);font-size:10px;
   letter-spacing:1px;text-transform:uppercase;color:var(--t3);
-  border:1px solid var(--b2);padding:3px 8px;border-radius:3px;margin-bottom:10px;
+  border:1px solid var(--b2);padding:3px 8px;border-radius:3px;margin-bottom:12px;
 }
-.lp h1{font-size:22px;font-weight:500;color:var(--t1);margin-bottom:5px;line-height:1.25}
-.lp .sub{font-size:14px;color:var(--t2);margin-bottom:18px;line-height:1.5}
+.lp-header h1{font-size:24px;font-weight:500;color:var(--t1);margin-bottom:4px;line-height:1.2}
+.lp-header .sub{font-size:15px;color:var(--t2);line-height:1.5}
 
-.intro-p{
-  font-size:13px;color:var(--t2);line-height:1.75;margin-bottom:12px;
+/* Dynamic explanation area — fills remaining height */
+.lp-explain{
+  flex:1;overflow-y:auto;padding:20px 24px 16px;
+  display:flex;flex-direction:column;gap:14px;
 }
-.intro-p b{color:var(--t1);font-weight:500}
+.lp-explain::-webkit-scrollbar{width:4px}
+.lp-explain::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
 
-/* ── INFO CARDS ──────────────────────────────────────────────────────────── */
+/* The BIG active step explanation */
+.explain-active{
+  background:var(--s2);border:1px solid var(--b1);
+  border-left:4px solid var(--acc);border-radius:0 6px 6px 0;
+  padding:18px 20px;
+}
+.explain-tag{
+  font-family:var(--mono);font-size:10px;letter-spacing:1px;
+  text-transform:uppercase;color:var(--acc);margin-bottom:10px;
+}
+.explain-title{font-size:18px;font-weight:600;color:var(--t1);margin-bottom:12px;line-height:1.3}
+.explain-body{font-size:15px;color:var(--t2);line-height:1.8}
+.explain-body b{color:var(--t1);font-weight:500}
+.explain-code{
+  font-family:var(--mono);font-size:13px;color:var(--t1);
+  background:var(--s3);border:1px solid var(--b2);
+  padding:12px 14px;border-radius:4px;margin-top:14px;
+  white-space:pre;line-height:1.8;
+}
+.explain-code .kw{color:#c678dd}
+.explain-code .st{color:#98c379}
+.explain-code .fn{color:#61afef}
+.explain-code .co{color:var(--t3)}
+
+/* Inline code */
+.ic{
+  font-family:var(--mono);font-size:13px;color:var(--acc);
+  background:var(--s3);padding:2px 7px;border-radius:3px;white-space:nowrap;
+}
+
+/* Static cards (info, task, win) — used in setup + non-explain lessons */
 .card{
   background:var(--s2);border:1px solid var(--b1);
-  border-radius:4px;padding:13px 15px;margin:10px 0;
+  border-radius:4px;padding:16px 18px;
 }
 .card-lbl{
   font-family:var(--mono);font-size:10px;letter-spacing:1px;
-  text-transform:uppercase;margin-bottom:7px;
+  text-transform:uppercase;margin-bottom:8px;
 }
-.card.info{border-left:3px solid var(--blu)}
-.card.info .card-lbl{color:var(--blu)}
-.card.task{border-left:3px solid var(--acc)}
-.card.task .card-lbl{color:var(--acc)}
-.card.win{border-left:3px solid var(--grn)}
-.card.win .card-lbl{color:var(--grn)}
-.card p{font-size:13px;color:var(--t2);line-height:1.75;margin-bottom:6px}
+.card.info{border-left:3px solid var(--blu)}.card.info .card-lbl{color:var(--blu)}
+.card.task{border-left:3px solid var(--acc)}.card.task .card-lbl{color:var(--acc)}
+.card.win{border-left:3px solid var(--grn)}.card.win .card-lbl{color:var(--grn)}
+.card p{font-size:14px;color:var(--t2);line-height:1.75;margin-bottom:6px}
 .card p:last-child{margin-bottom:0}
 .card p b{color:var(--t1);font-weight:500}
 
-/* Inline code chips */
-.ic{
-  font-family:var(--mono);font-size:12px;color:var(--acc);
-  background:var(--s3);padding:1px 6px;border-radius:3px;
-  white-space:nowrap;letter-spacing:0;
-}
+/* Intro paragraphs */
+.intro-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:10px}
+.intro-p b{color:var(--t1);font-weight:500}
 
-/* ── STEP EXPLAIN CARDS ──────────────────────────────────────────────────── */
-.step-card{
-  background:var(--s2);border:1px solid var(--b1);
-  border-left:3px solid var(--b2);border-radius:0 4px 4px 0;
-  padding:12px 14px;margin:8px 0;transition:all .25s;
-}
-.step-card.hi{border-left-color:var(--acc);background:rgba(249,115,22,.05)}
-.step-card.dim{opacity:.3}
-.step-card-n{
-  font-family:var(--mono);font-size:10px;letter-spacing:1px;
-  text-transform:uppercase;color:var(--acc);margin-bottom:5px;
-}
-.step-card.dim .step-card-n{color:var(--t3)}
-.step-card-title{font-size:14px;font-weight:500;color:var(--t1);margin-bottom:7px;line-height:1.35}
-.step-card-body{font-size:13px;color:var(--t2);line-height:1.75}
-.step-card-body b{color:var(--t1);font-weight:500}
-.step-card-code{
-  font-family:var(--mono);font-size:12px;color:var(--t1);
-  background:var(--s3);border:1px solid var(--b1);
-  padding:8px 11px;border-radius:3px;margin-top:8px;white-space:pre;line-height:1.7;
-}
-.step-card-code .kw{color:#c678dd}
-.step-card-code .st{color:#98c379}
-.step-card-code .fn{color:#61afef}
-.step-card-code .co{color:var(--t3)}
+.lp-foot{padding:14px 24px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-shrink:0}
+.lp-foot .btn{flex:1;text-align:center;padding:10px}
 
-.lp-foot{padding:12px 24px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-shrink:0}
-.lp-foot .btn{flex:1;text-align:center;padding:9px}
-
-/* ── CODE PANEL ──────────────────────────────────────────────────────────── */
+/* ── RIGHT / CODE PANEL ── */
 .cp{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
 
 .tabs{
-  height:40px;background:var(--s1);border-bottom:1px solid var(--b1);
-  display:flex;align-items:center;padding:0 12px;gap:6px;flex-shrink:0;
+  height:42px;background:var(--s1);border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;padding:0 14px;gap:6px;flex-shrink:0;
 }
 .tab{
   font-family:var(--mono);font-size:11px;letter-spacing:.5px;
-  padding:5px 11px;background:transparent;border:1px solid transparent;
+  padding:6px 12px;background:transparent;border:1px solid transparent;
   color:var(--t3);cursor:pointer;border-radius:3px;transition:all .1s;
 }
 .tab:hover{color:var(--t2)}
 .tab.on{color:var(--t1);background:var(--s2);border-color:var(--b1)}
 .tab-r{margin-left:auto;display:flex;gap:7px;align-items:center}
 
-/* ── GUIDED EXERCISE ─────────────────────────────────────────────────────── */
 .guide-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.guide-top{
-  padding:11px 17px;background:var(--s1);border-bottom:1px solid var(--b1);
-  display:flex;align-items:baseline;gap:12px;flex-shrink:0;
-}
-.guide-step{font-family:var(--mono);font-size:11px;color:var(--t3);flex-shrink:0}
-.guide-msg{font-size:13px;color:var(--t2);flex:1;line-height:1.5}
 
-/* ── CODE VIEW ───────────────────────────────────────────────────────────── */
+/* ── INSTRUCTION BANNER — the most prominent element ── */
+.instr-banner{
+  padding:16px 20px;background:var(--s1);border-bottom:2px solid var(--b1);
+  flex-shrink:0;
+}
+.instr-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.instr-step{
+  font-family:var(--mono);font-size:11px;color:var(--t3);
+  background:var(--s3);padding:3px 9px;border-radius:12px;
+}
+.instr-text{font-size:15px;color:var(--t1);line-height:1.5;font-weight:500}
+.instr-sub{font-size:13px;color:var(--t2);margin-top:4px;line-height:1.5}
+
+/* ── CODE VIEW ── */
 .code-view{
   flex:1;overflow-y:auto;padding:14px 0;
-  font-family:var(--mono);font-size:13px;line-height:2.0;
+  font-family:var(--mono);font-size:14px;line-height:2.0;
 }
 .code-view::-webkit-scrollbar{width:4px}
 .code-view::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
 
-.code-row{display:flex;align-items:baseline;padding:0 18px;min-height:26px}
+.code-row{display:flex;align-items:baseline;padding:0 20px;min-height:28px}
 .ln-num{
-  width:30px;color:var(--t3);flex-shrink:0;text-align:right;
-  margin-right:16px;font-size:11px;user-select:none;
+  width:32px;color:var(--t3);flex-shrink:0;text-align:right;
+  margin-right:18px;font-size:11px;user-select:none;padding-top:2px;
 }
-.code-tokens{display:flex;align-items:baseline;flex:1}
+.code-tokens{display:flex;align-items:baseline;flex:1;flex-wrap:wrap}
+.kw{color:#c678dd}.fn{color:#61afef}.st{color:#98c379}
+.co{color:var(--t3);font-style:italic}.pl{color:var(--t1)}
+.ctx{opacity:.4}
 
-/* Syntax colours — all meet contrast on --s2 background */
-.kw{color:#c678dd}   /* purple */
-.fn{color:#61afef}   /* blue */
-.st{color:#98c379}   /* green */
-.co{color:var(--t3);font-style:italic}
-.pl{color:var(--t1)}
-.ctx{opacity:.45}
-
-/* ── TYPING ROW ──────────────────────────────────────────────────────────── */
+/* ── TYPING ROW ── */
 .type-row{
-  display:flex;align-items:baseline;padding:0 18px;
-  background:rgba(249,115,22,.07);
-  border-left:3px solid var(--acc);margin:2px 0;
+  display:flex;align-items:baseline;padding:0 20px;
+  background:rgba(249,115,22,.08);
+  border-left:4px solid var(--acc);margin:2px 0;
 }
 .type-row .ln-num{color:var(--acc)}
 .type-prefix{
-  font-family:var(--mono);font-size:13px;color:var(--t3);
+  font-family:var(--mono);font-size:14px;color:var(--t3);
   white-space:pre;flex-shrink:0;line-height:2.0;
 }
 .type-input{
-  font-family:var(--mono);font-size:13px;color:var(--t1);
+  font-family:var(--mono);font-size:14px;color:var(--t1);
   background:transparent;border:none;outline:none;
-  flex:1;caret-color:var(--acc);line-height:2.0;min-width:180px;
+  flex:1;caret-color:var(--acc);line-height:2.0;min-width:200px;
 }
-.type-input::placeholder{color:var(--t3);font-style:italic;font-size:12px}
+.type-input::placeholder{color:var(--t3);font-style:italic;font-size:13px}
 .type-input.wrong{animation:shake .28s ease}
-@keyframes shake{0%,100%{transform:translateX(0)}33%{transform:translateX(-5px)}66%{transform:translateX(5px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}33%{transform:translateX(-6px)}66%{transform:translateX(6px)}}
 
-/* ── DONE STATE ──────────────────────────────────────────────────────────── */
+/* ── DONE STATE ── */
 .done-wrap{
   display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:14px;padding:36px 28px;text-align:center;
+  justify-content:center;gap:16px;padding:40px 32px;text-align:center;
 }
-.done-icon{font-family:var(--mono);font-size:30px;color:var(--grn)}
-.done-title{font-size:16px;font-weight:500;color:var(--t1)}
-.done-sub{font-size:13px;color:var(--t2);line-height:1.8;max-width:320px}
-.done-sub b{color:var(--t1)}
+.done-icon{font-family:var(--mono);font-size:36px;color:var(--grn)}
+.done-title{font-size:20px;font-weight:500;color:var(--t1)}
+.done-sub{font-size:14px;color:var(--t2);line-height:1.9;max-width:340px}
+.done-sub b{color:var(--t1);font-weight:500}
 
-/* ── FREE EDITOR ─────────────────────────────────────────────────────────── */
+/* ── FREE EDITOR ── */
 .free-ed{
-  flex:1;width:100%;padding:18px;background:transparent;color:var(--t1);
-  border:none;outline:none;font-family:var(--mono);font-size:13px;
+  flex:1;width:100%;padding:20px;background:transparent;color:var(--t1);
+  border:none;outline:none;font-family:var(--mono);font-size:14px;
   line-height:2.0;resize:none;tab-size:4;display:none;
 }
 .free-ed::placeholder{color:var(--t3)}
 
-/* ── HINT BAR ────────────────────────────────────────────────────────────── */
+/* ── HINT BAR ── */
 .hint-bar{
   position:absolute;bottom:132px;left:0;right:0;
-  background:rgba(251,191,36,.08);border-top:1px solid rgba(251,191,36,.2);
-  padding:9px 18px;display:flex;align-items:center;gap:12px;
-  font-family:var(--mono);font-size:12px;color:var(--ylw);
+  background:rgba(251,191,36,.09);border-top:1px solid rgba(251,191,36,.22);
+  padding:10px 20px;display:flex;align-items:center;gap:12px;
+  font-family:var(--mono);font-size:13px;color:var(--ylw);
   transform:translateY(100%);transition:transform .18s ease;pointer-events:none;
 }
 .hint-bar.show{transform:translateY(0);pointer-events:all}
-.hint-lbl{
-  font-size:10px;letter-spacing:1px;text-transform:uppercase;
-  color:rgba(251,191,36,.5);flex-shrink:0;
-}
+.hint-lbl{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:rgba(251,191,36,.5);flex-shrink:0}
 
-/* ── OUTPUT CONSOLE ──────────────────────────────────────────────────────── */
+/* ── CONSOLE ── */
 .con{height:132px;background:var(--s1);border-top:1px solid var(--b1);display:flex;flex-direction:column;flex-shrink:0}
-.con-head{
-  padding:6px 16px;border-bottom:1px solid var(--b1);
-  display:flex;align-items:center;gap:8px;flex-shrink:0;
-}
-.con-dot{width:6px;height:6px;border-radius:50%;background:var(--t3)}
+.con-head{padding:6px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.con-dot{width:7px;height:7px;border-radius:50%;background:var(--t3)}
 .con-dot.live{background:var(--grn);animation:blink 2s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .con-lbl{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3)}
-.con-body{
-  flex:1;padding:8px 16px;overflow-y:auto;
-  font-family:var(--mono);font-size:12px;line-height:1.7;
-}
+.con-body{flex:1;padding:8px 18px;overflow-y:auto;font-family:var(--mono);font-size:12px;line-height:1.8}
 .con-body::-webkit-scrollbar{width:4px}
 .con-body::-webkit-scrollbar-thumb{background:var(--b2)}
 .cl{margin-bottom:1px}
-.cl.err{color:#fca5a5}   /* red-300: better contrast than #f87171 */
-.cl.ok{color:#86efac}    /* green-300 */
-.cl.info{color:#93c5fd}  /* blue-300 */
-.cl.warn{color:#fcd34d}  /* yellow-300 */
-.cl.dim{color:var(--t3)}
+.cl.err{color:#fca5a5}.cl.ok{color:#86efac}.cl.info{color:#93c5fd}.cl.warn{color:#fcd34d}.cl.dim{color:var(--t3)}
 
-/* ── SETUP LESSON ────────────────────────────────────────────────────────── */
-.setup-wrap{
-  flex:1;overflow-y:auto;padding:18px 18px 32px;
-  display:flex;flex-direction:column;gap:7px;
-}
+/* ── SETUP LESSON ── */
+.setup-wrap{flex:1;overflow-y:auto;padding:20px 20px 32px;display:flex;flex-direction:column;gap:8px}
 .setup-wrap::-webkit-scrollbar{width:4px}
 .setup-wrap::-webkit-scrollbar-thumb{background:var(--b2)}
-
-.setup-phase{
-  font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
-  text-transform:uppercase;color:var(--t3);padding:14px 0 5px;
-}
-.setup-step{
-  display:flex;align-items:flex-start;gap:13px;padding:11px 13px;
-  border-radius:4px;border:1px solid var(--b1);background:var(--s2);transition:all .2s;
-}
+.setup-phase{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);padding:14px 0 6px}
+.setup-step{display:flex;align-items:flex-start;gap:14px;padding:14px 14px;border-radius:4px;border:1px solid var(--b1);background:var(--s2);transition:all .2s}
 .setup-step.done-step{border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.04)}
 .setup-step.active-step{border-color:rgba(249,115,22,.35);background:rgba(249,115,22,.06)}
 .setup-step.locked{opacity:.35}
-.step-check{
-  width:20px;height:20px;border-radius:50%;border:1.5px solid var(--b2);
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;margin-top:1px;font-size:11px;
-}
+.step-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--b2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:12px}
 .setup-step.done-step .step-check{border-color:var(--grn);background:rgba(34,197,94,.15);color:var(--grn)}
 .setup-step.active-step .step-check{border-color:var(--acc);animation:pulse-ring 1.5s infinite}
 @keyframes pulse-ring{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,.4)}50%{box-shadow:0 0 0 5px rgba(249,115,22,0)}}
 .step-body{flex:1;min-width:0}
-.step-title{font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px;line-height:1.4}
+.step-title{font-size:15px;font-weight:500;color:var(--t1);margin-bottom:4px;line-height:1.4}
 .setup-step.locked .step-title{color:var(--t3)}
-.step-desc{font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:7px}
-.step-desc code{
-  font-family:var(--mono);font-size:12px;color:var(--acc);
-  background:var(--s3);padding:1px 6px;border-radius:3px;
-}
+.step-desc{font-size:14px;color:var(--t2);line-height:1.75;margin-bottom:8px}
+.step-desc code{font-family:var(--mono);font-size:13px;color:var(--acc);background:var(--s3);padding:2px 7px;border-radius:3px}
 .step-action{
-  display:inline-block;font-family:var(--mono);font-size:11px;
-  letter-spacing:.5px;text-transform:uppercase;
-  padding:6px 14px;border:1px solid var(--acc);color:var(--acc);
+  display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.5px;text-transform:uppercase;
+  padding:7px 16px;border:1px solid var(--acc);color:var(--acc);
   background:transparent;border-radius:3px;cursor:pointer;transition:all .12s;
 }
 .step-action:hover{background:var(--acc);color:#0d0d0d}
 .step-action.done-action{border-color:var(--grn);color:var(--grn);cursor:default}
 .step-action.done-action:hover{background:transparent}
-
-/* Hello World exercise box */
 .hw-box{background:var(--s2);border:1px solid var(--b1);border-radius:4px;overflow:hidden;margin-top:4px}
-.hw-prompt{
-  padding:9px 16px;background:var(--s1);border-top:1px solid var(--b1);
-  display:flex;align-items:baseline;gap:12px;
-}
+.hw-prompt{padding:10px 18px;background:var(--s1);border-top:1px solid var(--b1);display:flex;align-items:baseline;gap:12px}
 .hw-step-lbl{font-family:var(--mono);font-size:10px;color:var(--t3);flex-shrink:0}
-.hw-step-msg{font-size:13px;color:var(--t2);flex:1;line-height:1.5}
-.hw-done{
-  padding:11px 16px;background:rgba(34,197,94,.06);
-  border-top:1px solid rgba(34,197,94,.2);
-  font-family:var(--mono);font-size:12px;color:var(--grn);
-}
+.hw-step-msg{font-size:14px;color:var(--t2);flex:1;line-height:1.5}
+.hw-done{padding:12px 18px;background:rgba(34,197,94,.06);border-top:1px solid rgba(34,197,94,.2);font-family:var(--mono);font-size:12px;color:var(--grn)}
 </style>
 </head>
 <body>
@@ -390,7 +336,12 @@ body{
   <div class="sidebar" id="sidebar"></div>
   <div class="content">
     <div class="lp">
-      <div class="lp-body" id="lpBody"></div>
+      <div class="lp-header" id="lpHeader">
+        <div class="ks" id="lpKs"></div>
+        <h1 id="lpTitle">SPOKE Learn</h1>
+        <div class="sub" id="lpSub"></div>
+      </div>
+      <div class="lp-explain" id="lpExplain"></div>
       <div class="lp-foot">
         <button class="btn" id="prevBtn" onclick="prevLesson()" disabled>&#8592; Back</button>
         <button class="btn go" id="nextBtn" onclick="completeNext()">Done &#8212; Next &#8594;</button>
@@ -406,9 +357,12 @@ body{
         </div>
       </div>
       <div class="guide-wrap" id="guideWrap">
-        <div class="guide-top">
-          <div class="guide-step" id="stepLbl">—</div>
-          <div class="guide-msg" id="stepMsg">Select a lesson to begin</div>
+        <div class="instr-banner" id="instrBanner">
+          <div class="instr-top">
+            <span class="instr-step" id="stepLbl">—</span>
+          </div>
+          <div class="instr-text" id="stepMsg">Select a lesson to begin</div>
+          <div class="instr-sub" id="stepSub"></div>
         </div>
         <div class="code-view" id="codeView"></div>
       </div>
@@ -466,70 +420,76 @@ L[1] = {
     {ln:4, skip:true, toks:[{c:'pl',v:'pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.08, auto_write=False)'}]},
     {ln:5, skip:true, toks:[]},
     {ln:6,
-      prompt:'Type the forever loop — exactly: while True:',
+      prompt:'Type this line exactly, then press Enter',
+      sub:'Start the forever loop — include the colon at the end',
       hint:'while True:', pfx:'', ans:'while True:',
       explain:{
-        n:'Line 6 — the forever loop',
-        title:'while True: — run these instructions forever',
-        body:'<ic>while True:</ic> is a loop. Python runs everything inside it, then goes back to the top and runs it again — over and over, hundreds of times a second, until you unplug the board. <ic>True</ic> is always true so the loop never stops. Without this, your code would run once and quit — nothing would respond to your touch. Every interactive program starts this way.',
-        code:'<span class="kw">while</span> True:  <span class="co"># keep doing this forever</span>'
+        n:'Step 1 of 6',
+        title:'while True: — the forever loop',
+        body:'This line tells the board to <b>keep running forever</b>. Everything indented underneath it will repeat over and over — hundreds of times a second — until you unplug the board.\n\nWithout it, your program would run once and stop. Nothing would respond to touch.\n\nMake sure you include the colon <ic>:</ic> at the end — it is required.',
+        code:'<span class="kw">while</span> True<span class="pl">:</span>'
       },
       toks:[{c:'kw',v:'while'},{c:'pl',v:' True:'}]
     },
     {ln:7,
-      prompt:'Ask if Pad 1 is being touched — type: if touch1.value:  (4 spaces indent)',
+      prompt:'Type this line exactly, then press Enter',
+      sub:'Check whether Pad 1 is being touched right now — start with 4 spaces',
       hint:'    if touch1.value:', pfx:'    ', ans:'if touch1.value:',
       explain:{
-        n:'Line 7 — asking a yes/no question',
-        title:'if touch1.value: — is someone touching it?',
-        body:'<ic>touch1.value</ic> is always either <b>True</b> (finger on pad) or <b>False</b> (nothing there). The word <ic>if</ic> means: only run the next line if this is True. If it is False, skip it and go to <ic>else</ic>. The <b>4 spaces</b> before if are critical — they tell Python this line lives <b>inside</b> the while loop. Python uses spacing to understand structure.',
-        code:'<span class="kw">while</span> True:\n<span class="kw">    if</span> touch1.value:  <span class="co"># 4 spaces = inside the loop</span>'
+        n:'Step 2 of 6',
+        title:'if touch1.value: — is it being touched?',
+        body:'<ic>touch1.value</ic> is either <b>True</b> (finger on pad) or <b>False</b> (nothing there). The word <ic>if</ic> means: only do the next thing if this is True.\n\n<b>The 4 spaces at the start are essential.</b> They tell Python this line is inside the while loop. Python uses the number of spaces to understand which lines belong together. Get the spacing wrong and the program breaks.',
+        code:'<span class="kw">while</span> True:\n<span class="kw">    if</span> touch1.value<span class="pl">:</span>  <span class="co">\u2190 4 spaces first</span>'
       },
       toks:[{c:'pl',v:'    '},{c:'kw',v:'if'},{c:'pl',v:' touch1.value:'}]
     },
     {ln:8,
-      prompt:'Turn pixel 0 green — type: pixels[0] = (0, 255, 0)  (8 spaces indent)',
+      prompt:'Type this line exactly, then press Enter',
+      sub:'Set the first light to green — start with 8 spaces',
       hint:'        pixels[0] = (0, 255, 0)', pfx:'        ', ans:'pixels[0] = (0, 255, 0)',
       alt:['pixels[0]=(0,255,0)'],
       explain:{
-        n:'Line 8 — choosing a colour',
-        title:'pixels[0] = (0, 255, 0) — the green light',
-        body:'<ic>pixels[0]</ic> is the first light. Computers count from <b>zero</b> not one — pixel 0 is Pad 1, pixel 1 is Pad 2, and so on. Colours are written as <b>(Red, Green, Blue)</b>, each from 0 to 255. <ic>(0, 255, 0)</ic> means no red, full green, no blue. The <b>8 spaces</b> mean this line is inside the if, which is inside the while — two levels deep.',
-        code:'<span class="pl">        pixels[0] = (</span><span class="nu">0</span><span class="pl">, </span><span class="nu">255</span><span class="pl">, </span><span class="nu">0</span><span class="pl">)  </span><span class="co"># R=0 G=255 B=0</span>'
+        n:'Step 3 of 6',
+        title:'pixels[0] = (0, 255, 0) — green light on',
+        body:'<ic>pixels[0]</ic> is the first light. Computers count from zero, so pixel 0 = Pad 1.\n\nColours are written as <b>(Red, Green, Blue)</b> — three numbers from 0 to 255.\n<ic>(0, 255, 0)</ic> = no red, full green, no blue = bright green.\n\n<b>8 spaces</b> this time — because this line is inside the if, which is inside the while.',
+        code:'<span class="pl">        pixels[0] = (</span><span class="nu">0</span><span class="pl">, </span><span class="nu">255</span><span class="pl">, </span><span class="nu">0</span><span class="pl">)  </span><span class="co">\u2190 8 spaces first</span>'
       },
       toks:[{c:'pl',v:'        pixels[0] = (0, 255, 0)'}]
     },
     {ln:9,
-      prompt:'Handle when nothing is touching — type: else:  (4 spaces indent)',
+      prompt:'Type this line exactly, then press Enter',
+      sub:'Handle what happens when the pad is NOT touched — start with 4 spaces',
       hint:'    else:', pfx:'    ', ans:'else:',
       explain:{
-        n:'Line 9 — the other path',
-        title:'else: — what to do when the answer is False',
-        body:'<ic>else:</ic> is the fallback case. If <ic>touch1.value</ic> was False, Python skips the green line and comes here instead. Together, <ic>if</ic> and <ic>else</ic> guarantee <b>one branch always runs</b> — never both, never neither. The program is making a binary decision: touched or not touched.',
-        code:'<span class="kw">    if</span> touch1.value:    <span class="co"># True path</span>\n        ...\n<span class="kw">    else</span>:              <span class="co"># False path</span>\n        ...'
+        n:'Step 4 of 6',
+        title:'else: — the "otherwise" case',
+        body:'<ic>else:</ic> means "if the condition above was False, do this instead."\n\nSo: if the pad IS touched → green light. If the pad is NOT touched → this else block runs.\n\nExactly one of these two options always runs — never both, never neither.\n\n<b>Back to 4 spaces</b> — same level as the if above.',
+        code:'<span class="kw">    if</span> touch1.value:\n        pixels[0] = (0, 255, 0)\n<span class="kw">    else</span><span class="pl">:</span>  <span class="co">\u2190 4 spaces, same as if</span>'
       },
       toks:[{c:'pl',v:'    '},{c:'kw',v:'else'},{c:'pl',v:':'}]
     },
     {ln:10,
-      prompt:'Turn it off — type: pixels[0] = (0, 0, 0)  (8 spaces indent)',
+      prompt:'Type this line exactly, then press Enter',
+      sub:'Turn the light off — start with 8 spaces',
       hint:'        pixels[0] = (0, 0, 0)', pfx:'        ', ans:'pixels[0] = (0, 0, 0)',
       alt:['pixels[0]=(0,0,0)'],
       explain:{
-        n:'Line 10 — switching off',
-        title:'(0, 0, 0) — zero of everything means off',
-        body:'There is no separate turn-off command. You set the colour to <ic>(0, 0, 0)</ic>: zero red, zero green, zero blue. No light output at all. This is the pattern throughout all your programs: set a colour to turn on, set <ic>(0, 0, 0)</ic> to turn off.',
-        code:'<span class="pl">        pixels[0] = (</span><span class="nu">0</span><span class="pl">, </span><span class="nu">0</span><span class="pl">, </span><span class="nu">0</span><span class="pl">)  </span><span class="co"># 0+0+0 = no light = off</span>'
+        n:'Step 5 of 6',
+        title:'pixels[0] = (0, 0, 0) — light off',
+        body:'There is no separate "turn off" command.\n\n<ic>(0, 0, 0)</ic> means zero red, zero green, zero blue — no light at all. That is how you switch a pixel off.\n\nYou will use this constantly: a colour value to turn on, (0,0,0) to turn off.\n\n<b>8 spaces again</b> — this is inside the else block.',
+        code:'<span class="pl">        pixels[0] = (</span><span class="nu">0</span><span class="pl">, </span><span class="nu">0</span><span class="pl">, </span><span class="nu">0</span><span class="pl">)  </span><span class="co">\u2190 8 spaces first</span>'
       },
       toks:[{c:'pl',v:'        pixels[0] = (0, 0, 0)'}]
     },
     {ln:11,
-      prompt:'Send the colour to the lights — type: pixels.show()  (4 spaces indent)',
+      prompt:'Type this line exactly, then press Enter',
+      sub:'Send the colour to the physical lights — start with 4 spaces',
       hint:'    pixels.show()', pfx:'    ', ans:'pixels.show()',
       explain:{
-        n:'Line 11 — making the change visible',
-        title:'pixels.show() — nothing changes without this',
-        body:'Setting <ic>pixels[0]</ic> stores a colour in memory — the physical lights do not change yet. Think of writing a letter vs posting it. <ic>pixels.show()</ic> is the posting step. It runs at the end of every loop cycle so the lights update hundreds of times per second.',
-        code:'<span class="pl">    pixels</span><span class="fn">.show</span><span class="pl">()  </span><span class="co"># now the light actually changes</span>'
+        n:'Step 6 of 6',
+        title:'pixels.show() — make it actually happen',
+        body:'Setting <ic>pixels[0]</ic> only stores a colour in memory. The LED itself does not change yet.\n\n<ic>pixels.show()</ic> sends all stored colours to the physical lights. Nothing appears on the board until this line runs.\n\nThis is the last line. Once you press Enter, click <b>Save & Run</b> above and then touch Pad 1.',
+        code:'<span class="pl">    pixels</span><span class="fn">.show</span><span class="pl">()  </span><span class="co">\u2190 4 spaces first</span>'
       },
       toks:[{c:'pl',v:'    pixels.show()'}]
     }
@@ -1258,14 +1218,17 @@ function loadLesson(n) {
   document.getElementById('prevBtn').disabled = (n===0);
   document.getElementById('nextBtn').textContent = n===14 ? 'Complete ✓' : 'Done — Next →';
 
-  // Setup lesson
+  // Setup lesson — uses its own full-right-panel layout
   if (l.setupLesson) {
-    let h = '<div class="ks" style="color:var(--acc);border-color:rgba(249,115,22,.3)">Getting Started</div>';
-    h += '<h1>Setup & Hello World</h1><p class="sub">Connect your board and run your first program</p>';
-    h += card({t:'info',l:'What this lesson does',p:'You will connect your SPOKE board step by step, then type a Hello World program and see it run live on the board.'});
-    h += card({t:'task',l:'You will need',p:'• Your SPOKE board and USB cable<br>• <b>Chrome or Edge</b> browser — not Firefox or Safari<br>• This page open on your computer'});
-    h += card({t:'info',l:'How the interface works',p:'<b>Left panel</b> — instructions. <b>Right panel</b> — code exercise or free editor. <b>Output</b> — live output from your board. <b>Save & Run</b> — writes code to the board and restarts it.'});
-    document.getElementById('lpBody').innerHTML = h;
+    document.getElementById('lpKs').textContent = 'Getting Started';
+    document.getElementById('lpKs').style.cssText = 'color:var(--acc);border-color:rgba(249,115,22,.3)';
+    document.getElementById('lpTitle').textContent = 'Setup & Hello World';
+    document.getElementById('lpSub').textContent = 'Connect your board and run your first program';
+    let ex = '';
+    ex += card({t:'info',l:'What this lesson does',p:'Connect your SPOKE board step by step, then type a Hello World program and see it run live on the board.'});
+    ex += card({t:'task',l:'You will need',p:'• Your SPOKE board and USB cable<br>• <b>Chrome or Edge</b> browser (not Firefox or Safari)<br>• This page open on your computer'});
+    ex += card({t:'info',l:'How it works',p:'<b>Left panel</b> — instructions that guide you. <b>Right panel</b> — where you type code. <b>Output panel</b> — live output from your board. <b>Save & Run</b> — saves your code and restarts the board.'});
+    document.getElementById('lpExplain').innerHTML = ex;
     document.getElementById('setupWrap').style.display = 'flex';
     document.getElementById('guideWrap').style.display = 'none';
     document.getElementById('freeEd').style.display = 'none';
@@ -1282,38 +1245,27 @@ function loadLesson(n) {
   document.getElementById('hintBar').style.display = '';
   document.getElementById('setupWrap').style.display = 'none';
 
-  // Build left panel
+  // Populate left panel header
+  document.getElementById('lpKs').textContent = l.ks || '';
+  document.getElementById('lpKs').style.cssText = '';
+  document.getElementById('lpTitle').textContent = l.title;
+  document.getElementById('lpSub').textContent = l.sub;
+
+  // Build explain area content (will be updated by syncExplain as student types)
+  // For lessons WITH explain data: start empty, syncExplain fills it
+  // For lessons WITHOUT explain data: show intro + info + challenge
   const hasEx = l.lines && l.lines.some(r => r.explain);
-  let h = '<div class="ks">'+l.ks+'</div><h1>'+l.title+'</h1><p class="sub">'+l.sub+'</p>';
-
-  if (l.intro) {
-    l.intro.forEach(p => {
-      h += '<p class="intro-p">'+p.replace(/<ic>(.*?)<\/ic>/g,(_, s)=>ic(s))+'</p>';
-    });
-  }
-  l.info.forEach(c => { h += card(c); });
-
-  if (hasEx) {
-    const seen = new Set(), exLines = [];
-    l.lines.forEach(r => { if (r.explain && !seen.has(r.explain.n)) { seen.add(r.explain.n); exLines.push(r); } });
-    h += '<div id="stepCards" style="margin-top:6px">';
-    exLines.forEach((row, i) => {
-      const e = row.explain;
-      const bodyHtml = e.body.replace(/<ic>(.*?)<\/ic>/g, (_, s) => ic(s));
-      const codeHtml = e.code ? '<div class="step-card-code">'+e.code+'</div>' : '';
-      h += '<div class="step-card '+(i===0?'hi':'dim')+'" id="sc-'+i+'">';
-      h += '<div class="step-card-n">'+e.n+'</div>';
-      h += '<div class="step-card-title">'+e.title+'</div>';
-      h += '<div class="step-card-body">'+bodyHtml+'</div>';
-      h += codeHtml + '</div>';
-    });
-    h += '</div>';
+  if (!hasEx) {
+    let ex = '';
+    if (l.intro) l.intro.forEach(p => { ex += '<p class="intro-p">'+p.replace(/<ic>(.*?)<\/ic>/g,(_, s)=>ic(s))+'</p>'; });
+    l.info.forEach(c => { ex += card(c); });
+    if (l.challenge) ex += card(l.challenge);
+    document.getElementById('lpExplain').innerHTML = ex;
+  } else {
+    document.getElementById('lpExplain').innerHTML = '';
   }
 
-  if (l.challenge) h += card(l.challenge);
-  document.getElementById('lpBody').innerHTML = h;
   document.getElementById('freeEd').value = l.free || '';
-
   step = 0;
   typeable = (l.lines || []).filter(r => !r.skip);
   hintVis = false;
@@ -1323,20 +1275,36 @@ function loadLesson(n) {
   buildSB(); updateProg();
 }
 
-// ── EXPLAIN SYNC ──────────────────────────────────────────────────────────────
+// ── EXPLAIN SYNC ─────────────────────────────────────────────────────────────
+// Updates the left panel to show ONLY the current step explanation
 function syncExplain() {
   const l = L[cur];
   if (!l || !l.lines || !l.lines.some(r => r.explain)) return;
   const curr = step < typeable.length ? typeable[step] : null;
-  const currN = curr && curr.explain ? curr.explain.n : '__done__';
-  const seen = new Set(), order = [];
-  l.lines.forEach(r => { if (r.explain && !seen.has(r.explain.n)) { seen.add(r.explain.n); order.push(r.explain.n); } });
-  order.forEach((n, i) => {
-    const c = document.getElementById('sc-'+i);
-    if (!c) return;
-    if (i === order.indexOf(currN)) { c.className='step-card hi'; c.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-    else { c.className='step-card dim'; }
-  });
+  const ex = curr && curr.explain ? curr.explain : null;
+  const exEl = document.getElementById('lpExplain');
+  if (!exEl) return;
+
+  if (!ex) {
+    // Exercise done — show challenge card if available
+    exEl.innerHTML = l.challenge ? card(l.challenge) : '';
+    return;
+  }
+
+  // Show ONLY the current step explanation — big and clear
+  const bodyHtml = ex.body
+    .replace(/<ic>(.*?)<\/ic>/g, (_, s) => ic(s))
+    .replace(/\n/g, '<br>');
+  const codeHtml = ex.code
+    ? '<div class="explain-code">'+ex.code+'</div>' : '';
+
+  exEl.innerHTML =
+    '<div class="explain-active">' +
+      '<div class="explain-tag">'+ex.n+'</div>' +
+      '<div class="explain-title">'+ex.title+'</div>' +
+      '<div class="explain-body">'+bodyHtml+'</div>' +
+      codeHtml +
+    '</div>';
 }
 
 // ── RENDER CODE VIEW ─────────────────────────────────────────────────────────
@@ -1365,10 +1333,11 @@ function renderCode() {
         + '<div class="done-sub">Click <b>Save &amp; Run</b> to upload to your board.</div>';
     }
     view.appendChild(d);
-    document.getElementById('stepLbl').textContent = 'Done';
+    document.getElementById('stepLbl').textContent = 'All done';
     document.getElementById('stepMsg').textContent = cur===1
-      ? 'Click Save & Run, then touch Pad 1 — watch it glow green.'
-      : 'Exercise finished. Save & Run or switch to Free Edit.';
+      ? 'Click Save & Run above, then touch Pad 1 with your finger.'
+      : 'Exercise complete — click Save & Run to test on your board.';
+    document.getElementById('stepSub').textContent = '';
     syncExplain();
     view.scrollTop = view.scrollHeight;
     return;
@@ -1387,8 +1356,9 @@ function renderCode() {
   tr.appendChild(lnEl); tr.appendChild(pre); tr.appendChild(inp);
   view.appendChild(tr);
 
-  document.getElementById('stepLbl').textContent = 'Line '+(step+1)+' / '+typeable.length;
+  document.getElementById('stepLbl').textContent = 'Line '+(step+1)+' of '+typeable.length;
   document.getElementById('stepMsg').textContent = curr.prompt || '';
+  document.getElementById('stepSub').textContent = curr.sub || '';
   document.getElementById('hintText').textContent = curr.hint || '';
   if (hintVis) document.getElementById('hintBar').classList.add('show');
   syncExplain();
