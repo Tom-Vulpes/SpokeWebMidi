@@ -3,1093 +3,1436 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPOKE Mini CircuitPython Editor</title>
+    <title>SPOKE Mini — CircuitPython Editor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg:         #0f0f0f;
+            --surface:    #171717;
+            --surface2:   #1f1f1f;
+            --border:     #2a2a2a;
+            --border2:    #333;
+            --text:       #e8e8e8;
+            --muted:      #888;
+            --accent:     #ff6b2b;
+            --accent2:    #ff9a5c;
+            --green:      #3ddc84;
+            --red:        #ff5555;
+            --blue:       #4a9eff;
+            --mono:       'JetBrains Mono', monospace;
+            --sans:       'Space Grotesk', sans-serif;
         }
-        
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a1a;
-            color: #e0e0e0;
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text);
             height: 100vh;
             overflow: hidden;
         }
-        
-        .container {
+
+        /* ─── SETUP WIZARD ─────────────────────────────────── */
+        #setupWizard {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 9999;
             display: flex;
-            height: 100vh;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 0;
         }
-        
-        /* Left Sidebar */
-        .sidebar {
-            width: 280px;
-            background: #252525;
-            border-right: 1px solid #333;
-            overflow-y: auto;
+
+        .wizard-wrap {
+            width: 720px;
+            max-width: 95vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .wizard-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .wizard-logo {
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            color: #fff;
+            flex-shrink: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .wizard-brand-text {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .wizard-brand-text span {
+            color: var(--accent);
+        }
+
+        /* progress dots */
+        .wizard-progress {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 28px;
+        }
+
+        .wizard-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border2);
+            transition: all 0.3s;
+        }
+
+        .wizard-dot.active {
+            background: var(--accent);
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        .wizard-dot.done {
+            background: var(--green);
+        }
+
+        /* step card */
+        .wizard-card {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 16px;
+            overflow: hidden;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .wizard-card-header {
+            padding: 24px 28px 20px;
+            border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
-        
-        .sidebar-header {
-            padding: 20px;
-            background: #2d2d2d;
-            border-bottom: 1px solid #333;
+
+        .wizard-step-label {
+            font-size: 11px;
             font-weight: 600;
-            font-size: 13px;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #999;
+            color: var(--accent);
+            margin-bottom: 6px;
         }
-        
-        .sidebar-section {
-            border-bottom: 1px solid #333;
+
+        .wizard-step-title {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
         }
-        
-        .sidebar-content {
-            padding: 10px 0;
+
+        .wizard-step-desc {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 4px;
+            line-height: 1.5;
         }
-        
-        .template-item {
-            padding: 12px 20px;
-            cursor: pointer;
-            transition: background 0.2s;
-            border-left: 3px solid transparent;
+
+        .wizard-card-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 28px;
         }
-        
-        .template-item:hover {
-            background: #2d2d2d;
-            border-left-color: #4a9eff;
+
+        .wizard-footer {
+            padding: 18px 28px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
         }
-        
-        .template-name {
-            font-weight: 500;
-            margin-bottom: 4px;
-            color: #e0e0e0;
+
+        /* step content */
+        .step-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
-        
-        .template-desc {
+
+        .step-row {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            width: 28px;
+            height: 28px;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 12px;
-            color: #888;
+            font-weight: 700;
+            color: var(--accent);
+            flex-shrink: 0;
+            font-family: var(--mono);
         }
-        
-        /* Main Editor */
+
+        .step-text {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #ccc;
+            padding-top: 4px;
+        }
+
+        .step-text strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .step-text a {
+            color: var(--accent2);
+            text-decoration: none;
+        }
+
+        .step-text a:hover { text-decoration: underline; }
+
+        .step-text code {
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            padding: 1px 7px;
+            border-radius: 4px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--accent2);
+        }
+
+        .step-note {
+            background: rgba(255, 107, 43, 0.08);
+            border: 1px solid rgba(255, 107, 43, 0.25);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 13px;
+            color: var(--accent2);
+            margin-top: 4px;
+        }
+
+        .step-note strong { color: var(--accent); }
+
+        .lib-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .lib-item {
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .lib-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .lib-name {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--accent2);
+            font-weight: 600;
+        }
+
+        .lib-desc {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* pico diagram */
+        .pico-diagram {
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 14px;
+        }
+
+        .pico-diagram svg { max-width: 100%; height: auto; }
+
+        /* final step - code preview */
+        .code-preview {
+            background: #0a0a0a;
+            border: 1px solid var(--border2);
+            border-radius: 10px;
+            padding: 16px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: #aaa;
+            overflow-y: auto;
+            max-height: 200px;
+            line-height: 1.7;
+            margin-top: 4px;
+        }
+
+        .code-preview .kw { color: #c792ea; }
+        .code-preview .fn { color: #82aaff; }
+        .code-preview .cm { color: #546e7a; }
+        .code-preview .st { color: #c3e88d; }
+
+        /* ─── BUTTONS ────────────────────────────────────────── */
+        .btn {
+            padding: 9px 20px;
+            border-radius: 8px;
+            font-family: var(--sans);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border2);
+            background: var(--surface2);
+            color: var(--text);
+            transition: all 0.2s;
+            letter-spacing: 0.2px;
+        }
+
+        .btn:hover {
+            background: var(--border2);
+            border-color: #444;
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background: #e85a1f;
+            border-color: #e85a1f;
+        }
+
+        .btn-green {
+            background: var(--green);
+            border-color: var(--green);
+            color: #000;
+        }
+
+        .btn-green:hover {
+            background: #35c075;
+            border-color: #35c075;
+        }
+
+        .btn-skip {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 13px;
+            cursor: pointer;
+            font-family: var(--sans);
+        }
+
+        .btn-skip:hover { color: var(--text); }
+
+        /* ─── MAIN APP ──────────────────────────────────────── */
+        #mainApp {
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        /* top bar */
+        .topbar {
+            height: 48px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border2);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: 8px;
+        }
+
+        .topbar-logo {
+            width: 26px;
+            height: 26px;
+            background: var(--accent);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .topbar-name {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .topbar-name span { color: var(--accent); }
+
+        .topbar-divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border2);
+            margin: 0 4px;
+        }
+
+        .topbar-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-left: auto;
+        }
+
+        .btn-sm {
+            padding: 5px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        .setup-again-btn {
+            background: none;
+            border: 1px solid var(--border2);
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 11px;
+            font-family: var(--sans);
+            padding: 4px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .setup-again-btn:hover {
+            color: var(--text);
+            border-color: #444;
+        }
+
+        /* layout */
+        .app-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* ─── LEFT SIDEBAR ───────────────────────────────────── */
+        .sidebar {
+            width: 220px;
+            background: var(--surface);
+            border-right: 1px solid var(--border2);
+            overflow-y: auto;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-section-title {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            padding: 16px 14px 8px;
+        }
+
+        .template-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-left: 2px solid transparent;
+            transition: all 0.15s;
+            border-radius: 0;
+        }
+
+        .template-item:hover {
+            background: var(--surface2);
+            border-left-color: var(--accent);
+        }
+
+        .template-item.active {
+            background: var(--surface2);
+            border-left-color: var(--accent);
+        }
+
+        .template-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        .template-desc {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        /* ─── MAIN EDITOR ───────────────────────────────────── */
         .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            min-width: 0;
         }
-        
-        .editor-header {
-            background: #2d2d2d;
-            padding: 15px 20px;
-            border-bottom: 1px solid #333;
+
+        .editor-toolbar {
+            height: 38px;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            padding: 0 12px;
+            gap: 6px;
+            flex-shrink: 0;
         }
-        
-        .editor-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #4a9eff;
-        }
-        
-        .editor-actions {
+
+        .file-tab {
             display: flex;
-            gap: 10px;
             align-items: center;
+            gap: 6px;
+            padding: 0 10px;
+            height: 26px;
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 5px;
+            font-size: 12px;
+            font-family: var(--mono);
+            color: var(--muted);
         }
-        
-        .btn {
-            padding: 8px 16px;
-            background: #3a3a3a;
-            border: 1px solid #4a4a4a;
-            color: #e0e0e0;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s;
-            white-space: nowrap;
+
+        .file-tab .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
         }
-        
-        .btn:hover {
-            background: #4a4a4a;
-            border-color: #5a5a5a;
-        }
-        
-        .btn-primary {
-            background: #4a9eff;
-            border-color: #4a9eff;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #3a8eef;
-            border-color: #3a8eef;
-        }
-        
-        .btn-success {
-            background: #4CAF50;
-            border-color: #4CAF50;
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background: #45a049;
-            border-color: #45a049;
-        }
-        
-        /* Code Editor */
-        .editor-console-wrapper {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .editor-wrapper {
+
+        .editor-area {
             flex: 1;
             position: relative;
             overflow: hidden;
             min-height: 0;
         }
-        
+
         #editor {
             width: 100%;
             height: 100%;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            padding: 20px;
-            background: #1e1e1e;
+            font-family: var(--mono);
+            font-size: 13px;
+            line-height: 1.65;
+            padding: 16px 20px;
+            background: #0c0c0c;
             color: #d4d4d4;
             border: none;
             outline: none;
             resize: none;
             tab-size: 4;
+            -webkit-font-smoothing: antialiased;
         }
-        
-        /* Serial Console */
-        .console-wrapper {
-            height: 220px;
-            background: #1a1a1a;
-            border-top: 1px solid #333;
+
+        /* console */
+        .console-panel {
+            height: 200px;
+            background: #080808;
+            border-top: 1px solid var(--border2);
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
         }
-        
+
         .console-header {
-            background: #2d2d2d;
-            padding: 10px 15px;
-            border-bottom: 1px solid #333;
+            height: 34px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            padding: 0 12px;
+            gap: 8px;
+            flex-shrink: 0;
         }
-        
+
         .console-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #4a9eff;
-        }
-        
-        .console-controls {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .btn-small {
-            padding: 4px 10px;
             font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--muted);
+            flex: 1;
         }
-        
+
+        .console-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border2);
+        }
+
+        .status-dot.connected { background: var(--green); }
+
         .console-output {
             flex: 1;
             overflow-y: auto;
-            padding: 10px;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            padding: 10px 14px;
+            font-family: var(--mono);
             font-size: 12px;
-            line-height: 1.5;
-            color: #00ff00;
-            background: #0a0a0a;
+            line-height: 1.6;
+            color: #3ddc84;
         }
-        
-        .console-line {
-            margin-bottom: 2px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-        
-        .console-error {
-            color: #ff6b6b;
-            font-weight: bold;
-        }
-        
-        .console-info {
-            color: #4a9eff;
-        }
-        
-        .console-timestamp {
-            color: #888;
-            margin-right: 8px;
-        }
-        
-        /* Right Sidebar */
+
+        .c-line { margin-bottom: 1px; white-space: pre-wrap; word-break: break-all; }
+        .c-error { color: var(--red); }
+        .c-info { color: var(--blue); }
+        .c-ts { color: #444; margin-right: 8px; user-select: none; }
+
+        /* ─── RIGHT SIDEBAR ─────────────────────────────────── */
         .right-sidebar {
-            width: 320px;
-            background: #252525;
-            border-left: 1px solid #333;
+            width: 280px;
+            background: var(--surface);
+            border-left: 1px solid var(--border2);
             overflow-y: auto;
             flex-shrink: 0;
-        }
-        
-        .info-section {
-            padding: 20px;
-            border-bottom: 1px solid #333;
-        }
-        
-        .info-title {
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #4a9eff;
-            font-size: 14px;
-        }
-        
-        .info-content {
-            font-size: 13px;
-            line-height: 1.6;
-            color: #b0b0b0;
-        }
-        
-        .info-content ol, .info-content ul {
-            margin-left: 20px;
-            margin-top: 10px;
-        }
-        
-        .info-content li {
-            margin-bottom: 8px;
-        }
-        
-        .info-content a {
-            color: #4a9eff;
-            text-decoration: none;
-        }
-        
-        .info-content a:hover {
-            text-decoration: underline;
-        }
-        
-        .info-content code {
-            background: #1e1e1e;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 12px;
-        }
-        
-        /* Visualizer Panel */
-        .visualizer-section {
-            padding: 15px;
-            border-bottom: 1px solid #333;
-            background: #252525;
-        }
-        
-        .visualizer-header {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+        }
+
+        .rs-section {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .rs-section-title {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            padding: 12px 14px 8px;
+        }
+
+        /* visualizer */
+        .viz-header {
+            display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            justify-content: space-between;
+            padding: 10px 14px 0;
         }
-        
-        .visualizer-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #4a9eff;
-        }
-        
-        .visualizer-status {
+
+        .viz-status {
             font-size: 11px;
-            color: #888;
-            margin-top: 2px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
-        
-        .visualizer-status.connected {
-            color: #4CAF50;
+
+        .mini-board-wrap {
+            padding: 10px 14px;
         }
-        
-        .visualizer-connect {
-            padding: 6px 12px;
-            background: #3a3a3a;
-            border: 1px solid #4a4a4a;
-            color: #e0e0e0;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 11px;
-            transition: all 0.2s;
-        }
-        
-        .visualizer-connect:hover {
-            background: #4a4a4a;
-        }
-        
-        .visualizer-connect.connected {
-            background: #4CAF50;
-            border-color: #4CAF50;
-        }
-        
+
         .mini-board {
-            background: #1a1a1a;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
+            background: #0a0a0a;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
         }
-        
+
         .mini-pads-container {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             justify-content: space-between;
         }
-        
+
         .mini-side {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
+            flex: 1;
         }
-        
+
         .mini-pad {
-            width: 50px;
-            height: 18px;
-            background: #2d2d2d;
-            border: 1px solid #4a4a4a;
+            height: 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
             border-radius: 3px;
-            transition: all 0.1s;
-            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 9px;
-            color: #666;
+            font-size: 8px;
+            font-family: var(--mono);
+            color: #444;
+            transition: all 0.08s;
         }
-        
+
         .mini-pad.active {
-            background: #4a9eff;
-            border-color: #6ab0ff;
-            box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
-            color: white;
+            background: var(--accent);
+            border-color: var(--accent2);
+            box-shadow: 0 0 8px rgba(255, 107, 43, 0.4);
+            color: rgba(255,255,255,0.8);
         }
-        
+
         .audio-scope {
             width: 100%;
-            height: 60px;
-            background: #0a0a0a;
-            border-radius: 4px;
-            margin-top: 10px;
+            height: 50px;
+            border-radius: 6px;
+            margin-top: 8px;
+            display: block;
         }
-        
-        .sample-status {
-            font-size: 10px;
-            color: #888;
-            margin-top: 5px;
-            text-align: center;
-        }
-        
-        /* Pin Mapping Panel */
+
+        /* pin map */
         .pin-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            font-size: 12px;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            padding: 10px 14px;
         }
-        
+
         .pin-item {
-            background: #2d2d2d;
-            padding: 8px;
-            border-radius: 3px;
-            border-left: 2px solid #4a9eff;
-        }
-        
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #1a1a1a;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: #3a3a3a;
+            background: var(--surface2);
+            border: 1px solid var(--border);
             border-radius: 5px;
+            padding: 5px 8px;
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--muted);
         }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: #4a4a4a;
+
+        .pin-item span { color: var(--accent2); }
+
+        /* hw notes */
+        .hw-notes {
+            padding: 10px 14px 16px;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.7;
         }
-        
-        /* Modal */
-        .modal {
+
+        .hw-notes code {
+            background: var(--surface2);
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--accent2);
+        }
+
+        /* ─── SCALE BUILDER MODAL ───────────────────────────── */
+        .modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 500;
             align-items: center;
             justify-content: center;
         }
-        
-        .modal-content {
-            background: #2d2d2d;
-            padding: 30px;
-            border-radius: 8px;
-            max-width: 700px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+
+        .modal-box {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 14px;
+            width: 680px;
+            max-width: 94vw;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
-        
-        .modal-header {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #4a9eff;
+
+        .modal-head {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
-        
-        .modal-close {
-            font-size: 24px;
-            cursor: pointer;
-            color: #888;
+
+        .modal-head-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .modal-close-btn {
             background: none;
             border: none;
-            padding: 0;
-            width: 30px;
-            height: 30px;
+            color: var(--muted);
+            font-size: 20px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 2px 6px;
+            border-radius: 4px;
         }
-        
-        .modal-close:hover {
-            color: #e0e0e0;
+
+        .modal-close-btn:hover { background: var(--surface2); color: var(--text); }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
         }
-        
-        .scale-builder-grid {
+
+        .preset-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .preset-chip {
+            padding: 6px 14px;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: var(--text);
+        }
+
+        .preset-chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .scale-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 8px;
         }
-        
-        .pad-selector {
-            background: #1e1e1e;
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #3a3a3a;
+
+        .pad-sel {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 8px 10px;
         }
-        
-        .pad-label {
-            font-size: 12px;
-            color: #888;
-            margin-bottom: 6px;
+
+        .pad-sel-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 4px;
         }
-        
-        .note-select {
+
+        .note-sel {
             width: 100%;
-            background: #3a3a3a;
-            border: 1px solid #4a4a4a;
-            color: #e0e0e0;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        
-        .note-select:focus {
-            outline: none;
-            border-color: #4a9eff;
-        }
-        
-        .preset-buttons {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .preset-btn {
-            padding: 10px;
-            background: #3a3a3a;
-            border: 1px solid #4a4a4a;
-            color: #e0e0e0;
-            border-radius: 4px;
-            cursor: pointer;
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            color: var(--text);
+            padding: 6px 8px;
+            border-radius: 5px;
             font-size: 12px;
-            transition: all 0.2s;
+            font-family: var(--mono);
+            cursor: pointer;
+            outline: none;
         }
-        
-        .preset-btn:hover {
-            background: #4a4a4a;
-            border-color: #4a9eff;
-        }
-        
-        .modal-actions {
+
+        .note-sel:focus { border-color: var(--accent); }
+
+        .modal-foot {
+            padding: 14px 24px;
+            border-top: 1px solid var(--border);
             display: flex;
             gap: 10px;
             justify-content: flex-end;
+            flex-shrink: 0;
         }
+
+        /* scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Left Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-section">
-                <div class="sidebar-header">Code Templates</div>
-                <div class="sidebar-content">
-                    <div class="template-item" onclick="loadTemplate('basic')">
-                        <div class="template-name">Mini Default</div>
-                        <div class="template-desc">26-pad MIDI controller</div>
-                    </div>
-                    <div class="template-item" onclick="loadTemplate('drums')">
-                        <div class="template-name">Drum Pads</div>
-                        <div class="template-desc">13 pads for drums</div>
-                    </div>
-                    <div class="template-item" onclick="openScaleBuilder()">
-                        <div class="template-name">Scale Builder</div>
-                        <div class="template-desc">Custom notes for each pad</div>
-                    </div>
-                    <div class="template-item" onclick="loadTemplate('sensitivity')">
-                        <div class="template-name">Sensitivity</div>
-                        <div class="template-desc">Adjustable touch threshold</div>
-                    </div>
-                    <div class="template-item" onclick="loadTemplate('keyboard')">
-                        <div class="template-name">Letters</div>
-                        <div class="template-desc">A-Z keyboard layout</div>
-                    </div>
-                    <div class="template-item" onclick="loadTemplate('gaming')">
-                        <div class="template-name">Gaming</div>
-                        <div class="template-desc">Game controls + mouse</div>
-                    </div>
-                </div>
-            </div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  SETUP WIZARD                                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="setupWizard">
+    <div class="wizard-wrap">
+        <div class="wizard-brand">
+            <div class="wizard-logo">SM</div>
+            <div class="wizard-brand-text">SPOKE <span>Mini</span></div>
         </div>
-        
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="editor-header">
-                <div class="editor-title">SPOKE Mini CircuitPython Editor</div>
-                <div class="editor-actions">
-                    <button class="btn" onclick="openCodePy()">📁 Open code.py</button>
-                    <button class="btn btn-success" onclick="saveToMini()">📝 Save to Mini</button>
-                </div>
-            </div>
-            
-            <div class="editor-console-wrapper">
-                <div class="editor-wrapper">
-                    <textarea id="editor" spellcheck="false"></textarea>
-                </div>
-                
-                <!-- Serial Console -->
-                <div class="console-wrapper">
-                    <div class="console-header">
-                        <div class="console-title">🖥️ Serial Console</div>
-                        <div class="console-controls">
-                            <button class="btn btn-small" onclick="connectSerial()">Connect</button>
-                            <button class="btn btn-small" onclick="clearConsole()">Clear</button>
-                        </div>
-                    </div>
-                    <div class="console-output" id="console">
-                        <div class="console-line console-info">🔌 Serial Console Ready</div>
-                        <div class="console-line console-info">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
-                        <div class="console-line">Click "Connect" to start monitoring SPOKE Mini output</div>
-                        <div class="console-line">This will show:</div>
-                        <div class="console-line">  • print() statements from your code</div>
-                        <div class="console-line">  • Error messages and tracebacks</div>
-                        <div class="console-line">  • Debug information</div>
-                        <div class="console-line console-info">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
-                    </div>
-                </div>
-            </div>
+
+        <div class="wizard-progress" id="wizardProgress">
+            <!-- dots injected by JS -->
         </div>
-        
-        <!-- Right Sidebar -->
-        <div class="right-sidebar">
-            <!-- Visualizer Section -->
-            <div class="visualizer-section">
-                <div class="visualizer-header">
-                    <div>
-                        <div class="visualizer-title">SPOKE Mini Live</div>
-                        <div class="visualizer-status" id="midiStatus">Not connected</div>
-                    </div>
-                    <button class="visualizer-connect" id="connectMidiBtn" onclick="connectMIDI()">Connect MIDI</button>
-                </div>
-                
-                <div class="mini-board">
-                    <div class="mini-pads-container">
-                        <div class="mini-side" id="leftSide">
-                            <!-- Left 13 pads -->
-                        </div>
-                        <div class="mini-side" id="rightSide">
-                            <!-- Right 13 pads -->
-                        </div>
-                    </div>
-                </div>
-                
-                <canvas id="audioScope" class="audio-scope" width="268" height="60"></canvas>
-                <div class="sample-status" id="sampleStatus">Samples: 0 / 100</div>
+
+        <div class="wizard-card" id="wizardCard">
+            <div class="wizard-card-header">
+                <div class="wizard-step-label" id="stepLabel"></div>
+                <div class="wizard-step-title" id="stepTitle"></div>
+                <div class="wizard-step-desc" id="stepDesc"></div>
             </div>
-            <!-- Setup Instructions -->
-            <div class="info-section">
-                <div class="info-title">⚙️ Setup Instructions</div>
-                <div class="info-content">
-                    <strong>1. Install CircuitPython:</strong>
-                    <ol>
-                        <li>Download the <a href="https://circuitpython.org/board/raspberry_pi_pico/" target="_blank">CircuitPython .uf2 file</a> for Raspberry Pi Pico</li>
-                        <li>Hold the <strong>BOOTSEL</strong> button on your Pico while plugging in USB</li>
-                        <li>Drag the .uf2 file to the <code>RPI-RP2</code> drive that appears</li>
-                        <li>Board will reboot and appear as <code>CIRCUITPY</code> drive</li>
-                    </ol>
-                    
-                    <strong style="margin-top: 15px; display: block;">2. Install Libraries:</strong>
-                    <ol>
-                        <li>Download the <a href="https://circuitpython.org/libraries" target="_blank">CircuitPython Library Bundle</a></li>
-                        <li>Extract the bundle ZIP file</li>
-                        <li>Copy these folders to <code>CIRCUITPY/lib/</code>:
-                            <ul>
-                                <li><code>adafruit_midi/</code></li>
-                                <li><code>adafruit_hid/</code></li>
-                            </ul>
-                        </li>
-                    </ol>
-                    
-                    <strong style="margin-top: 15px; display: block;">3. Upload Code:</strong>
-                    <ol>
-                        <li>Click "Download code.py" button above</li>
-                        <li>Copy downloaded file to <code>CIRCUITPY</code> drive</li>
-                        <li>Board will auto-restart and run your code!</li>
-                    </ol>
-                </div>
-            </div>
-            
-            <!-- Pin Mapping -->
-            <div class="info-section">
-                <div class="info-title">📍 Pin Mapping (26 Pads)</div>
-                <div class="pin-grid">
-                    <div class="pin-item">Pad 1: GP0</div>
-                    <div class="pin-item">Pad 2: GP1</div>
-                    <div class="pin-item">Pad 3: GP2</div>
-                    <div class="pin-item">Pad 4: GP3</div>
-                    <div class="pin-item">Pad 5: GP4</div>
-                    <div class="pin-item">Pad 6: GP5</div>
-                    <div class="pin-item">Pad 7: GP6</div>
-                    <div class="pin-item">Pad 8: GP7</div>
-                    <div class="pin-item">Pad 9: GP8</div>
-                    <div class="pin-item">Pad 10: GP9</div>
-                    <div class="pin-item">Pad 11: GP10</div>
-                    <div class="pin-item">Pad 12: GP11</div>
-                    <div class="pin-item">Pad 13: GP12</div>
-                    <div class="pin-item">Pad 14: GP13</div>
-                    <div class="pin-item">Pad 15: GP14</div>
-                    <div class="pin-item">Pad 16: GP15</div>
-                    <div class="pin-item">Pad 17: GP16</div>
-                    <div class="pin-item">Pad 18: GP17</div>
-                    <div class="pin-item">Pad 19: GP18</div>
-                    <div class="pin-item">Pad 20: GP19</div>
-                    <div class="pin-item">Pad 21: GP20</div>
-                    <div class="pin-item">Pad 22: GP21</div>
-                    <div class="pin-item">Pad 23: GP22</div>
-                    <div class="pin-item">Pad 24: GP26</div>
-                    <div class="pin-item">Pad 25: GP27</div>
-                    <div class="pin-item">Pad 26: GP28</div>
-                </div>
-            </div>
-            
-            <!-- Hardware Info -->
-            <div class="info-section">
-                <div class="info-title">🔧 Hardware Notes</div>
-                <div class="info-content">
-                    <strong>Onboard LED:</strong>
-                    <ul>
-                        <li>Access via <code>board.LED</code></li>
-                        <li>No NeoPixels on Mini</li>
-                    </ul>
-                    
-                    <strong style="margin-top: 10px; display: block;">Layout:</strong>
-                    <ul>
-                        <li>26 capacitive touch pads</li>
-                        <li>13 pads per side (rectangular)</li>
-                        <li>Raspberry Pi Pico inside</li>
-                    </ul>
+            <div class="wizard-card-body" id="stepContent"></div>
+            <div class="wizard-footer">
+                <button class="btn-skip" id="wizSkip" onclick="skipWizard()">Skip setup →</button>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" id="wizBack" onclick="wizNav(-1)" style="display:none">← Back</button>
+                    <button class="btn btn-accent" id="wizNext" onclick="wizNav(1)">Next →</button>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Scale Builder Modal -->
-    <div class="modal" id="scaleBuilderModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span>🎹 Scale Builder - Choose Notes for Each Pad</span>
-                <button class="modal-close" onclick="closeScaleBuilder()">×</button>
-            </div>
-            
-            <div class="preset-buttons">
-                <button class="preset-btn" onclick="applyPreset('chromatic')">Chromatic Scale</button>
-                <button class="preset-btn" onclick="applyPreset('major')">C Major Scale</button>
-                <button class="preset-btn" onclick="applyPreset('minor')">A Minor Scale</button>
-                <button class="preset-btn" onclick="applyPreset('pentatonic')">Pentatonic Scale</button>
-                <button class="preset-btn" onclick="applyPreset('blues')">Blues Scale</button>
-                <button class="preset-btn" onclick="applyPreset('default')">Default Notes</button>
-            </div>
-            
-            <div class="scale-builder-grid" id="scaleBuilderGrid">
-                <!-- Dynamically populated with 26 pad selectors -->
-            </div>
-            
-            <div class="modal-actions">
-                <button class="btn" onclick="closeScaleBuilder()">Cancel</button>
-                <button class="btn btn-primary" onclick="generateScaleCode()">Generate Code</button>
-            </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  MAIN APP                                                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="mainApp">
+    <!-- Top bar -->
+    <div class="topbar">
+        <div class="topbar-brand">
+            <div class="topbar-logo">SM</div>
+            <div class="topbar-name">SPOKE <span>Mini</span></div>
+        </div>
+        <div class="topbar-divider"></div>
+        <button class="btn btn-sm" onclick="openCodePy()">📂 Open code.py</button>
+        <button class="btn btn-sm btn-accent" onclick="saveToMini()">💾 Save to Mini</button>
+        <div class="topbar-actions">
+            <button class="setup-again-btn" onclick="showWizard()">⚙ Setup guide</button>
         </div>
     </div>
 
-    <script>
-        const editor = document.getElementById('editor');
-        const consoleOutput = document.getElementById('console');
-        
-        // MIDI and Audio variables
-        let midiAccess = null;
-        let audioContext;
-        let masterGain;
-        let scopeAnalyser;
-        const samples = new Map();
-        const activeSources = new Map();
-        
-        // SPOKE Mini MIDI notes (26 pads)
-        const MINI_NOTES = [36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 
-                            67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96];
-        
-        // Active pads tracking
-        const activePads = new Set();
-        
-        // Initialize visualizer pads
-        function initVisualizer() {
-            const leftSide = document.getElementById('leftSide');
-            const rightSide = document.getElementById('rightSide');
-            
-            // Create 13 pads on each side
-            for (let i = 0; i < 13; i++) {
-                const leftPad = document.createElement('div');
-                leftPad.className = 'mini-pad';
-                leftPad.id = `pad-${i}`;
-                leftPad.textContent = i + 1;
-                leftSide.appendChild(leftPad);
-                
-                const rightPad = document.createElement('div');
-                rightPad.className = 'mini-pad';
-                rightPad.id = `pad-${i + 13}`;
-                rightPad.textContent = i + 14;
-                rightSide.appendChild(rightPad);
-            }
-        }
-        
-        // MIDI Connection
-        async function connectMIDI() {
-            try {
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    masterGain = audioContext.createGain();
-                    masterGain.gain.value = 0.8;
-                    
-                    scopeAnalyser = audioContext.createAnalyser();
-                    scopeAnalyser.fftSize = 2048;
-                    
-                    masterGain.connect(scopeAnalyser);
-                    scopeAnalyser.connect(audioContext.destination);
-                }
-                
-                midiAccess = await navigator.requestMIDIAccess();
-                const inputs = Array.from(midiAccess.inputs.values());
-                
-                if (inputs.length === 0) {
-                    alert('No MIDI devices found');
-                    return;
-                }
-                
-                inputs.forEach(input => input.onmidimessage = handleMIDIMessage);
-                
-                document.getElementById('connectMidiBtn').textContent = 'Connected';
-                document.getElementById('connectMidiBtn').classList.add('connected');
-                document.getElementById('midiStatus').textContent = `Connected: ${inputs[0].name}`;
-                document.getElementById('midiStatus').classList.add('connected');
-                
-                // Start scope animation
-                drawScope();
-                
-                // Load samples
-                loadAllSamples();
-                
-            } catch (error) {
-                alert('MIDI Error: ' + error.message);
-            }
-        }
-        
-        // Handle MIDI messages
-        function handleMIDIMessage(message) {
-            const [status, midiNote, velocity] = message.data;
-            const command = status & 0xf0;
-            const padIndex = MINI_NOTES.indexOf(midiNote);
-            
-            if (padIndex === -1) return;
-            
-            const pad = document.getElementById(`pad-${padIndex}`);
-            
-            // Note On
-            if (command === 0x90 && velocity > 0) {
-                if (pad) {
-                    pad.classList.add('active');
-                    activePads.add(padIndex);
-                }
-                playSample(midiNote % 100, velocity);
-            }
-            // Note Off
-            else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
-                if (pad) {
-                    pad.classList.remove('active');
-                    activePads.delete(padIndex);
-                }
-            }
-        }
-        
-        // Play sample
-        function playSample(sampleNumber, velocity = 127) {
-            if (!samples.has(sampleNumber)) return;
-            
-            if (activeSources.has(sampleNumber)) {
-                try { activeSources.get(sampleNumber).source.stop(); } catch (e) {}
-                activeSources.delete(sampleNumber);
-            }
-            
-            const source = audioContext.createBufferSource();
-            const gainNode = audioContext.createGain();
-            
-            source.buffer = samples.get(sampleNumber);
-            gainNode.gain.value = velocity / 127;
-            
-            source.connect(gainNode);
-            gainNode.connect(masterGain);
-            source.start(0);
-            
-            activeSources.set(sampleNumber, { source, gainNode });
-            
-            source.onended = () => {
-                if (activeSources.get(sampleNumber)?.source === source) {
-                    activeSources.delete(sampleNumber);
-                }
-            };
-        }
-        
-        // Load samples from GitHub
-        async function loadAllSamples() {
-            const CONFIG = {
-                username: 'Tom-Vulpes',
-                repo: 'SpokeWebMidi',
-                branch: 'main',
-                samplesFolder: 'notes'
-            };
-            
-            let loadedCount = 0;
-            const statusEl = document.getElementById('sampleStatus');
-            
-            for (let i = 0; i < 100; i++) {
-                const formats = ['wav', 'mp3'];
-                
-                for (const format of formats) {
-                    const filename = `note_${String(i).padStart(3, '0')}`;
-                    const url = `https://raw.githubusercontent.com/${CONFIG.username}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.samplesFolder}/${filename}.${format}`;
-                    
-                    try {
-                        const response = await fetch(url);
-                        if (!response.ok) continue;
-                        
-                        const arrayBuffer = await response.arrayBuffer();
-                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                        samples.set(i, audioBuffer);
-                        loadedCount++;
-                        statusEl.textContent = `Samples: ${loadedCount} / 100`;
-                        break;
-                    } catch (error) {
-                        // Try next format
-                    }
-                }
-            }
-        }
-        
-        // Draw audio scope
-        function drawScope() {
-            const canvas = document.getElementById('audioScope');
-            const ctx = canvas.getContext('2d');
-            
-            if (!scopeAnalyser) {
-                requestAnimationFrame(drawScope);
-                return;
-            }
-            
-            const bufferLength = scopeAnalyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            scopeAnalyser.getByteTimeDomainData(dataArray);
-            
-            ctx.fillStyle = '#0a0a0a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#ff9800';
-            ctx.beginPath();
-            
-            const sliceWidth = canvas.width / bufferLength;
-            let x = 0;
-            
-            for (let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 128.0;
-                const y = v * canvas.height / 2;
-                
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-                
-                x += sliceWidth;
-            }
-            
-            ctx.lineTo(canvas.width, canvas.height / 2);
-            ctx.stroke();
-            
-            requestAnimationFrame(drawScope);
-        }
-        
-        // Serial port variables
-        let port;
-        let reader;
-        let isReading = false;
-        
-        // Serial console functions
-        async function connectSerial() {
-            if (!('serial' in navigator)) {
-                addConsoleMessage('❌ Web Serial API not supported. Use Chrome, Edge, or Opera.', 'error');
-                return;
-            }
-            
-            try {
-                // Request port
-                port = await navigator.serial.requestPort();
-                await port.open({ baudRate: 115200 });
-                
-                addConsoleMessage('✅ Connected to SPOKE Mini!', 'info');
-                addConsoleMessage('📡 Monitoring serial output at 115200 baud...', 'info');
-                addConsoleMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-                
-                // Start reading
-                isReading = true;
-                readSerial();
-                
-            } catch (error) {
-                addConsoleMessage(`❌ Connection error: ${error.message}`, 'error');
-            }
-        }
-        
-        async function readSerial() {
-            while (port && port.readable && isReading) {
-                reader = port.readable.getReader();
-                
-                try {
-                    while (true) {
-                        const { value, done } = await reader.read();
-                        if (done) break;
-                        
-                        // Decode and display
-                        const text = new TextDecoder().decode(value);
-                        const lines = text.split('\n');
-                        
-                        lines.forEach(line => {
-                            line = line.trim();
-                            if (line) {
-                                // Detect errors
-                                if (line.includes('Traceback') || line.includes('Error') || line.includes('Exception')) {
-                                    addConsoleMessage(line, 'error');
-                                } else {
-                                    addConsoleMessage(line);
-                                }
-                            }
-                        });
-                    }
-                } catch (error) {
-                    addConsoleMessage(`📡 Read error: ${error.message}`, 'error');
-                } finally {
-                    reader.releaseLock();
-                }
-            }
-        }
-        
-        function addConsoleMessage(message, type = '') {
-            if (!message) return;
-            
-            const line = document.createElement('div');
-            line.className = 'console-line';
-            if (type === 'error') line.classList.add('console-error');
-            if (type === 'info') line.classList.add('console-info');
-            
-            // Add timestamp
-            const timestamp = new Date().toLocaleTimeString('en-US', { 
-                hour12: false, 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
-            });
-            
-            const timestampSpan = document.createElement('span');
-            timestampSpan.className = 'console-timestamp';
-            timestampSpan.textContent = `[${timestamp}]`;
-            
-            line.appendChild(timestampSpan);
-            line.appendChild(document.createTextNode(message));
-            
-            consoleOutput.appendChild(line);
-            consoleOutput.scrollTop = consoleOutput.scrollHeight;
-        }
-        
-        function clearConsole() {
-            consoleOutput.innerHTML = '';
-            addConsoleMessage('🗑️ Console cleared.', 'info');
-        }
-        
-        // Close serial on page unload
-        window.addEventListener('beforeunload', async () => {
-            if (reader) {
-                isReading = false;
-                await reader.cancel();
-            }
-            if (port) {
-                await port.close();
-            }
+    <div class="app-body">
+
+        <!-- Left sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-section-title">Templates</div>
+
+            <div class="template-item active" onclick="loadTemplate('basic', this)">
+                <div class="template-name">MIDI Default</div>
+                <div class="template-desc">26-pad USB MIDI controller</div>
+            </div>
+            <div class="template-item" onclick="loadTemplate('drums', this)">
+                <div class="template-name">Drum Pads</div>
+                <div class="template-desc">13 pads, GM drum mapping</div>
+            </div>
+            <div class="template-item" onclick="openScaleBuilder()">
+                <div class="template-name">Scale Builder</div>
+                <div class="template-desc">Custom note per pad</div>
+            </div>
+            <div class="template-item" onclick="loadTemplate('sensitivity', this)">
+                <div class="template-name">Sensitivity</div>
+                <div class="template-desc">Adjustable touch threshold</div>
+            </div>
+            <div class="template-item" onclick="loadTemplate('keyboard', this)">
+                <div class="template-name">A–Z Letters</div>
+                <div class="template-desc">HID keyboard A to Z</div>
+            </div>
+            <div class="template-item" onclick="loadTemplate('gaming', this)">
+                <div class="template-name">Gaming</div>
+                <div class="template-desc">Game controls + mouse</div>
+            </div>
+            <div class="template-item" onclick="loadTemplate('cc', this)">
+                <div class="template-name">CC Messages</div>
+                <div class="template-desc">Control Change per pad</div>
+            </div>
+            <div class="template-item" onclick="loadTemplate('arpeggio', this)">
+                <div class="template-name">Arpeggios</div>
+                <div class="template-desc">Note sequence per pad</div>
+            </div>
+            <div class="template-item" onclick="loadTemplate('bpm', this)">
+                <div class="template-name">BPM Sync</div>
+                <div class="template-desc">Notes timed to BPM</div>
+            </div>
+            <div class="template-item" onclick="loadTemplate('minecraft', this)">
+                <div class="template-name">Minecraft</div>
+                <div class="template-desc">Default MC controls</div>
+            </div>
+            <div class="template-item" onclick="loadTemplate('phrases', this)">
+                <div class="template-name">Phrase Typer</div>
+                <div class="template-desc">Types a phrase per pad</div>
+            </div>
+        </div>
+
+        <!-- Editor -->
+        <div class="main-content">
+            <div class="editor-toolbar">
+                <div class="file-tab"><div class="dot"></div>code.py</div>
+            </div>
+            <div class="editor-area">
+                <textarea id="editor" spellcheck="false"></textarea>
+            </div>
+            <div class="console-panel">
+                <div class="console-header">
+                    <div class="console-title">Serial Console</div>
+                    <div class="console-status">
+                        <div class="status-dot" id="serialDot"></div>
+                        <span id="serialStatusText">Disconnected</span>
+                    </div>
+                    <div style="display:flex; gap:6px; margin-left:12px;">
+                        <button class="btn btn-sm" onclick="connectSerial()">Connect</button>
+                        <button class="btn btn-sm" onclick="clearConsole()">Clear</button>
+                    </div>
+                </div>
+                <div class="console-output" id="console">
+                    <div class="c-line c-info">🔌 Serial Console — click Connect to start</div>
+                    <div class="c-line c-info">Shows print() output, errors, and debug info from your SPOKE Mini</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right sidebar -->
+        <div class="right-sidebar">
+            <!-- Live visualizer -->
+            <div class="rs-section">
+                <div class="rs-section-title">Live View</div>
+                <div class="viz-header">
+                    <div class="viz-status">
+                        <div class="status-dot" id="midiDot"></div>
+                        <span id="midiStatusText">No MIDI</span>
+                    </div>
+                    <button class="btn btn-sm" onclick="connectMIDI()" id="midiBtn">Connect MIDI</button>
+                </div>
+                <div class="mini-board-wrap">
+                    <div class="mini-board">
+                        <div class="mini-pads-container">
+                            <div class="mini-side" id="leftSide"></div>
+                            <div class="mini-side" id="rightSide"></div>
+                        </div>
+                        <canvas id="audioScope" class="audio-scope" width="240" height="50"></canvas>
+                    </div>
+                    <div style="font-size:10px; color:var(--muted); text-align:center; margin-top:6px;" id="sampleStatus">Samples: 0 / 100</div>
+                </div>
+            </div>
+
+            <!-- Pin map -->
+            <div class="rs-section">
+                <div class="rs-section-title">Pin Mapping</div>
+                <div class="pin-grid" id="pinGrid"></div>
+            </div>
+
+            <!-- Hardware notes -->
+            <div class="rs-section">
+                <div class="rs-section-title">Hardware</div>
+                <div class="hw-notes">
+                    <strong style="color:var(--text);">LED:</strong> <code>board.LED</code> — onboard Pico LED<br>
+                    <strong style="color:var(--text);">Pads:</strong> 26 capacitive touch pads<br>
+                    <strong style="color:var(--text);">Layout:</strong> 13 pads per side<br>
+                    <strong style="color:var(--text);">MCU:</strong> Raspberry Pi Pico (RP2040)<br><br>
+                    <em>No NeoPixels on SPOKE Mini.</em>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scale Builder modal -->
+<div class="modal-overlay" id="scaleModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div class="modal-head-title">🎹 Scale Builder — Custom Notes per Pad</div>
+            <button class="modal-close-btn" onclick="closeScaleBuilder()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="preset-row" id="presetRow"></div>
+            <div class="scale-grid" id="scaleGrid"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn" onclick="closeScaleBuilder()">Cancel</button>
+            <button class="btn btn-accent" onclick="generateScaleCode()">Generate Code</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  WIZARD
+// ═══════════════════════════════════════════════════
+const WIZARD_STEPS = [
+    {
+        label: 'Step 1 of 4 — Hardware Assembly',
+        title: 'Assemble your SPOKE Mini',
+        desc: 'Before flashing firmware, make sure your board is physically ready.',
+        html: `<div class="step-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-text">Solder all <strong>26 × 1MΩ resistors</strong> into their marked positions (R1–R26) on the PCB.</div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-text">Solder your <strong>Raspberry Pi Pico</strong> into the centre of the board, making sure all pins are seated correctly.</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-text">Inspect your soldering — no bridges, no cold joints. The board is now ready to flash.</div></div>
+            <div class="step-note">⚡ <strong>Tip:</strong> Hold the board up to a light after soldering to spot any missed pads. Capacitive touch is sensitive — a bad joint on a resistor means that pad won't work.</div>
+        </div>`
+    },
+    {
+        label: 'Step 2 of 4 — Flash CircuitPython',
+        title: 'Flash the CircuitPython firmware',
+        desc: 'Install CircuitPython on your Raspberry Pi Pico.',
+        html: `<div class="step-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-text">Download the latest <strong>CircuitPython .uf2 file</strong> for Raspberry Pi Pico from <a href="https://circuitpython.org/board/raspberry_pi_pico/" target="_blank">circuitpython.org/board/raspberry_pi_pico</a></div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-text">Hold down the <strong>BOOTSEL</strong> button on your Pico while plugging in the USB cable to your computer. Keep holding until the drive appears.</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-text">A drive called <code>RPI-RP2</code> will appear. Drag and drop the downloaded <strong>.uf2 file</strong> onto it.</div></div>
+            <div class="step-row"><div class="step-num">4</div><div class="step-text">The board will flash, reboot automatically, and reappear as a drive called <code>CIRCUITPY</code>. CircuitPython is now installed!</div></div>
+            <div class="step-note">💡 <strong>Note:</strong> If the <code>RPI-RP2</code> drive doesn't appear, try a different USB cable — some cables are charge-only. You need a data cable.</div>
+        </div>`
+    },
+    {
+        label: 'Step 3 of 4 — Install Libraries',
+        title: 'Copy the required libraries',
+        desc: 'The SPOKE Mini needs two Adafruit CircuitPython libraries.',
+        html: `<div class="step-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-text">Download the <strong>CircuitPython Library Bundle</strong> (.zip) from <a href="https://circuitpython.org/libraries" target="_blank">circuitpython.org/libraries</a></div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-text">Extract the ZIP file on your computer.</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-text">Open the <code>CIRCUITPY</code> drive. Inside you'll find a folder called <code>lib/</code>. Copy these two library folders into it:</div></div>
+            <div class="lib-grid">
+                <div class="lib-item"><div class="lib-icon">🎵</div><div><div class="lib-name">adafruit_midi/</div><div class="lib-desc">For USB MIDI output</div></div></div>
+                <div class="lib-item"><div class="lib-icon">⌨️</div><div><div class="lib-name">adafruit_hid/</div><div class="lib-desc">For keyboard / mouse HID</div></div></div>
+            </div>
+            <div class="step-note">📁 <strong>Important:</strong> Copy the <em>folders</em> — not just the files inside them. Your <code>lib/</code> folder should contain <code>adafruit_midi/</code> and <code>adafruit_hid/</code> as subfolders.</div>
+        </div>`
+    },
+    {
+        label: 'Step 4 of 4 — Upload Code',
+        title: 'Upload your first code.py',
+        desc: 'Copy code to your SPOKE Mini and start making music!',
+        html: `<div class="step-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-text">Use this editor to choose or write your code. The <strong>MIDI Default</strong> template is a great starting point — it turns all 26 pads into MIDI notes.</div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-text">Click <strong>"Save to Mini"</strong> in the top bar. A file picker will open — navigate to your <code>CIRCUITPY</code> drive and save the file as <code>code.py</code>.</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-text">Your SPOKE Mini will <strong>automatically restart</strong> and run the new code. The onboard LED will blink when a pad is touched.</div></div>
+            <div class="step-row"><div class="step-num">4</div><div class="step-text">Click <strong>"Connect"</strong> in the Serial Console below the editor to see real-time print output and any error messages from your code.</div></div>
+            <div class="step-note">🎉 <strong>You're all set!</strong> Touch a pad — if you see MIDI messages in your DAW or hear sound, everything is working. Happy making!</div>
+        </div>`
+    }
+];
+
+let wizStep = 0;
+
+function renderWizard() {
+    const s = WIZARD_STEPS[wizStep];
+    document.getElementById('stepLabel').textContent = s.label;
+    document.getElementById('stepTitle').textContent = s.title;
+    document.getElementById('stepDesc').textContent = s.desc;
+    document.getElementById('stepContent').innerHTML = s.html;
+
+    // progress dots
+    const prog = document.getElementById('wizardProgress');
+    prog.innerHTML = WIZARD_STEPS.map((_, i) => {
+        let cls = 'wizard-dot';
+        if (i < wizStep) cls += ' done';
+        if (i === wizStep) cls += ' active';
+        return `<div class="${cls}"></div>`;
+    }).join('');
+
+    // buttons
+    document.getElementById('wizBack').style.display = wizStep > 0 ? 'inline-block' : 'none';
+    const nextBtn = document.getElementById('wizNext');
+    if (wizStep === WIZARD_STEPS.length - 1) {
+        nextBtn.textContent = 'Open Editor →';
+        nextBtn.className = 'btn btn-green';
+    } else {
+        nextBtn.textContent = 'Next →';
+        nextBtn.className = 'btn btn-accent';
+    }
+}
+
+function wizNav(dir) {
+    if (dir === 1 && wizStep === WIZARD_STEPS.length - 1) {
+        skipWizard();
+        return;
+    }
+    wizStep = Math.max(0, Math.min(WIZARD_STEPS.length - 1, wizStep + dir));
+    renderWizard();
+}
+
+function skipWizard() {
+    document.getElementById('setupWizard').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'flex';
+    document.getElementById('mainApp').style.flexDirection = 'column';
+}
+
+function showWizard() {
+    wizStep = 0;
+    renderWizard();
+    document.getElementById('setupWizard').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════
+//  PIN MAP
+// ═══════════════════════════════════════════════════
+const PIN_MAP = [
+    'GP0','GP1','GP2','GP3','GP4','GP5','GP6','GP7',
+    'GP8','GP9','GP10','GP11','GP12','GP13','GP14','GP15',
+    'GP16','GP17','GP18','GP19','GP20','GP21','GP22',
+    'GP26','GP27','GP28'
+];
+
+function buildPinGrid() {
+    const grid = document.getElementById('pinGrid');
+    PIN_MAP.forEach((pin, i) => {
+        const el = document.createElement('div');
+        el.className = 'pin-item';
+        el.innerHTML = `P${i+1} → <span>${pin}</span>`;
+        grid.appendChild(el);
+    });
+}
+
+// ═══════════════════════════════════════════════════
+//  VISUALIZER
+// ═══════════════════════════════════════════════════
+const MINI_NOTES = [36,38,40,43,45,48,50,52,55,57,60,62,64,67,69,72,74,76,79,81,84,86,88,91,93,96];
+
+function initVisualizer() {
+    const left = document.getElementById('leftSide');
+    const right = document.getElementById('rightSide');
+    for (let i = 0; i < 13; i++) {
+        [left, right].forEach((side, s) => {
+            const idx = i + s * 13;
+            const d = document.createElement('div');
+            d.className = 'mini-pad';
+            d.id = `pad-${idx}`;
+            d.textContent = idx + 1;
+            side.appendChild(d);
         });
-        
-        // Code templates
-        const templates = {
-            getTemplate(name) {
-                return this[name] || this.basic;
-            },
-            
-            'basic': `# SPOKE Mini Default Code - 26-pad MIDI Controller
-# USB MIDI with onboard LED feedback
+    }
+}
+
+// MIDI
+let midiAccess = null, audioCtx, masterGain, scopeAnalyser;
+const samples = new Map(), activeSrcs = new Map();
+
+async function connectMIDI() {
+    try {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.8;
+            scopeAnalyser = audioCtx.createAnalyser();
+            scopeAnalyser.fftSize = 2048;
+            masterGain.connect(scopeAnalyser);
+            scopeAnalyser.connect(audioCtx.destination);
+        }
+        midiAccess = await navigator.requestMIDIAccess();
+        const inputs = Array.from(midiAccess.inputs.values());
+        if (!inputs.length) { alert('No MIDI devices found'); return; }
+        inputs.forEach(inp => inp.onmidimessage = onMIDI);
+        document.getElementById('midiDot').classList.add('connected');
+        document.getElementById('midiStatusText').textContent = inputs[0].name;
+        document.getElementById('midiBtn').textContent = 'Connected ✓';
+        drawScope();
+        loadSamples();
+    } catch (e) { alert('MIDI error: ' + e.message); }
+}
+
+function onMIDI(msg) {
+    const [status, note, vel] = msg.data;
+    const cmd = status & 0xf0;
+    const idx = MINI_NOTES.indexOf(note);
+    if (idx === -1) return;
+    const pad = document.getElementById(`pad-${idx}`);
+    if (cmd === 0x90 && vel > 0) {
+        pad && pad.classList.add('active');
+        playSample(note % 100, vel);
+    } else if (cmd === 0x80 || (cmd === 0x90 && vel === 0)) {
+        pad && pad.classList.remove('active');
+    }
+}
+
+function playSample(n, vel = 127) {
+    if (!samples.has(n)) return;
+    if (activeSrcs.has(n)) { try { activeSrcs.get(n).stop(); } catch(e){} }
+    const src = audioCtx.createBufferSource();
+    const g = audioCtx.createGain();
+    src.buffer = samples.get(n);
+    g.gain.value = vel / 127;
+    src.connect(g); g.connect(masterGain); src.start(0);
+    activeSrcs.set(n, src);
+    src.onended = () => { if (activeSrcs.get(n) === src) activeSrcs.delete(n); };
+}
+
+async function loadSamples() {
+    const BASE = 'https://raw.githubusercontent.com/Tom-Vulpes/SpokeWebMidi/main/notes';
+    let count = 0;
+    for (let i = 0; i < 100; i++) {
+        for (const fmt of ['wav','mp3']) {
+            try {
+                const r = await fetch(`${BASE}/note_${String(i).padStart(3,'0')}.${fmt}`);
+                if (!r.ok) continue;
+                const buf = await audioCtx.decodeAudioData(await r.arrayBuffer());
+                samples.set(i, buf);
+                count++;
+                document.getElementById('sampleStatus').textContent = `Samples: ${count} / 100`;
+                break;
+            } catch(e) {}
+        }
+    }
+}
+
+function drawScope() {
+    const canvas = document.getElementById('audioScope');
+    const ctx = canvas.getContext('2d');
+    const fn = () => {
+        if (!scopeAnalyser) { requestAnimationFrame(fn); return; }
+        const data = new Uint8Array(scopeAnalyser.frequencyBinCount);
+        scopeAnalyser.getByteTimeDomainData(data);
+        ctx.fillStyle = '#080808';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.strokeStyle = 'rgba(255,107,43,0.8)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const sw = canvas.width / data.length;
+        data.forEach((v,i) => {
+            const y = (v/128.0) * canvas.height / 2;
+            i === 0 ? ctx.moveTo(0,y) : ctx.lineTo(i*sw, y);
+        });
+        ctx.stroke();
+        requestAnimationFrame(fn);
+    };
+    requestAnimationFrame(fn);
+}
+
+// ═══════════════════════════════════════════════════
+//  SERIAL
+// ═══════════════════════════════════════════════════
+let port, reader, reading = false;
+
+async function connectSerial() {
+    if (!('serial' in navigator)) {
+        log('❌ Web Serial not supported. Use Chrome, Edge, or Opera.', 'error');
+        return;
+    }
+    try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+        document.getElementById('serialDot').classList.add('connected');
+        document.getElementById('serialStatusText').textContent = '115200 baud';
+        log('✅ Connected to SPOKE Mini', 'info');
+        reading = true; readLoop();
+    } catch(e) {
+        if (e.name !== 'AbortError') log('❌ ' + e.message, 'error');
+    }
+}
+
+async function readLoop() {
+    while (port && port.readable && reading) {
+        reader = port.readable.getReader();
+        try {
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                new TextDecoder().decode(value).split('\n').forEach(line => {
+                    line = line.trim();
+                    if (!line) return;
+                    const isErr = /Traceback|Error|Exception/.test(line);
+                    log(line, isErr ? 'error' : '');
+                });
+            }
+        } catch(e) { log('📡 ' + e.message, 'error'); }
+        finally { reader.releaseLock(); }
+    }
+}
+
+function log(msg, type='') {
+    const c = document.getElementById('console');
+    const ts = new Date().toLocaleTimeString('en-GB',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const el = document.createElement('div');
+    el.className = 'c-line' + (type === 'error' ? ' c-error' : type === 'info' ? ' c-info' : '');
+    el.innerHTML = `<span class="c-ts">${ts}</span>${msg}`;
+    c.appendChild(el);
+    c.scrollTop = c.scrollHeight;
+}
+
+function clearConsole() {
+    document.getElementById('console').innerHTML = '';
+    log('Console cleared.', 'info');
+}
+
+window.addEventListener('beforeunload', async () => {
+    reading = false;
+    if (reader) await reader.cancel().catch(()=>{});
+    if (port) await port.close().catch(()=>{});
+});
+
+// ═══════════════════════════════════════════════════
+//  FILE OPS
+// ═══════════════════════════════════════════════════
+function openCodePy() {
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = '.py';
+    input.onchange = e => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = ev => {
+            document.getElementById('editor').value = ev.target.result;
+            log(`Opened: ${f.name}`, 'info');
+        };
+        r.readAsText(f);
+    };
+    input.click();
+}
+
+async function saveToMini() {
+    const code = document.getElementById('editor').value;
+    if (!code.trim()) { alert('Editor is empty — load a template first.'); return; }
+    if (!window.showSaveFilePicker) {
+        log('❌ File System Access API not supported. Try Chrome or Edge.', 'error');
+        return;
+    }
+    try {
+        const fh = await window.showSaveFilePicker({
+            suggestedName: 'code.py',
+            types: [{ description: 'Python Files', accept: { 'text/x-python': ['.py'] } }]
+        });
+        const w = await fh.createWritable();
+        await w.write(code); await w.close();
+        log('✅ code.py saved!', 'info');
+        log('💡 If saved to CIRCUITPY, board will auto-restart.', 'info');
+    } catch(e) {
+        if (e.name !== 'AbortError') log('❌ Save error: ' + e.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════
+//  TEMPLATES
+// ═══════════════════════════════════════════════════
+const TEMPLATES = {
+basic: `# This is the code for USB-MIDI. In this code we assign a midi value to each pin, and when the board senses that the pin has been touched it will send a NoteOn message. When the pin is released, it sends a NoteOff message.
 import time
 import board
 import touchio
@@ -1098,59 +1441,45 @@ import usb_midi
 import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
-
-# Define the touch pins (26 pads)
-touch_pins = [
-    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
-    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
-    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, 
-    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, 
-    board.GP27, board.GP28
-]
-
+# Define the touch pins
+touch_pins = [board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, board.GP27, board.GP28]
 touch_sensors = []
 for pin in touch_pins:
     try:
         touch_sensors.append(touchio.TouchIn(pin))
     except ValueError:
         print(f"No pulldown resistor found on pin {pin}, skipping...")
-
-# MIDI setup
+# MIDI setup - If you want to assign the midi device to a specific channel or port then just change the values in this line.
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
-
-# MIDI note numbers for each pad
-midi_notes = [
-    36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 
-    67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96
-]
-
-# State tracking
+# MIDI note numbers corresponding to each touch pin - change these to whatever midi note you prefer. 
+midi_notes = [36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96] 
+# State variables to track if a note has been played for each touch pin
 note_played = [False] * len(touch_pins)
-
-# Setup onboard LED
+# Setup LED toggling
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
-
-print("SPOKE Mini ready! 26 pads active")
-
 # Main loop
 while True:
     for i, touch_sensor in enumerate(touch_sensors):
+        # Capacitive touch sensing
         if touch_sensor.value:
+            # Check if the note has already been played
             if not note_played[i]:
+                # Send MIDI note on message when touch is detected. The Velocity is set to 120, change the value if you want to.
                 midi.send(NoteOn(midi_notes[i], 120))
                 led.value = True
-                note_played[i] = True
+                note_played[i] = True  # Update state variable
         else:
+            # Check if the note has been played and turn it off
             if note_played[i]:
+                # Send MIDI note off message when touch is released
                 midi.send(NoteOff(midi_notes[i], 120))
                 led.value = False
-                note_played[i] = False
+                note_played[i] = False  # Update state variable
 `,
 
-            'drums': `# Drum Pads - 13 pads for drums
-# Uses first 13 pads (left side of Mini)
-# LED blinks on each hit
+drums: `# SPOKE Mini — Drum Pads
+# First 13 pads mapped to General MIDI drums (channel 10)
 import time
 import board
 import touchio
@@ -1160,10 +1489,9 @@ import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
 
-# First 13 pads for drums
 touch_pins = [
-    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
-    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
     board.GP12
 ]
 
@@ -1172,14 +1500,13 @@ for pin in touch_pins:
     try:
         touch_sensors.append(touchio.TouchIn(pin))
     except ValueError:
-        print(f"No pulldown resistor found on pin {pin}, skipping...")
+        print(f"Skipping {pin}")
 
-# MIDI setup - channel 10 for drums
+# Channel 10 (index 9) for GM drums
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=9)
 
-# General MIDI drum notes
 drum_notes = [
-    36,  # Kick
+    36,  # Kick drum
     38,  # Snare
     42,  # Hi-hat closed
     46,  # Hi-hat open
@@ -1187,29 +1514,28 @@ drum_notes = [
     43,  # Tom 2
     45,  # Tom 3
     47,  # Tom 4
-    49,  # Crash
-    51,  # Ride
-    37,  # Rimshot
-    39,  # Clap
+    49,  # Crash cymbal
+    51,  # Ride cymbal
+    37,  # Side stick / Rimshot
+    39,  # Hand clap
     54   # Tambourine
 ]
 
 note_played = [False] * 13
 
-# Setup LED
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 
-print("Drum pads ready! 13 drums on left side")
+print("Drum pads ready — 13 drums on left side")
 
 while True:
-    for i, touch_sensor in enumerate(touch_sensors):
-        if touch_sensor.value:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
             if not note_played[i]:
                 midi.send(NoteOn(drum_notes[i], 127))
                 led.value = True
                 note_played[i] = True
-                print(f"Drum {i+1}")
+                print(f"Drum {i+1} hit")
         else:
             if note_played[i]:
                 midi.send(NoteOff(drum_notes[i], 0))
@@ -1217,8 +1543,8 @@ while True:
                 note_played[i] = False
 `,
 
-            'sensitivity': `# Sensitivity Controls
-# Adjust touch sensitivity with threshold values
+sensitivity: `# SPOKE Mini — Adjustable Touch Sensitivity
+# Tweak TOUCH_THRESHOLD to suit your setup
 import time
 import board
 import touchio
@@ -1228,33 +1554,34 @@ import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
 
-# SENSITIVITY SETTING - adjust this value!
-# Lower = more sensitive (easier to trigger)
+# ── ADJUST THIS VALUE ──────────────────────────
+# Lower  = more sensitive (easier to trigger)
 # Higher = less sensitive (harder to trigger)
-# Default is around 1200-1500
+# Default auto-calibration is ~1200–1500
 TOUCH_THRESHOLD = 1400
+# ───────────────────────────────────────────────
 
 touch_pins = [
-    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
-    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
-    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, 
-    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, 
-    board.GP27, board.GP28
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22,
+    board.GP26, board.GP27, board.GP28
 ]
 
 touch_sensors = []
 for pin in touch_pins:
     try:
-        sensor = touchio.TouchIn(pin)
-        sensor.threshold = TOUCH_THRESHOLD
-        touch_sensors.append(sensor)
+        s = touchio.TouchIn(pin)
+        s.threshold = TOUCH_THRESHOLD
+        touch_sensors.append(s)
     except ValueError:
-        print(f"No pulldown resistor found on pin {pin}, skipping...")
+        print(f"Skipping {pin}")
 
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
 
 midi_notes = [
-    36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 
+    36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64,
     67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96
 ]
 
@@ -1263,25 +1590,25 @@ note_played = [False] * len(touch_pins)
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 
-print(f"Sensitivity set to: {TOUCH_THRESHOLD}")
-print("Adjust TOUCH_THRESHOLD if pads are too sensitive or not sensitive enough")
+print(f"Touch threshold: {TOUCH_THRESHOLD}")
+print("Adjust TOUCH_THRESHOLD if pads are too sensitive or not responding")
 
 while True:
-    for i, touch_sensor in enumerate(touch_sensors):
-        if touch_sensor.value:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
             if not note_played[i]:
                 midi.send(NoteOn(midi_notes[i], 120))
                 led.value = True
                 note_played[i] = True
         else:
             if note_played[i]:
-                midi.send(NoteOff(midi_notes[i], 120))
+                midi.send(NoteOff(midi_notes[i], 0))
                 led.value = False
                 note_played[i] = False
 `,
 
-            'keyboard': `# Keyboard HID - A-Z Letters
-# 26 pads become A-Z keyboard keys
+keyboard: `# SPOKE Mini — A–Z Keyboard (HID)
+# 26 pads become A–Z keyboard keys
 import time
 import board
 import touchio
@@ -1290,15 +1617,14 @@ import usb_hid
 from adafruit_hid.keyboard import Keyboard
 from adafruit_hid.keycode import Keycode
 
-# Initialize Keyboard
 kbd = Keyboard(usb_hid.devices)
 
 touch_pins = [
-    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
-    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
-    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, 
-    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, 
-    board.GP27, board.GP28
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22,
+    board.GP26, board.GP27, board.GP28
 ]
 
 touch_sensors = []
@@ -1306,9 +1632,8 @@ for pin in touch_pins:
     try:
         touch_sensors.append(touchio.TouchIn(pin))
     except ValueError:
-        print(f"No pulldown resistor found on pin {pin}, skipping...")
+        print(f"Skipping {pin}")
 
-# A-Z keycodes for each pad
 keycodes = [
     Keycode.A, Keycode.B, Keycode.C, Keycode.D, Keycode.E, Keycode.F,
     Keycode.G, Keycode.H, Keycode.I, Keycode.J, Keycode.K, Keycode.L,
@@ -1322,7 +1647,7 @@ key_pressed = [False] * 26
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 
-print("Keyboard ready! Pads 1-26 are A-Z")
+print("Keyboard ready — pads 1–26 = A–Z")
 
 while True:
     for i, sensor in enumerate(touch_sensors):
@@ -1336,12 +1661,361 @@ while True:
                 kbd.release(keycodes[i])
                 led.value = False
                 key_pressed[i] = False
-    
     time.sleep(0.01)
 `,
 
-            'gaming': `# Gaming Controls - Keyboard + Mouse
-# Minecraft/FPS style game controls
+cc: `# This code allows you to send specific CC values on specific channels when a pin is touched. 
+# You can specify what values to send when it's not being touched and when it's being touched by editing the values in cc_value_on and cc_value_off 
+
+import time
+import board
+import touchio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.control_change import ControlChange
+
+# Define the touch pins and corresponding MIDI CC settings
+touch_pins = [
+    {"pin": board.GP0, "cc_channel": 0, "cc_value_on": 50, "cc_value_off": 0},
+    {"pin": board.GP1, "cc_channel": 1, "cc_value_on": 60, "cc_value_off": 0},
+    {"pin": board.GP2, "cc_channel": 2, "cc_value_on": 70, "cc_value_off": 0},
+    {"pin": board.GP3, "cc_channel": 3, "cc_value_on": 80, "cc_value_off": 0},
+    {"pin": board.GP4, "cc_channel": 4, "cc_value_on": 90, "cc_value_off": 0},
+    {"pin": board.GP5, "cc_channel": 5, "cc_value_on": 100, "cc_value_off": 0},
+    {"pin": board.GP6, "cc_channel": 6, "cc_value_on": 110, "cc_value_off": 0},
+    {"pin": board.GP7, "cc_channel": 7, "cc_value_on": 120, "cc_value_off": 0},
+    {"pin": board.GP8, "cc_channel": 8, "cc_value_on": 127, "cc_value_off": 0},
+    {"pin": board.GP9, "cc_channel": 9, "cc_value_on": 30, "cc_value_off": 0},
+    {"pin": board.GP10, "cc_channel": 10, "cc_value_on": 40, "cc_value_off": 0},
+    {"pin": board.GP11, "cc_channel": 11, "cc_value_on": 50, "cc_value_off": 0},
+    {"pin": board.GP12, "cc_channel": 12, "cc_value_on": 60, "cc_value_off": 0},
+    {"pin": board.GP13, "cc_channel": 13, "cc_value_on": 70, "cc_value_off": 0},
+    {"pin": board.GP14, "cc_channel": 14, "cc_value_on": 80, "cc_value_off": 0},
+    {"pin": board.GP15, "cc_channel": 15, "cc_value_on": 90, "cc_value_off": 0},
+    {"pin": board.GP16, "cc_channel": 16, "cc_value_on": 100, "cc_value_off": 0},
+    {"pin": board.GP17, "cc_channel": 17, "cc_value_on": 110, "cc_value_off": 0},
+    {"pin": board.GP18, "cc_channel": 18, "cc_value_on": 120, "cc_value_off": 0},
+    {"pin": board.GP19, "cc_channel": 19, "cc_value_on": 127, "cc_value_off": 0},
+    {"pin": board.GP20, "cc_channel": 20, "cc_value_on": 30, "cc_value_off": 0},
+    {"pin": board.GP21, "cc_channel": 21, "cc_value_on": 40, "cc_value_off": 0},
+    {"pin": board.GP22, "cc_channel": 22, "cc_value_on": 50, "cc_value_off": 0},
+    {"pin": board.GP26, "cc_channel": 23, "cc_value_on": 60, "cc_value_off": 0},
+    {"pin": board.GP27, "cc_channel": 24, "cc_value_on": 70, "cc_value_off": 0},
+    {"pin": board.GP28, "cc_channel": 25, "cc_value_on": 80, "cc_value_off": 0},
+]
+
+# Initialize touch sensors and MIDI
+touch_sensors = []
+for pin_config in touch_pins:
+    try:
+        touch_sensors.append({
+            "sensor": touchio.TouchIn(pin_config["pin"]),
+            "cc_channel": pin_config["cc_channel"],
+            "cc_value_on": pin_config["cc_value_on"],
+            "cc_value_off": pin_config["cc_value_off"],
+            "previous_state": False  # Track the previous state of each sensor
+        })
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin_config['pin']}, skipping...")
+
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# Main loop
+while True:
+    for sensor_config in touch_sensors:
+        sensor = sensor_config["sensor"]
+        cc_channel = sensor_config["cc_channel"]
+        cc_value_on = sensor_config["cc_value_on"]
+        cc_value_off = sensor_config["cc_value_off"]
+        previous_state = sensor_config["previous_state"]
+        
+        current_state = sensor.value
+        
+        if current_state and not previous_state:
+            # Send CC value on when touched
+            midi.send(ControlChange(cc_channel, cc_value_on))
+        elif not current_state and previous_state:
+            # Send CC value off when not touched
+            midi.send(ControlChange(cc_channel, cc_value_off))
+
+        
+        # Update the previous state
+        sensor_config["previous_state"] = current_state
+    
+    time.sleep(0.1)  # Adjust delay as needed
+`,
+
+arpeggio: `# This is the code for running a sequence of notes per pin. In the Main Loop (line 63) you can change the time between notes. 
+import time
+import board
+import touchio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+# Define the touch pins in ascending order
+touch_pins = [board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, board.GP27, board.GP28]
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+# Sequence configuration for each pin (up 4 notes and then down 4 notes)
+arpeggios = [
+    [48, 52, 55, 59, 62, 65, 62, 59],  # C major chord
+    [50, 53, 57, 60, 64, 67, 64, 60],  # D minor chord
+    [52, 55, 59, 62, 65, 69, 65, 62],  # E minor chord
+    [53, 57, 60, 64, 67, 71, 67, 64],  # F major chord
+    [55, 59, 62, 65, 69, 72, 69, 65],  # G major chord
+    [57, 60, 64, 67, 71, 74, 71, 67],  # A minor chord
+    [59, 62, 65, 69, 72, 76, 72, 69],  # B diminished chord
+    [60, 64, 67, 71, 74, 77, 74, 71],  # C major chord
+    [62, 65, 69, 72, 76, 79, 76, 72],  # D minor chord
+    [64, 67, 71, 74, 77, 81, 77, 74],  # E minor chord
+    [65, 69, 72, 76, 79, 83, 79, 76],  # F major chord
+    [67, 71, 74, 77, 81, 84, 81, 77],  # G major chord
+    [69, 72, 76, 79, 83, 86, 83, 79],  # A minor chord
+    [71, 74, 77, 81, 84, 88, 84, 81],  # B diminished chord
+    [72, 76, 79, 83, 86, 89, 86, 83],  # C major chord
+    [74, 77, 81, 84, 88, 91, 88, 84],  # D minor chord
+    [76, 79, 83, 86, 89, 93, 89, 86],  # E minor chord
+    [77, 81, 84, 88, 91, 95, 91, 88],  # F major chord
+    [79, 83, 86, 89, 93, 96, 93, 89],  # G major chord
+    [81, 84, 88, 91, 95, 98, 95, 91],  # A minor chord
+    [83, 86, 89, 93, 96, 100, 96, 93],  # B diminished chord
+    [84, 88, 91, 95, 98, 101, 98, 95],  # C major chord
+    [86, 89, 93, 96, 100, 103, 100, 96], # D minor chord
+    [88, 91, 95, 98, 101, 105, 101, 98], # E minor chord
+    [89, 93, 96, 100, 103, 107, 103, 100], # F major chord
+    [91, 95, 98, 101, 105, 108, 105, 101], # G major chord
+]
+# Main loop
+while True:
+    # Check each touch sensor
+    for i, sensor in enumerate(touch_sensors):
+        # If the capacitive touch is activated
+        if sensor.value:
+            print("Touch detected on pin", i)
+            # Play the sequence corresponding to the pin
+            arpeggio = arpeggios[i]
+            for note in arpeggio:
+                midi.send(NoteOn(note, 120))
+                time.sleep(0.2)  # Delay between each note in the arpeggio
+            time.sleep(0.5)  # Duration of the arpeggio
+            # Stop playing the arpeggio
+            for note in arpeggio:
+                midi.send(NoteOff(note, 0))
+`,
+
+bpm: `import time
+import board
+import touchio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+# Global BPM variable
+BPM = 120
+# Function to calculate delay between notes based on BPM
+def bpm_to_delay(bpm):
+    return 60 / bpm
+# Define the touch pins in ascending order
+touch_pins = [board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, board.GP27, board.GP28]
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+# Main loop
+while True:
+    # Check each touch sensor
+    for i, sensor in enumerate(touch_sensors):
+        # If the capacitive touch is activated
+        if sensor.value:
+            # Play a single note corresponding to the pin
+            note = 60 + i  # Adjust note based on touch pin
+            midi.send(NoteOn(note, 120))
+            time.sleep(bpm_to_delay(BPM))  # Delay based on BPM
+            midi.send(NoteOff(note, 0))
+`,
+
+minecraft: `# This code emulates the default controls for playing Minecraft on PC. The first 11 pins are keyboard controls and then from GP12 to GP17 are mouse controls.
+import time
+import board
+import touchio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+from adafruit_hid.mouse import Mouse
+# Initialize USB HID devices
+kpd = Keyboard(usb_hid.devices)
+mouse = Mouse(usb_hid.devices)
+# Define the touch pins for keyboard and mouse controls
+touch_pins_keyboard = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+]
+touch_pins_mouse = [
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17
+]
+# Initialize touch sensors for keyboard and mouse controls
+touch_sensors_keyboard = []
+for pin in touch_pins_keyboard:
+    try:
+        touch_sensors_keyboard.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+touch_sensors_mouse = []
+for pin in touch_pins_mouse:
+    try:
+        touch_sensors_mouse.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+# Keymap configuration for Minecraft controls
+KEYMAP_MINECRAFT = (
+    ("Forward", [Keycode.W]),      # Move forward GP00
+    ("Left", [Keycode.A]),         # Strafe left GP01
+    ("Back", [Keycode.S]),         # Move backward GP02
+    ("Right", [Keycode.D]),        # Strafe right GP03
+    ("Jump", [Keycode.SPACE]),     # Jump GP04
+    ("Sneak", [Keycode.LEFT_SHIFT]),   # Sneak (crouch) GP05
+    ("Inventory", [Keycode.E]),    # Open inventory GP06
+    ("Use", [Keycode.RIGHT_SHIFT]),    # Use item/place block GP07 
+    ("Attack", [mouse.LEFT_BUTTON]),   # Attack  
+    ("Interact", [mouse.RIGHT_BUTTON]),    # Interact
+    ("Sprint", [Keycode.LEFT_CONTROL]),    # Sprint GP10
+    ("Drop", [Keycode.Q]),         # Drop item GP11
+)
+# Mouse movement configuration
+MOUSE_MOVEMENT = 10  # Change this value to adjust mouse movement speed
+# Main loop
+while True:
+    # Check each touch sensor for keyboard controls
+    for i, sensor in enumerate(touch_sensors_keyboard):
+        # If the capacitive touch is activated
+        if sensor.value:
+            # If the key was not already pressed
+            for keycode in KEYMAP_MINECRAFT[i][1]:
+                kpd.press(keycode)  # Press the corresponding key
+            # Update key state
+            time.sleep(0.01)  # Add a small delay to debounce
+        else:
+            # If the key was previously pressed, release it
+            for keycode in KEYMAP_MINECRAFT[i][1]:
+                kpd.release(keycode)  # Release the corresponding key
+            time.sleep(0.01)  # Add a small delay to debounce
+    # Check each touch sensor for mouse controls
+    for i, sensor in enumerate(touch_sensors_mouse):
+        # If the capacitive touch is activated
+        if sensor.value:
+            # Check which touch pin is activated
+            if i == 0:  # GP12
+                mouse.move(x=MOUSE_MOVEMENT, y=0)  # Move mouse to the right
+            elif i == 1:  # GP13
+                mouse.move(x=-MOUSE_MOVEMENT, y=0)  # Move mouse to the left
+            elif i == 2:  # GP14
+                mouse.move(x=0, y=-MOUSE_MOVEMENT)  # Move mouse upwards
+            elif i == 3:  # GP15
+                mouse.move(x=0, y=MOUSE_MOVEMENT)  # Move mouse downwards
+            elif i == 4:  # GP16
+                mouse.click(Mouse.LEFT_BUTTON)  # Perform a left mouse click
+                time.sleep(0.01)  # Add a small delay to debounce
+            elif i == 5:  # GP17
+                mouse.click(Mouse.RIGHT_BUTTON)  # Perform a right mouse click
+                time.sleep(0.01)  # Add a small delay to debounce
+`,
+
+phrases: `import time
+import board
+import touchio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+kpd = Keyboard(usb_hid.devices)
+# Define the touch pins
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26,
+    board.GP27, board.GP28
+]
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+# Phrases configuration
+PHRASES = [
+    "hello ",
+    "world ",
+    "sausages ",
+    "keyboard ",
+    "crouch ",
+    "bananaaa ",
+    "above the  ",
+    "along the river ",
+    "slides ",
+    "behind a ",
+    "driven  ",
+    "crab ",
+    "lobster ",
+    "tickled by a ",
+    "harmonious ",
+    "spleen ",
+    "before becoming ",
+    "entranced by a ",
+    "thy ",
+    "corn-fed cattle ",
+    "space jam ",
+    "before the final sounds of a ",
+    "firework ",
+    "double ",
+    "shifting ",
+    "twee ",
+]
+# Define Keycodes for each alphabet character
+ALPHABET_KEYCODES = {
+    "a": Keycode.A, "b": Keycode.B, "c": Keycode.C, "d": Keycode.D,
+    "e": Keycode.E, "f": Keycode.F, "g": Keycode.G, "h": Keycode.H,
+    "i": Keycode.I, "j": Keycode.J, "k": Keycode.K, "l": Keycode.L,
+    "m": Keycode.M, "n": Keycode.N, "o": Keycode.O, "p": Keycode.P,
+    "q": Keycode.Q, "r": Keycode.R, "s": Keycode.S, "t": Keycode.T,
+    "u": Keycode.U, "v": Keycode.V, "w": Keycode.W, "x": Keycode.X,
+    "y": Keycode.Y, "z": Keycode.Z, " ": Keycode.SPACE,
+}
+# Main loop
+while True:
+    # Check each touch sensor
+    for i, sensor in enumerate(touch_sensors):
+        # If the capacitive touch is activated
+        if sensor.value:
+            print(f"Key pressed: {chr(ord('A') + i)}")
+            # Get the phrase corresponding to the pin
+            phrase = PHRASES[i]
+            print(phrase)
+            # Simulate typing the phrase
+            for char in phrase.lower():  # Convert phrase to lowercase
+                if char in ALPHABET_KEYCODES:  # Check if character is in ALPHABET_KEYCODES
+                    kpd.press(ALPHABET_KEYCODES[char])  # Press the corresponding Keycode
+                    kpd.release_all()  # Release all keys
+                    time.sleep(0.1)  # Adjust delay as needed
+            time.sleep(0.5)  # Add a small delay between phrases
+`,
+
+gaming: `# SPOKE Mini — Gaming Controls (Keyboard + Mouse HID)
+# Minecraft / FPS style layout
 import time
 import board
 import touchio
@@ -1355,11 +2029,11 @@ kbd = Keyboard(usb_hid.devices)
 mouse = Mouse(usb_hid.devices)
 
 touch_pins = [
-    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
-    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
-    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, 
-    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, 
-    board.GP27, board.GP28
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22,
+    board.GP26, board.GP27, board.GP28
 ]
 
 touch_sensors = []
@@ -1367,341 +2041,152 @@ for pin in touch_pins:
     try:
         touch_sensors.append(touchio.TouchIn(pin))
     except ValueError:
-        print(f"No pulldown resistor found on pin {pin}, skipping...")
+        print(f"Skipping {pin}")
 
-# Gaming controls mapping
+# (keycode_or_special, label)
 controls = [
-    (Keycode.W, 'forward'),          # Pad 1
-    (Keycode.A, 'left'),             # Pad 2
-    (Keycode.S, 'back'),             # Pad 3
-    (Keycode.D, 'right'),            # Pad 4
-    (Keycode.SPACE, 'jump'),         # Pad 5
-    (Keycode.SHIFT, 'sneak'),        # Pad 6
-    (Keycode.E, 'inventory'),        # Pad 7
-    (Keycode.Q, 'drop'),             # Pad 8
-    (Keycode.ONE, 'slot1'),          # Pad 9
-    (Keycode.TWO, 'slot2'),          # Pad 10
-    (Keycode.THREE, 'slot3'),        # Pad 11
-    (Keycode.FOUR, 'slot4'),         # Pad 12
-    (Keycode.FIVE, 'slot5'),         # Pad 13
-    (Keycode.SIX, 'slot6'),          # Pad 14
-    (Keycode.SEVEN, 'slot7'),        # Pad 15
-    (Keycode.EIGHT, 'slot8'),        # Pad 16
-    (Keycode.NINE, 'slot9'),         # Pad 17
-    ('LEFT_CLICK', 'attack'),        # Pad 18
-    ('RIGHT_CLICK', 'use'),          # Pad 19
-    (Keycode.R, 'sprint'),           # Pad 20
-    (Keycode.T, 'chat'),             # Pad 21
-    (Keycode.ESCAPE, 'menu'),        # Pad 22
-    (Keycode.F3, 'debug'),           # Pad 23
-    (Keycode.F5, 'perspective'),     # Pad 24
-    (Keycode.TAB, 'playerlist'),     # Pad 25
-    (Keycode.ENTER, 'send')          # Pad 26
+    (Keycode.W,       'Forward'),
+    (Keycode.A,       'Left'),
+    (Keycode.S,       'Back'),
+    (Keycode.D,       'Right'),
+    (Keycode.SPACE,   'Jump'),
+    (Keycode.SHIFT,   'Sneak'),
+    (Keycode.E,       'Inventory'),
+    (Keycode.Q,       'Drop'),
+    (Keycode.ONE,     'Slot 1'),
+    (Keycode.TWO,     'Slot 2'),
+    (Keycode.THREE,   'Slot 3'),
+    (Keycode.FOUR,    'Slot 4'),
+    (Keycode.FIVE,    'Slot 5'),
+    (Keycode.SIX,     'Slot 6'),
+    (Keycode.SEVEN,   'Slot 7'),
+    (Keycode.EIGHT,   'Slot 8'),
+    (Keycode.NINE,    'Slot 9'),
+    ('L_CLICK',       'Attack'),
+    ('R_CLICK',       'Use/Place'),
+    (Keycode.R,       'Sprint'),
+    (Keycode.T,       'Chat'),
+    (Keycode.ESCAPE,  'Menu'),
+    (Keycode.F3,      'Debug'),
+    (Keycode.F5,      'Perspective'),
+    (Keycode.TAB,     'Player List'),
+    (Keycode.ENTER,   'Send'),
 ]
 
-keycodes = [control[0] for control in controls]
-control_active = [False] * 26
+active = [False] * 26
 
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 
 print("Gaming controls ready!")
-for i, (key, action) in enumerate(controls):
-    key_name = 'LEFT_CLICK' if key == 'LEFT_CLICK' else ('RIGHT_CLICK' if key == 'RIGHT_CLICK' else str(key).split('.')[-1])
-    print(f"Pad {i+1}: {key_name} ({action})")
+for i, (k, label) in enumerate(controls):
+    print(f"  Pad {i+1:2d}: {label}")
 
 while True:
     for i, sensor in enumerate(touch_sensors):
+        key, _ = controls[i]
         if sensor.value:
-            if not control_active[i]:
-                if keycodes[i] == 'LEFT_CLICK':
-                    mouse.press(Mouse.LEFT_BUTTON)
-                elif keycodes[i] == 'RIGHT_CLICK':
-                    mouse.press(Mouse.RIGHT_BUTTON)
-                else:
-                    kbd.press(keycodes[i])
+            if not active[i]:
+                if key == 'L_CLICK':   mouse.press(Mouse.LEFT_BUTTON)
+                elif key == 'R_CLICK': mouse.press(Mouse.RIGHT_BUTTON)
+                else:                  kbd.press(key)
                 led.value = True
-                control_active[i] = True
+                active[i] = True
         else:
-            if control_active[i]:
-                if keycodes[i] == 'LEFT_CLICK':
-                    mouse.release(Mouse.LEFT_BUTTON)
-                elif keycodes[i] == 'RIGHT_CLICK':
-                    mouse.release(Mouse.RIGHT_BUTTON)
-                else:
-                    kbd.release(keycodes[i])
+            if active[i]:
+                if key == 'L_CLICK':   mouse.release(Mouse.LEFT_BUTTON)
+                elif key == 'R_CLICK': mouse.release(Mouse.RIGHT_BUTTON)
+                else:                  kbd.release(key)
                 led.value = False
-                control_active[i] = False
-    
+                active[i] = False
     time.sleep(0.01)
 `
-        };
-        
-        // Load template
-        function loadTemplate(name) {
-            const template = templates.getTemplate(name);
-            editor.value = template;
+};
+
+function loadTemplate(name, el) {
+    document.getElementById('editor').value = TEMPLATES[name] || TEMPLATES.basic;
+    document.querySelectorAll('.template-item').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════
+//  SCALE BUILDER
+// ═══════════════════════════════════════════════════
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const scaleNotes = Array(26).fill(60);
+
+function noteName(n) {
+    return `${NOTE_NAMES[n%12]}${Math.floor(n/12)-1} (${n})`;
+}
+
+const PRESETS = {
+    'Chromatic': () => Array.from({length:26}, (_,i) => 48+i),
+    'C Major':   () => { const p=[0,2,4,5,7,9,11]; return Array.from({length:26},(_,i)=>48+(Math.floor(i/7)*12)+p[i%7]); },
+    'A Minor':   () => { const p=[0,2,3,5,7,8,10]; return Array.from({length:26},(_,i)=>45+(Math.floor(i/7)*12)+p[i%7]); },
+    'Pentatonic':() => { const p=[0,2,4,7,9]; return Array.from({length:26},(_,i)=>48+(Math.floor(i/5)*12)+p[i%5]); },
+    'Blues':     () => { const p=[0,3,5,6,7,10]; return Array.from({length:26},(_,i)=>48+(Math.floor(i/6)*12)+p[i%6]); },
+    'Default':   () => [36,38,40,43,45,48,50,52,55,57,60,62,64,67,69,72,74,76,79,81,84,86,88,91,93,96],
+};
+
+function openScaleBuilder() {
+    // preset chips
+    const pr = document.getElementById('presetRow');
+    pr.innerHTML = '';
+    Object.keys(PRESETS).forEach(name => {
+        const b = document.createElement('button');
+        b.className = 'preset-chip';
+        b.textContent = name;
+        b.onclick = () => applyPreset(name);
+        pr.appendChild(b);
+    });
+
+    // pad selectors
+    const grid = document.getElementById('scaleGrid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 26; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = 'pad-sel';
+        const lbl = document.createElement('div');
+        lbl.className = 'pad-sel-label';
+        lbl.textContent = `Pad ${i+1}`;
+        const sel = document.createElement('select');
+        sel.className = 'note-sel';
+        sel.id = `ns-${i}`;
+        for (let n = 21; n <= 108; n++) {
+            const opt = document.createElement('option');
+            opt.value = n; opt.textContent = noteName(n);
+            if (n === scaleNotes[i]) opt.selected = true;
+            sel.appendChild(opt);
         }
-        
-        // Copy code to clipboard
-        function copyCode() {
-            editor.select();
-            document.execCommand('copy');
-            alert('Code copied to clipboard!');
-        }
-        
-        // Open code.py file
-        function openCodePy() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.py';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        editor.value = e.target.result;
-                        addConsoleMessage(`Loaded: ${file.name}`, 'info');
-                    };
-                    reader.readAsText(file);
-                }
-            };
-            input.click();
-        }
-        
-        // Download code.py
-        function downloadCodePy() {
-            const code = editor.value;
-            if (!code.trim()) {
-                alert('Editor is empty! Load a template first.');
-                return;
-            }
-            
-            const blob = new Blob([code], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'code.py';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            addConsoleMessage('code.py downloaded! Copy it to your CIRCUITPY drive.', 'info');
-        }
-        
-        // Save directly to Mini via File System Access API
-        async function saveToMini() {
-            const code = editor.value;
-            if (!code.trim()) {
-                alert('Editor is empty! Load a template first.');
-                return;
-            }
-            
-            try {
-                // Check if File System Access API is supported
-                if (!window.showSaveFilePicker) {
-                    addConsoleMessage('❌ File System Access API not supported. Try Chrome or Edge.', 'error');
-                    alert('Your browser does not support direct file saving. Please use "Download code.py" instead.');
-                    return;
-                }
-                
-                // Open save file picker with default name code.py
-                const fileHandle = await window.showSaveFilePicker({
-                    suggestedName: 'code.py',
-                    types: [{
-                        description: 'Python Files',
-                        accept: { 'text/x-python': ['.py'] }
-                    }]
-                });
-                
-                // Write the file
-                const writable = await fileHandle.createWritable();
-                await writable.write(code);
-                await writable.close();
-                
-                addConsoleMessage('✅ code.py saved successfully!', 'info');
-                addConsoleMessage('📁 File saved to: ' + (await fileHandle.getFile()).name, 'info');
-                addConsoleMessage('💡 If saved to CIRCUITPY drive, board will auto-restart', 'info');
-                
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    addConsoleMessage('Save cancelled.', 'info');
-                } else {
-                    addConsoleMessage(`❌ Save error: ${error.message}`, 'error');
-                }
-            }
-        }
-        
-        // Alias for compatibility
-        function saveFile() {
-            downloadCodePy();
-        }
-        
-        function openFile() {
-            openCodePy();
-        }
-        
-        // Scale Builder functionality
-        const scaleNotes = new Array(26).fill(60); // Default to middle C
-        
-        // MIDI note names
-        const noteNames = [
-            'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
-        ];
-        
-        function getNoteName(midiNote) {
-            const octave = Math.floor(midiNote / 12) - 1;
-            const noteName = noteNames[midiNote % 12];
-            return `${noteName}${octave} (${midiNote})`;
-        }
-        
-        function openScaleBuilder() {
-            console.log('Opening Scale Builder...');
-            const modal = document.getElementById('scaleBuilderModal');
-            const grid = document.getElementById('scaleBuilderGrid');
-            
-            if (!modal) {
-                console.error('Modal not found!');
-                alert('Scale Builder modal not found. Please refresh the page.');
-                return;
-            }
-            
-            if (!grid) {
-                console.error('Grid not found!');
-                return;
-            }
-            
-            console.log('Modal and grid found, populating...');
-            
-            // Clear and populate grid
-            grid.innerHTML = '';
-            
-            for (let i = 0; i < 26; i++) {
-                const selector = document.createElement('div');
-                selector.className = 'pad-selector';
-                
-                const label = document.createElement('div');
-                label.className = 'pad-label';
-                label.textContent = `Pad ${i + 1}`;
-                
-                const select = document.createElement('select');
-                select.className = 'note-select';
-                select.id = `note-${i}`;
-                
-                // Populate with MIDI notes 21 (A0) to 108 (C8)
-                for (let note = 21; note <= 108; note++) {
-                    const option = document.createElement('option');
-                    option.value = note;
-                    option.textContent = getNoteName(note);
-                    if (note === scaleNotes[i]) {
-                        option.selected = true;
-                    }
-                    select.appendChild(option);
-                }
-                
-                select.addEventListener('change', (e) => {
-                    scaleNotes[i] = parseInt(e.target.value);
-                });
-                
-                selector.appendChild(label);
-                selector.appendChild(select);
-                grid.appendChild(selector);
-            }
-            
-            console.log('Displaying modal...');
-            modal.style.display = 'flex';
-        }
-        
-        function closeScaleBuilder() {
-            document.getElementById('scaleBuilderModal').style.display = 'none';
-        }
-        
-        function applyPreset(presetName) {
-            let notes = [];
-            
-            switch(presetName) {
-                case 'chromatic':
-                    // C3 to C5 chromatic
-                    for (let i = 0; i < 26; i++) {
-                        notes.push(48 + i); // C3 upwards
-                    }
-                    break;
-                    
-                case 'major':
-                    // C Major scale across 3+ octaves
-                    const majorPattern = [0, 2, 4, 5, 7, 9, 11]; // Major scale intervals
-                    for (let i = 0; i < 26; i++) {
-                        const octave = Math.floor(i / 7);
-                        const note = majorPattern[i % 7];
-                        notes.push(48 + (octave * 12) + note); // Start from C3
-                    }
-                    break;
-                    
-                case 'minor':
-                    // A Minor scale
-                    const minorPattern = [0, 2, 3, 5, 7, 8, 10]; // Natural minor
-                    for (let i = 0; i < 26; i++) {
-                        const octave = Math.floor(i / 7);
-                        const note = minorPattern[i % 7];
-                        notes.push(45 + (octave * 12) + note); // Start from A2
-                    }
-                    break;
-                    
-                case 'pentatonic':
-                    // C Major pentatonic
-                    const pentaPattern = [0, 2, 4, 7, 9]; // Pentatonic scale
-                    for (let i = 0; i < 26; i++) {
-                        const octave = Math.floor(i / 5);
-                        const note = pentaPattern[i % 5];
-                        notes.push(48 + (octave * 12) + note); // Start from C3
-                    }
-                    break;
-                    
-                case 'blues':
-                    // Blues scale
-                    const bluesPattern = [0, 3, 5, 6, 7, 10]; // Blues scale
-                    for (let i = 0; i < 26; i++) {
-                        const octave = Math.floor(i / 6);
-                        const note = bluesPattern[i % 6];
-                        notes.push(48 + (octave * 12) + note); // Start from C3
-                    }
-                    break;
-                    
-                case 'default':
-                    // Default SPOKE Mini notes
-                    notes = [36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 
-                            67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96];
-                    break;
-            }
-            
-            // Update scaleNotes array
-            for (let i = 0; i < 26; i++) {
-                scaleNotes[i] = notes[i];
-            }
-            
-            // Update all selects
-            for (let i = 0; i < 26; i++) {
-                const select = document.getElementById(`note-${i}`);
-                if (select) {
-                    select.value = notes[i];
-                }
-            }
-        }
-        
-        function generateScaleCode() {
-            // Read current values from selects
-            for (let i = 0; i < 26; i++) {
-                const select = document.getElementById(`note-${i}`);
-                if (select) {
-                    scaleNotes[i] = parseInt(select.value);
-                }
-            }
-            
-            const notesString = '[' + scaleNotes.join(', ') + ']';
-            
-            const code = `# Custom Scale - SPOKE Mini
-# Generated with Scale Builder
+        sel.onchange = e => scaleNotes[i] = +e.target.value;
+        wrap.appendChild(lbl); wrap.appendChild(sel);
+        grid.appendChild(wrap);
+    }
+
+    document.getElementById('scaleModal').style.display = 'flex';
+}
+
+function closeScaleBuilder() {
+    document.getElementById('scaleModal').style.display = 'none';
+}
+
+function applyPreset(name) {
+    const notes = PRESETS[name]();
+    notes.forEach((n,i) => {
+        scaleNotes[i] = n;
+        const sel = document.getElementById(`ns-${i}`);
+        if (sel) sel.value = n;
+    });
+}
+
+function generateScaleCode() {
+    for (let i = 0; i < 26; i++) {
+        const sel = document.getElementById(`ns-${i}`);
+        if (sel) scaleNotes[i] = +sel.value;
+    }
+
+    const code = `# SPOKE Mini — Custom Scale
+# Generated by Scale Builder
 import time
 import board
 import touchio
@@ -1711,13 +2196,12 @@ import adafruit_midi
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
 
-# Define the touch pins (26 pads)
 touch_pins = [
-    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, 
-    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, 
-    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, 
-    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, 
-    board.GP27, board.GP28
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22,
+    board.GP26, board.GP27, board.GP28
 ]
 
 touch_sensors = []
@@ -1725,60 +2209,58 @@ for pin in touch_pins:
     try:
         touch_sensors.append(touchio.TouchIn(pin))
     except ValueError:
-        print(f"No pulldown resistor found on pin {pin}, skipping...")
+        print(f"Skipping {pin}")
 
-# MIDI setup
 midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
 
-# Custom MIDI notes for each pad
-midi_notes = ${notesString}
+midi_notes = [${scaleNotes.join(', ')}]
 
-# State tracking
 note_played = [False] * len(touch_pins)
 
-# Setup onboard LED
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 
-print("Custom Scale ready!")
+print("Custom scale loaded!")
 print("Notes:", midi_notes)
 
-# Main loop
 while True:
-    for i, touch_sensor in enumerate(touch_sensors):
-        if touch_sensor.value:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
             if not note_played[i]:
                 midi.send(NoteOn(midi_notes[i], 120))
                 led.value = True
                 note_played[i] = True
         else:
             if note_played[i]:
-                midi.send(NoteOff(midi_notes[i], 120))
+                midi.send(NoteOff(midi_notes[i], 0))
                 led.value = False
                 note_played[i] = False
 `;
-            
-            editor.value = code;
-            closeScaleBuilder();
-            addConsoleMessage('Custom scale code generated!', 'info');
-        }
-        
-        // Tab key support in textarea
-        editor.addEventListener('keydown', function(e) {
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                const start = this.selectionStart;
-                const end = this.selectionEnd;
-                this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
-                this.selectionStart = this.selectionEnd = start + 4;
-            }
-        });
-        
-        // Load default template on startup
-        loadTemplate('basic');
-        
-        // Initialize visualizer
-        initVisualizer();
-    </script>
+
+    document.getElementById('editor').value = code;
+    closeScaleBuilder();
+    log('Custom scale code generated!', 'info');
+}
+
+// ═══════════════════════════════════════════════════
+//  TAB KEY IN EDITOR
+// ═══════════════════════════════════════════════════
+document.getElementById('editor').addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = this.selectionStart, en = this.selectionEnd;
+        this.value = this.value.slice(0,s) + '    ' + this.value.slice(en);
+        this.selectionStart = this.selectionEnd = s + 4;
+    }
+});
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+renderWizard();
+initVisualizer();
+buildPinGrid();
+loadTemplate('basic');
+</script>
 </body>
 </html>
