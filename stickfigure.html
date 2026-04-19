@@ -142,10 +142,8 @@ canvas{display:block;max-width:100%;max-height:100%}
     <!-- MIDI settings -->
     <div class="panel">
       <div class="panel-label">MIDI</div>
-      <div class="midi-row">
-        <label>Base note</label>
-        <input type="number" id="base-note" value="36" min="0" max="100">
-        <span class="note">C2 = 36</span>
+      <div style="font-size:9.5px;color:#3a4a6a;font-family:'Space Mono',monospace;margin-bottom:6px;line-height:1.6">
+        SPOKE pentatonic scale<br>notes 36–98 · 27 fixed pads
       </div>
       <div class="midi-row">
         <label>Channel</label>
@@ -761,7 +759,11 @@ function midiLog(msg,ev=false){
   if(logEl.children.length>60) logEl.removeChild(logEl.firstChild);
 }
 
-function getBaseNote(){return parseInt(document.getElementById('base-note').value)||36;}
+// SPOKE fixed pentatonic note list (pad 0 = note 98, pad 26 = note 36)
+// as listed by user: 98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36
+const SPOKE_NOTES=[98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36];
+const NOTE_TO_PAD=new Map(SPOKE_NOTES.map((n,i)=>[n,i]));
+
 function getMidiCh(){return parseInt(document.getElementById('midi-ch').value)||0;}
 
 function onMidi(e){
@@ -771,13 +773,16 @@ function onMidi(e){
   if(fch>0&&ch!==fch)return;
 
   if(type===0x90||type===0x80){
-    const idx=data1-getBaseNote();
+    const idx=NOTE_TO_PAD.get(data1);
     const on=type===0x90&&data2>0;
-    if(idx>=0&&idx<27){
+    if(idx!==undefined){
       setSensor(idx,on,cellEls[idx]);
-      midiLog(`${on?'ON ':'OFF'} ch${ch} n${data1}→pad${idx} [${SENSORS[idx].l.replace('\n',' ')}]`,true);
+      midiLog(`${on?'ON ':'OFF'} ch${ch} note${data1}→pad${idx} [${SENSORS[idx].l.replace('\n',' ')}]`,true);
+    }else{
+      midiLog(`note${data1} not in SPOKE map (ignored)`);
     }
   }else if(type===0xB0){
+    // CC: number maps directly to pad index
     const idx=data1;
     const on=data2>63;
     if(idx>=0&&idx<27){
