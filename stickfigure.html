@@ -120,7 +120,7 @@ canvas{display:block;max-width:100%;max-height:100%}
 <div id="hdr">
   <h1>⬡ SPOKE / <span>MIDI FIGURE</span></h1>
   <div class="pill" id="midi-pill">MIDI connecting…</div>
-  <div class="hdr-right">hold sensor → move joint</div>
+  <div class="hdr-right">click pads to latch · fully polyphonic</div>
 </div>
 
 <div id="main">
@@ -156,7 +156,11 @@ canvas{display:block;max-width:100%;max-height:100%}
 
     <!-- Sensors -->
     <div class="panel">
-      <div class="panel-label">Sensors — 27 pads</div>
+      <div class="panel-label" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Sensors — 27 pads</span>
+        <button id="clear-btn" onclick="clearAll()" style="font-size:9px;padding:2px 7px;background:#1a0d0d;border:1px solid #3a1a1a;border-radius:4px;color:#a44;cursor:pointer;font-family:'Space Mono',monospace">Clear all</button>
+      </div>
+      <div style="font-size:9px;color:#2a2a48;margin-bottom:5px;font-family:'Space Mono',monospace">click to latch · polyphonic</div>
       <div id="sensor-grid"></div>
     </div>
 
@@ -656,7 +660,7 @@ function loop(ts){
 requestAnimationFrame(t=>{lastT=t;loop(t);});
 
 // ══════════════════════════════════════════════════════════
-//  SENSOR GRID UI
+//  SENSOR GRID UI  — latch mode (click = toggle on/off)
 // ══════════════════════════════════════════════════════════
 const grid=document.getElementById('sensor-grid');
 const cellEls=[];
@@ -668,14 +672,10 @@ for(let i=0;i<28;i++){
     el.className='sc';
     el.style.color=s.col+'99';
     el.innerHTML=`<span class="snum">${i}</span>${s.l.replace('\n','<br>')}`;
-    const on=()=>setSensor(i,true,el);
-    const off=()=>setSensor(i,false,el);
-    el.addEventListener('mousedown',on);
-    el.addEventListener('mouseup',off);
-    el.addEventListener('mouseleave',e=>{if(e.buttons===0||e.buttons===1)off();});
-    el.addEventListener('touchstart',e=>{e.preventDefault();on();},{passive:false});
-    el.addEventListener('touchend',e=>{e.preventDefault();off();});
-    el.addEventListener('touchcancel',off);
+    // Latch toggle: click flips state
+    el.addEventListener('click',()=>toggleSensor(i,el));
+    // Touch: same toggle on touchend (no hold needed)
+    el.addEventListener('touchend',e=>{e.preventDefault();toggleSensor(i,el);});
     cellEls.push(el);
   }else{
     el.className='sc empty';
@@ -686,6 +686,12 @@ for(let i=0;i<28;i++){
 function setSensor(i,on,el){
   if(on){active.add(i);el&&el.classList.add('on');}
   else{active.delete(i);el&&el.classList.remove('on');}
+}
+function toggleSensor(i,el){
+  setSensor(i,!active.has(i),el);
+}
+function clearAll(){
+  for(let i=0;i<27;i++) setSensor(i,false,cellEls[i]);
 }
 
 // ══════════════════════════════════════════════════════════
