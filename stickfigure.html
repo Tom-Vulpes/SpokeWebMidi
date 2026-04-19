@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPOKE MIDI — Stick Figure</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080810;--surface:#0f0f1c;--surface2:#161626;
+  --border:#1e1e32;--border2:#2a2a44;
+  --text:#c8c8e0;--muted:#55567a;--accent:#5577ff;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+body{display:flex;flex-direction:column}
+
+/* ── Header ── */
+#hdr{
+  display:flex;align-items:center;gap:14px;
+  padding:9px 16px;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  flex-shrink:0;z-index:10;
+}
+#hdr h1{font-family:'Space Mono',monospace;font-size:13px;letter-spacing:.05em;color:#88a;font-weight:400}
+#hdr h1 span{color:#7af;font-weight:700}
+.pill{
+  padding:2px 9px;border-radius:20px;font-size:11px;font-family:'Space Mono',monospace;
+  background:var(--surface2);border:1px solid var(--border2);color:var(--muted);
+  transition:all .3s;
+}
+.pill.ok{background:#071a10;border-color:#1d6b3a;color:#3ec97a}
+.pill.err{background:#1a0709;border-color:#5c1a23;color:#e05060}
+.hdr-right{margin-left:auto;font-size:11px;color:var(--muted);font-family:'Space Mono',monospace}
+
+/* ── Layout ── */
+#main{display:flex;flex:1;overflow:hidden}
+#canvas-wrap{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);position:relative;overflow:hidden;
+}
+canvas{display:block;max-width:100%;max-height:100%}
+
+/* ── Sidebar ── */
+#sidebar{
+  width:250px;flex-shrink:0;
+  background:var(--surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:var(--border2) transparent;
+}
+.panel{padding:12px 14px;border-bottom:1px solid var(--border)}
+.panel-label{
+  font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:.12em;
+  color:var(--muted);text-transform:uppercase;margin-bottom:8px;
+}
+
+/* ── Skins ── */
+.skins{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.skin-btn{
+  padding:6px 8px;background:var(--surface2);
+  border:1px solid var(--border2);border-radius:6px;
+  color:var(--muted);font-size:11px;font-family:'Space Mono',monospace;
+  cursor:pointer;transition:all .15s;text-align:center;
+}
+.skin-btn:hover{border-color:#3a3a60;color:#aab}
+.skin-btn.on{background:#111a2e;border-color:var(--accent);color:#99bbff}
+
+/* ── MIDI settings ── */
+.midi-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px}
+.midi-row label{color:var(--muted);width:72px;font-size:11px}
+.midi-row input{
+  width:58px;background:var(--surface2);border:1px solid var(--border2);
+  color:var(--text);padding:3px 7px;border-radius:5px;font-size:12px;
+  font-family:'Space Mono',monospace;outline:none;
+}
+.midi-row input:focus{border-color:var(--accent)}
+.midi-row .note{font-size:10px;color:#3a3a5a}
+
+/* ── Sensor Grid ── */
+#sensor-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:3px;
+}
+.sc{
+  aspect-ratio:1;border-radius:5px;border:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:7.5px;line-height:1.3;text-align:center;cursor:pointer;
+  transition:background .08s,border-color .08s,box-shadow .08s;
+  background:var(--surface2);color:#3a3a58;
+  user-select:none;padding:2px;
+  -webkit-tap-highlight-color:transparent;
+}
+.sc .snum{font-size:8px;color:#282840;font-family:'Space Mono',monospace;line-height:1}
+.sc:hover{background:#111126;border-color:#2a2a48}
+.sc.on{color:#fff!important;border-color:currentColor;box-shadow:0 0 8px currentColor}
+.sc.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+
+/* ── MIDI Log ── */
+#log{
+  font-size:10px;font-family:'Space Mono',monospace;
+  height:70px;overflow-y:auto;
+  background:#07070f;border:1px solid var(--border);border-radius:5px;
+  padding:4px 6px;color:#2a2a48;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+#log div{padding:1px 0;border-bottom:1px solid #0d0d1a;color:#3a3a5c}
+#log div.ev{color:#5577cc}
+
+/* ── Physics debug ── */
+#phys-bars{display:flex;flex-direction:column;gap:3px}
+.bar-row{display:flex;align-items:center;gap:6px;font-size:9px}
+.bar-row label{width:72px;color:var(--muted);font-size:9px;font-family:'Space Mono',monospace;text-align:right}
+.bar-track{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:3px;transition:width .05s,background .1s;position:absolute;top:0}
+.bar-val{font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;width:32px}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <h1>⬡ SPOKE / <span>MIDI FIGURE</span></h1>
+  <div class="pill" id="midi-pill">MIDI connecting…</div>
+  <div class="hdr-right">hold sensor → move joint</div>
+</div>
+
+<div id="main">
+  <div id="canvas-wrap"><canvas id="c"></canvas></div>
+
+  <div id="sidebar">
+
+    <!-- Skin -->
+    <div class="panel">
+      <div class="panel-label">Skin</div>
+      <div class="skins">
+        <button class="skin-btn on" data-skin="wire">Wire</button>
+        <button class="skin-btn" data-skin="muscle">Muscle</button>
+        <button class="skin-btn" data-skin="geo">Geo</button>
+        <button class="skin-btn" data-skin="neon">Neon</button>
+      </div>
+    </div>
+
+    <!-- MIDI settings -->
+    <div class="panel">
+      <div class="panel-label">MIDI</div>
+      <div class="midi-row">
+        <label>Base note</label>
+        <input type="number" id="base-note" value="36" min="0" max="100">
+        <span class="note">C2 = 36</span>
+      </div>
+      <div class="midi-row">
+        <label>Channel</label>
+        <input type="number" id="midi-ch" value="0" min="0" max="16">
+        <span class="note">0 = any</span>
+      </div>
+    </div>
+
+    <!-- Sensors -->
+    <div class="panel">
+      <div class="panel-label">Sensors — 27 pads</div>
+      <div id="sensor-grid"></div>
+    </div>
+
+    <!-- Physics bars -->
+    <div class="panel">
+      <div class="panel-label">Springs</div>
+      <div id="phys-bars"></div>
+    </div>
+
+    <!-- Log -->
+    <div class="panel" style="flex:1">
+      <div class="panel-label">MIDI log</div>
+      <div id="log"><div>Waiting for MIDI…</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+// ══════════════════════════════════════════════════════════
+//  SPRING PHYSICS
+// ══════════════════════════════════════════════════════════
+class Spring{
+  constructor(k=140,d=18,lo=-Infinity,hi=Infinity){
+    this.v=0;this.vel=0;this.target=0;
+    this.k=k;this.d=d;this.lo=lo;this.hi=hi;
+  }
+  update(dt){
+    const f=-this.k*(this.v-this.target)-this.d*this.vel;
+    this.vel+=f*dt; this.v+=this.vel*dt;
+    this.v=Math.max(this.lo,Math.min(this.hi,this.v));
+  }
+}
+
+// Joint springs
+const J={
+  spine:     new Spring(110,15,-0.65,0.65),
+  headNod:   new Spring(90,12,-0.55,0.75),
+  lShoulder: new Spring(145,19,-0.55,2.1),
+  lElbow:    new Spring(145,19,-0.45,1.9),
+  rShoulder: new Spring(145,19,-2.1,0.55),
+  rElbow:    new Spring(145,19,-1.9,0.45),
+  lHip:      new Spring(145,19,-0.9,0.9),
+  rHip:      new Spring(145,19,-0.9,0.9),
+  lKnee:     new Spring(145,19,-0.05,1.6),
+  rKnee:     new Spring(145,19,-0.05,1.6),
+  breath:    new Spring(55,7,-1,1),
+};
+const ALL_JOINTS=Object.keys(J);
+
+// ══════════════════════════════════════════════════════════
+//  SENSOR MAP  (27 entries, 0-indexed)
+// ══════════════════════════════════════════════════════════
+// delta: offset applied to joint spring target when sensor active
+// canvas coords: 0=right, +90°=down, positive=clockwise
+const SENSORS=[
+  // 0-3  Left Shoulder
+  {l:'L.Shl\n↑',    j:'lShoulder',d:+1.5,  col:'#5af'},
+  {l:'L.Shl\n↓',    j:'lShoulder',d:-0.55, col:'#5af'},
+  {l:'L.Shl\nOut',  j:'lShoulder',d:+0.5,  col:'#5af'},
+  {l:'L.Shl\nIn',   j:'lShoulder',d:-0.45, col:'#5af'},
+  // 4-7  Left Elbow
+  {l:'L.Elb\n↑',    j:'lElbow',   d:+1.45, col:'#79e'},
+  {l:'L.Elb\n↓',    j:'lElbow',   d:-0.4,  col:'#79e'},
+  {l:'L.Elb\nOut',  j:'lElbow',   d:+0.38, col:'#79e'},
+  {l:'L.Elb\nIn',   j:'lElbow',   d:-0.38, col:'#79e'},
+  // 8-11 Right Shoulder
+  {l:'R.Shl\n↑',    j:'rShoulder',d:-1.5,  col:'#f85'},
+  {l:'R.Shl\n↓',    j:'rShoulder',d:+0.55, col:'#f85'},
+  {l:'R.Shl\nOut',  j:'rShoulder',d:-0.5,  col:'#f85'},
+  {l:'R.Shl\nIn',   j:'rShoulder',d:+0.45, col:'#f85'},
+  // 12-15 Right Elbow
+  {l:'R.Elb\n↑',    j:'rElbow',   d:-1.45, col:'#fb7'},
+  {l:'R.Elb\n↓',    j:'rElbow',   d:+0.4,  col:'#fb7'},
+  {l:'R.Elb\nOut',  j:'rElbow',   d:-0.38, col:'#fb7'},
+  {l:'R.Elb\nIn',   j:'rElbow',   d:+0.38, col:'#fb7'},
+  // 16-19 Left Hip
+  {l:'L.Hip\nFwd',  j:'lHip',     d:-0.72, col:'#b5f'},
+  {l:'L.Hip\nBck',  j:'lHip',     d:+0.72, col:'#b5f'},
+  {l:'L.Hip\nOut',  j:'lHip',     d:+0.38, col:'#b5f'},
+  {l:'L.Hip\nIn',   j:'lHip',     d:-0.38, col:'#b5f'},
+  // 20-23 Right Hip
+  {l:'R.Hip\nFwd',  j:'rHip',     d:+0.72, col:'#f5b'},
+  {l:'R.Hip\nBck',  j:'rHip',     d:-0.72, col:'#f5b'},
+  {l:'R.Hip\nOut',  j:'rHip',     d:-0.38, col:'#f5b'},
+  {l:'R.Hip\nIn',   j:'rHip',     d:+0.38, col:'#f5b'},
+  // 24 Left Knee
+  {l:'L.Knee\nBend',j:'lKnee',    d:+1.35, col:'#4fa'},
+  // 25 Right Knee
+  {l:'R.Knee\nBend',j:'rKnee',    d:+1.35, col:'#af4'},
+  // 26 Head / lean  (dual effect)
+  {l:'Head\nNod',   j:'headNod',  d:+0.6,  col:'#ff5',
+   also:{j:'spine',d:+0.28}},
+];
+
+// Active sensor set
+const active=new Set();
+
+function computeTargets(){
+  for(const k of ALL_JOINTS) J[k].target=0;
+  for(const i of active){
+    const s=SENSORS[i];
+    J[s.j].target+=s.d;
+    if(s.also) J[s.also.j].target+=s.also.d;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  CANVAS
+// ══════════════════════════════════════════════════════════
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+
+function resizeCanvas(){
+  const wrap=document.getElementById('canvas-wrap');
+  const W=wrap.clientWidth, H=wrap.clientHeight;
+  const ratio=9/16;
+  let cw,ch;
+  if(W/H>ratio){ch=H;cw=H*ratio;}else{cw=W;ch=W/ratio;}
+  canvas.width=Math.round(cw);
+  canvas.height=Math.round(ch);
+}
+resizeCanvas();
+window.addEventListener('resize',resizeCanvas);
+
+// ══════════════════════════════════════════════════════════
+//  FORWARD KINEMATICS
+// ══════════════════════════════════════════════════════════
+const PI=Math.PI;
+
+// Bone lengths (fraction of canvas height)
+const BF={
+  HEAD:0.054, NECK:0.038, SPINE:0.138,
+  UARM:0.115, FORE:0.098, HAND:0.038,
+  THIGH:0.148, SHIN:0.128, FOOT:0.048,
+};
+
+// Base angles (canvas: 0=right, positive=clockwise/down)
+// lArm 135° = down-left, rArm 45° = down-right
+// lHip 100° = down+slight left, rHip 80° = down+slight right
+const BA={
+  spine: -PI/2,
+  neck:  -PI/2,
+  lArm:   PI*0.750,
+  lFore:  PI*0.750,
+  rArm:   PI*0.250,
+  rFore:  PI*0.250,
+  lHip:   PI*0.556,  // ~100°
+  rHip:   PI*0.444,  // ~80°
+};
+
+function step(px,py,angle,len){
+  return[px+Math.cos(angle)*len, py+Math.sin(angle)*len];
+}
+
+function figure(cx,cy){
+  const h=canvas.height;
+  const L={};
+  for(const k in BF) L[k]=BF[k]*h;
+
+  const sp=J.spine.v, nd=J.headNod.v, br=J.breath.v;
+  const lSh=J.lShoulder.v, lEl=J.lElbow.v;
+  const rSh=J.rShoulder.v, rEl=J.rElbow.v;
+  const lHp=J.lHip.v,      rHp=J.rHip.v;
+  const lKn=J.lKnee.v,     rKn=J.rKnee.v;
+
+  // Pelvis
+  const px=cx, py=cy;
+
+  // Spine → chest
+  const spineAng=BA.spine+sp*0.55;
+  const spineLen=L.SPINE*(1+br*0.018);
+  const[chX,chY]=step(px,py,spineAng,spineLen);
+
+  // Chest → neck end
+  const neckAng=BA.neck+sp*0.28;
+  const[nkX,nkY]=step(chX,chY,neckAng,L.NECK);
+
+  // Head centre
+  const headAngOff=nd*0.35+sp*0.18;
+  const hcx=nkX+Math.cos(-PI/2+headAngOff)*L.HEAD*0.45;
+  const hcy=nkY+Math.sin(-PI/2+headAngOff)*L.HEAD*0.45;
+
+  // Shoulders: offset from chest
+  const lShX=chX-L.UARM*0.14, lShY=chY+L.SPINE*0.04;
+  const rShX=chX+L.UARM*0.14, rShY=chY+L.SPINE*0.04;
+
+  // Left arm
+  const lArmAng=BA.lArm+lSh+sp*0.28;
+  const[lElX,lElY]=step(lShX,lShY,lArmAng,L.UARM);
+  const lForeAng=lArmAng+lEl*0.88;
+  const[lWrX,lWrY]=step(lElX,lElY,lForeAng,L.FORE);
+  const[lHdX,lHdY]=step(lWrX,lWrY,lForeAng,L.HAND);
+
+  // Right arm
+  const rArmAng=BA.rArm+rSh+sp*0.28;
+  const[rElX,rElY]=step(rShX,rShY,rArmAng,L.UARM);
+  const rForeAng=rArmAng+rEl*0.88;
+  const[rWrX,rWrY]=step(rElX,rElY,rForeAng,L.FORE);
+  const[rHdX,rHdY]=step(rWrX,rWrY,rForeAng,L.HAND);
+
+  // Hips: offset from pelvis
+  const lHpX=px-L.THIGH*0.13, lHpY=py;
+  const rHpX=px+L.THIGH*0.13, rHpY=py;
+
+  // Left leg
+  const lThighAng=BA.lHip+lHp+sp*0.14;
+  const[lKnX,lKnY]=step(lHpX,lHpY,lThighAng,L.THIGH);
+  // Knee: shin rotates clockwise (outward/back) as knee bends
+  const lShinAng=lThighAng+lKn*0.82;
+  const[lAnkX,lAnkY]=step(lKnX,lKnY,lShinAng,L.SHIN);
+  const lFtAng=PI-0.12+lKn*0.08;  // foot points left+slight down
+  const[lFtX,lFtY]=step(lAnkX,lAnkY,lFtAng,L.FOOT);
+
+  // Right leg
+  const rThighAng=BA.rHip+rHp+sp*0.14;
+  const[rKnX,rKnY]=step(rHpX,rHpY,rThighAng,L.THIGH);
+  const rShinAng=rThighAng-rKn*0.82;
+  const[rAnkX,rAnkY]=step(rKnX,rKnY,rShinAng,L.SHIN);
+  const rFtAng=0.12-rKn*0.08;  // foot points right+slight down
+  const[rFtX,rFtY]=step(rAnkX,rAnkY,rFtAng,L.FOOT);
+
+  return{
+    pelvis:[px,py], chest:[chX,chY], neckEnd:[nkX,nkY],
+    headC:[hcx,hcy], headR:L.HEAD, headTilt:headAngOff,
+    lSh:[lShX,lShY], lElb:[lElX,lElY], lWr:[lWrX,lWrY], lHd:[lHdX,lHdY],
+    rSh:[rShX,rShY], rElb:[rElX,rElY], rWr:[rWrX,rWrY], rHd:[rHdX,rHdY],
+    lHpPt:[lHpX,lHpY], lKn:[lKnX,lKnY], lAnk:[lAnkX,lAnkY], lFt:[lFtX,lFtY],
+    rHpPt:[rHpX,rHpY], rKn:[rKnX,rKnY], rAnk:[rAnkX,rAnkY], rFt:[rFtX,rFtY],
+  };
+}
+
+// ══════════════════════════════════════════════════════════
+//  ACTIVE JOINT HIGHLIGHTS
+// ══════════════════════════════════════════════════════════
+function jointChain(f,jname){
+  const chains={
+    lShoulder:[[f.lSh,f.lElb]],
+    lElbow:   [[f.lElb,f.lWr],[f.lWr,f.lHd]],
+    rShoulder:[[f.rSh,f.rElb]],
+    rElbow:   [[f.rElb,f.rWr],[f.rWr,f.rHd]],
+    lHip:     [[f.lHpPt,f.lKn]],
+    rHip:     [[f.rHpPt,f.rKn]],
+    lKnee:    [[f.lKn,f.lAnk],[f.lAnk,f.lFt]],
+    rKnee:    [[f.rKn,f.rAnk],[f.rAnk,f.rFt]],
+    spine:    [[f.pelvis,f.chest]],
+    headNod:  [[f.neckEnd,f.headC]],
+  };
+  return chains[jname]||[];
+}
+
+function drawHighlights(f){
+  if(!active.size)return;
+  ctx.save();
+  ctx.globalAlpha=0.4;
+  ctx.lineCap='round';
+  ctx.lineWidth=10;
+  for(const i of active){
+    const s=SENSORS[i];
+    ctx.shadowBlur=22; ctx.shadowColor=s.col; ctx.strokeStyle=s.col;
+    for(const seg of jointChain(f,s.j)){
+      ctx.beginPath(); ctx.moveTo(seg[0][0],seg[0][1]); ctx.lineTo(seg[1][0],seg[1][1]); ctx.stroke();
+    }
+    if(s.also){
+      for(const seg of jointChain(f,s.also.j)){
+        ctx.beginPath(); ctx.moveTo(seg[0][0],seg[0][1]); ctx.lineTo(seg[1][0],seg[1][1]); ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════
+//  DRAWING HELPERS
+// ══════════════════════════════════════════════════════════
+function bone(a,b,w,col,cap='round'){
+  ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]);
+  ctx.lineWidth=w; ctx.strokeStyle=col; ctx.lineCap=cap; ctx.stroke();
+}
+function dot(p,r,col){
+  ctx.beginPath(); ctx.arc(p[0],p[1],r,0,PI*2); ctx.fillStyle=col; ctx.fill();
+}
+function head(f,col,lw){
+  const r=f.headR;
+  ctx.save();
+  ctx.translate(f.headC[0],f.headC[1]); ctx.rotate(f.headTilt);
+  ctx.beginPath(); ctx.arc(0,0,r,0,PI*2);
+  ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.stroke();
+  ctx.fillStyle=col;
+  const er=r*0.145, ey=-r*0.16;
+  ctx.beginPath(); ctx.arc(-r*0.29,ey,er,0,PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(+r*0.29,ey,er,0,PI*2); ctx.fill();
+  // smile
+  ctx.beginPath(); ctx.arc(0,r*0.1,r*0.28,0.15,PI-0.15);
+  ctx.strokeStyle=col; ctx.lineWidth=lw*0.7; ctx.stroke();
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════
+//  SKINS
+// ══════════════════════════════════════════════════════════
+let skin='wire';
+
+function skinWire(f){
+  const c='#88bbff', j='#aaccff', lw=2.5, jr=3.5;
+  bone(f.pelvis,f.chest,lw,c); bone(f.chest,f.neckEnd,lw*0.9,c);
+  bone(f.lSh,f.lElb,lw,c); bone(f.lElb,f.lWr,lw,c); bone(f.lWr,f.lHd,lw*0.75,c);
+  bone(f.rSh,f.rElb,lw,c); bone(f.rElb,f.rWr,lw,c); bone(f.rWr,f.rHd,lw*0.75,c);
+  bone(f.lHpPt,f.lKn,lw,c); bone(f.lKn,f.lAnk,lw,c); bone(f.lAnk,f.lFt,lw*0.8,c);
+  bone(f.rHpPt,f.rKn,lw,c); bone(f.rKn,f.rAnk,lw,c); bone(f.rAnk,f.rFt,lw*0.8,c);
+  for(const p of[f.pelvis,f.chest,f.lSh,f.lElb,f.lWr,f.rSh,f.rElb,f.rWr,
+                  f.lHpPt,f.lKn,f.lAnk,f.rHpPt,f.rKn,f.rAnk]) dot(p,jr,j);
+  head(f,c,lw);
+}
+
+function skinMuscle(f){
+  ctx.save();
+  const h=canvas.height;
+  const BW=h*0.040, LW=h*0.026;
+  function muscleSeg(a,b,thick,c1,c2){
+    const dx=b[0]-a[0], dy=b[1]-a[1];
+    const len=Math.hypot(dx,dy)||1;
+    const nx=-dy/len*thick/2, ny=dx/len*thick/2;
+    const grad=ctx.createLinearGradient(a[0],a[1],b[0],b[1]);
+    grad.addColorStop(0,c1); grad.addColorStop(1,c2);
+    ctx.beginPath();
+    ctx.moveTo(a[0]+nx,a[1]+ny); ctx.lineTo(b[0]+nx,b[1]+ny);
+    ctx.lineTo(b[0]-nx,b[1]-ny); ctx.lineTo(a[0]-nx,a[1]-ny);
+    ctx.closePath();
+    ctx.fillStyle=grad; ctx.fill();
+    ctx.beginPath(); ctx.arc(a[0],a[1],thick/2,0,PI*2); ctx.fillStyle=c1; ctx.fill();
+    ctx.beginPath(); ctx.arc(b[0],b[1],thick/2,0,PI*2); ctx.fillStyle=c2; ctx.fill();
+  }
+  ctx.shadowBlur=10; ctx.shadowColor='#1133aa55';
+  muscleSeg(f.pelvis,f.chest,BW,'#1b3a8a','#223fa0');
+  muscleSeg(f.chest,f.neckEnd,BW*0.68,'#223fa0','#1e3a96');
+  muscleSeg(f.lSh,f.lElb,LW*1.25,'#162e70','#1a3580');
+  muscleSeg(f.lElb,f.lWr,LW,'#1a3580','#152c6e');
+  muscleSeg(f.lWr,f.lHd,LW*0.7,'#152c6e','#102260');
+  muscleSeg(f.rSh,f.rElb,LW*1.25,'#162e70','#1a3580');
+  muscleSeg(f.rElb,f.rWr,LW,'#1a3580','#152c6e');
+  muscleSeg(f.rWr,f.rHd,LW*0.7,'#152c6e','#102260');
+  muscleSeg(f.lHpPt,f.lKn,LW*1.35,'#162e70','#1a3580');
+  muscleSeg(f.lKn,f.lAnk,LW*1.1,'#1a3580','#152c6e');
+  muscleSeg(f.lAnk,f.lFt,LW*0.85,'#152c6e','#102260');
+  muscleSeg(f.rHpPt,f.rKn,LW*1.35,'#162e70','#1a3580');
+  muscleSeg(f.rKn,f.rAnk,LW*1.1,'#1a3580','#152c6e');
+  muscleSeg(f.rAnk,f.rFt,LW*0.85,'#152c6e','#102260');
+  // head
+  ctx.save(); ctx.translate(f.headC[0],f.headC[1]); ctx.rotate(f.headTilt);
+  const r=f.headR;
+  ctx.shadowBlur=14; ctx.shadowColor='#2244bb55';
+  const hg=ctx.createRadialGradient(0,-r*0.2,0,0,0,r);
+  hg.addColorStop(0,'#223fa0'); hg.addColorStop(1,'#162e78');
+  ctx.beginPath(); ctx.arc(0,0,r,0,PI*2); ctx.fillStyle=hg; ctx.fill();
+  ctx.fillStyle='#99ccff';
+  ctx.beginPath(); ctx.arc(-r*0.29,-r*0.16,r*0.14,0,PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(+r*0.29,-r*0.16,r*0.14,0,PI*2); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+
+function skinGeo(f){
+  const col='#ff8822', col2='#ffaa44', lw=3;
+  function gbone(a,b,w){
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]);
+    ctx.lineWidth=w; ctx.strokeStyle=col; ctx.lineCap='square'; ctx.stroke();
+  }
+  gbone(f.pelvis,f.chest,lw*1.2); gbone(f.chest,f.neckEnd,lw);
+  gbone(f.lSh,f.lElb,lw); gbone(f.lElb,f.lWr,lw); gbone(f.lWr,f.lHd,lw*0.7);
+  gbone(f.rSh,f.rElb,lw); gbone(f.rElb,f.rWr,lw); gbone(f.rWr,f.rHd,lw*0.7);
+  gbone(f.lHpPt,f.lKn,lw*1.1); gbone(f.lKn,f.lAnk,lw); gbone(f.lAnk,f.lFt,lw*0.85);
+  gbone(f.rHpPt,f.rKn,lw*1.1); gbone(f.rKn,f.rAnk,lw); gbone(f.rAnk,f.rFt,lw*0.85);
+  function diamond(p,r){
+    ctx.beginPath(); ctx.moveTo(p[0],p[1]-r);
+    ctx.lineTo(p[0]+r,p[1]); ctx.lineTo(p[0],p[1]+r); ctx.lineTo(p[0]-r,p[1]);
+    ctx.closePath(); ctx.fillStyle=col2; ctx.fill();
+  }
+  for(const p of[f.chest,f.lElb,f.rElb,f.lKn,f.rKn]) diamond(p,6);
+  for(const p of[f.pelvis,f.lSh,f.rSh,f.lHpPt,f.rHpPt,f.lWr,f.rWr,f.lAnk,f.rAnk]) diamond(p,3.5);
+  // hex head
+  ctx.save(); ctx.translate(f.headC[0],f.headC[1]); ctx.rotate(f.headTilt);
+  const r=f.headR, sides=6;
+  ctx.beginPath();
+  for(let i=0;i<sides;i++){
+    const a=i*PI*2/sides-PI/6;
+    if(i===0) ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+    else ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+  }
+  ctx.closePath(); ctx.strokeStyle=col2; ctx.lineWidth=lw; ctx.lineCap='square';
+  ctx.fillStyle=col+'18'; ctx.fill(); ctx.stroke();
+  ctx.fillStyle=col2;
+  ctx.beginPath(); ctx.arc(-r*0.29,-r*0.16,r*0.14,0,PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(+r*0.29,-r*0.16,r*0.14,0,PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function skinNeon(f){
+  ctx.save();
+  function nb(a,b,w,col,glow){
+    ctx.shadowBlur=glow; ctx.shadowColor=col;
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]);
+    ctx.lineWidth=w; ctx.strokeStyle=col; ctx.lineCap='round'; ctx.stroke();
+    // bright core
+    ctx.shadowBlur=4; ctx.shadowColor='#fff';
+    ctx.lineWidth=w*0.22; ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.stroke();
+  }
+  const body='#00ffcc', arm='#ff33ee', leg='#ffaa00';
+  nb(f.pelvis,f.chest,3,body,24); nb(f.chest,f.neckEnd,2.5,body,18);
+  nb(f.lSh,f.lElb,2.5,arm,20); nb(f.lElb,f.lWr,2,arm,16); nb(f.lWr,f.lHd,1.5,arm,10);
+  nb(f.rSh,f.rElb,2.5,arm,20); nb(f.rElb,f.rWr,2,arm,16); nb(f.rWr,f.rHd,1.5,arm,10);
+  nb(f.lHpPt,f.lKn,2.5,leg,20); nb(f.lKn,f.lAnk,2,leg,16); nb(f.lAnk,f.lFt,1.5,leg,10);
+  nb(f.rHpPt,f.rKn,2.5,leg,20); nb(f.rKn,f.rAnk,2,leg,16); nb(f.rAnk,f.rFt,1.5,leg,10);
+  // neon head
+  ctx.save(); ctx.translate(f.headC[0],f.headC[1]); ctx.rotate(f.headTilt);
+  const r=f.headR;
+  ctx.shadowBlur=22; ctx.shadowColor=body;
+  ctx.beginPath(); ctx.arc(0,0,r,0,PI*2);
+  ctx.strokeStyle=body; ctx.lineWidth=2; ctx.stroke();
+  ctx.shadowBlur=8; ctx.fillStyle=body;
+  ctx.beginPath(); ctx.arc(-r*0.29,-r*0.16,r*0.14,0,PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(+r*0.29,-r*0.16,r*0.14,0,PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0,r*0.12,r*0.28,0.2,PI-0.2);
+  ctx.strokeStyle=arm; ctx.lineWidth=1.5; ctx.shadowColor=arm; ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════
+//  BACKGROUND
+// ══════════════════════════════════════════════════════════
+const FLOOR_Y_FRAC=0.875;
+function drawBG(){
+  const{width:W,height:H}=canvas;
+  const flY=H*FLOOR_Y_FRAC;
+  // background
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#070710'); bg.addColorStop(1,'#0d0d1a');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  // faint dot grid
+  ctx.fillStyle='#13131f';
+  for(let y=35;y<flY;y+=36)for(let x=20;x<W;x+=36){
+    ctx.beginPath(); ctx.arc(x,y,1,0,PI*2); ctx.fill();
+  }
+  // floor line
+  ctx.beginPath(); ctx.moveTo(0,flY); ctx.lineTo(W,flY);
+  ctx.strokeStyle='#1e1e33'; ctx.lineWidth=1; ctx.stroke();
+  // floor shadow gradient
+  const fsh=ctx.createLinearGradient(0,flY,0,H);
+  fsh.addColorStop(0,'#11111e'); fsh.addColorStop(1,'#080810');
+  ctx.fillStyle=fsh; ctx.fillRect(0,flY,W,H-flY);
+  // perspective grid
+  const vp=[W/2,flY*0.7];
+  ctx.strokeStyle='#111120'; ctx.lineWidth=1;
+  for(let i=-4;i<=4;i++){
+    ctx.beginPath(); ctx.moveTo(vp[0]+i*W*0.14,flY);
+    ctx.lineTo(W/2+i*W*0.55,H); ctx.stroke();
+  }
+  for(let d=0;d<4;d++){
+    const yy=flY+(H-flY)*d*0.35;
+    ctx.beginPath(); ctx.moveTo(0,yy); ctx.lineTo(W,yy); ctx.stroke();
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  RENDER LOOP
+// ══════════════════════════════════════════════════════════
+let lastT=0, breathPhase=0;
+const BREATH_SPEED=1.1;
+
+function loop(ts){
+  const dt=Math.min((ts-lastT)/1000,0.05);
+  lastT=ts;
+  breathPhase+=BREATH_SPEED*dt;
+  J.breath.target=Math.sin(breathPhase)*0.55;
+  computeTargets();
+  for(const k of ALL_JOINTS) J[k].update(dt);
+
+  const cx=canvas.width/2;
+  const cy=canvas.height*0.585;  // pelvis y → feet land near floor
+  const f=figure(cx,cy);
+
+  drawBG();
+  drawHighlights(f);
+
+  switch(skin){
+    case'wire':   skinWire(f);   break;
+    case'muscle': skinMuscle(f); break;
+    case'geo':    skinGeo(f);    break;
+    case'neon':   skinNeon(f);   break;
+  }
+
+  updatePhysBars();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(t=>{lastT=t;loop(t);});
+
+// ══════════════════════════════════════════════════════════
+//  SENSOR GRID UI
+// ══════════════════════════════════════════════════════════
+const grid=document.getElementById('sensor-grid');
+const cellEls=[];
+
+for(let i=0;i<28;i++){
+  const el=document.createElement('div');
+  if(i<27){
+    const s=SENSORS[i];
+    el.className='sc';
+    el.style.color=s.col+'99';
+    el.innerHTML=`<span class="snum">${i}</span>${s.l.replace('\n','<br>')}`;
+    const on=()=>setSensor(i,true,el);
+    const off=()=>setSensor(i,false,el);
+    el.addEventListener('mousedown',on);
+    el.addEventListener('mouseup',off);
+    el.addEventListener('mouseleave',e=>{if(e.buttons===0||e.buttons===1)off();});
+    el.addEventListener('touchstart',e=>{e.preventDefault();on();},{passive:false});
+    el.addEventListener('touchend',e=>{e.preventDefault();off();});
+    el.addEventListener('touchcancel',off);
+    cellEls.push(el);
+  }else{
+    el.className='sc empty';
+  }
+  grid.appendChild(el);
+}
+
+function setSensor(i,on,el){
+  if(on){active.add(i);el&&el.classList.add('on');}
+  else{active.delete(i);el&&el.classList.remove('on');}
+}
+
+// ══════════════════════════════════════════════════════════
+//  SKIN SWITCHER
+// ══════════════════════════════════════════════════════════
+document.querySelectorAll('.skin-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.skin-btn').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); skin=b.dataset.skin;
+  });
+});
+
+// ══════════════════════════════════════════════════════════
+//  PHYSICS BARS UI
+// ══════════════════════════════════════════════════════════
+const barJoints=[
+  ['lShoulder','L.Shoulder'],['rShoulder','R.Shoulder'],
+  ['lElbow','L.Elbow'],['rElbow','R.Elbow'],
+  ['lHip','L.Hip'],['rHip','R.Hip'],
+  ['lKnee','L.Knee'],['rKnee','R.Knee'],
+  ['spine','Spine'],['headNod','Head'],
+];
+const barEls={};
+const pbDiv=document.getElementById('phys-bars');
+for(const[k,label] of barJoints){
+  const row=document.createElement('div');
+  row.className='bar-row';
+  row.innerHTML=`<label>${label}</label><div class="bar-track"><div class="bar-fill" id="bf-${k}"></div></div><div class="bar-val" id="bv-${k}"></div>`;
+  pbDiv.appendChild(row);
+  barEls[k]={fill:null,val:null};
+}
+// grab refs after insertion
+for(const[k] of barJoints){
+  barEls[k].fill=document.getElementById(`bf-${k}`);
+  barEls[k].val=document.getElementById(`bv-${k}`);
+}
+
+function updatePhysBars(){
+  for(const[k] of barJoints){
+    const sp=J[k];
+    const lo=sp.lo===-Infinity?-2:sp.lo;
+    const hi=sp.hi===Infinity?2:sp.hi;
+    const range=hi-lo||1;
+    const norm=(sp.v-lo)/range;
+    const pct=Math.max(0,Math.min(100,norm*100)).toFixed(1);
+    const el=barEls[k];
+    if(el.fill){
+      el.fill.style.width=pct+'%';
+      // colour based on direction
+      const h=sp.v>0?'200':'30';
+      el.fill.style.background=`hsl(${h},70%,45%)`;
+    }
+    if(el.val) el.val.textContent=(sp.v>=0?'+':'')+sp.v.toFixed(2);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  WEB MIDI API
+// ══════════════════════════════════════════════════════════
+const pillEl=document.getElementById('midi-pill');
+const logEl=document.getElementById('log');
+
+function midiLog(msg,ev=false){
+  const d=document.createElement('div');
+  d.textContent=msg; if(ev)d.className='ev';
+  logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight;
+  if(logEl.children.length>60) logEl.removeChild(logEl.firstChild);
+}
+
+function getBaseNote(){return parseInt(document.getElementById('base-note').value)||36;}
+function getMidiCh(){return parseInt(document.getElementById('midi-ch').value)||0;}
+
+function onMidi(e){
+  const[status,data1,data2]=e.data;
+  const type=status&0xF0, ch=(status&0x0F)+1;
+  const fch=getMidiCh();
+  if(fch>0&&ch!==fch)return;
+
+  if(type===0x90||type===0x80){
+    const idx=data1-getBaseNote();
+    const on=type===0x90&&data2>0;
+    if(idx>=0&&idx<27){
+      setSensor(idx,on,cellEls[idx]);
+      midiLog(`${on?'ON ':'OFF'} ch${ch} n${data1}→pad${idx} [${SENSORS[idx].l.replace('\n',' ')}]`,true);
+    }
+  }else if(type===0xB0){
+    const idx=data1;
+    const on=data2>63;
+    if(idx>=0&&idx<27){
+      setSensor(idx,on,cellEls[idx]);
+      midiLog(`CC ch${ch} #${data1}=${data2}→pad${idx}`,true);
+    }
+  }
+}
+
+if(navigator.requestMIDIAccess){
+  navigator.requestMIDIAccess({sysex:false}).then(midi=>{
+    pillEl.textContent='MIDI ✓'; pillEl.className='pill ok';
+    function attach(m){
+      m.inputs.forEach(port=>{
+        port.onmidimessage=onMidi;
+        midiLog(`Input: ${port.name}`);
+      });
+    }
+    attach(midi);
+    midi.onstatechange=e=>{
+      if(e.port.type==='input'){attach(midi);midiLog(`Port ${e.port.state}: ${e.port.name}`);}
+    };
+  }).catch(err=>{
+    pillEl.textContent='MIDI denied'; pillEl.className='pill err';
+    midiLog('MIDI access denied — use Chrome/Edge and allow MIDI.');
+  });
+}else{
+  pillEl.textContent='No MIDI API'; pillEl.className='pill err';
+  midiLog('Web MIDI not supported — use Chrome or Edge.');
+}
+</script>
+</body>
+</html>
