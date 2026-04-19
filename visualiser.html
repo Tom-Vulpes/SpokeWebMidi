@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPOKE — Visual Synth</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+
+  #ui { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+
+  #style-name {
+    position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; letter-spacing: 0.45em; text-transform: uppercase;
+    font-family: 'Courier New', monospace;
+    opacity: 0.75; transition: color 0.8s, opacity 1s;
+  }
+  #midi-dot {
+    position: fixed; bottom: 22px; left: 24px;
+    font-size: 9px; letter-spacing: 0.3em;
+    font-family: 'Courier New', monospace;
+    color: #666; transition: color 0.4s;
+  }
+  #note-bar {
+    position: fixed; bottom: 22px; right: 24px;
+    font-size: 9px; letter-spacing: 0.2em;
+    font-family: 'Courier New', monospace; color: #555;
+  }
+  #progress-track {
+    position: fixed; bottom: 0; left: 0; width: 100%; height: 2px; background: rgba(255,255,255,0.05);
+  }
+  #progress-fill {
+    height: 100%; width: 0%; transition: background-color 0.8s;
+  }
+  #hint {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 0.3em;
+    color: #666; text-transform: uppercase; text-align: center; line-height: 2;
+    pointer-events: none; transition: opacity 1s;
+  }
+  #style-flash {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; opacity: 0; transition: opacity 0.05s;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="style-flash"></div>
+<div id="ui">
+  <div id="style-name">RETRO FUTURISTIC</div>
+  <div id="midi-dot">◌ MIDI —</div>
+  <div id="note-bar">♪ —</div>
+</div>
+<div id="progress-track"><div id="progress-fill"></div></div>
+<div id="hint">Click anywhere to activate audio<br>SPACE to cycle styles · A–K to play notes</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CONFIGURATION
+// ═══════════════════════════════════════════════════
+const STYLES = [
+  { name: 'RETRO FUTURISTIC', accent: '#00ffd4', bg: '#020210' },
+  { name: 'SOLARPUNK',        accent: '#ffcc00', bg: '#2d7a1a' },
+  { name: 'HYPER JAPAN',      accent: '#ff2060', bg: '#0a0018' },
+  { name: 'GOTHIC',           accent: '#cc0033', bg: '#080308' },
+  { name: 'CARTOONISH',       accent: '#ff4444', bg: '#fffce8' },
+  { name: 'VAPORWAVE',        accent: '#ff71ce', bg: '#0a0018' },
+];
+const STYLE_DURATION = 28000;
+const KANJI = '電音光水火風空夢愛星月日山川海雨雲虹花鳥龍鬼心刀炎氷'.split('');
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+let currentStyle = 0;
+let styleStartTime = 0;
+let T = 0;              // global timestamp ms
+let W, H;
+let audioReady = false;
+let audioCtx, masterGain, reverbNode;
+let midiConnected = false;
+let pulses = [];        // visual bursts on note hit
+let particles = [];     // flying debris
+let ambients = [];      // idle ambient floaters
+let kanjiCols = [];
+let lastVelocity = 0;
+let lastNote = null;
+
+// ═══════════════════════════════════════════════════
+//  CANVAS
+// ═══════════════════════════════════════════════════
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  kanjiCols = [];
+  initKanjiCols();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ═══════════════════════════════════════════════════
+//  AUDIO ENGINE
+// ═══════════════════════════════════════════════════
+function initAudio() {
+  if (audioReady) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.55;
+
+  // Simple reverb via convolver
+  reverbNode = audioCtx.createConvolver();
+  const sr = audioCtx.sampleRate;
+  const len = sr * 2.2;
+  const buf = audioCtx.createBuffer(2, len, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++)
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 1.8);
+  }
+  reverbNode.buffer = buf;
+  const revSend = audioCtx.createGain(); revSend.gain.value = 0.28;
+  masterGain.connect(revSend); revSend.connect(reverbNode); reverbNode.connect(audioCtx.destination);
+  masterGain.connect(audioCtx.destination);
+  audioReady = true;
+  document.getElementById('hint').style.opacity = '0';
+  setTimeout(() => document.getElementById('hint').remove(), 1100);
+}
+
+function noteFreq(n) { return 440 * Math.pow(2, (n - 69) / 12); }
+
+function playNote(note, velocity) {
+  if (!audioReady) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const freq = noteFreq(note);
+  const vel  = velocity / 127;
+  const now  = audioCtx.currentTime;
+  const s    = currentStyle;
+
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const filt = audioCtx.createBiquadFilter();
+  osc.connect(filt); filt.connect(gain); gain.connect(masterGain);
+
+  if (s === 0) { // RETRO: 8-bit square
+    osc.type = 'square';
+    filt.type = 'lowpass'; filt.frequency.value = 900 + vel * 1800;
+    gain.gain.setValueAtTime(vel * 0.28, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+    osc.frequency.setValueAtTime(freq, now);
+    osc.start(now); osc.stop(now + 0.4);
+  } else if (s === 1) { // SOLARPUNK: warm sine pad
+    osc.type = 'sine';
+    filt.type = 'lowpass'; filt.frequency.value = 1400;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(vel * 0.38, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+    osc.frequency.setValueAtTime(freq, now);
+    // Sub octave harmonic
+    const o2 = audioCtx.createOscillator(); const g2 = audioCtx.createGain();
+    o2.type = 'sine'; o2.frequency.value = freq * 2;
+    g2.gain.setValueAtTime(0, now);
+    g2.gain.linearRampToValueAtTime(vel * 0.12, now + 0.06);
+    g2.gain.exponentialRampToValueAtTime(0.0001, now + 1.3);
+    o2.connect(g2); g2.connect(masterGain); o2.start(now); o2.stop(now + 1.7);
+    osc.start(now); osc.stop(now + 1.7);
+  } else if (s === 2) { // HYPER JAPAN: bright sawtooth pluck
+    osc.type = 'sawtooth';
+    filt.type = 'bandpass'; filt.frequency.value = freq * 1.8; filt.Q.value = 4;
+    gain.gain.setValueAtTime(vel * 0.33, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+    osc.frequency.setValueAtTime(freq * 1.015, now);
+    osc.frequency.exponentialRampToValueAtTime(freq, now + 0.06);
+    osc.start(now); osc.stop(now + 0.35);
+  } else if (s === 3) { // GOTHIC: dark sub drone + noise hit
+    osc.type = 'sine';
+    filt.type = 'lowpass'; filt.frequency.value = 350;
+    gain.gain.setValueAtTime(vel * 0.48, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.5);
+    osc.frequency.setValueAtTime(freq * 0.5, now);
+    // Noise burst
+    const nLen = audioCtx.sampleRate * 0.12;
+    const nBuf = audioCtx.createBuffer(1, nLen, audioCtx.sampleRate);
+    const nd = nBuf.getChannelData(0);
+    for (let i = 0; i < nLen; i++) nd[i] = Math.random() * 2 - 1;
+    const ns = audioCtx.createBufferSource();
+    ns.buffer = nBuf;
+    const nf = audioCtx.createBiquadFilter(); nf.type = 'lowpass'; nf.frequency.value = 180;
+    const ng = audioCtx.createGain(); ng.gain.value = vel * 0.22;
+    ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
+    ns.start(now);
+    osc.start(now); osc.stop(now + 3.0);
+  } else if (s === 4) { // CARTOON: triangle + portamento glide
+    osc.type = 'triangle';
+    filt.type = 'highpass'; filt.frequency.value = 150;
+    gain.gain.setValueAtTime(vel * 0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+    osc.frequency.setValueAtTime(freq * 2.05, now);
+    osc.frequency.exponentialRampToValueAtTime(freq, now + 0.09);
+    osc.start(now); osc.stop(now + 0.5);
+  } else { // VAPORWAVE: sine + slow decay
+    osc.type = 'sine';
+    filt.type = 'lowpass'; filt.frequency.value = 800;
+    gain.gain.setValueAtTime(vel * 0.34, now);
+    gain.gain.setTargetAtTime(0, now + 0.3, 1.1);
+    osc.frequency.setValueAtTime(freq, now);
+    osc.start(now); osc.stop(now + 4.0);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  MIDI
+// ═══════════════════════════════════════════════════
+function initMIDI() {
+  const el = document.getElementById('midi-dot');
+  if (!navigator.requestMIDIAccess) { el.textContent = '⚠ NO MIDI'; return; }
+  navigator.requestMIDIAccess().then(access => {
+    function connect() {
+      access.inputs.forEach(inp => inp.onmidimessage = onMIDI);
+      if (access.inputs.size > 0) {
+        midiConnected = true;
+        el.textContent = '● SPOKE'; el.style.color = STYLES[currentStyle].accent;
+      } else {
+        el.textContent = '◌ WAITING';
+      }
+    }
+    connect();
+    access.onstatechange = connect;
+  }).catch(() => { el.textContent = '✕ MIDI DENIED'; });
+}
+
+function onMIDI(e) {
+  const [st, d1, d2] = e.data;
+  const type = st & 0xf0;
+  if (type === 0x90 && d2 > 0) {
+    lastNote = d1; lastVelocity = d2;
+    document.getElementById('note-bar').textContent = `♪ ${d1}  v${d2}`;
+    initAudio();
+    playNote(d1, d2);
+    triggerVisual(d1, d2);
+    if (d1 > 90 || d2 === 127) nextStyle(); // high notes or max vel → style change
+  } else if (type === 0xb0) {
+    if (d1 === 64 && d2 > 63) nextStyle(); // sustain pedal
+    if (d1 === 1) masterGain && (masterGain.gain.value = 0.3 + (d2 / 127) * 0.5);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  STYLE CYCLING
+// ═══════════════════════════════════════════════════
+function nextStyle() {
+  currentStyle = (currentStyle + 1) % STYLES.length;
+  styleStartTime = T;
+  const s = STYLES[currentStyle];
+  const nameEl = document.getElementById('style-name');
+  nameEl.textContent = s.name;
+  nameEl.style.color  = s.accent;
+  nameEl.style.opacity = '1';
+  document.getElementById('progress-fill').style.backgroundColor = s.accent;
+  document.getElementById('midi-dot').style.color = s.accent;
+  // Flash
+  const flash = document.getElementById('style-flash');
+  flash.style.background = s.accent;
+  flash.style.opacity = '0.18';
+  setTimeout(() => flash.style.opacity = '0', 120);
+  setTimeout(() => { nameEl.style.opacity = '0.6'; }, 2000);
+}
+
+// ═══════════════════════════════════════════════════
+//  PARTICLE + PULSE SPAWNING
+// ═══════════════════════════════════════════════════
+function triggerVisual(note, velocity) {
+  const vel = velocity / 127;
+  const x = W * 0.15 + Math.random() * W * 0.7;
+  const y = H * 0.15 + Math.random() * H * 0.7;
+  pulses.push({ x, y, r: 5, maxR: 70 + vel * 380, life: 1, style: currentStyle, note, vel });
+  const count = Math.floor(5 + vel * 22);
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 1.5 + Math.random() * vel * 9;
+    particles.push({
+      x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp - 1,
+      life: 0.9 + Math.random() * 0.1, size: 3 + Math.random() * 7,
+      rot: Math.random() * Math.PI * 2, style: currentStyle,
+      char: KANJI[Math.floor(Math.random() * KANJI.length)]
+    });
+  }
+}
+
+// Ambient idle particles
+function spawnAmbient() {
+  const s = currentStyle;
+  if (s === 0) { // retro: drifting pixels
+    ambients.push({ x: Math.random()*W, y: H+5, vx: (Math.random()-0.5)*0.4, vy: -0.5-Math.random()*1.5, life: 1, size: 1+Math.random()*2, style: 0 });
+  } else if (s === 1) { // solarpunk: pollen
+    ambients.push({ x: Math.random()*W, y: H+5, vx: (Math.random()-0.5)*0.6, vy: -0.8-Math.random(), life: 1, size: 2+Math.random()*3, style: 1 });
+  } else if (s === 2) { // hyper japan: floating kanji
+    if (Math.random() < 0.3)
+      ambients.push({ x: Math.random()*W, y: -20, vx: (Math.random()-0.5)*0.3, vy: 0.4+Math.random()*0.8, life: 1, size: 14+Math.random()*10, style: 2, char: KANJI[Math.floor(Math.random()*KANJI.length)] });
+  } else if (s === 3) { // gothic: ash
+    ambients.push({ x: Math.random()*W, y: -5, vx: (Math.random()-0.5)*0.5, vy: 0.3+Math.random()*0.8, life: 1, size: 1+Math.random()*2, style: 3 });
+  } else if (s === 4) { // cartoon: small dots
+    if (Math.random() < 0.3)
+      ambients.push({ x: Math.random()*W, y: H+5, vx: (Math.random()-0.5)*1, vy: -1-Math.random()*2, life: 1, size: 4+Math.random()*5, style: 4, hue: Math.random()*360 });
+  } else { // vaporwave: pastel squares
+    if (Math.random() < 0.2)
+      ambients.push({ x: Math.random()*W, y: H+5, vx: (Math.random()-0.5)*0.4, vy: -0.6-Math.random(), life: 1, size: 4+Math.random()*8, rot: Math.random()*Math.PI*2, style: 5 });
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  KANJI RAIN COLUMNS
+// ═══════════════════════════════════════════════════
+function initKanjiCols() {
+  const cols = Math.ceil(W / 22);
+  for (let i = 0; i < cols; i++)
+    kanjiCols.push({ y: Math.random() * -H, spd: 0.8 + Math.random() * 2.5 });
+}
+initKanjiCols();
+
+// ═══════════════════════════════════════════════════
+//  STYLE RENDERERS
+// ═══════════════════════════════════════════════════
+
+// ── 0: RETRO FUTURISTIC ──────────────────────────
+function drawRetro() {
+  ctx.fillStyle = '#020210'; ctx.fillRect(0,0,W,H);
+
+  // Perspective grid
+  const horizon = H * 0.44;
+  const speed = (T * 0.00025) % 1;
+  ctx.strokeStyle = 'rgba(0,240,210,0.22)'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 24; i++) {
+    const prog = ((i / 24) + speed) % 1;
+    const y = horizon + (H - horizon) * Math.pow(prog, 2.2);
+    const spread = (y - horizon) / (H - horizon);
+    ctx.beginPath(); ctx.moveTo(W*0.5 - spread*W*0.95, y); ctx.lineTo(W*0.5 + spread*W*0.95, y); ctx.stroke();
+  }
+  const vLines = 22;
+  for (let i = 0; i <= vLines; i++) {
+    const gx = (i / vLines) * W;
+    ctx.beginPath(); ctx.moveTo(W/2 + (gx-W/2)*0.04, horizon); ctx.lineTo(gx, H); ctx.stroke();
+  }
+
+  // Horizon magenta glow
+  const hg = ctx.createLinearGradient(0, horizon-40, 0, horizon+40);
+  hg.addColorStop(0, 'transparent'); hg.addColorStop(0.5, 'rgba(255,0,180,0.45)'); hg.addColorStop(1, 'transparent');
+  ctx.fillStyle = hg; ctx.fillRect(0, horizon-40, W, 80);
+
+  // Sky gradient overlay
+  const sky = ctx.createLinearGradient(0,0,0,horizon);
+  sky.addColorStop(0,'rgba(1,3,22,1)'); sky.addColorStop(1,'rgba(0,0,10,0)');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,horizon);
+
+  // Stars
+  for (let i=0;i<90;i++){
+    const sx=((i*397.3+60)%W), sy=((i*211.7+20)%(horizon*0.85));
+    ctx.fillStyle=`rgba(180,240,255,${0.3+0.5*Math.abs(Math.sin(T*0.0008+i))})`;
+    ctx.fillRect(sx,sy,1,1);
+  }
+
+  // Floating octahedra
+  const shapes=[{cx:W*.18,cy:H*.22,sz:55,sp:.5,ph:0},{cx:W*.82,cy:H*.18,sz:40,sp:.7,ph:1.8},{cx:W*.65,cy:H*.34,sz:28,sp:1.1,ph:3.2},{cx:W*.1,cy:H*.38,sz:45,sp:.35,ph:4.5}];
+  shapes.forEach(({cx,cy,sz,sp,ph}) => {
+    const a = T*0.001*sp+ph;
+    const cos=Math.cos(a), sin=Math.sin(a);
+    const pts3=[[ 0,sz,0],[0,-sz,0],[sz,0,0],[-sz,0,0],[0,0,sz],[0,0,-sz]];
+    const pts2=pts3.map(([x,y,z])=>{const rx=x*cos-z*sin,rz=x*sin+z*cos;const sc=260/(260+rz);return[cx+rx*sc,cy+y*sc];});
+    ctx.strokeStyle=`rgba(0,255,220,${0.35+0.2*Math.sin(a)})`; ctx.lineWidth=1;
+    [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[4,3],[3,5],[5,2]].forEach(([a,b])=>{
+      ctx.beginPath();ctx.moveTo(pts2[a][0],pts2[a][1]);ctx.lineTo(pts2[b][0],pts2[b][1]);ctx.stroke();
+    });
+  });
+
+  // Scanlines
+  ctx.fillStyle='rgba(0,0,0,0.12)';
+  for(let y=0;y<H;y+=3) ctx.fillRect(0,y,W,1);
+}
+
+// ── 1: SOLARPUNK ─────────────────────────────────
+function drawSolarpunk() {
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#5ab0a0'); bg.addColorStop(0.35,'#fde68a'); bg.addColorStop(0.65,'#f97316'); bg.addColorStop(1,'#1a3b0a');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Sun glow
+  const sx=W*.5, sy=H*.36, sr=75+8*Math.sin(T*.0022);
+  const sg=ctx.createRadialGradient(sx,sy,0,sx,sy,sr*4);
+  sg.addColorStop(0,'rgba(255,255,200,.9)'); sg.addColorStop(.5,'rgba(255,220,60,.4)'); sg.addColorStop(1,'transparent');
+  ctx.fillStyle=sg; ctx.fillRect(0,0,W,H);
+  ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,248,170,.92)'; ctx.fill();
+
+  // Rays
+  for(let i=0;i<18;i++){
+    const a=(i/18)*Math.PI*2+T*.0009;
+    const r1=sr+12, r2=sr+25+12*Math.sin(T*.0028+i*.7);
+    ctx.beginPath();ctx.moveTo(sx+Math.cos(a)*r1,sy+Math.sin(a)*r1);ctx.lineTo(sx+Math.cos(a)*r2,sy+Math.sin(a)*r2);
+    ctx.strokeStyle='rgba(255,210,0,.55)';ctx.lineWidth=3;ctx.stroke();
+  }
+
+  // Mandala ring
+  for(let i=0;i<12;i++){
+    const a=(i/12)*Math.PI*2+T*.0006;
+    ctx.beginPath();
+    ctx.arc(sx+Math.cos(a)*(sr+50),sy+Math.sin(a)*(sr+50),12,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${40+i*15},85%,60%,.5)`;ctx.fill();
+  }
+
+  // Ground
+  ctx.fillStyle='#1f4a10'; ctx.fillRect(0,H*.68,W,H*.32);
+  const gGrad=ctx.createLinearGradient(0,H*.68,0,H*.75);
+  gGrad.addColorStop(0,'rgba(50,120,20,.6)'); gGrad.addColorStop(1,'transparent');
+  ctx.fillStyle=gGrad;ctx.fillRect(0,H*.68,W,H*.1);
+
+  // Vines
+  const vOrigins=[.04,.18,.38,.58,.78,.94];
+  vOrigins.forEach((f,vi)=>{
+    const vx=W*f;
+    ctx.beginPath(); ctx.moveTo(vx,H);
+    let px=vx,py=H;
+    for(let i=1;i<=14;i++){
+      const prog=i/14;
+      px+=Math.sin(T*.0018+vi*2.5+i*.9)*22;
+      py=H-prog*H*.48;
+      ctx.lineTo(px,py);
+      if(i%3===0){
+        const lx=px+Math.cos(T*.002+vi+i)*(18+vi*3);
+        const ly=py+Math.sin(T*.002+vi+i)*10;
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(lx,ly,16,7,Math.atan2(ly-py,lx-px),0,Math.PI*2);
+        ctx.fillStyle=`rgba(${40+vi*18},${100+vi*12},${20+i*4},.75)`;
+        ctx.fill(); ctx.restore();
+      }
+    }
+    ctx.strokeStyle=`rgba(25,75,10,.7)`;ctx.lineWidth=2+vi*.3;ctx.stroke();
+  });
+
+  // Atmosphere haze
+  const ah=ctx.createLinearGradient(0,H*.55,0,H);
+  ah.addColorStop(0,'transparent');ah.addColorStop(1,'rgba(80,50,10,.25)');
+  ctx.fillStyle=ah;ctx.fillRect(0,0,W,H);
+}
+
+// ── 2: HYPER JAPAN ───────────────────────────────
+function drawHyperJapan() {
+  ctx.fillStyle='rgba(8,0,18,.88)'; ctx.fillRect(0,0,W,H);
+
+  // Kanji matrix rain
+  const colW=22;
+  const cols=Math.min(kanjiCols.length, Math.ceil(W/colW));
+  for(let i=0;i<cols;i++){
+    const col=kanjiCols[i];
+    col.y+=col.spd;
+    if(col.y>H+22){col.y=-22;col.spd=.8+Math.random()*2.5;}
+    const cx=i*colW+11;
+    for(let j=0;j<9;j++){
+      const ky=col.y-j*22;
+      if(ky<-22||ky>H+22) continue;
+      const ki=Math.floor((ky+i*11+j*7)/8)%KANJI.length;
+      const alpha=(1-j/9)*(j===0?1:.55);
+      ctx.fillStyle=j===0?`rgba(255,160,210,${alpha})`:`rgba(220,40,130,${alpha*.5})`;
+      ctx.font=`${j===0?'bold ':' '}15px monospace`;
+      ctx.fillText(KANJI[Math.abs(ki)],cx,ky);
+    }
+  }
+
+  // Torii gate
+  const gx=W/2, gbot=H*.98, gtop=H*.45, gw=W*.32;
+  ctx.shadowColor='#ff2060'; ctx.shadowBlur=25;
+  ctx.strokeStyle='rgba(255,30,80,.85)';
+  // Posts
+  ctx.lineWidth=9;
+  ctx.beginPath();ctx.moveTo(gx-gw/2,gbot);ctx.lineTo(gx-gw/2,gtop+gw*.28);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(gx+gw/2,gbot);ctx.lineTo(gx+gw/2,gtop+gw*.28);ctx.stroke();
+  // Sub-beam
+  ctx.lineWidth=7;
+  ctx.beginPath();ctx.moveTo(gx-gw*.48,gtop+gw*.22);ctx.lineTo(gx+gw*.48,gtop+gw*.22);ctx.stroke();
+  // Top curved beam
+  ctx.lineWidth=13;
+  ctx.beginPath();
+  ctx.moveTo(gx-gw*.62,gtop);ctx.quadraticCurveTo(gx,gtop-gw*.12,gx+gw*.62,gtop);
+  ctx.stroke();
+  ctx.shadowBlur=0;
+
+  // Neon signs
+  [['ラジオ',W*.08,H*.1,1],['東京',W*.72,H*.08,0],['シンセ',W*.78,H*.22,1],['未来',W*.06,H*.25,0]].forEach(([t,sx,sy,alt])=>{
+    ctx.font='bold 22px monospace';
+    ctx.shadowColor=alt?'#ff0066':'#00ccff'; ctx.shadowBlur=18;
+    ctx.fillStyle=alt?'rgba(255,90,150,.9)':'rgba(80,210,255,.9)';
+    ctx.fillText(t,sx,sy); ctx.shadowBlur=0;
+  });
+
+  // Center glitch bar on beat
+  if(Math.sin(T*.007)>.92){
+    const gy=Math.random()*H;
+    ctx.fillStyle='rgba(255,50,130,.08)';ctx.fillRect(0,gy,W,4+Math.random()*14);
+    ctx.fillStyle='rgba(0,220,255,.06)';ctx.fillRect(0,gy+2,W,8);
+  }
+}
+
+// ── 3: GOTHIC ────────────────────────────────────
+function drawGothic() {
+  ctx.fillStyle='#060208'; ctx.fillRect(0,0,W,H);
+
+  // Purple fog center
+  const fog=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*.65);
+  fog.addColorStop(0,'rgba(40,0,55,.35)'); fog.addColorStop(1,'transparent');
+  ctx.fillStyle=fog; ctx.fillRect(0,0,W,H);
+
+  // Blood moon
+  const mx=W*.74, my=H*.14;
+  const mg=ctx.createRadialGradient(mx,my,0,mx,my,52);
+  mg.addColorStop(0,'rgba(230,30,30,.9)'); mg.addColorStop(.65,'rgba(190,0,0,.5)'); mg.addColorStop(1,'transparent');
+  ctx.fillStyle=mg; ctx.fillRect(0,0,W,H);
+  ctx.beginPath();ctx.arc(mx,my,46,0,Math.PI*2);
+  ctx.fillStyle='rgba(200,18,18,.88)';ctx.fill();
+  // Moon craters
+  [[mx+12,my-8,7],[mx-10,my+12,5],[mx+5,my+8,3]].forEach(([cx,cy,r])=>{
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle='rgba(160,10,10,.6)';ctx.fill();
+  });
+
+  // Cathedral arch
+  const cw=W*.5, ch=H*.92, ctop=H*.04;
+  ctx.strokeStyle='rgba(90,40,70,.7)'; ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(W/2-cw/2,ch);ctx.lineTo(W/2-cw/2,ctop+cw*.28);
+  ctx.quadraticCurveTo(W/2-cw/2,ctop,W/2,ctop);
+  ctx.quadraticCurveTo(W/2+cw/2,ctop,W/2+cw/2,ctop+cw*.28);
+  ctx.lineTo(W/2+cw/2,ch); ctx.stroke();
+  // Inner arch
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(W/2-cw*.4,ch);ctx.lineTo(W/2-cw*.4,ctop+cw*.35);
+  ctx.quadraticCurveTo(W/2-cw*.4,ctop+cw*.08,W/2,ctop+cw*.08);
+  ctx.quadraticCurveTo(W/2+cw*.4,ctop+cw*.08,W/2+cw*.4,ctop+cw*.35);
+  ctx.lineTo(W/2+cw*.4,ch); ctx.stroke();
+
+  // Rose window
+  const rwx=W/2, rwy=H*.3, rwr=W*.085;
+  for(let p=0;p<8;p++){
+    const a=(p/8)*Math.PI*2+T*.0008;
+    ctx.beginPath();ctx.moveTo(rwx,rwy);
+    ctx.arc(rwx,rwy,rwr,a,a+Math.PI*.125);
+    ctx.fillStyle=p%2===0?`rgba(130,0,45,.55)`:`rgba(55,0,85,.5)`;
+    ctx.fill(); ctx.strokeStyle='rgba(200,40,80,.5)';ctx.lineWidth=1.2;ctx.stroke();
+  }
+  ctx.beginPath();ctx.arc(rwx,rwy,rwr*.25,0,Math.PI*2);
+  ctx.fillStyle='rgba(220,40,40,.5)';ctx.fill();
+
+  // Rain
+  ctx.strokeStyle='rgba(140,110,150,.2)'; ctx.lineWidth=1;
+  for(let i=0;i<180;i++){
+    const rx=((i*483+T*.28)%W);
+    const ry=((i*311+T*.82)%H);
+    ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(rx+.8,ry+14);ctx.stroke();
+  }
+
+  // Bats
+  for(let i=0;i<7;i++){
+    const bx=W*.5+Math.sin(T*.0007+i*1.4)*W*.42;
+    const by=H*.12+Math.cos(T*.001+i*1.1)*H*.22;
+    const fl=Math.sin(T*.009+i);
+    ctx.fillStyle='rgba(25,0,28,.9)';
+    ctx.beginPath();ctx.ellipse(bx,by,7,4,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bx,by);ctx.bezierCurveTo(bx-18,by-14*fl*.5,bx-22,by+6,bx-6,by+3);ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bx,by);ctx.bezierCurveTo(bx+18,by-14*fl*.5,bx+22,by+6,bx+6,by+3);ctx.fill();
+  }
+}
+
+// ── 4: CARTOONISH ────────────────────────────────
+function drawCartoon() {
+  ctx.fillStyle='#fffce8'; ctx.fillRect(0,0,W,H);
+
+  // Background polka dots
+  for(let i=0;i<60;i++){
+    const dx=(i*281+50)%W, dy=(i*197+35)%H;
+    ctx.beginPath();ctx.arc(dx,dy,3.5,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,.06)';ctx.fill();
+  }
+
+  // Wobbly blobs
+  const blobs=[
+    {x:W*.14,y:H*.28,r:110,c:'#ff7070',ph:0},{x:W*.86,y:H*.22,r:95,c:'#5bc8e0',ph:1.3},
+    {x:W*.5,y:H*.72,r:140,c:'#96e0c0',ph:2.6},{x:W*.28,y:H*.78,r:85,c:'#ffd700',ph:.9},
+    {x:W*.72,y:H*.68,r:78,c:'#ff9eb0',ph:2.1},{x:W*.5,y:H*.25,r:65,c:'#b8f0a0',ph:3.5}
+  ];
+  blobs.forEach(b=>{
+    const wb=Math.sin(T*.002+b.ph)*8;
+    ctx.beginPath();
+    for(let a=0;a<=Math.PI*2+.01;a+=.08){
+      const r=b.r+Math.sin(a*5+T*.0025+b.ph)*16+Math.sin(a*3-T*.002+b.ph)*10;
+      const bx=b.x+Math.cos(a)*r, by=b.y+Math.sin(a)*r+wb;
+      a<.01?ctx.moveTo(bx,by):ctx.lineTo(bx,by);
+    }
+    ctx.closePath();
+    ctx.fillStyle=b.c; ctx.fill();
+    ctx.strokeStyle='#111'; ctx.lineWidth=4; ctx.stroke();
+  });
+
+  // POW / ZAP text
+  const tsc=T*.003;
+  ctx.font='bold 52px Impact, fantasy';ctx.textAlign='center';
+  [['POW!',W*.18,H*.13,0,tsc],['ZAP!',W*.82,H*.16,'#44aaff',tsc*1.3],['WOW!',W*.5,H*.9,'#ff44cc',tsc*.8]].forEach(([tx,x,y,color,sc])=>{
+    ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(sc)*.04);
+    ctx.fillStyle=color||'#111';
+    ctx.fillText(tx,0,0);ctx.restore();
+  });
+  ctx.textAlign='left';
+
+  // Dashed border
+  ctx.setLineDash([12,8]);
+  ctx.strokeStyle='rgba(0,0,0,.12)';ctx.lineWidth=3;
+  ctx.strokeRect(12,12,W-24,H-24);
+  ctx.setLineDash([]);
+}
+
+// ── 5: VAPORWAVE ─────────────────────────────────
+function drawVaporwave() {
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#050010');bg.addColorStop(.35,'#38004e');bg.addColorStop(.65,'#7b0fa0');bg.addColorStop(1,'#ff6ec7');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // Stars
+  for(let i=0;i<110;i++){
+    const sx=(i*399.3+18)%W, sy=(i*277.1+12)%(H*.44);
+    ctx.fillStyle=`rgba(255,170,240,${.25+.65*Math.abs(Math.sin(T*.0018+i))})`;
+    ctx.fillRect(sx,sy,1.5,1.5);
+  }
+
+  // Retrowave sun with stripes
+  const sunx=W*.5, suny=H*.38, sunr=82;
+  const sg=ctx.createLinearGradient(0,suny-sunr,0,suny+sunr);
+  sg.addColorStop(0,'#ff71ce');sg.addColorStop(.5,'#ff8500');sg.addColorStop(1,'#ff0080');
+  ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sunx,suny,sunr,0,Math.PI*2);ctx.fill();
+  // Horizontal stripe cutouts
+  for(let i=0;i<7;i++){
+    const sy2=suny-sunr*.15+i*sunr*.3;
+    ctx.fillStyle='#050010';ctx.fillRect(sunx-sunr,sy2,sunr*2,sunr*.13);
+  }
+
+  // Perspective floor
+  const floorY=H*.52;
+  const scrollOff=(T*.045)%(80);
+  ctx.save();
+  for(let row=0;row<14;row++){
+    const t0=row/14, t1=(row+1)/14;
+    const y0=floorY+Math.pow(t0,2.2)*(H-floorY);
+    const y1=floorY+Math.pow(t1,2.2)*(H-floorY);
+    for(let col=-10;col<10;col++){
+      const scale0=Math.pow(t0,2.2)*0.18+.004;
+      const scale1=Math.pow(t1,2.2)*0.18+.004;
+      const x0l=W*.5+(col*80-scrollOff)*scale0*10;
+      const x0r=W*.5+((col+1)*80-scrollOff)*scale0*10;
+      const x1l=W*.5+(col*80-scrollOff)*scale1*10;
+      const x1r=W*.5+((col+1)*80-scrollOff)*scale1*10;
+      const light=(Math.floor(col+row+Math.floor(scrollOff/80))%2===0);
+      ctx.beginPath();ctx.moveTo(x0l,y0);ctx.lineTo(x0r,y0);ctx.lineTo(x1r,y1);ctx.lineTo(x1l,y1);ctx.closePath();
+      ctx.fillStyle=light?'rgba(255,80,200,.38)':'rgba(18,0,40,.48)';ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // Horizon glow
+  const hg=ctx.createLinearGradient(0,floorY-35,0,floorY+35);
+  hg.addColorStop(0,'transparent');hg.addColorStop(.5,'rgba(255,90,200,.55)');hg.addColorStop(1,'transparent');
+  ctx.fillStyle=hg;ctx.fillRect(0,floorY-35,W,70);
+
+  // Grid lines
+  ctx.strokeStyle='rgba(255,90,200,.45)';ctx.lineWidth=1;
+  for(let i=-8;i<=8;i++){
+    ctx.beginPath();ctx.moveTo(W*.5+i*W*.065,floorY);ctx.lineTo(W*.5+i*W*.75,H);ctx.stroke();
+  }
+
+  // Glitch
+  if(Math.sin(T*.011)>.91){
+    ctx.fillStyle='rgba(255,110,200,.1)';
+    ctx.fillRect(0,Math.random()*H,W,4+Math.random()*22);
+    ctx.fillStyle='rgba(0,210,255,.07)';
+    ctx.fillRect(3,Math.random()*H,W,10);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  PULSE + PARTICLE DRAWING
+// ═══════════════════════════════════════════════════
+function drawPulse(p) {
+  const a=p.life, r=p.r, s=p.style;
+  if(s===0){ // hex ring cyan
+    ctx.strokeStyle=`rgba(0,255,210,${a})`;ctx.lineWidth=2;
+    ctx.shadowColor='rgba(0,255,210,.5)';ctx.shadowBlur=12;
+    ctx.beginPath();
+    for(let i=0;i<6;i++){const ang=(i/6)*Math.PI*2-Math.PI/6;ctx.lineTo(p.x+Math.cos(ang)*r,p.y+Math.sin(ang)*r);}
+    ctx.closePath();ctx.stroke();ctx.shadowBlur=0;
+  } else if(s===1){ // flower bloom
+    for(let i=0;i<6;i++){
+      const ang=(i/6)*Math.PI*2;
+      ctx.beginPath();
+      ctx.ellipse(p.x+Math.cos(ang)*r*.55,p.y+Math.sin(ang)*r*.55,r*.42,r*.18,ang,0,Math.PI*2);
+      ctx.fillStyle=`hsla(${45+i*18},90%,62%,${a*.72})`;ctx.fill();
+    }
+    ctx.beginPath();ctx.arc(p.x,p.y,r*.2,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,240,80,${a*.9})`;ctx.fill();
+  } else if(s===2){ // kanji splash
+    ctx.font=`bold ${r*.9}px monospace`;
+    ctx.fillStyle=`rgba(255,50,140,${a*.85})`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.shadowColor='rgba(255,0,100,.8)';ctx.shadowBlur=22;
+    ctx.fillText(KANJI[p.note%KANJI.length],p.x,p.y);
+    ctx.shadowBlur=0;ctx.textBaseline='alphabetic';ctx.textAlign='left';
+    ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(255,80,150,${a*.4})`;ctx.lineWidth=2;ctx.stroke();
+  } else if(s===3){ // blood ripple rings
+    for(let ring=0;ring<4;ring++){
+      ctx.beginPath();ctx.arc(p.x,p.y,r*(1-ring*.18),0,Math.PI*2);
+      ctx.strokeStyle=`rgba(${160+ring*22},0,${ring*8},${a*(.85-ring*.18)})`;
+      ctx.lineWidth=3.5-ring*.6;ctx.stroke();
+    }
+  } else if(s===4){ // cartoon star
+    ctx.beginPath();
+    for(let i=0;i<16;i++){
+      const ang=(i/16)*Math.PI*2-Math.PI/2;
+      const rad=i%2===0?r:r*.42;
+      ctx[i===0?'moveTo':'lineTo'](p.x+Math.cos(ang)*rad,p.y+Math.sin(ang)*rad);
+    }
+    ctx.closePath();
+    ctx.fillStyle=`rgba(255,225,50,${a*.85})`;ctx.fill();
+    ctx.strokeStyle=`rgba(20,20,20,${a})`;ctx.lineWidth=3;ctx.stroke();
+  } else { // vaporwave glitch rect
+    ctx.fillStyle=`rgba(255,100,200,${a*.28})`;
+    ctx.fillRect(p.x-r,p.y-r*.3,r*2,r*.6);
+    ctx.fillStyle=`rgba(0,200,255,${a*.18})`;
+    ctx.fillRect(p.x-r+5,p.y-r*.3+4,r*2,r*.4);
+    ctx.strokeStyle=`rgba(255,100,200,${a})`;ctx.lineWidth=1.5;
+    ctx.strokeRect(p.x-r,p.y-r,r*2,r*2);
+  }
+}
+
+function drawParticle(p) {
+  const a=p.life*.85, s=p.style;
+  if(s===0){
+    ctx.beginPath();ctx.arc(p.x,p.y,p.size*.5,0,Math.PI*2);
+    ctx.fillStyle=`rgba(0,255,220,${a})`;ctx.shadowColor='rgba(0,255,210,.5)';ctx.shadowBlur=7;ctx.fill();ctx.shadowBlur=0;
+  } else if(s===1){
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot+p.life*.6);
+    ctx.beginPath();ctx.ellipse(0,0,p.size,p.size*.38,0,0,Math.PI*2);
+    ctx.fillStyle=`rgba(55,160,45,${a})`;ctx.fill();ctx.restore();
+  } else if(s===2){
+    ctx.fillStyle=`rgba(255,100,175,${a})`;ctx.font=`${p.size}px monospace`;
+    ctx.fillText(p.char,p.x,p.y);
+  } else if(s===3){
+    ctx.beginPath();ctx.arc(p.x,p.y,p.size*.42,0,Math.PI*2);
+    ctx.fillStyle=`rgba(190,0,22,${a})`;ctx.fill();
+  } else if(s===4){
+    ctx.beginPath();ctx.arc(p.x,p.y,p.size*.62,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${p.rot*200%360},90%,62%,${a})`;ctx.fill();
+    ctx.strokeStyle=`rgba(20,20,20,${a*.8})`;ctx.lineWidth=2;ctx.stroke();
+  } else {
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot+T*.001);
+    ctx.fillStyle=`rgba(255,100,200,${a*.72})`;
+    ctx.fillRect(-p.size*.4,-p.size*.4,p.size*.8,p.size*.8);ctx.restore();
+  }
+}
+
+function drawAmbient(p) {
+  const a=p.life*.6, s=p.style;
+  if(s===0){ctx.fillStyle=`rgba(0,240,210,${a*.7})`;ctx.fillRect(p.x,p.y,p.size,p.size);}
+  else if(s===1){ctx.beginPath();ctx.arc(p.x,p.y,p.size*.5,0,Math.PI*2);ctx.fillStyle=`rgba(255,220,80,${a*.5})`;ctx.fill();}
+  else if(s===2){ctx.fillStyle=`rgba(255,80,160,${a*.55})`;ctx.font=`${p.size}px monospace`;ctx.fillText(p.char,p.x,p.y);}
+  else if(s===3){ctx.fillStyle=`rgba(180,180,180,${a*.3})`;ctx.fillRect(p.x,p.y,p.size,p.size);}
+  else if(s===4){ctx.beginPath();ctx.arc(p.x,p.y,p.size*.5,0,Math.PI*2);ctx.fillStyle=`hsla(${p.hue},85%,65%,${a*.5})`;ctx.fill();}
+  else{ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillStyle=`rgba(255,100,200,${a*.45})`;ctx.fillRect(-p.size*.4,-p.size*.4,p.size*.8,p.size*.8);ctx.restore();}
+}
+
+// ═══════════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════════
+let prevT=0;
+function loop(ts) {
+  T=ts;
+  const dt=ts-prevT; prevT=ts;
+
+  // Auto-cycle styles
+  if(ts-styleStartTime>STYLE_DURATION) nextStyle();
+
+  // Progress bar
+  document.getElementById('progress-fill').style.width=
+    (Math.min((ts-styleStartTime)/STYLE_DURATION,1)*100)+'%';
+
+  // Draw background scene
+  ctx.save();
+  switch(currentStyle){
+    case 0: drawRetro(); break;
+    case 1: drawSolarpunk(); break;
+    case 2: drawHyperJapan(); break;
+    case 3: drawGothic(); break;
+    case 4: drawCartoon(); break;
+    default: drawVaporwave();
+  }
+  ctx.restore();
+
+  // Spawn ambient
+  spawnAmbient();
+
+  // Update + draw ambients
+  ambients=ambients.filter(p=>p.life>0);
+  ambients.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.life-=.003;
+    drawAmbient(p);
+  });
+  if(ambients.length>180) ambients=ambients.slice(-180);
+
+  // Update + draw pulses
+  pulses=pulses.filter(p=>p.life>0);
+  pulses.forEach(p=>{
+    p.r+=(p.maxR-p.r)*.09;
+    p.life-=.022;
+    drawPulse(p);
+  });
+
+  // Update + draw particles
+  particles=particles.filter(p=>p.life>0);
+  particles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy+=.12; p.vx*=.98;
+    p.life-=.018;
+    drawParticle(p);
+  });
+  if(particles.length>400) particles=particles.slice(-400);
+
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════
+//  KEYBOARD FALLBACK (for testing without MIDI)
+// ═══════════════════════════════════════════════════
+const keyMap={a:60,s:62,d:64,f:65,g:67,h:69,j:71,k:72,l:74,';':76};
+document.addEventListener('keydown',e=>{
+  if(e.repeat) return;
+  if(e.key===' '){e.preventDefault();nextStyle();return;}
+  const note=keyMap[e.key.toLowerCase()];
+  if(note!==undefined){
+    initAudio();
+    playNote(note,80+Math.floor(Math.random()*40));
+    triggerVisual(note,80+Math.floor(Math.random()*40));
+    document.getElementById('note-bar').textContent=`♪ ${note}  keyboard`;
+  }
+});
+
+// ═══════════════════════════════════════════════════
+//  POINTER / TOUCH — activate audio + add pulses
+// ═══════════════════════════════════════════════════
+canvas.addEventListener('pointerdown',e=>{
+  initAudio();
+  const note=48+Math.floor(Math.random()*24);
+  playNote(note,70+Math.floor(Math.random()*50));
+  triggerVisual(note,80);
+});
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+// Kick off style visuals
+const nameEl=document.getElementById('style-name');
+nameEl.style.color=STYLES[0].accent;
+document.getElementById('progress-fill').style.backgroundColor=STYLES[0].accent;
+nameEl.style.opacity='0.6';
+
+initMIDI();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
