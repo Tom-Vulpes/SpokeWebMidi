@@ -1329,10 +1329,10 @@ function toggleTheme() {
 }
 
 function applyStoredTheme() {
-  if (localStorage.getItem('eu-theme') === 'light') {
-    document.documentElement.classList.add('light');
-    document.getElementById('themeLabel').textContent = 'Light';
-  }
+  const stored = localStorage.getItem('eu-theme');
+  const isLight = stored ? stored === 'light' : true; // default to light
+  if (isLight) document.documentElement.classList.add('light');
+  document.getElementById('themeLabel').textContent = isLight ? 'Light' : 'Dark';
 }
 
 // ════════════════════════════════════════════════
