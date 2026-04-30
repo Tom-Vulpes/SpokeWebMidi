@@ -472,7 +472,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .waveform-canvas {
   display: block;
   width: 100%;
-  height: 68px;
+  height: 80px;
   border-radius: 7px;
   background: var(--surface2);
   cursor: pointer;
@@ -575,7 +575,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
     <div class="midi-devices" id="devicesList">
       <div class="device-chip" id="noDevice">No MIDI devices detected — connect your SPOKE board</div>
     </div>
-    <div class="midi-hint">Tap a track's pad button → touch your SPOKE pad to assign</div>
+    <div class="midi-hint">Pads auto-assigned · click a track's pad badge to reassign</div>
   </div>
 
   <!-- TRANSPORT -->
@@ -604,7 +604,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   <!-- TRACKS -->
   <div class="tracks-header-row">
     <div class="section-label" style="margin:0">Stems — <span id="stemCount">0</span> loaded</div>
-    <div style="font-size:10px;color:var(--text-dim);letter-spacing:1.5px">MUTED STEMS ARE SILENCED · UNMUTED STEMS PLAY IN LOOP</div>
+    <div style="font-size:10px;color:var(--text-dim);letter-spacing:1.5px">PADS AUTO-ASSIGNED · CLICK PAD BADGE TO REASSIGN · SCOPE SHOWS LIVE WHEN PLAYING</div>
   </div>
 
   <div class="tracks-list" id="tracksList"></div>
@@ -621,15 +621,16 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 // ════════════════════════════════════════════════
 let audioCtx   = null;
 let masterGain = null;
-let tracks     = [];      // see createTrackObj
+let tracks     = [];
 let isPlaying  = false;
-let startedAt  = 0;       // audioCtx.currentTime when play pressed
-let wallStart  = 0;       // performance.now() when play pressed
+let startedAt  = 0;
+let wallStart  = 0;
 let rafId      = null;
-let learningId = null;    // track id currently in MIDI learn mode
+let learningId = null;
 let midiAccess = null;
 
-const AUDIO_EXTS = new Set(['mp3','wav','ogg','flac','aac','m4a','opus','webm']);
+const AUDIO_EXTS   = new Set(['mp3','wav','ogg','flac','aac','m4a','opus','webm']);
+const SPOKE_BASE   = 36;   // SPOKE default first pad = MIDI note 36 (C2)
 
 // ════════════════════════════════════════════════
 //  AUDIO CONTEXT
@@ -692,11 +693,37 @@ async function dbClear() {
 //  TRACK OBJECT
 // ════════════════════════════════════════════════
 function createTrackObj(id, name, buffer) {
-  const ctx = ensureCtx();
-  const gain = ctx.createGain();
+  const ctx      = ensureCtx();
+  const gain     = ctx.createGain();
+  const analyser = ctx.createAnalyser();
+  analyser.fftSize               = 2048;   // 1024 bins → smooth scope
+  analyser.smoothingTimeConstant = 0.5;
   gain.gain.value = 1;
-  gain.connect(masterGain);
-  return { id, name, buffer, gain, src: null, muted: false, midiNote: null, touched: false };
+  // chain: source → gain → analyser → masterGain → destination
+  gain.connect(analyser);
+  analyser.connect(masterGain);
+  return { id, name, buffer, gain, analyser, src: null, muted: false, midiNote: null, touched: false };
+}
+
+// ════════════════════════════════════════════════
+//  MIDI ASSIGNMENT PERSISTENCE
+// ════════════════════════════════════════════════
+function saveMidiAssignments() {
+  const map = {};
+  tracks.forEach(t => { if (t.midiNote !== null) map[t.id] = t.midiNote; });
+  localStorage.setItem('eu-midi', JSON.stringify(map));
+}
+
+function getMidiAssignments() {
+  try { return JSON.parse(localStorage.getItem('eu-midi') || '{}'); }
+  catch { return {}; }
+}
+
+function getNextMidiNote() {
+  const used = new Set(tracks.map(t => t.midiNote).filter(n => n !== null));
+  let n = SPOKE_BASE;
+  while (used.has(n)) n++;
+  return n;
 }
 
 // ════════════════════════════════════════════════
@@ -714,7 +741,9 @@ async function decodeAndAdd(name, ab) {
   }
   const id    = `t_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
   const track = createTrackObj(id, name.replace(/\.[^.]+$/, ''), buffer);
+  track.midiNote = getNextMidiNote();   // ← auto-assign next free pad
   tracks.push(track);
+  saveMidiAssignments();
   await dbSave(id, name, ab);
   renderTracks();
   requestAnimationFrame(() => drawWaveform(track));
@@ -870,80 +899,141 @@ function clearAll() {
 }
 
 // ════════════════════════════════════════════════
-//  WAVEFORM
+//  CANVAS HELPERS
 // ════════════════════════════════════════════════
-function drawWaveform(track, playheadFrac) {
+const CANVAS_H = 80;
+
+function prepCanvas(canvas) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W   = canvas.offsetWidth || canvas.parentElement?.clientWidth || 900;
+  if (canvas.width !== W * dpr || canvas.height !== CANVAS_H * dpr) {
+    canvas.width  = W * dpr;
+    canvas.height = CANVAS_H * dpr;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, W, H: CANVAS_H };
+}
+
+function themeColors(muted) {
+  const s = getComputedStyle(document.documentElement);
+  const g = k => s.getPropertyValue(k).trim();
+  const isLight = document.documentElement.classList.contains('light');
+  return {
+    bg:       g('--wv-bg'),
+    accent:   muted ? g('--wv-muted')     : g('--yellow'),
+    dim:      muted ? g('--wv-muted-dim') : g('--wv-dim'),
+    playhead: isLight ? 'rgba(0,0,0,0.7)' : 'rgba(255,229,0,0.9)',
+    glow:     isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,229,0,0.12)',
+    gridLine: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,229,0,0.08)',
+    isLight,
+  };
+}
+
+// ════════════════════════════════════════════════
+//  STATIC WAVEFORM  (buffer overview)
+// ════════════════════════════════════════════════
+function drawStaticWaveform(track, playheadFrac) {
   const canvas = document.getElementById(`wv_${track.id}`);
   if (!canvas) return;
+  const { ctx, W, H } = prepCanvas(canvas);
+  const c = themeColors(track.muted);
 
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const W   = canvas.offsetWidth  || canvas.parentElement.clientWidth || 800;
-  const H   = 68;
-  canvas.width  = W * dpr;
-  canvas.height = H * dpr;
-
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, W, H);
-
-  // Background
-  ctx.fillStyle = wvBg;
+  ctx.fillStyle = c.bg;
   ctx.fillRect(0, 0, W, H);
 
-  // Waveform data
   const data = track.buffer.getChannelData(0);
   const step = Math.ceil(data.length / W);
   const mid  = H / 2;
-  const amp  = mid * 0.92;
-
-  // Read colours from current theme
-  const style    = getComputedStyle(document.documentElement);
-  const color    = track.muted ? style.getPropertyValue('--wv-muted').trim()     : style.getPropertyValue('--yellow').trim();
-  const colorDim = track.muted ? style.getPropertyValue('--wv-muted-dim').trim() : style.getPropertyValue('--wv-dim').trim();
-  const wvBg     = style.getPropertyValue('--wv-bg').trim();
+  const amp  = mid * 0.88;
 
   // Centre line
-  ctx.fillStyle = colorDim;
+  ctx.fillStyle = c.dim;
   ctx.fillRect(0, mid - 0.5, W, 1);
 
-  // Bars
+  // Waveform bars (flat fill — fast enough for 60 fps when muted)
+  ctx.fillStyle = c.accent;
   for (let x = 0; x < W; x++) {
     let mn = 1, mx = -1;
     for (let j = 0; j < step; j++) {
-      const idx = x * step + j;
-      if (idx < data.length) {
-        const v = data[idx];
-        if (v < mn) mn = v;
-        if (v > mx) mx = v;
-      }
+      const v = data[x * step + j];
+      if (v !== undefined) { if (v < mn) mn = v; if (v > mx) mx = v; }
     }
-    const barH = Math.max(1, (mx - mn) * amp);
-    const barY = mid - mx * amp;
-
-    // Gradient per bar: bright top, dim root
-    const grad = ctx.createLinearGradient(0, barY, 0, barY + barH);
-    grad.addColorStop(0,   color);
-    grad.addColorStop(1,   colorDim);
-    ctx.fillStyle = grad;
-    ctx.fillRect(x, barY, 1, barH);
+    const bH = Math.max(1, (mx - mn) * amp);
+    ctx.fillRect(x, mid - mx * amp, 1, bH);
   }
 
   // Playhead
-  if (playheadFrac !== undefined) {
-    const px = playheadFrac * W;
+  if (playheadFrac !== undefined) drawPlayhead(ctx, W, H, playheadFrac, c);
+}
 
-    // Glow sweep
-    const sweep = ctx.createLinearGradient(px - 30, 0, px + 30, 0);
-    sweep.addColorStop(0,   'rgba(255,229,0,0)');
-    sweep.addColorStop(.5,  'rgba(255,229,0,.12)');
-    sweep.addColorStop(1,   'rgba(255,229,0,0)');
-    ctx.fillStyle = sweep;
-    ctx.fillRect(px - 30, 0, 60, H);
+// ════════════════════════════════════════════════
+//  LIVE OSCILLOSCOPE  (real-time scope line)
+// ════════════════════════════════════════════════
+function drawLiveScope(track, playheadFrac) {
+  const canvas = document.getElementById(`wv_${track.id}`);
+  if (!canvas || !track.analyser) return;
+  const { ctx, W, H } = prepCanvas(canvas);
+  const c = themeColors(false);
 
-    // Line
-    ctx.fillStyle = 'rgba(255,229,0,.95)';
-    ctx.fillRect(px - 1, 0, 2, H);
+  // Background
+  ctx.fillStyle = c.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle grid
+  ctx.strokeStyle = c.gridLine;
+  ctx.lineWidth   = 1;
+  ctx.setLineDash([]);
+  [[H/4],[H/2],[3*H/4]].forEach(([y]) => {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  });
+
+  // Time-domain data from analyser
+  const bins = track.analyser.frequencyBinCount;
+  const data = new Float32Array(bins);
+  track.analyser.getFloatTimeDomainData(data);
+
+  // Outer glow pass
+  ctx.save();
+  ctx.shadowColor = c.accent;
+  ctx.shadowBlur  = c.isLight ? 3 : 12;
+  ctx.strokeStyle = c.accent;
+  ctx.lineWidth   = c.isLight ? 1.5 : 2;
+  ctx.lineJoin    = 'round';
+  ctx.beginPath();
+  const sw = W / bins;
+  for (let i = 0; i < bins; i++) {
+    const x = i * sw;
+    const y = ((1 - data[i]) / 2) * H;   // +1 → top, -1 → bottom
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   }
+  ctx.stroke();
+  ctx.restore();
+
+  // Playhead
+  if (playheadFrac !== undefined) drawPlayhead(ctx, W, H, playheadFrac, c);
+}
+
+function drawPlayhead(ctx, W, H, frac, c) {
+  const px = frac * W;
+  // Glow sweep
+  const sweep = ctx.createLinearGradient(px - 32, 0, px + 32, 0);
+  sweep.addColorStop(0,  'rgba(0,0,0,0)');
+  sweep.addColorStop(.5, c.glow);
+  sweep.addColorStop(1,  'rgba(0,0,0,0)');
+  ctx.fillStyle = sweep;
+  ctx.fillRect(px - 32, 0, 64, H);
+  // Line
+  ctx.fillStyle = c.playhead;
+  ctx.fillRect(px - 1, 0, 2, H);
+}
+
+// ════════════════════════════════════════════════
+//  DISPATCH  — scope when live, static otherwise
+// ════════════════════════════════════════════════
+function drawWaveform(track, playheadFrac) {
+  if (isPlaying && !track.muted) drawLiveScope(track, playheadFrac);
+  else                           drawStaticWaveform(track, playheadFrac);
 }
 
 // ════════════════════════════════════════════════
@@ -954,14 +1044,14 @@ function rafLoop() {
 
   const elapsed = (performance.now() - wallStart) / 1000;
 
-  // Timer display
+  // Timer
   const m  = Math.floor(elapsed / 60);
   const s  = Math.floor(elapsed % 60);
   const ms = Math.floor((elapsed % 1) * 1000);
   document.getElementById('timer').textContent =
     `${pad2(m)}:${pad2(s)}.${pad3(ms)}`;
 
-  // Redraw each waveform with playhead
+  // Draw each track
   tracks.forEach(t => {
     const dur  = t.buffer ? t.buffer.duration : 1;
     const frac = (elapsed % dur) / dur;
@@ -1048,10 +1138,11 @@ function onMIDI(e) {
 }
 
 function assignPad(trackId, note) {
-  // Remove this note from any other track
+  // Unassign this note from any other track first
   tracks.forEach(t => { if (t.midiNote === note && t.id !== trackId) t.midiNote = null; });
   const t = tracks.find(x => x.id === trackId);
   if (t) t.midiNote = note;
+  saveMidiAssignments();
 }
 
 function startLearn(trackId) {
@@ -1066,16 +1157,15 @@ function setTouched(id, val) {
   const card = document.querySelector(`[data-id="${id}"]`);
   if (card) {
     card.classList.toggle('touched', val);
-    if (val) {
-      // Brief highlight pulse even after class removed
-      setTimeout(() => card.classList.remove('touched'), 400);
-    }
+    if (val) setTimeout(() => card.classList.remove('touched'), 400);
   }
 }
 
 function noteLabel(n) {
-  const NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  return `${NAMES[n % 12]}${Math.floor(n / 12) - 1} (${n})`;
+  const padNum = n - SPOKE_BASE + 1;
+  const NAMES  = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const noteName = `${NAMES[n % 12]}${Math.floor(n / 12) - 1}`;
+  return padNum > 0 ? `PAD ${padNum}` : noteName;
 }
 
 // ════════════════════════════════════════════════
@@ -1203,16 +1293,23 @@ async function restoreFromDB() {
   if (!stems.length) return;
 
   showLoading(true);
-  const ctx = ensureCtx();
+  const ctx          = ensureCtx();
+  const savedMidi    = getMidiAssignments();
+
   for (const stem of stems) {
     try {
       const buffer = await ctx.decodeAudioData(stem.data.slice(0));
       const track  = createTrackObj(stem.id, stem.name.replace(/\.[^.]+$/, ''), buffer);
+      // Restore saved MIDI assignment, or auto-assign next free note
+      track.midiNote = (savedMidi[stem.id] !== undefined)
+        ? savedMidi[stem.id]
+        : getNextMidiNote();
       tracks.push(track);
     } catch(e) {
       console.warn('Could not restore', stem.name);
     }
   }
+  saveMidiAssignments();  // persist any newly auto-assigned notes
   renderTracks();
   showLoading(false);
 }
