@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electric Umbrella — Stem Mixer</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Dark mode (default) ── */
+:root {
+  --yellow:      #FFE500;
+  --yellow-dim:  #554C00;
+  --yellow-glow: rgba(255,229,0,0.35);
+  --bg:          #080808;
+  --surface:     #121212;
+  --surface2:    #1c1c1c;
+  --border:      #252525;
+  --text:        #ffffff;
+  --text-dim:    #777;
+  --red:         #ff4455;
+  --green:       #39ff8f;
+  --logo-ink:    #000000;
+  --wv-bg:       #1c1c1c;
+  --wv-dim:      #665C00;
+  --wv-muted:    #2e2e2e;
+  --wv-muted-dim:#222;
+}
+
+/* ── Light mode ── */
+html.light {
+  --yellow:      #111111;
+  --yellow-dim:  #444444;
+  --yellow-glow: rgba(0,0,0,0.18);
+  --bg:          #FFE500;
+  --surface:     #FFD000;
+  --surface2:    #FFC400;
+  --border:      #D4B800;
+  --text:        #0a0a0a;
+  --text-dim:    #555;
+  --red:         #cc0022;
+  --green:       #007a38;
+  --logo-ink:    #FFE500;
+  --wv-bg:       #FFC400;
+  --wv-dim:      #888;
+  --wv-muted:    #D4B800;
+  --wv-muted-dim:#C4A800;
+}
+
+/* smooth theme transition */
+*, *::before, *::after { transition: background-color .25s ease, border-color .25s ease, color .15s ease, box-shadow .25s ease; }
+
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--yellow-dim); border-radius: 3px; }
+
+/* ─── THEME TOGGLE ─── */
+.theme-toggle {
+  width: 54px; height: 28px;
+  border-radius: 14px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--yellow);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+}
+html.light .theme-toggle::after { transform: translateX(26px); }
+
+.toggle-wrap {
+  display: flex; align-items: center; gap: 8px;
+  margin-left: 4px;
+}
+.toggle-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ─── HEADER ─── */
+header {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--surface);
+  border-bottom: 2px solid var(--yellow);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+}
+
+.logo-mark {
+  width: 44px; height: 44px;
+  background: var(--yellow);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.logo-text-block { line-height: 1; }
+.logo-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  letter-spacing: 3px;
+  color: var(--yellow);
+  display: block;
+}
+.logo-sub {
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  display: block;
+  margin-top: 2px;
+}
+
+/* status pills */
+.status-row { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+
+.pill {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #333;
+  flex-shrink: 0;
+}
+.dot.on  { background: var(--green);  box-shadow: 0 0 8px var(--green); }
+.dot.play { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); animation: blink 1s ease-in-out infinite; }
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+/* ─── MAIN ─── */
+main { max-width: 1100px; margin: 0 auto; padding: 28px 28px 80px; }
+
+/* ─── SECTION LABEL ─── */
+.section-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+/* ─── UPLOAD ZONE ─── */
+.upload-zone {
+  border: 2px dashed var(--yellow-dim);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 36px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  margin-bottom: 24px;
+}
+.upload-zone:hover,
+.upload-zone.over {
+  border-color: var(--yellow);
+  background: rgba(255,229,0,.04);
+  box-shadow: 0 0 30px rgba(255,229,0,.08);
+}
+
+.upload-zone h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 38px;
+  letter-spacing: 3px;
+  color: var(--yellow);
+  margin-bottom: 6px;
+}
+.upload-zone p {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  margin-bottom: 22px;
+}
+
+.btn-row { display: flex; gap: 12px; justify-content: center; }
+
+.btn {
+  padding: 10px 22px;
+  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  transition: all .15s;
+  font-weight: 700;
+}
+.btn-primary { background: var(--yellow); color: #000; }
+.btn-primary:hover { background: #fff; }
+.btn-outline { background: transparent; color: var(--yellow); border: 1.5px solid var(--yellow); }
+.btn-outline:hover { background: rgba(255,229,0,.1); }
+.btn-ghost { background: transparent; color: var(--text-dim); border: 1.5px solid var(--border); }
+.btn-ghost:hover { color: var(--text); border-color: #555; }
+.btn-danger-ghost { background: transparent; color: var(--red); border: 1.5px solid transparent; }
+.btn-danger-ghost:hover { border-color: var(--red); }
+
+/* ─── MIDI PANEL ─── */
+.midi-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.midi-panel-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--yellow);
+  flex-shrink: 0;
+}
+
+.midi-devices { display: flex; gap: 10px; flex-wrap: wrap; flex: 1; }
+
+.device-chip {
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+.device-chip.live { border-color: var(--green); color: var(--green); }
+
+.midi-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  margin-left: auto;
+  font-style: italic;
+}
+
+/* ─── TRANSPORT ─── */
+.transport {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.transport-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 2px;
+  color: var(--yellow);
+}
+
+.play-btn {
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  background: var(--yellow);
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.play-btn:hover { transform: scale(1.07); background: #fff; }
+.play-btn svg { width: 18px; height: 18px; fill: #000; }
+
+.stop-btn {
+  width: 38px; height: 38px;
+  border-radius: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.stop-btn:hover { border-color: var(--text); }
+.stop-btn svg { width: 12px; height: 12px; fill: var(--text); }
+
+.timer {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 3px;
+  color: var(--yellow-dim);
+  min-width: 120px;
+}
+.timer.running { color: var(--yellow); }
+
+.vol-group {
+  display: flex; align-items: center; gap: 10px;
+  margin-left: auto;
+}
+.vol-label { font-size: 9px; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; }
+
+input[type=range] {
+  -webkit-appearance: none;
+  width: 110px; height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--yellow);
+  cursor: pointer;
+  transition: transform .1s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+/* ─── TRACK CARDS ─── */
+.tracks-list { display: flex; flex-direction: column; gap: 10px; }
+
+.track-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--yellow-dim);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+  position: relative;
+}
+
+.track-card.active   { border-left-color: var(--yellow); }
+.track-card.muted    { border-left-color: #2a2a2a; }
+.track-card.touched  {
+  border-left-color: var(--yellow);
+  box-shadow: 0 0 0 1px var(--yellow), 0 0 28px var(--yellow-glow);
+  animation: touchFlash .08s ease-out forwards;
+}
+@keyframes touchFlash {
+  0%   { box-shadow: 0 0 0 2px var(--yellow), 0 0 50px rgba(255,229,0,.6); }
+  100% { box-shadow: 0 0 0 1px var(--yellow), 0 0 28px var(--yellow-glow); }
+}
+
+.track-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+}
+
+.track-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--yellow-dim);
+  width: 36px;
+  flex-shrink: 0;
+}
+.track-card.active .track-num { color: var(--yellow); }
+
+.track-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* MIDI badge */
+.midi-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  border-radius: 5px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all .15s;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.midi-btn:hover   { border-color: var(--yellow); color: var(--yellow); }
+.midi-btn.learning {
+  border-color: var(--yellow);
+  color: var(--yellow);
+  background: rgba(255,229,0,.08);
+  animation: blink .5s ease-in-out infinite;
+}
+.midi-btn.assigned { border-color: var(--yellow-dim); color: var(--yellow); }
+
+/* mute icon btn */
+.mute-btn {
+  width: 34px; height: 34px;
+  border-radius: 7px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.mute-btn:hover { border-color: var(--yellow); }
+.mute-btn.muted { background: rgba(255,68,85,.12); border-color: var(--red); }
+
+/* delete btn */
+.del-btn {
+  width: 28px; height: 28px;
+  border-radius: 5px;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-dim);
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.del-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── WAVEFORM ─── */
+.waveform-wrap {
+  padding: 0 16px 14px;
+  position: relative;
+}
+
+.waveform-canvas {
+  display: block;
+  width: 100%;
+  height: 68px;
+  border-radius: 7px;
+  background: var(--surface2);
+  cursor: pointer;
+}
+
+/* ─── EMPTY STATE ─── */
+.empty {
+  text-align: center;
+  padding: 64px 0;
+}
+.empty h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px;
+  letter-spacing: 4px;
+  color: #222;
+  margin-bottom: 10px;
+}
+.empty p { font-size: 11px; color: #333; letter-spacing: 2px; }
+
+/* ─── TRACKS HEADER ROW ─── */
+.tracks-header-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+/* ─── LOADING ─── */
+.loading-bar {
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--yellow), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+  border-radius: 2px;
+  margin: 6px 0 20px;
+  display: none;
+}
+.loading-bar.visible { display: block; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ─── TOOLTIP ─── */
+[title] { position: relative; }
+</style>
+</head>
+<body>
+
+<!-- ════════ HEADER ════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <!-- Umbrella SVG -->
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <path d="M13 3 C6.4 3 1 8.1 1 14 L13 14 Z" fill="var(--logo-ink)"/>
+        <path d="M13 3 C19.6 3 25 8.1 25 14 L13 14 Z" fill="var(--logo-ink)" opacity=".6"/>
+        <line x1="13" y1="14" x2="13" y2="23" stroke="var(--logo-ink)" stroke-width="2" stroke-linecap="round"/>
+        <path d="M11 23 Q13 26 15 23" stroke="var(--logo-ink)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="logo-text-block">
+      <span class="logo-name">Electric Umbrella</span>
+      <span class="logo-sub">Stem Mixer</span>
+    </div>
+  </div>
+
+  <div class="status-row">
+    <div class="toggle-wrap">
+      <span class="toggle-label" id="themeLabel">Dark</span>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light / dark mode"></button>
+    </div>
+    <div class="pill">
+      <div class="dot" id="midiDot"></div>
+      <span id="midiText">MIDI — NO DEVICE</span>
+    </div>
+    <div class="pill">
+      <div class="dot" id="playDot"></div>
+      <span id="playText">STOPPED</span>
+    </div>
+  </div>
+</header>
+
+<!-- ════════ MAIN ════════ -->
+<main>
+
+  <!-- UPLOAD -->
+  <div class="section-label">Upload Stems</div>
+  <div class="upload-zone" id="uploadZone">
+    <h2>Drop Files Here</h2>
+    <p>WAV · MP3 · OGG · FLAC · or a ZIP archive of stems</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="document.getElementById('fileIn').click()">Add Audio Files</button>
+      <button class="btn btn-outline" onclick="document.getElementById('zipIn').click()">Upload ZIP</button>
+    </div>
+  </div>
+  <div class="loading-bar" id="loadingBar"></div>
+
+  <input type="file" id="fileIn" multiple accept="audio/*" style="display:none">
+  <input type="file" id="zipIn" accept=".zip" style="display:none">
+
+  <!-- MIDI PANEL -->
+  <div class="midi-panel">
+    <div class="midi-panel-label">⚡ SPOKE Board</div>
+    <div class="midi-devices" id="devicesList">
+      <div class="device-chip" id="noDevice">No MIDI devices detected — connect your SPOKE board</div>
+    </div>
+    <div class="midi-hint">Tap a track's pad button → touch your SPOKE pad to assign</div>
+  </div>
+
+  <!-- TRANSPORT -->
+  <div class="transport">
+    <div class="transport-title">Transport</div>
+
+    <button class="play-btn" id="playBtn" onclick="togglePlay()" title="Play / Pause">
+      <svg id="playIcon" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+    </button>
+
+    <button class="stop-btn" onclick="stopAll()" title="Stop">
+      <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+    </button>
+
+    <div class="timer" id="timer">00:00.000</div>
+
+    <div class="vol-group">
+      <span class="vol-label">Master Vol</span>
+      <input type="range" min="0" max="100" value="80" id="masterVol"
+             oninput="setMasterVol(this.value)" title="Master volume">
+    </div>
+
+    <button class="btn btn-danger-ghost" onclick="clearAll()">Clear All</button>
+  </div>
+
+  <!-- TRACKS -->
+  <div class="tracks-header-row">
+    <div class="section-label" style="margin:0">Stems — <span id="stemCount">0</span> loaded</div>
+    <div style="font-size:10px;color:var(--text-dim);letter-spacing:1.5px">MUTED STEMS ARE SILENCED · UNMUTED STEMS PLAY IN LOOP</div>
+  </div>
+
+  <div class="tracks-list" id="tracksList"></div>
+  <div class="empty" id="emptyState">
+    <h3>No Stems Loaded</h3>
+    <p>Upload audio files above to start mixing</p>
+  </div>
+
+</main>
+
+<script>
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
+let audioCtx   = null;
+let masterGain = null;
+let tracks     = [];      // see createTrackObj
+let isPlaying  = false;
+let startedAt  = 0;       // audioCtx.currentTime when play pressed
+let wallStart  = 0;       // performance.now() when play pressed
+let rafId      = null;
+let learningId = null;    // track id currently in MIDI learn mode
+let midiAccess = null;
+
+const AUDIO_EXTS = new Set(['mp3','wav','ogg','flac','aac','m4a','opus','webm']);
+
+// ════════════════════════════════════════════════
+//  AUDIO CONTEXT
+// ════════════════════════════════════════════════
+function ensureCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.8;
+    masterGain.connect(audioCtx.destination);
+  }
+  return audioCtx;
+}
+
+// ════════════════════════════════════════════════
+//  INDEXEDDB
+// ════════════════════════════════════════════════
+const DB_NAME = 'eu-stem-mixer';
+const DB_VER  = 1;
+
+function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('stems', { keyPath: 'id' });
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = e => rej(e);
+  });
+}
+
+async function dbSave(id, name, ab) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('stems', 'readwrite');
+    tx.objectStore('stems').put({ id, name, data: ab.slice(0) });
+    tx.oncomplete = res;
+    tx.onerror    = rej;
+  });
+}
+
+async function dbAll() {
+  const db = await openDB();
+  return new Promise(res => {
+    const req = db.transaction('stems', 'readonly').objectStore('stems').getAll();
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = () => res([]);
+  });
+}
+
+async function dbDelete(id) {
+  const db = await openDB();
+  db.transaction('stems', 'readwrite').objectStore('stems').delete(id);
+}
+
+async function dbClear() {
+  const db = await openDB();
+  db.transaction('stems', 'readwrite').objectStore('stems').clear();
+}
+
+// ════════════════════════════════════════════════
+//  TRACK OBJECT
+// ════════════════════════════════════════════════
+function createTrackObj(id, name, buffer) {
+  const ctx = ensureCtx();
+  const gain = ctx.createGain();
+  gain.gain.value = 1;
+  gain.connect(masterGain);
+  return { id, name, buffer, gain, src: null, muted: false, midiNote: null, touched: false };
+}
+
+// ════════════════════════════════════════════════
+//  LOAD AUDIO
+// ════════════════════════════════════════════════
+async function decodeAndAdd(name, ab) {
+  const ctx = ensureCtx();
+  let buffer;
+  try {
+    buffer = await ctx.decodeAudioData(ab.slice(0));
+  } catch(e) {
+    console.warn('Decode failed:', name, e);
+    alert(`⚠ Could not decode "${name}". Ensure it is a valid audio file.`);
+    return;
+  }
+  const id    = `t_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
+  const track = createTrackObj(id, name.replace(/\.[^.]+$/, ''), buffer);
+  tracks.push(track);
+  await dbSave(id, name, ab);
+  renderTracks();
+  requestAnimationFrame(() => drawWaveform(track));
+  if (isPlaying) startTrackSource(track);
+}
+
+async function handleFiles(files) {
+  showLoading(true);
+  for (const f of files) {
+    const ab = await f.arrayBuffer();
+    await decodeAndAdd(f.name, ab);
+  }
+  showLoading(false);
+}
+
+async function handleZip(file) {
+  showLoading(true);
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const entries = [];
+    zip.forEach((path, entry) => {
+      if (!entry.dir) {
+        const ext = path.split('.').pop().toLowerCase();
+        if (AUDIO_EXTS.has(ext)) entries.push({ path, entry });
+      }
+    });
+    for (const { path, entry } of entries) {
+      const ab   = await entry.async('arraybuffer');
+      const name = path.split('/').pop();
+      await decodeAndAdd(name, ab);
+    }
+  } catch(e) {
+    alert('Could not read ZIP file.');
+    console.error(e);
+  }
+  showLoading(false);
+}
+
+// ════════════════════════════════════════════════
+//  PLAYBACK
+// ════════════════════════════════════════════════
+function startTrackSource(track) {
+  if (track.src) {
+    try { track.src.stop(); } catch(_){}
+    track.src.disconnect();
+    track.src = null;
+  }
+  const ctx = ensureCtx();
+  const src = ctx.createBufferSource();
+  src.buffer = track.buffer;
+  src.loop   = true;
+  src.connect(track.gain);
+  track.gain.gain.value = track.muted ? 0 : 1;
+
+  // Calculate offset so all tracks stay in sync relative to startedAt
+  const elapsed = ctx.currentTime - startedAt;
+  const offset  = elapsed % track.buffer.duration;
+  src.start(0, offset >= 0 ? offset : 0);
+  track.src = src;
+}
+
+function togglePlay() {
+  if (isPlaying) pauseAll();
+  else           playAll();
+}
+
+function playAll() {
+  if (!tracks.length) return;
+  const ctx = ensureCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  startedAt  = ctx.currentTime;
+  wallStart  = performance.now();
+  isPlaying  = true;
+
+  tracks.forEach(t => startTrackSource(t));
+
+  // UI
+  document.getElementById('playIcon').innerHTML = '<rect x="5" y="3" width="4" height="18" rx="1"/><rect x="15" y="3" width="4" height="18" rx="1"/>';
+  document.getElementById('playDot').className  = 'dot play';
+  document.getElementById('playText').textContent = 'PLAYING';
+  document.getElementById('timer').classList.add('running');
+
+  rafLoop();
+}
+
+function pauseAll() {
+  tracks.forEach(t => {
+    if (t.src) { try { t.src.stop(); } catch(_){} t.src = null; }
+  });
+  isPlaying = false;
+  cancelAnimationFrame(rafId);
+
+  document.getElementById('playIcon').innerHTML = '<polygon points="5,3 19,12 5,21"/>';
+  document.getElementById('playDot').className   = 'dot';
+  document.getElementById('playText').textContent = 'PAUSED';
+  document.getElementById('timer').classList.remove('running');
+
+  // Re-draw waveforms static
+  tracks.forEach(t => drawWaveform(t));
+}
+
+function stopAll() {
+  pauseAll();
+  startedAt = 0; wallStart = 0;
+  document.getElementById('playText').textContent = 'STOPPED';
+  document.getElementById('timer').textContent    = '00:00.000';
+  tracks.forEach(t => drawWaveform(t));
+}
+
+function setMasterVol(v) {
+  if (masterGain) masterGain.gain.value = v / 100;
+}
+
+// ════════════════════════════════════════════════
+//  MUTE / DELETE / CLEAR
+// ════════════════════════════════════════════════
+function toggleMute(id) {
+  const t = tracks.find(x => x.id === id);
+  if (!t) return;
+  t.muted = !t.muted;
+  if (t.gain) {
+    t.gain.gain.linearRampToValueAtTime(
+      t.muted ? 0 : 1,
+      ensureCtx().currentTime + 0.06
+    );
+  }
+  updateCardClass(t);
+  drawWaveform(t);
+}
+
+function deleteTrack(id) {
+  const i = tracks.findIndex(x => x.id === id);
+  if (i < 0) return;
+  const t = tracks[i];
+  if (t.src)  { try { t.src.stop(); } catch(_){} }
+  if (t.gain) t.gain.disconnect();
+  dbDelete(id);
+  tracks.splice(i, 1);
+  renderTracks();
+}
+
+function clearAll() {
+  if (tracks.length && !confirm('Remove all stems?')) return;
+  stopAll();
+  tracks.forEach(t => {
+    if (t.src)  { try { t.src.stop(); } catch(_){} }
+    if (t.gain) t.gain.disconnect();
+  });
+  tracks = [];
+  dbClear();
+  renderTracks();
+}
+
+// ════════════════════════════════════════════════
+//  WAVEFORM
+// ════════════════════════════════════════════════
+function drawWaveform(track, playheadFrac) {
+  const canvas = document.getElementById(`wv_${track.id}`);
+  if (!canvas) return;
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W   = canvas.offsetWidth  || canvas.parentElement.clientWidth || 800;
+  const H   = 68;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = wvBg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Waveform data
+  const data = track.buffer.getChannelData(0);
+  const step = Math.ceil(data.length / W);
+  const mid  = H / 2;
+  const amp  = mid * 0.92;
+
+  // Read colours from current theme
+  const style    = getComputedStyle(document.documentElement);
+  const color    = track.muted ? style.getPropertyValue('--wv-muted').trim()     : style.getPropertyValue('--yellow').trim();
+  const colorDim = track.muted ? style.getPropertyValue('--wv-muted-dim').trim() : style.getPropertyValue('--wv-dim').trim();
+  const wvBg     = style.getPropertyValue('--wv-bg').trim();
+
+  // Centre line
+  ctx.fillStyle = colorDim;
+  ctx.fillRect(0, mid - 0.5, W, 1);
+
+  // Bars
+  for (let x = 0; x < W; x++) {
+    let mn = 1, mx = -1;
+    for (let j = 0; j < step; j++) {
+      const idx = x * step + j;
+      if (idx < data.length) {
+        const v = data[idx];
+        if (v < mn) mn = v;
+        if (v > mx) mx = v;
+      }
+    }
+    const barH = Math.max(1, (mx - mn) * amp);
+    const barY = mid - mx * amp;
+
+    // Gradient per bar: bright top, dim root
+    const grad = ctx.createLinearGradient(0, barY, 0, barY + barH);
+    grad.addColorStop(0,   color);
+    grad.addColorStop(1,   colorDim);
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, barY, 1, barH);
+  }
+
+  // Playhead
+  if (playheadFrac !== undefined) {
+    const px = playheadFrac * W;
+
+    // Glow sweep
+    const sweep = ctx.createLinearGradient(px - 30, 0, px + 30, 0);
+    sweep.addColorStop(0,   'rgba(255,229,0,0)');
+    sweep.addColorStop(.5,  'rgba(255,229,0,.12)');
+    sweep.addColorStop(1,   'rgba(255,229,0,0)');
+    ctx.fillStyle = sweep;
+    ctx.fillRect(px - 30, 0, 60, H);
+
+    // Line
+    ctx.fillStyle = 'rgba(255,229,0,.95)';
+    ctx.fillRect(px - 1, 0, 2, H);
+  }
+}
+
+// ════════════════════════════════════════════════
+//  RAF LOOP
+// ════════════════════════════════════════════════
+function rafLoop() {
+  if (!isPlaying) return;
+
+  const elapsed = (performance.now() - wallStart) / 1000;
+
+  // Timer display
+  const m  = Math.floor(elapsed / 60);
+  const s  = Math.floor(elapsed % 60);
+  const ms = Math.floor((elapsed % 1) * 1000);
+  document.getElementById('timer').textContent =
+    `${pad2(m)}:${pad2(s)}.${pad3(ms)}`;
+
+  // Redraw each waveform with playhead
+  tracks.forEach(t => {
+    const dur  = t.buffer ? t.buffer.duration : 1;
+    const frac = (elapsed % dur) / dur;
+    drawWaveform(t, frac);
+  });
+
+  rafId = requestAnimationFrame(rafLoop);
+}
+
+const pad2 = n => String(n).padStart(2,'0');
+const pad3 = n => String(n).padStart(3,'0');
+
+// ════════════════════════════════════════════════
+//  MIDI
+// ════════════════════════════════════════════════
+function initMIDI() {
+  if (!navigator.requestMIDIAccess) {
+    setDeviceLabel('Web MIDI not supported — use Chrome or Edge');
+    return;
+  }
+  navigator.requestMIDIAccess({ sysex: false }).then(access => {
+    midiAccess = access;
+    document.getElementById('midiDot').classList.add('on');
+    document.getElementById('midiText').textContent = 'MIDI — READY';
+    hookMIDIInputs();
+    access.onstatechange = () => hookMIDIInputs();
+  }).catch(() => {
+    setDeviceLabel('MIDI access denied — check browser permissions');
+  });
+}
+
+function hookMIDIInputs() {
+  const list = document.getElementById('devicesList');
+  list.innerHTML = '';
+  let count = 0;
+  for (const [, input] of midiAccess.inputs) {
+    input.onmidimessage = onMIDI;
+    const chip = document.createElement('div');
+    chip.className = 'device-chip live';
+    chip.textContent = input.name;
+    list.appendChild(chip);
+    count++;
+  }
+  if (!count) {
+    list.innerHTML = '<div class="device-chip">No MIDI devices — connect your SPOKE board</div>';
+    document.getElementById('midiDot').classList.remove('on');
+    document.getElementById('midiText').textContent = 'MIDI — NO DEVICE';
+  }
+}
+
+function setDeviceLabel(txt) {
+  document.getElementById('devicesList').innerHTML = `<div class="device-chip">${txt}</div>`;
+}
+
+function onMIDI(e) {
+  if (!e.data || e.data.length < 2) return;
+  const [status, note, velocity = 0] = e.data;
+  const cmd = status & 0xf0;
+  const isNoteOn  = cmd === 0x90 && velocity > 0;
+  const isNoteOff = cmd === 0x80 || (cmd === 0x90 && velocity === 0);
+
+  // MIDI Learn
+  if (learningId !== null && isNoteOn) {
+    assignPad(learningId, note);
+    learningId = null;
+    renderTracks();
+    setTimeout(() => tracks.forEach(t => drawWaveform(t)), 60);
+    return;
+  }
+
+  if (isNoteOn) {
+    tracks.forEach(t => {
+      if (t.midiNote === note) {
+        toggleMute(t.id);
+        setTouched(t.id, true);
+      }
+    });
+  }
+  if (isNoteOff) {
+    tracks.forEach(t => {
+      if (t.midiNote === note) setTouched(t.id, false);
+    });
+  }
+}
+
+function assignPad(trackId, note) {
+  // Remove this note from any other track
+  tracks.forEach(t => { if (t.midiNote === note && t.id !== trackId) t.midiNote = null; });
+  const t = tracks.find(x => x.id === trackId);
+  if (t) t.midiNote = note;
+}
+
+function startLearn(trackId) {
+  learningId = (learningId === trackId) ? null : trackId;
+  renderTracks();
+  setTimeout(() => tracks.forEach(t => drawWaveform(t)), 60);
+}
+
+function setTouched(id, val) {
+  const t = tracks.find(x => x.id === id);
+  if (t) t.touched = val;
+  const card = document.querySelector(`[data-id="${id}"]`);
+  if (card) {
+    card.classList.toggle('touched', val);
+    if (val) {
+      // Brief highlight pulse even after class removed
+      setTimeout(() => card.classList.remove('touched'), 400);
+    }
+  }
+}
+
+function noteLabel(n) {
+  const NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  return `${NAMES[n % 12]}${Math.floor(n / 12) - 1} (${n})`;
+}
+
+// ════════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════════
+function renderTracks() {
+  const list  = document.getElementById('tracksList');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('stemCount').textContent = tracks.length;
+
+  empty.style.display = tracks.length ? 'none' : 'block';
+
+  list.innerHTML = tracks.map((t, i) => `
+    <div class="track-card ${t.muted ? 'muted' : 'active'} ${t.touched ? 'touched' : ''}"
+         data-id="${t.id}">
+      <div class="track-top">
+        <div class="track-num">${pad2(i + 1)}</div>
+        <div class="track-name" title="${esc(t.name)}">${esc(t.name)}</div>
+
+        <!-- MIDI Assign Button -->
+        <button class="midi-btn ${learningId === t.id ? 'learning' : t.midiNote !== null ? 'assigned' : ''}"
+                onclick="startLearn('${t.id}')"
+                title="${t.midiNote !== null ? 'Click to reassign SPOKE pad' : 'Click then touch SPOKE pad to assign'}">
+          ${learningId === t.id
+            ? '⚡ TOUCH PAD…'
+            : t.midiNote !== null
+              ? `PAD · ${noteLabel(t.midiNote)}`
+              : 'ASSIGN PAD'}
+        </button>
+
+        <!-- Mute Button -->
+        <button class="mute-btn ${t.muted ? 'muted' : ''}"
+                onclick="toggleMute('${t.id}')"
+                title="${t.muted ? 'Unmute' : 'Mute'}">
+          ${t.muted
+            ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ff4455" stroke-width="2" stroke-linecap="round">
+                 <line x1="1" y1="1" x2="23" y2="23"/>
+                 <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/>
+                 <path d="M17 17a7 7 0 0 1-9.9-.1M5 12v-2m14 0v2c0 .34-.02.67-.07 1"/>
+               </svg>`
+            : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFE500" stroke-width="2" stroke-linecap="round">
+                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                 <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                 <line x1="12" y1="19" x2="12" y2="23"/>
+                 <line x1="8" y1="23" x2="16" y2="23"/>
+               </svg>`
+          }
+        </button>
+
+        <!-- Delete -->
+        <button class="del-btn" onclick="deleteTrack('${t.id}')" title="Remove stem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="waveform-wrap">
+        <canvas class="waveform-canvas" id="wv_${t.id}"></canvas>
+      </div>
+    </div>
+  `).join('');
+
+  requestAnimationFrame(() => tracks.forEach(t => drawWaveform(t)));
+}
+
+function updateCardClass(t) {
+  const card = document.querySelector(`[data-id="${t.id}"]`);
+  if (!card) return;
+  card.classList.toggle('muted',  t.muted);
+  card.classList.toggle('active', !t.muted);
+  const mb = card.querySelector('.mute-btn');
+  if (mb) mb.classList.toggle('muted', t.muted);
+}
+
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// ════════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════════
+function showLoading(on) {
+  document.getElementById('loadingBar').classList.toggle('visible', on);
+}
+
+// ════════════════════════════════════════════════
+//  EVENTS
+// ════════════════════════════════════════════════
+document.getElementById('fileIn').addEventListener('change', e => {
+  handleFiles(Array.from(e.target.files));
+  e.target.value = '';
+});
+document.getElementById('zipIn').addEventListener('change', e => {
+  if (e.target.files[0]) handleZip(e.target.files[0]);
+  e.target.value = '';
+});
+
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('over');
+  const files = Array.from(e.dataTransfer.files);
+  const zips  = files.filter(f => f.name.toLowerCase().endsWith('.zip'));
+  const audio = files.filter(f => !f.name.toLowerCase().endsWith('.zip'));
+  zips.forEach(z => handleZip(z));
+  if (audio.length) handleFiles(audio);
+});
+
+// Redraw on resize
+const ro = new ResizeObserver(() => {
+  if (!isPlaying) tracks.forEach(t => drawWaveform(t));
+});
+ro.observe(document.getElementById('tracksList'));
+
+// ════════════════════════════════════════════════
+//  RESTORE FROM DB ON LOAD
+// ════════════════════════════════════════════════
+async function restoreFromDB() {
+  let stems = [];
+  try { stems = await dbAll(); } catch(_) { return; }
+  if (!stems.length) return;
+
+  showLoading(true);
+  const ctx = ensureCtx();
+  for (const stem of stems) {
+    try {
+      const buffer = await ctx.decodeAudioData(stem.data.slice(0));
+      const track  = createTrackObj(stem.id, stem.name.replace(/\.[^.]+$/, ''), buffer);
+      tracks.push(track);
+    } catch(e) {
+      console.warn('Could not restore', stem.name);
+    }
+  }
+  renderTracks();
+  showLoading(false);
+}
+
+// ════════════════════════════════════════════════
+//  THEME TOGGLE
+// ════════════════════════════════════════════════
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  document.getElementById('themeLabel').textContent = isLight ? 'Light' : 'Dark';
+  localStorage.setItem('eu-theme', isLight ? 'light' : 'dark');
+  // Redraw waveforms with new theme colours
+  requestAnimationFrame(() => tracks.forEach(t => drawWaveform(t)));
+}
+
+function applyStoredTheme() {
+  if (localStorage.getItem('eu-theme') === 'light') {
+    document.documentElement.classList.add('light');
+    document.getElementById('themeLabel').textContent = 'Light';
+  }
+}
+
+// ════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════
+initMIDI();
+applyStoredTheme();
+restoreFromDB();
+renderTracks();
+</script>
+</body>
+</html>
