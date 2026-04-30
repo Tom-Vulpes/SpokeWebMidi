@@ -629,8 +629,12 @@ let rafId      = null;
 let learningId = null;
 let midiAccess = null;
 
-const AUDIO_EXTS   = new Set(['mp3','wav','ogg','flac','aac','m4a','opus','webm']);
-const SPOKE_BASE   = 36;   // SPOKE default first pad = MIDI note 36 (C2)
+const AUDIO_EXTS = new Set(['mp3','wav','ogg','flac','aac','m4a','opus','webm']);
+
+// SPOKE board pad → MIDI note map (PAD 1 first, ascending)
+const SPOKE_PADS = [36,38,40,43,45,48,50,52,55,57,60,62,64,67,69,72,74,76,79,81,84,86,88,91,93,96,98];
+// Reverse lookup: note → pad number (1-based)
+const SPOKE_NOTE_TO_PAD = Object.fromEntries(SPOKE_PADS.map((n, i) => [n, i + 1]));
 
 // ════════════════════════════════════════════════
 //  AUDIO CONTEXT
@@ -721,9 +725,9 @@ function getMidiAssignments() {
 
 function getNextMidiNote() {
   const used = new Set(tracks.map(t => t.midiNote).filter(n => n !== null));
-  let n = SPOKE_BASE;
-  while (used.has(n)) n++;
-  return n;
+  // Find first SPOKE pad not yet assigned
+  const free = SPOKE_PADS.find(n => !used.has(n));
+  return free ?? SPOKE_PADS[0]; // wrap to first if all used
 }
 
 // ════════════════════════════════════════════════
@@ -1162,10 +1166,8 @@ function setTouched(id, val) {
 }
 
 function noteLabel(n) {
-  const padNum = n - SPOKE_BASE + 1;
-  const NAMES  = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  const noteName = `${NAMES[n % 12]}${Math.floor(n / 12) - 1}`;
-  return padNum > 0 ? `PAD ${padNum}` : noteName;
+  const padNum = SPOKE_NOTE_TO_PAD[n];
+  return padNum !== undefined ? `PAD ${padNum}` : `NOTE ${n}`;
 }
 
 // ════════════════════════════════════════════════
