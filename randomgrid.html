@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKE — Random Sampler</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-from: #1e3c72;
+            --bg-to:   #2a5298;
+            --panel:   rgba(0,0,0,0.28);
+            --panel-border: rgba(255,255,255,0.10);
+            --green:   #4CAF50;
+            --green-dim: rgba(76,175,80,0.25);
+            --green-glow: rgba(76,175,80,0.45);
+            --blue:    #2196F3;
+            --blue-dim: rgba(33,150,243,0.25);
+            --blue-glow: rgba(33,150,243,0.45);
+            --amber:   #FFA500;
+            --amber-dim: rgba(255,165,0,0.22);
+            --amber-glow: rgba(255,165,0,0.5);
+            --text:    #ffffff;
+            --text-soft: rgba(255,255,255,0.65);
+            --text-dim:  rgba(255,255,255,0.35);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, var(--bg-from) 0%, var(--bg-to) 100%);
+            min-height: 100vh;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .card {
+            position: relative;
+            z-index: 1;
+            background: var(--panel);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            padding: 28px 26px 22px;
+            width: min(560px, 100%);
+            box-shadow:
+                0 24px 70px rgba(0,0,0,0.45),
+                0 1px 0 rgba(255,255,255,0.06) inset;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .title {
+            font-size: 30px;
+            font-weight: 900;
+            letter-spacing: 8px;
+            color: #fff;
+            text-shadow: 0 2px 20px rgba(33,150,243,0.4);
+        }
+        .subtitle {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--text-soft);
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+
+        /* Status bar */
+        .status-bar {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 9px 16px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-soft);
+        }
+        .s-led {
+            width: 9px; height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.12);
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .s-led.green { background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+        .s-led.blue  { background: var(--blue);  box-shadow: 0 0 8px var(--blue-glow); animation: led-blink 0.5s infinite alternate; }
+        @keyframes led-blink { from { opacity: 0.2; } to { opacity: 1; } }
+        #statusText { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .prog-track {
+            width: 80px; height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            display: none;
+        }
+        .prog-track.show { display: block; }
+        .prog-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--blue), #64b5f6);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.2s;
+        }
+
+        /* 5x5 grid */
+        .pad-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .pad {
+            aspect-ratio: 1;
+            border-radius: 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.25);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.08s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pad::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 45%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.07), transparent);
+            border-radius: 14px 14px 0 0;
+            pointer-events: none;
+        }
+        .pad:active { transform: scale(0.93); }
+        .pad.empty { cursor: default; }
+
+        .pad.fetching {
+            border-color: rgba(33,150,243,0.35);
+            background: rgba(33,150,243,0.08);
+            animation: pad-fetch 0.7s infinite alternate;
+        }
+        @keyframes pad-fetch {
+            from { border-color: rgba(33,150,243,0.2); }
+            to   { border-color: rgba(33,150,243,0.6); box-shadow: 0 0 14px rgba(33,150,243,0.2); }
+        }
+
+        .pad.loaded {
+            border-color: rgba(76,175,80,0.4);
+            background: rgba(76,175,80,0.1);
+        }
+        .pad.loaded:hover {
+            border-color: rgba(76,175,80,0.7);
+            background: rgba(76,175,80,0.18);
+            box-shadow: 0 0 18px rgba(76,175,80,0.2);
+            transform: scale(1.04);
+        }
+
+        .pad.playing {
+            border-color: var(--amber);
+            background: rgba(255,165,0,0.18);
+            animation: pad-play 0.8s infinite alternate;
+        }
+        @keyframes pad-play {
+            from { box-shadow: 0 0 14px rgba(255,165,0,0.35); }
+            to   { box-shadow: 0 0 30px rgba(255,165,0,0.7), 0 0 60px rgba(255,165,0,0.15); }
+        }
+
+        .pad-num {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-dim);
+            position: relative; z-index: 1;
+            transition: color 0.15s;
+        }
+        .pad.loaded   .pad-num { color: rgba(76,175,80,0.85); }
+        .pad.playing  .pad-num { color: var(--amber); }
+        .pad.fetching .pad-num { color: rgba(33,150,243,0.65); }
+
+        .pad-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            position: relative; z-index: 1;
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+        .pad.loaded   .pad-dot { background: var(--green); box-shadow: 0 0 6px var(--green-glow); }
+        .pad.playing  .pad-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber-glow); }
+        .pad.fetching .pad-dot { background: var(--blue);  box-shadow: 0 0 6px var(--blue-glow); }
+
+        .tip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.88);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            padding: 5px 10px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #ccc;
+            white-space: nowrap;
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .pad:hover .tip { display: block; }
+
+        /* Control row */
+        .ctrl-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+        }
+
+        .ctrl-btn {
+            border-radius: 16px;
+            border: 2px solid rgba(255,255,255,0.12);
+            background: rgba(0,0,0,0.25);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 10px;
+            gap: 4px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.08s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .ctrl-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 45%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.06), transparent);
+            border-radius: 14px 14px 0 0;
+            pointer-events: none;
+        }
+        .ctrl-btn:active { transform: scale(0.96); }
+
+        .ctrl-label {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-soft);
+            position: relative; z-index: 1;
+        }
+        .ctrl-pin {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-dim);
+            position: relative; z-index: 1;
+        }
+
+        #stopBtn:hover {
+            border-color: rgba(33,150,243,0.5);
+            background: rgba(33,150,243,0.12);
+            box-shadow: 0 0 18px rgba(33,150,243,0.2);
+        }
+
+        #randomizeBtn {
+            border-color: rgba(255,165,0,0.35);
+            background: rgba(255,165,0,0.1);
+        }
+        #randomizeBtn .ctrl-label { color: var(--amber); }
+        #randomizeBtn .ctrl-pin   { color: rgba(255,165,0,0.45); }
+        #randomizeBtn:hover {
+            border-color: rgba(255,165,0,0.65);
+            background: rgba(255,165,0,0.2);
+            box-shadow: 0 0 24px rgba(255,165,0,0.3);
+        }
+        #randomizeBtn.spinning {
+            animation: rand-pulse 0.55s infinite alternate;
+        }
+        @keyframes rand-pulse {
+            from { border-color: rgba(255,165,0,0.3); box-shadow: 0 0 10px rgba(255,165,0,0.15); }
+            to   { border-color: var(--amber); box-shadow: 0 0 40px rgba(255,165,0,0.55), 0 0 80px rgba(255,165,0,0.1); }
+        }
+
+        .footer-text {
+            text-align: center;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.15);
+            text-transform: uppercase;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <div class="title">SPOKE</div>
+        <div class="subtitle">Random Sample Grid · 25 Pads</div>
+    </div>
+
+    <div class="status-bar">
+        <div class="s-led" id="sLed"></div>
+        <span id="statusText">Press Randomize to load 25 sounds</span>
+        <div class="prog-track" id="progTrack">
+            <div class="prog-bar" id="progBar"></div>
+        </div>
+    </div>
+
+    <div class="pad-grid" id="padGrid"></div>
+
+    <div class="ctrl-row">
+        <div class="ctrl-btn" id="stopBtn">
+            <div class="ctrl-label">Stop All</div>
+            <div class="ctrl-pin">Pin 26</div>
+        </div>
+        <div class="ctrl-btn" id="randomizeBtn">
+            <div class="ctrl-label">⟳ Randomize</div>
+            <div class="ctrl-pin">Pin 27</div>
+        </div>
+    </div>
+
+    <div class="footer-text">Freesound API · 1-second random clips</div>
+</div>
+
+<script>
+const API_KEY   = 'ENXBH14HDdboFnq4ttqKQGed9tV7xxYJOghOaPbo';
+const PAD_COUNT = 25;
+const CLIP_SEC  = 1.0;
+
+const TERMS = [
+    'hit','click','snap','pop','beep','ping','bang','crash','thud','slap',
+    'drum','kick','snare','clap','hihat','cymbal','shaker','cowbell',
+    'synth','bass','chord','stab','pluck','arp','pad',
+    'piano','guitar','violin','cello','flute','trumpet','harp','organ',
+    'water','rain','ocean','fire','wind','thunder','birds','insects',
+    'metal','glass','wood','stone','ceramic',
+    'noise','glitch','texture','crackle','drone','rumble',
+    'voice','whisper','laugh','footstep','door','engine',
+    'bell','chime','gong','bowl','xylophone'
+];
+
+let audioCtx     = null;
+const soundCache = new Map();
+const activeSrc  = new Map();
+let isLoading    = false;
+
+const padGrid      = document.getElementById('padGrid');
+const sLed         = document.getElementById('sLed');
+const statusText   = document.getElementById('statusText');
+const progTrack    = document.getElementById('progTrack');
+const progBar      = document.getElementById('progBar');
+const randomizeBtn = document.getElementById('randomizeBtn');
+const stopBtn      = document.getElementById('stopBtn');
+
+const padEls = [];
+for (let i = 0; i < PAD_COUNT; i++) {
+    const el = document.createElement('div');
+    el.className = 'pad empty';
+    el.innerHTML = `
+        <div class="pad-num">${String(i + 1).padStart(2, '0')}</div>
+        <div class="pad-dot"></div>
+        <div class="tip"></div>
+    `;
+    el.addEventListener('click', () => triggerPad(i));
+    padGrid.appendChild(el);
+    padEls.push(el);
+}
+
+function initCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function clipBuffer(src, startSec) {
+    const sr = src.sampleRate;
+    const maxStart = Math.max(0, src.duration - CLIP_SEC);
+    const start    = Math.floor(Math.min(startSec, maxStart) * sr);
+    const len      = Math.min(Math.floor(CLIP_SEC * sr), src.length - start);
+    if (len <= 0) return src;
+    const out = audioCtx.createBuffer(src.numberOfChannels, len, sr);
+    for (let ch = 0; ch < src.numberOfChannels; ch++) {
+        out.getChannelData(ch).set(src.getChannelData(ch).subarray(start, start + len));
+    }
+    return out;
+}
+
+function setLed(state) {
+    sLed.className = 's-led' + (state ? ` ${state}` : '');
+}
+function setStatus(msg) { statusText.textContent = msg; }
+function setProgress(n, total) {
+    if (n <= 0) { progTrack.classList.remove('show'); return; }
+    progTrack.classList.add('show');
+    progBar.style.width = `${(n / total) * 100}%`;
+    if (n >= total) setTimeout(() => progTrack.classList.remove('show'), 700);
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function fetchOneSound(retries = 4) {
+    for (let t = 0; t < retries; t++) {
+        try {
+            const term   = TERMS[Math.floor(Math.random() * TERMS.length)];
+            const page   = Math.floor(Math.random() * 8) + 1;
+            const filter = encodeURIComponent('duration:[1.5 TO 120] is_explicit:false');
+            const url    = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(term)}&page=${page}&page_size=10&token=${API_KEY}&fields=id,name,duration,previews&filter=${filter}`;
+
+            const res  = await fetch(url);
+            if (!res.ok) { await sleep(250); continue; }
+            const data = await res.json();
+            if (!data.results?.length) continue;
+
+            const sound = data.results[Math.floor(Math.random() * data.results.length)];
+            const mp3   = sound.previews?.['preview-hq-mp3'];
+            if (!mp3) continue;
+
+            const aRes    = await fetch(mp3);
+            if (!aRes.ok) continue;
+            const ab      = await aRes.arrayBuffer();
+            const decoded = await audioCtx.decodeAudioData(ab.slice(0));
+            const maxS    = Math.max(0, decoded.duration - CLIP_SEC);
+            const clipped = clipBuffer(decoded, Math.random() * maxS);
+            return { buffer: clipped, name: sound.name };
+        } catch (e) {
+            console.warn(`attempt ${t + 1}:`, e.message);
+            await sleep(200 * (t + 1));
+        }
+    }
+    return null;
+}
+
+async function loadAll() {
+    if (isLoading) return;
+    isLoading = true;
+    initCtx();
+    stopAll(false);
+    soundCache.clear();
+
+    padEls.forEach(p => {
+        p.className = 'pad fetching';
+        p.querySelector('.tip').textContent = '';
+    });
+
+    randomizeBtn.classList.add('spinning');
+    setLed('blue');
+    setStatus('Fetching 25 random sounds…');
+    setProgress(0, PAD_COUNT);
+
+    let done = 0;
+    await Promise.allSettled(padEls.map(async (el, i) => {
+        const sound = await fetchOneSound();
+        if (sound) {
+            soundCache.set(i, sound);
+            el.className = 'pad loaded';
+            el.querySelector('.tip').textContent = sound.name;
+        } else {
+            el.className = 'pad empty';
+            el.querySelector('.tip').textContent = 'Failed to load';
+        }
+        done++;
+        setProgress(done, PAD_COUNT);
+        setStatus(`Loading… ${done} / ${PAD_COUNT}`);
+    }));
+
+    isLoading = false;
+    randomizeBtn.classList.remove('spinning');
+    setLed(soundCache.size > 0 ? 'green' : '');
+    setProgress(PAD_COUNT, PAD_COUNT);
+    setStatus(`${soundCache.size} / ${PAD_COUNT} sounds ready — tap a pad`);
+}
+
+function triggerPad(i) {
+    if (!soundCache.has(i)) return;
+    initCtx();
+
+    if (activeSrc.has(i)) {
+        try { activeSrc.get(i).stop(); } catch (_) {}
+        activeSrc.delete(i);
+        padEls[i].className = 'pad loaded';
+        return;
+    }
+
+    const { buffer, name } = soundCache.get(i);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(audioCtx.destination);
+    src.start(0);
+    activeSrc.set(i, src);
+    padEls[i].className = 'pad playing';
+    setStatus(`▶  ${name}`);
+
+    src.onended = () => {
+        if (activeSrc.get(i) === src) {
+            activeSrc.delete(i);
+            if (padEls[i]) padEls[i].className = 'pad loaded';
+        }
+        if (activeSrc.size === 0) setStatus(`${soundCache.size} / ${PAD_COUNT} sounds ready — tap a pad`);
+    };
+}
+
+function stopAll(updateStatus = true) {
+    activeSrc.forEach((src, i) => {
+        try { src.stop(); } catch (_) {}
+        if (padEls[i]) padEls[i].className = soundCache.has(i) ? 'pad loaded' : 'pad empty';
+    });
+    activeSrc.clear();
+    if (updateStatus && soundCache.size > 0) setStatus(`${soundCache.size} / ${PAD_COUNT} sounds ready — tap a pad`);
+}
+
+randomizeBtn.addEventListener('click', loadAll);
+stopBtn.addEventListener('click', () => { stopAll(); setLed('green'); });
+
+// MIDI: pins 1–25 → notes 36–60, pin 26 → 61 (stop), pin 27 → 62 (randomize)
+(async () => {
+    try {
+        const midi = await navigator.requestMIDIAccess();
+        midi.inputs.forEach(inp => {
+            inp.onmidimessage = ({ data }) => {
+                const [status, note, vel] = data;
+                if ((status & 0xf0) !== 0x90 || vel === 0) return;
+                if (note >= 36 && note < 36 + PAD_COUNT) triggerPad(note - 36);
+                else if (note === 61) stopAll();
+                else if (note === 62) loadAll();
+            };
+        });
+    } catch (_) {}
+})();
+</script>
+</body>
+</html>
