@@ -317,6 +317,106 @@
 
     /* scrollbar global */
     * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+    /* ── PRIVACY MODAL ── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-backdrop.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      max-width: 440px; width: 90%;
+      padding: 28px 28px 22px;
+      box-shadow: 0 0 40px rgba(0,0,0,0.8);
+      transform: translateY(8px);
+      transition: transform 0.2s;
+    }
+    .modal-backdrop.open .modal { transform: translateY(0); }
+    .modal-icon { font-size: 28px; margin-bottom: 10px; }
+    .modal h2 {
+      font-family: var(--sans);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 16px;
+    }
+    .modal-body {
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.8;
+      margin-bottom: 20px;
+    }
+    .modal-body strong { color: #fff; }
+    .privacy-points {
+      list-style: none;
+      margin: 12px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .privacy-points li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .privacy-points li .tick {
+      color: #00ff88;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .btn-cancel {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 7px 16px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .btn-cancel:hover { border-color: var(--text-dim); color: var(--text); }
+    .btn-confirm {
+      background: var(--amber);
+      border: none;
+      color: #000;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: bold;
+      padding: 7px 18px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .btn-confirm:hover { background: #ffc04a; }
+
+    /* privacy badge in footer */
+    .privacy-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+      padding: 2px 7px;
+      letter-spacing: 0.5px;
+    }
+    .privacy-badge .lock { color: #00ff88; font-size: 11px; }
   </style>
 </head>
 <body>
@@ -376,10 +476,33 @@
   </div>
 </main>
 
+<!-- Privacy confirmation modal -->
+<div class="modal-backdrop" id="privacyModal">
+  <div class="modal">
+    <div class="modal-icon">🔒</div>
+    <h2>Your videos stay on your device</h2>
+    <div class="modal-body">
+      Before you select a folder, here's what this app does — and doesn't — do with your files:
+      <ul class="privacy-points">
+        <li><span class="tick">✓</span><span><strong>No uploads, ever.</strong> Your videos are never sent to any server, cloud service, or third party.</span></li>
+        <li><span class="tick">✓</span><span><strong>No copies made.</strong> The app reads your video files directly from your hard drive using a temporary browser reference. Nothing is duplicated or written anywhere.</span></li>
+        <li><span class="tick">✓</span><span><strong>No internet required.</strong> Playback is handled entirely by your browser, offline, on your own machine.</span></li>
+        <li><span class="tick">✓</span><span><strong>Memory only.</strong> The browser holds a short-lived link to each file while the page is open. Close or refresh the tab and all references are gone.</span></li>
+      </ul>
+      This app runs 100% locally. Select your folder and your videos will never leave your computer.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closePrivacyModal()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmAndOpenFolder()">Got it — Open Folder</button>
+    </div>
+  </div>
+</div>
+
 <footer>
-  <button id="openFolderBtn" onclick="openFolder()">▶ Open Folder</button>
+  <button id="openFolderBtn" onclick="showPrivacyModal()">▶ Open Folder</button>
   <div class="midi-flash" id="midiFlash"></div>
   <div id="statusBar"><span class="info">Ready — connect SPOKE via USB, then open a video folder</span></div>
+  <div class="privacy-badge"><span class="lock">⬤</span> 100% LOCAL</div>
 </footer>
 
 <script>
@@ -444,6 +567,21 @@
     });
     mappedCount.textContent = `${count} / 27`;
   }
+
+  // ── Privacy modal ──
+  function showPrivacyModal() {
+    document.getElementById('privacyModal').classList.add('open');
+  }
+  function closePrivacyModal() {
+    document.getElementById('privacyModal').classList.remove('open');
+  }
+  function confirmAndOpenFolder() {
+    closePrivacyModal();
+    openFolder();
+  }
+  document.getElementById('privacyModal').addEventListener('click', function(e) {
+    if (e.target === this) closePrivacyModal();
+  });
 
   // ── Open folder ──
   async function openFolder() {
