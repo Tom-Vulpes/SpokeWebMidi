@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SPOKE — Video Player</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg:        #090b0e;
@@ -20,8 +20,8 @@
       --text-dim:  #4a5568;
       --active-bg: #1a2a1a;
       --active-border: #00ff88;
-      --mono: 'Share Tech Mono', monospace;
-      --sans: 'Barlow Condensed', sans-serif;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans Condensed', sans-serif;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -315,6 +315,71 @@
     }
     .midi-flash.on { opacity: 1; }
 
+    /* ── FULLSCREEN ── */
+    .video-panel:-webkit-full-screen { background: #000; }
+    .video-panel:fullscreen { background: #000; }
+    #fsBtn {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 5px 10px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+      z-index: 10;
+      backdrop-filter: blur(4px);
+    }
+    #fsBtn:hover { background: rgba(245,166,35,0.25); border-color: var(--amber); color: var(--amber); }
+    :fullscreen #fsBtn { top: 16px; right: 16px; }
+
+    /* fullscreen hides now-playing bar until hover */
+    :fullscreen .now-playing-bar { opacity: 0; }
+    :fullscreen .video-panel:hover .now-playing-bar.visible { opacity: 1; }
+
+    /* ── PAD CLICK-TO-MAP ── */
+    .pad {
+      cursor: pointer;
+    }
+    .pad:hover {
+      border-color: var(--amber-dim) !important;
+      background: #13191f !important;
+    }
+    .pad:hover .pad-note { color: var(--amber) !important; }
+    .pad.has-video:hover { border-color: var(--amber) !important; }
+
+    /* clear button on mapped pads */
+    .pad-clear {
+      position: absolute;
+      bottom: 3px; right: 3px;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 10px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 1px 3px;
+      display: none;
+      z-index: 2;
+    }
+    .pad.has-video .pad-clear { display: block; }
+    .pad-clear:hover { color: var(--red); }
+
+    /* hint text on empty pads */
+    .pad-hint {
+      font-size: 8px;
+      color: var(--text-dim);
+      margin-top: auto;
+      opacity: 0;
+      transition: opacity 0.1s;
+      letter-spacing: 0.5px;
+    }
+    .pad:hover .pad-hint { opacity: 1; }
+    .pad.has-video .pad-hint { display: none; }
+
     /* scrollbar global */
     * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 
@@ -434,6 +499,7 @@
   <!-- VIDEO PANEL -->
   <div class="video-panel">
     <video id="videoEl" playsinline></video>
+    <button id="fsBtn" onclick="toggleFullscreen()" title="Fullscreen (F)">⛶ FULLSCREEN</button>
 
     <div class="video-overlay" id="videoOverlay">
       <div class="no-video-msg">
@@ -542,8 +608,11 @@
         <div class="pad-num">PAD ${String(i+1).padStart(2,'0')}</div>
         <div class="pad-note">${note}</div>
         <div class="pad-filename" id="pf-${i}">—</div>
+        <div class="pad-hint">+ click to assign</div>
         <div class="pad-indicator"></div>
+        <button class="pad-clear" title="Remove video" onclick="clearPad(event,${i})">✕</button>
       `;
+      div.addEventListener('click', () => pickVideoForPad(i));
       padGrid.appendChild(div);
     });
   }
@@ -778,6 +847,79 @@
     const type = status & 0xf0;
     if (type === 0x90 && velocity > 0) { onNoteOn(note); }
     else if (type === 0x80 || (type === 0x90 && velocity === 0)) { onNoteOff(note); }
+  }
+
+  // ── Fullscreen ──
+  function toggleFullscreen() {
+    const panel = document.querySelector('.video-panel');
+    const btn   = document.getElementById('fsBtn');
+    if (!document.fullscreenElement) {
+      panel.requestFullscreen().catch(()=>{});
+    } else {
+      document.exitFullscreen();
+    }
+  }
+  document.addEventListener('fullscreenchange', () => {
+    const btn = document.getElementById('fsBtn');
+    if (document.fullscreenElement) {
+      btn.textContent = '✕ EXIT FULL';
+    } else {
+      btn.textContent = '⛶ FULLSCREEN';
+    }
+  });
+  // F key shortcut
+  document.addEventListener('keydown', e => {
+    if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+  });
+
+  // ── Pick a single video file for a specific pad ──
+  async function pickVideoForPad(padIdx) {
+    // If pad has video and user didn't click the clear btn, open picker
+    if (!('showOpenFilePicker' in window)) {
+      setStatus('<span class="err">File picker not supported — use Chrome or Edge</span>');
+      return;
+    }
+    try {
+      const [fileHandle] = await window.showOpenFilePicker({
+        types: [{
+          description: 'Video files',
+          accept: { 'video/*': ['.mp4','.webm','.mov','.avi','.mkv','.m4v','.ogg'] }
+        }],
+        multiple: false
+      });
+      const file = await fileHandle.getFile();
+      // Revoke old URL for this pad if any
+      if (videos[padIdx] && videos[padIdx].objectUrl) {
+        URL.revokeObjectURL(videos[padIdx].objectUrl);
+      }
+      const objectUrl = URL.createObjectURL(file);
+      videos[padIdx] = { name: file.name, objectUrl };
+      refreshPads();
+      setStatus(`<span class="ok">✓ PAD ${padIdx+1} → ${file.name}</span>`);
+    } catch(e) {
+      if (e.name !== 'AbortError') {
+        setStatus(`<span class="err">Error: ${e.message}</span>`);
+      }
+    }
+  }
+
+  // ── Clear a pad mapping ──
+  function clearPad(e, padIdx) {
+    e.stopPropagation(); // don't trigger pad click
+    if (videos[padIdx] && videos[padIdx].objectUrl) {
+      URL.revokeObjectURL(videos[padIdx].objectUrl);
+    }
+    videos[padIdx] = null;
+    // If this was the active pad, stop playback
+    if (activePadIdx === padIdx) {
+      videoEl.pause();
+      videoEl.removeAttribute('src');
+      videoOverlay.classList.remove('hidden');
+      activePadIdx = -1;
+      nowPlayingBar.classList.remove('visible');
+    }
+    refreshPads();
+    setStatus(`<span class="info">PAD ${padIdx+1} cleared</span>`);
   }
 
   // ── Utilities ──
