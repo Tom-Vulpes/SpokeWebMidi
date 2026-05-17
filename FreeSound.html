@@ -705,6 +705,75 @@ select option{background:#1c1c1f;}
       </div>
     </div>
 
+    <!-- EDIT -->
+    <div class="panel" id="tab-edit">
+
+      <!-- Sound picker card -->
+      <div class="card">
+        <div class="card-head static">
+          <span class="card-label">Loaded sounds</span>
+          <span style="font-size:10px;color:var(--muted);">Click a sound to open the editor</span>
+        </div>
+        <div class="card-body" style="padding-top:10px;">
+          <div id="editSoundPicker">
+            <div class="edit-empty"><div class="ico">🎵</div><p>No sounds loaded yet — search, record or upload first</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editor workspace (hidden until sound selected) -->
+      <div class="card" id="editWorkspace" style="display:none;">
+
+        <div class="card-head static">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+            <span class="np-tag" id="editPadTag">PAD 1</span>
+            <span style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="editSoundLabel">—</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--muted);" id="editOrigDur">—</span>
+            <span style="font-size:10px;color:var(--muted);">original</span>
+          </div>
+        </div>
+
+        <div class="card-body" style="display:flex;flex-direction:column;gap:0;">
+
+          <!-- Waveform -->
+          <div class="waveform-wrap" id="waveformWrap">
+            <canvas id="editCanvas" height="130"></canvas>
+          </div>
+
+          <!-- Time strip -->
+          <div class="edit-time-strip">
+            <span>Start <span class="t-val" id="etStart">0.000s</span></span>
+            <span class="t-dur">Duration <span class="t-val" id="etDur">—</span></span>
+            <span>End <span class="t-val" id="etEnd">—</span></span>
+          </div>
+
+          <!-- Controls -->
+          <div class="edit-ctrl-row">
+            <button class="btn g" id="editPreviewBtn">▶ Preview trim</button>
+            <button class="btn r sm" id="editStopBtn" style="display:none;">■ Stop</button>
+            <button class="btn o" id="editApplyBtn">✓ Apply trim</button>
+            <button class="btn sm" id="editResetBtn" style="margin-left:auto;">↺ Reset to original</button>
+          </div>
+
+          <!-- Nudge row -->
+          <div style="margin-top:12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;">Nudge</span>
+            <button class="btn sm" id="nudgeSL">−10ms start</button>
+            <button class="btn sm" id="nudgeSR">+10ms start</button>
+            <span style="width:1px;height:16px;background:var(--border);margin:0 2px;"></span>
+            <button class="btn sm" id="nudgeEL">−10ms end</button>
+            <button class="btn sm" id="nudgeER">+10ms end</button>
+          </div>
+
+          <div class="st" id="editStatus" style="margin-top:8px;"></div>
+
+        </div>
+      </div>
+
+    </div><!-- /tab-edit -->
+
   </main>
 </div><!-- .app -->
 
@@ -916,6 +985,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
     tab.classList.add('active');
     document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
     if(tab.dataset.tab==='pads') renderPadsGrid();
+    if(tab.dataset.tab==='edit') renderEditTab();
   });
 });
 
@@ -1253,7 +1323,7 @@ async function loadSound(url,name,id){
     initAC();
     const ab=await(await fetch(url)).arrayBuffer();
     const buf=await AC.decodeAudioData(ab);
-    sounds.set(idx,{buffer:buf,url,name,id}); afterLoad();
+    sounds.set(idx,{buffer:buf,url,name,id,originalBuffer:buf}); afterLoad();
   }catch(e){console.error(e);alert('Load failed: '+e.message);}
 }
 async function loadSoundToPad(url,name,id,padIdx){
@@ -1267,7 +1337,7 @@ async function loadSoundToPad(url,name,id,padIdx){
     if(sources.has(idx)){try{sources.get(idx).src.stop();}catch(e){}sources.delete(idx);}
     const ab=await(await fetch(url)).arrayBuffer();
     const buf=await AC.decodeAudioData(ab);
-    sounds.set(idx,{buffer:buf,url,name,id}); afterLoad();
+    sounds.set(idx,{buffer:buf,url,name,id,originalBuffer:buf}); afterLoad();
   }catch(e){console.error(e);alert('Load failed: '+e.message);}
 }
 
@@ -1283,6 +1353,7 @@ function afterLoad(){
   document.getElementById('loadedBadge').textContent=loaded;
   updateBoardList(); updateExport();
   if(document.getElementById('tab-pads').classList.contains('active')) renderPadsGrid();
+  if(document.getElementById('tab-edit').classList.contains('active')) renderEditTab();
   const rem=PAD_COUNT-loaded, ab=document.getElementById('autoLoadBtn');
   if(rem>0&&results.length>0){ab.style.display='';ab.textContent=`⚡ Auto-load ${Math.min(rem,results.length)}`;}
   else ab.style.display='none';
@@ -1385,7 +1456,7 @@ async function startRec(){
 function stopRec(){ if(mRec&&recOn){mRec.stop();recOn=false;} }
 function assignRec(i){
   if(!recBuf)return;
-  sounds.set(i,{buffer:recBuf,url:null,name:`Recording ${i+1}`,id:`rec_${Date.now()}`});
+  sounds.set(i,{buffer:recBuf,url:null,name:`Recording ${i+1}`,id:`rec_${Date.now()}`,originalBuffer:recBuf});
   recBuf=null; waitPad=false;
   recStatus.textContent='Assigned! Record again to capture another.'; recStatus.className='st ok';
   afterLoad(); setNP(i); playPad(i);
@@ -1521,7 +1592,383 @@ document.getElementById('allGlobal').addEventListener('click',()=>{padModes.clea
 
 
 // ════════════════════════════════════════════════════════════════
-// WAV / ZIP EXPORT
+// AUDIO EDITOR
+// ════════════════════════════════════════════════════════════════
+
+let editPadIdx    = null;
+let editBuf       = null;   // current buffer (may be trimmed)
+let editOrigBuf   = null;   // always the un-trimmed original
+let editTrimStart = 0;      // fraction [0, 1]
+let editTrimEnd   = 1;      // fraction [0, 1]
+let editDragging  = null;   // 'start' | 'end' | null
+let editPrevSrc   = null;   // live preview AudioBufferSourceNode
+let editPrevGain  = null;
+
+// ── Preserve original buffer when a sound is first stored ──
+// Patch sounds.set to track originals (store via wrapper)
+function storeSound(idx, obj) {
+  // If original already saved (reset case), keep it; otherwise this IS the original
+  if (!obj.originalBuffer) obj.originalBuffer = obj.buffer;
+  sounds.set(idx, obj);
+}
+
+// ── Render the sound picker list ──
+function renderEditTab() {
+  const picker = document.getElementById('editSoundPicker');
+  if (!sounds.size) {
+    picker.innerHTML = '<div class="edit-empty"><div class="ico">🎵</div><p>No sounds loaded yet</p></div>';
+    // Keep workspace visible if one is already open (sounds may have been rearranged)
+    return;
+  }
+  picker.innerHTML = '';
+  [...sounds.entries()].sort((a, b) => a[0] - b[0]).forEach(([i, s]) => {
+    const dur = s.buffer ? s.buffer.duration.toFixed(2) + 's' : '—';
+    const row = document.createElement('div');
+    row.className = 'esound-row' + (i === editPadIdx ? ' active' : '');
+    row.innerHTML = `<span class="esound-num">${i + 1}</span>
+      <span class="esound-name">${s.name}</span>
+      <span class="esound-dur">${dur}</span>`;
+    row.addEventListener('click', () => openEditor(i));
+    picker.appendChild(row);
+  });
+}
+
+// ── Open a sound in the editor ──
+function openEditor(i) {
+  stopEditPreview();
+  editPadIdx = i;
+  const s = sounds.get(i);
+  if (!s) return;
+
+  // Ensure original is preserved
+  if (!s.originalBuffer) s.originalBuffer = s.buffer;
+
+  editOrigBuf = s.originalBuffer;
+  editBuf     = s.buffer;
+
+  // Reset trim to cover the full current buffer
+  editTrimStart = 0;
+  editTrimEnd   = 1;
+
+  // UI labels
+  document.getElementById('editWorkspace').style.display = '';
+  document.getElementById('editPadTag').textContent  = `PAD ${i + 1}`;
+  document.getElementById('editSoundLabel').textContent = s.name;
+  document.getElementById('editOrigDur').textContent = editOrigBuf.duration.toFixed(3) + 's';
+  document.getElementById('editStatus').textContent  = '';
+  document.getElementById('editStatus').className   = 'st';
+
+  // Re-highlight picker
+  document.querySelectorAll('.esound-row').forEach((r, idx) => {
+    const padNum = parseInt(r.querySelector('.esound-num').textContent) - 1;
+    r.classList.toggle('active', padNum === i);
+  });
+
+  // Size canvas and draw
+  sizeEditCanvas();
+  drawWaveform();
+  updateTimeStrip();
+}
+
+// ── Resize canvas to match container ──
+function sizeEditCanvas() {
+  const canvas = document.getElementById('editCanvas');
+  const wrap   = document.getElementById('waveformWrap');
+  if (!wrap) return;
+  canvas.width  = wrap.clientWidth || 800;
+  canvas.height = 130;
+}
+window.addEventListener('resize', () => { if (editBuf) { sizeEditCanvas(); drawWaveform(); } });
+
+// ── Draw the waveform ──
+function drawWaveform() {
+  const canvas = document.getElementById('editCanvas');
+  if (!canvas || !editBuf) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // Background
+  ctx.fillStyle = '#080809';
+  ctx.fillRect(0, 0, W, H);
+
+  // Compute peak data across all channels
+  const channels = [];
+  for (let ch = 0; ch < editBuf.numberOfChannels; ch++) channels.push(editBuf.getChannelData(ch));
+  const totalSamples = editBuf.length;
+
+  // Draw waveform column by column
+  for (let col = 0; col < W; col++) {
+    const s0 = Math.floor((col / W) * totalSamples);
+    const s1 = Math.min(totalSamples, Math.floor(((col + 1) / W) * totalSamples) + 1);
+    let min = 0, max = 0;
+    for (let s = s0; s < s1; s++) {
+      for (const ch of channels) {
+        const v = ch[s]; if (v > max) max = v; if (v < min) min = v;
+      }
+    }
+    const frac = col / W;
+    const inRegion = frac >= editTrimStart && frac <= editTrimEnd;
+    ctx.fillStyle = inRegion ? '#00e5a0' : 'rgba(0,229,160,0.18)';
+    const mid = H / 2;
+    const yTop = mid - max * mid * 0.9;
+    const yBot = mid - min * mid * 0.9;
+    ctx.fillRect(col, yTop, 1, Math.max(1, yBot - yTop));
+  }
+
+  // Dim overlay outside trim region
+  ctx.fillStyle = 'rgba(8,8,9,0.62)';
+  ctx.fillRect(0, 0, editTrimStart * W, H);
+  ctx.fillRect(editTrimEnd * W, 0, W * (1 - editTrimEnd), H);
+
+  // Grid line at centre
+  ctx.fillStyle = 'rgba(255,255,255,.04)';
+  ctx.fillRect(0, H / 2 - 0.5, W, 1);
+
+  // Handles
+  drawHandle(ctx, editTrimStart * W, H, '#00e5a0');
+  drawHandle(ctx, editTrimEnd   * W, H, '#7c6dfa');
+}
+
+function drawHandle(ctx, x, H, color) {
+  // Vertical line
+  ctx.fillStyle = color;
+  ctx.fillRect(x - 1, 0, 2, H);
+  // Top knob
+  ctx.beginPath(); ctx.arc(x, 14, 8, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  // Bottom knob
+  ctx.beginPath(); ctx.arc(x, H - 14, 8, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  // Inner dot (grip indicator)
+  ctx.beginPath(); ctx.arc(x, 14, 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, H - 14, 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fill();
+}
+
+// ── Time strip ──
+function updateTimeStrip() {
+  if (!editBuf) return;
+  const dur  = editBuf.duration;
+  const s    = (editTrimStart * dur).toFixed(3);
+  const e    = (editTrimEnd   * dur).toFixed(3);
+  const d    = ((editTrimEnd - editTrimStart) * dur).toFixed(3);
+  document.getElementById('etStart').textContent = s + 's';
+  document.getElementById('etEnd').textContent   = e + 's';
+  document.getElementById('etDur').textContent   = d + 's';
+}
+
+// ── Canvas pointer events ──
+(function wireEditCanvas() {
+  // We wire after DOM ready — but openEditor handles drawing so we just need drag logic.
+  // We delegate from the wrap to handle dynamic canvas sizing.
+  const wrap = () => document.getElementById('waveformWrap');
+
+  function fracFromEvent(e) {
+    const el = document.getElementById('editCanvas');
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  }
+  function fracFromTouch(e) {
+    const el = document.getElementById('editCanvas');
+    if (!el || !e.touches[0]) return 0;
+    const rect = el.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (e.touches[0].clientX - rect.left) / rect.width));
+  }
+  const SNAP = 0.012; // fraction — how close you need to be to grab a handle
+
+  function startDrag(frac) {
+    if (!editBuf) return;
+    const ds = Math.abs(frac - editTrimStart);
+    const de = Math.abs(frac - editTrimEnd);
+    if (ds < SNAP || de < SNAP) {
+      editDragging = ds <= de ? 'start' : 'end';
+    } else {
+      // Click inside region — no drag, or you could implement region drag
+      editDragging = null;
+    }
+  }
+  function moveDrag(frac) {
+    if (!editDragging || !editBuf) return;
+    if (editDragging === 'start') {
+      editTrimStart = Math.min(frac, editTrimEnd - 0.001);
+    } else {
+      editTrimEnd = Math.max(frac, editTrimStart + 0.001);
+    }
+    drawWaveform();
+    updateTimeStrip();
+  }
+  function endDrag() { editDragging = null; }
+
+  // Hover cursor
+  document.addEventListener('mousemove', e => {
+    const el = document.getElementById('editCanvas');
+    if (!el || !editBuf) return;
+    const rect = el.getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX > rect.right) return;
+    const frac = (e.clientX - rect.left) / rect.width;
+    const ds = Math.abs(frac - editTrimStart), de = Math.abs(frac - editTrimEnd);
+    const w = document.getElementById('waveformWrap');
+    if (w) w.style.cursor = (ds < SNAP || de < SNAP) ? 'col-resize' : 'default';
+  });
+
+  // Mouse
+  document.addEventListener('mousedown', e => {
+    const el = document.getElementById('editCanvas');
+    if (!el || !el.contains(e.target)) return;
+    e.preventDefault();
+    startDrag(fracFromEvent(e));
+  });
+  document.addEventListener('mousemove', e => {
+    if (editDragging) { e.preventDefault(); moveDrag(fracFromEvent(e)); }
+  });
+  document.addEventListener('mouseup', endDrag);
+
+  // Touch
+  document.addEventListener('touchstart', e => {
+    const el = document.getElementById('editCanvas');
+    if (!el || !el.contains(e.target)) return;
+    startDrag(fracFromTouch(e));
+  }, {passive: true});
+  document.addEventListener('touchmove', e => {
+    if (editDragging) moveDrag(fracFromTouch(e));
+  }, {passive: true});
+  document.addEventListener('touchend', endDrag, {passive: true});
+})();
+
+// ── Nudge buttons (10ms steps) ──
+document.getElementById('nudgeSL').addEventListener('click', () => nudge('start', -1));
+document.getElementById('nudgeSR').addEventListener('click', () => nudge('start',  1));
+document.getElementById('nudgeEL').addEventListener('click', () => nudge('end',   -1));
+document.getElementById('nudgeER').addEventListener('click', () => nudge('end',    1));
+
+function nudge(handle, dir) {
+  if (!editBuf) return;
+  const step = 0.01 / editBuf.duration; // 10ms as fraction
+  if (handle === 'start') {
+    editTrimStart = Math.max(0, Math.min(editTrimStart + dir * step, editTrimEnd - 0.001));
+  } else {
+    editTrimEnd = Math.max(editTrimStart + 0.001, Math.min(1, editTrimEnd + dir * step));
+  }
+  drawWaveform(); updateTimeStrip();
+}
+
+// ── Preview ──
+document.getElementById('editPreviewBtn').addEventListener('click', () => {
+  if (!editBuf) return;
+  stopEditPreview();
+  initAC();
+  const offset   = editTrimStart * editBuf.duration;
+  const duration = (editTrimEnd - editTrimStart) * editBuf.duration;
+  editPrevSrc  = AC.createBufferSource();
+  editPrevGain = AC.createGain();
+  editPrevSrc.buffer     = editBuf;
+  editPrevGain.gain.value = 0.8;
+  editPrevSrc.connect(editPrevGain);
+  editPrevGain.connect(AC.destination);
+  editPrevSrc.start(0, offset, duration);
+  editPrevSrc.onended = () => {
+    editPrevSrc = null;
+    document.getElementById('editStopBtn').style.display = 'none';
+    document.getElementById('editPreviewBtn').textContent = '▶ Preview trim';
+    document.getElementById('editPreviewBtn').classList.remove('g');
+  };
+  document.getElementById('editStopBtn').style.display = '';
+  document.getElementById('editPreviewBtn').textContent = '⏸ Previewing…';
+  document.getElementById('editPreviewBtn').classList.add('g');
+});
+document.getElementById('editStopBtn').addEventListener('click', stopEditPreview);
+
+function stopEditPreview() {
+  if (editPrevSrc) {
+    try { editPrevSrc.stop(); } catch(e) {}
+    editPrevSrc = null;
+  }
+  const btn = document.getElementById('editPreviewBtn');
+  if (btn) { btn.textContent = '▶ Preview trim'; btn.classList.remove('g'); }
+  const stop = document.getElementById('editStopBtn');
+  if (stop) stop.style.display = 'none';
+}
+
+// ── Apply trim ──
+document.getElementById('editApplyBtn').addEventListener('click', () => {
+  if (!editBuf || editPadIdx === null) return;
+  initAC();
+
+  const startSample = Math.floor(editTrimStart * editBuf.length);
+  const endSample   = Math.ceil(editTrimEnd   * editBuf.length);
+  const newLen      = Math.max(1, endSample - startSample);
+  const nc          = editBuf.numberOfChannels;
+  const newBuf      = AC.createBuffer(nc, newLen, editBuf.sampleRate);
+
+  for (let ch = 0; ch < nc; ch++) {
+    const src = editBuf.getChannelData(ch);
+    const dst = newBuf.getChannelData(ch);
+    for (let i = 0; i < newLen; i++) dst[i] = src[startSample + i];
+  }
+
+  // Stop playback on this pad if active
+  if (sources.has(editPadIdx)) {
+    try { sources.get(editPadIdx).src.stop(); } catch(e) {}
+    sources.delete(editPadIdx);
+  }
+
+  const s = sounds.get(editPadIdx);
+  if (!s.originalBuffer) s.originalBuffer = s.buffer; // preserve first-time original
+  s.buffer = newBuf;
+  editBuf  = newBuf;
+
+  // Reset handles to full new buffer
+  editTrimStart = 0; editTrimEnd = 1;
+  drawWaveform(); updateTimeStrip();
+
+  const dur = newBuf.duration.toFixed(3);
+  const st = document.getElementById('editStatus');
+  st.textContent = `✓ Trimmed to ${dur}s — applied to pad ${editPadIdx + 1}`;
+  st.className = 'st ok';
+
+  // Refresh sidebar list
+  afterLoad();
+  // Re-render picker to update duration shown
+  renderEditTab();
+  // Re-select (renderEditTab clears active state)
+  document.querySelectorAll('.esound-row').forEach(r => {
+    const num = parseInt(r.querySelector('.esound-num').textContent) - 1;
+    r.classList.toggle('active', num === editPadIdx);
+  });
+});
+
+// ── Reset to original ──
+document.getElementById('editResetBtn').addEventListener('click', () => {
+  if (editPadIdx === null) return;
+  const s = sounds.get(editPadIdx);
+  if (!s || !s.originalBuffer) return;
+
+  if (!confirm(`Reset pad ${editPadIdx + 1} to its original length?`)) return;
+
+  if (sources.has(editPadIdx)) {
+    try { sources.get(editPadIdx).src.stop(); } catch(e) {}
+    sources.delete(editPadIdx);
+  }
+
+  s.buffer = s.originalBuffer;
+  editBuf  = s.originalBuffer;
+  editTrimStart = 0; editTrimEnd = 1;
+  drawWaveform(); updateTimeStrip();
+
+  const st = document.getElementById('editStatus');
+  st.textContent = `↺ Restored to original (${s.originalBuffer.duration.toFixed(3)}s)`;
+  st.className = 'st ok';
+
+  afterLoad();
+  renderEditTab();
+  document.querySelectorAll('.esound-row').forEach(r => {
+    const num = parseInt(r.querySelector('.esound-num').textContent) - 1;
+    r.classList.toggle('active', num === editPadIdx);
+  });
+});
+
 // ════════════════════════════════════════════════════════════════
 function toWav(buf){
   const nc=buf.numberOfChannels,sr=buf.sampleRate,nf=buf.length;
@@ -1611,7 +2058,7 @@ async function importFiles(files){
         try{
           const ab2=await entry.async('arraybuffer');
           const buf=await AC.decodeAudioData(ab2);
-          sounds.set(idx,{buffer:buf,url:null,name:base,id:`zip_${idx}_${Date.now()}`}); ok++;
+          sounds.set(idx,{buffer:buf,url:null,name:base,id:`zip_${idx}_${Date.now()}`,originalBuffer:buf}); ok++;
           st.textContent=`Loaded ${ok} from ZIP…`;
         }catch(e){console.warn(entry.name,e);fail++;}
       }
@@ -1627,7 +2074,7 @@ async function importFiles(files){
     try{
       const ab=await f.arrayBuffer();
       const buf=await AC.decodeAudioData(ab.slice(0));
-      sounds.set(idx,{buffer:buf,url:null,name:base,id:`imp_${idx}_${Date.now()}`}); ok++;
+      sounds.set(idx,{buffer:buf,url:null,name:base,id:`imp_${idx}_${Date.now()}`,originalBuffer:buf}); ok++;
     }catch(e){console.warn(f.name,e);fail++;}
   }
 
