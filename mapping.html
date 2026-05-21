@@ -1,0 +1,2394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPOKE Board Configurator</title>
+<meta name="description" content="Step-by-step tool to configure your SPOKE capacitive touch board. Assign MIDI notes, chords, or keyboard shortcuts to each of the 27 touch sensors, then save directly to your board.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<style>
+/* ================================================================
+   RESET & ROOT
+================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:         #070710;
+  --s0:         #0c0c1c;
+  --s1:         #111125;
+  --s2:         #18182e;
+  --s3:         #222238;
+  --border:     #2c2c50;
+  --border-hi:  #484880;
+  --amber:      #f0a500;
+  --amber-d:    rgba(240,165,0,0.14);
+  --amber-glow: rgba(240,165,0,0.35);
+  --green:      #00e870;
+  --green-d:    rgba(0,232,112,0.12);
+  --blue:       #5599ff;
+  --blue-d:     rgba(85,153,255,0.13);
+  --red:        #ff4d5e;
+  --red-d:      rgba(255,77,94,0.13);
+  --text:       #dde1f0;
+  --t2:         #8a8ab0;
+  --t3:         #52527a;
+  --white:      #ffffff;
+  --mono:       'Space Mono', 'Courier New', monospace;
+  --sans:       'DM Sans', system-ui, sans-serif;
+  --r:          10px;
+  --rL:         16px;
+}
+html { font-size: 16px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  min-height: 100vh;
+  background-image:
+    linear-gradient(rgba(85,153,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(85,153,255,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ================================================================
+   ACCESSIBILITY
+================================================================ */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+.skip-link {
+  position: absolute; top: -100%; left: 12px;
+  background: var(--amber); color: #000;
+  padding: 12px 20px; font-weight: 700; font-size: 1rem;
+  border-radius: 0 0 var(--r) var(--r); z-index: 9999;
+  text-decoration: none; font-family: var(--sans);
+  transition: top 0.1s;
+}
+.skip-link:focus { top: 0; }
+:focus-visible {
+  outline: 2.5px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+button:not(:focus-visible) { outline: none; }
+
+/* ================================================================
+   HEADER
+================================================================ */
+header {
+  background: rgba(10,10,25,0.95);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 200;
+}
+.logo {
+  font-family: var(--mono);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--amber);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.04em;
+}
+.logo-led {
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green), 0 0 20px rgba(0,232,112,0.4);
+  flex-shrink: 0;
+}
+.midi-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--t2);
+  font-family: var(--mono);
+}
+.status-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--t3);
+  flex-shrink: 0;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.status-dot.connected  { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.status-dot.listening  { background: var(--amber); box-shadow: 0 0 8px var(--amber); animation: blink 1s ease-in-out infinite; }
+
+/* ================================================================
+   LAYOUT
+================================================================ */
+main {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 36px 24px 80px;
+}
+
+/* ================================================================
+   SCREENS
+================================================================ */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeUp 0.22s ease; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ================================================================
+   TYPOGRAPHY
+================================================================ */
+h1 {
+  font-family: var(--mono);
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1.2;
+  margin-bottom: 14px;
+  letter-spacing: -0.02em;
+}
+h1 .hi { color: var(--amber); }
+h2 {
+  font-family: var(--mono);
+  font-size: clamp(1.25rem, 3vw, 1.6rem);
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+}
+h3 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+  font-family: var(--mono);
+}
+p { color: var(--t2); margin-bottom: 12px; }
+p.lead { color: var(--text); font-size: 1.08rem; }
+
+/* ================================================================
+   BREADCRUMB
+================================================================ */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8rem;
+  color: var(--t3);
+  font-family: var(--mono);
+  margin-bottom: 26px;
+  flex-wrap: wrap;
+}
+.breadcrumb .bc-sep { color: var(--border-hi); }
+.breadcrumb .bc-current { color: var(--amber); }
+
+/* ================================================================
+   CARDS
+================================================================ */
+.card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--rL);
+  padding: 26px;
+  margin-bottom: 18px;
+}
+.card-accent {
+  border-color: rgba(240,165,0,0.4);
+  background: linear-gradient(135deg, var(--s1), var(--amber-d));
+}
+.card-success {
+  border-color: rgba(0,232,112,0.4);
+  background: var(--green-d);
+}
+
+/* ================================================================
+   BUTTONS
+================================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 24px;
+  font-family: var(--sans);
+  font-size: 0.975rem;
+  font-weight: 600;
+  border-radius: var(--r);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s, opacity 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+  min-height: 48px;
+  min-width: 44px;
+  line-height: 1;
+}
+.btn-primary {
+  background: var(--amber);
+  color: #000;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #ffc333;
+  box-shadow: 0 4px 24px var(--amber-glow);
+  transform: translateY(-1px);
+}
+.btn-secondary {
+  background: var(--s2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover:not(:disabled) { background: var(--s3); border-color: var(--border-hi); }
+.btn-ghost {
+  background: transparent;
+  color: var(--t2);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--border-hi); background: var(--s2); }
+.btn-success {
+  background: var(--green-d);
+  color: var(--green);
+  border: 1px solid var(--green);
+}
+.btn-success:hover:not(:disabled) { background: rgba(0,232,112,0.22); }
+.btn-sm { padding: 8px 15px; font-size: 0.875rem; min-height: 38px; }
+.btn-lg { padding: 16px 34px; font-size: 1.1rem; min-height: 56px; }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.38; cursor: not-allowed; }
+.btn:disabled:hover, .btn[aria-disabled="true"]:hover { transform: none; box-shadow: none; }
+.btn-group {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  align-items: center; margin-top: 22px;
+}
+
+/* ================================================================
+   OPTION CARDS
+================================================================ */
+.option-grid { display: grid; gap: 13px; margin: 18px 0; }
+.cols-2 { grid-template-columns: 1fr 1fr; }
+.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+.option-card {
+  background: var(--s1);
+  border: 2px solid var(--border);
+  border-radius: var(--rL);
+  padding: 20px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  min-height: 110px;
+  justify-content: center;
+  font-family: var(--sans);
+}
+.option-card:hover {
+  border-color: var(--amber);
+  background: var(--amber-d);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+}
+.option-card:focus-visible {
+  border-color: var(--amber);
+  background: var(--amber-d);
+  outline: 2.5px solid var(--amber);
+  outline-offset: 2px;
+}
+.option-card.hid:hover, .option-card.hid:focus-visible {
+  border-color: var(--blue);
+  background: var(--blue-d);
+  box-shadow: 0 6px 24px rgba(85,153,255,0.2);
+}
+.option-card.dim:hover, .option-card.dim:focus-visible {
+  border-color: var(--t2);
+  background: rgba(138,138,176,0.1);
+  box-shadow: none;
+}
+.option-icon { font-size: 2rem; line-height: 1; pointer-events: none; }
+.option-label { font-size: 1.0rem; font-weight: 700; color: var(--white); pointer-events: none; }
+.option-desc  { font-size: 0.82rem; color: var(--t2); line-height: 1.35; pointer-events: none; }
+
+/* ================================================================
+   PIN GRID
+================================================================ */
+.pin-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 7px;
+  margin: 14px 0;
+}
+.pin-dot {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--s2);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.58rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--mono);
+  color: var(--t3);
+  min-width: 34px;
+  min-height: 34px;
+  padding: 2px;
+}
+.pin-dot:hover, .pin-dot:focus-visible {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: var(--amber-d);
+  outline: none;
+}
+.pin-dot.cfg  { background: var(--green-d); border-color: var(--green); color: var(--green); }
+.pin-dot.skip { background: var(--s0); border-color: var(--t3); color: var(--t3); opacity: 0.5; }
+.pin-dot.cur  {
+  background: var(--amber-d); border-color: var(--amber); color: var(--amber);
+  animation: pinPulse 1.5s ease-in-out infinite;
+}
+@keyframes pinPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--amber-glow); }
+  50%       { box-shadow: 0 0 0 7px transparent; }
+}
+
+/* ================================================================
+   PROGRESS
+================================================================ */
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--t2);
+  margin-bottom: 6px;
+}
+.progress-track {
+  height: 6px;
+  background: var(--s2);
+  border-radius: 100px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber), var(--green));
+  border-radius: 100px;
+  transition: width 0.5s cubic-bezier(.4,0,.2,1);
+}
+
+/* ================================================================
+   TOUCH DETECTOR
+================================================================ */
+.detector {
+  background: var(--s1);
+  border: 2px dashed var(--border);
+  border-radius: var(--rL);
+  padding: 44px 28px;
+  text-align: center;
+  margin: 20px 0;
+  transition: all 0.3s;
+}
+.detector.waiting {
+  border-color: var(--amber);
+  background: var(--amber-d);
+  box-shadow: 0 0 40px rgba(240,165,0,0.08);
+}
+.detector.done {
+  border-color: var(--green);
+  background: var(--green-d);
+  border-style: solid;
+}
+.det-icon  { font-size: 3.2rem; display: block; margin-bottom: 14px; }
+.det-title { font-size: 1.25rem; font-weight: 700; color: var(--white); margin-bottom: 7px; }
+.det-sub   { color: var(--t2); font-size: 0.9rem; }
+
+/* ================================================================
+   FORMS
+================================================================ */
+.form-group { margin-bottom: 20px; }
+label {
+  display: block;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 7px;
+  font-size: 0.92rem;
+}
+label .hint { font-weight: 400; color: var(--t2); font-size: 0.85rem; }
+select, input[type="text"] {
+  width: 100%;
+  background: var(--s2);
+  border: 2px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text);
+  padding: 11px 15px;
+  font-size: 1rem;
+  font-family: var(--sans);
+  appearance: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 13L4 7h12z' fill='%238a8ab0'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+  padding-right: 38px;
+  cursor: pointer;
+}
+select:focus, input:focus {
+  border-color: var(--amber);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--amber-d);
+}
+
+/* ================================================================
+   NOTE PILLS
+================================================================ */
+.note-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.note-pill {
+  padding: 8px 14px;
+  background: var(--s2);
+  border: 2px solid var(--border);
+  border-radius: 100px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.13s;
+  color: var(--text);
+  min-width: 56px;
+  text-align: center;
+  min-height: 38px;
+}
+.note-pill:hover, .note-pill:focus-visible {
+  border-color: var(--amber); color: var(--amber); outline: none;
+  background: var(--amber-d);
+}
+.note-pill.sel { background: var(--amber); border-color: var(--amber); color: #000; }
+
+/* ================================================================
+   KEYBOARD
+================================================================ */
+.kb-wrap { overflow-x: auto; padding-bottom: 4px; }
+.kb-row  { display: flex; gap: 4px; margin-bottom: 4px; flex-wrap: nowrap; }
+.key {
+  min-width: 38px; height: 40px;
+  background: var(--s2); border: 2px solid var(--border);
+  border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.73rem; font-weight: 700; cursor: pointer;
+  font-family: var(--mono); color: var(--text);
+  transition: all 0.12s; padding: 0 6px; white-space: nowrap;
+  flex-shrink: 0; min-height: 40px;
+}
+.key:hover, .key:focus-visible {
+  border-color: var(--blue); color: var(--blue);
+  background: var(--blue-d); outline: none;
+}
+.key.sel { background: var(--blue); border-color: var(--blue); color: #000; }
+.key-w2 { min-width: 56px; }
+.key-w3 { min-width: 78px; }
+.key-w5 { min-width: 180px; }
+.key-tag { font-size: 0.62rem; }
+
+/* ================================================================
+   MODIFIER BUTTONS
+================================================================ */
+.mod-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.mod-btn {
+  padding: 10px 18px; background: var(--s2);
+  border: 2px solid var(--border); border-radius: var(--r);
+  color: var(--text); font-weight: 700; font-family: var(--mono);
+  font-size: 0.875rem; cursor: pointer;
+  transition: all 0.12s; min-height: 44px;
+}
+.mod-btn:hover, .mod-btn:focus-visible { border-color: var(--blue); outline: none; }
+.mod-btn.sel { background: var(--blue-d); border-color: var(--blue); color: var(--blue); }
+
+/* ================================================================
+   ALERTS
+================================================================ */
+.alert {
+  padding: 13px 16px;
+  border-radius: var(--r);
+  margin-bottom: 14px;
+  display: flex; align-items: flex-start; gap: 11px;
+  font-size: 0.92rem; line-height: 1.5;
+}
+.alert-info    { background: var(--blue-d);  border: 1px solid rgba(85,153,255,0.4); color: #90bcff; }
+.alert-success { background: var(--green-d); border: 1px solid rgba(0,232,112,0.4);  color: var(--green); }
+.alert-warning { background: rgba(240,165,0,0.1); border: 1px solid rgba(240,165,0,0.4); color: var(--amber); }
+.alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* ================================================================
+   CHORD PREVIEW
+================================================================ */
+.chord-notes {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 14px; background: var(--s0);
+  border-radius: var(--r); border: 1px solid var(--border);
+  margin-top: 12px;
+}
+.chord-note {
+  padding: 5px 13px;
+  background: var(--amber-d); border: 1px solid rgba(240,165,0,0.5);
+  border-radius: 6px; font-family: var(--mono);
+  font-weight: 700; color: var(--amber); font-size: 0.88rem;
+}
+
+/* ================================================================
+   REVIEW TABLE
+================================================================ */
+.review-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.review-table th {
+  background: var(--s2); padding: 11px 15px;
+  text-align: left; font-weight: 700;
+  color: var(--t2); font-family: var(--mono);
+  font-size: 0.75rem; text-transform: uppercase;
+  letter-spacing: 0.09em; border-bottom: 2px solid var(--border);
+}
+.review-table td {
+  padding: 10px 15px; border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.review-table tr:last-child td { border-bottom: none; }
+.review-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ================================================================
+   BADGES
+================================================================ */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 100px;
+  font-size: 0.72rem; font-weight: 700;
+  font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em;
+}
+.bm { background: var(--amber-d); color: var(--amber); border: 1px solid rgba(240,165,0,0.45); }
+.bh { background: var(--blue-d);  color: var(--blue);  border: 1px solid rgba(85,153,255,0.45); }
+.bs { background: var(--s2);      color: var(--t3);    border: 1px solid var(--border); }
+
+/* ================================================================
+   CODE OUTPUT
+================================================================ */
+.code-block {
+  background: #04040d;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: #c9d1d9;
+  padding: 22px;
+  overflow: auto;
+  max-height: 420px;
+  white-space: pre;
+  tab-size: 4;
+}
+
+/* ================================================================
+   MISC UTILITIES
+================================================================ */
+hr { border: none; border-top: 1px solid var(--border); margin: 22px 0; }
+.mt { margin-top: 22px; }
+code {
+  font-family: var(--mono);
+  background: var(--s2);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.manual-pin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 7px;
+  margin-top: 12px;
+}
+.manual-pin-btn {
+  padding: 10px 6px;
+  background: var(--s2); border: 2px solid var(--border);
+  border-radius: 8px; color: var(--text); cursor: pointer;
+  font-size: 0.78rem; font-weight: 700; text-align: center;
+  transition: all 0.12s; font-family: var(--mono);
+  min-height: 44px;
+}
+.manual-pin-btn:hover, .manual-pin-btn:focus-visible { border-color: var(--amber); color: var(--amber); outline: none; }
+.manual-pin-btn.cfg { border-color: var(--green); color: var(--green); }
+
+/* ================================================================
+   PIANO
+================================================================ */
+.piano-outer {
+  overflow-x: auto;
+  padding: 4px 2px 10px;
+  margin: 20px 0 6px;
+  background: var(--s0);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.piano-scroll { display: inline-flex; gap: 2px; padding: 10px 14px 0; }
+.piano-oct { position: relative; flex-shrink: 0; width: 182px; }
+.piano-oct-label {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--t3);
+  margin-top: 5px;
+  letter-spacing: 0.05em;
+}
+.piano-white {
+  display: inline-block;
+  width: 26px; height: 88px;
+  background: #d8d8e8;
+  border: 1px solid #555570;
+  border-radius: 0 0 5px 5px;
+  cursor: pointer;
+  transition: background 0.1s, box-shadow 0.1s;
+  vertical-align: top;
+  position: relative;
+  z-index: 1;
+}
+.piano-white:hover { background: #fff; }
+.piano-white.in-scale {
+  background: rgba(240,165,0,0.22);
+  border-color: rgba(240,165,0,0.6);
+}
+.piano-white.in-scale:hover { background: rgba(240,165,0,0.35); }
+.piano-white.selected {
+  background: var(--amber) !important;
+  border-color: var(--amber) !important;
+  box-shadow: 0 0 14px var(--amber-glow), inset 0 -4px 8px rgba(0,0,0,0.2);
+}
+.piano-black {
+  position: absolute;
+  width: 17px; height: 54px;
+  background: #12122a;
+  border: 1px solid #000;
+  border-radius: 0 0 4px 4px;
+  cursor: pointer;
+  z-index: 2;
+  top: 0;
+  transition: background 0.1s, box-shadow 0.1s;
+}
+.piano-black:hover { background: #252548; }
+.piano-black.in-scale {
+  background: rgba(240,165,0,0.45);
+  border-color: rgba(240,165,0,0.8);
+}
+.piano-black.in-scale:hover { background: rgba(240,165,0,0.6); }
+.piano-black.selected {
+  background: var(--amber) !important;
+  border-color: var(--amber) !important;
+  box-shadow: 0 0 12px var(--amber-glow);
+}
+.piano-key-label {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 0.52rem;
+  font-weight: 700;
+  color: rgba(0,0,0,0.4);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.piano-white.selected .piano-key-label  { color: rgba(0,0,0,0.7); }
+.piano-white.in-scale .piano-key-label  { color: rgba(180,100,0,0.6); }
+.piano-divider {
+  width: 1px; background: var(--border);
+  height: 94px; flex-shrink: 0; align-self: flex-start;
+  margin-top: 0;
+}
+
+/* ================================================================
+   ACCESSIBILITY: PREFERS
+================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .screen.active { animation: none; }
+}
+@media (prefers-contrast: high) {
+  :root {
+    --bg: #000; --s0: #040404; --s1: #080808; --s2: #0f0f0f;
+    --border: #555; --text: #fff; --t2: #ccc; --t3: #999;
+  }
+}
+@media (max-width: 640px) {
+  h1 { font-size: 1.6rem; }
+  main { padding: 20px 15px 60px; }
+  .card { padding: 18px; }
+  .cols-3, .cols-4 { grid-template-columns: 1fr 1fr; }
+  .cols-2 { grid-template-columns: 1fr; }
+  .pin-grid { grid-template-columns: repeat(6, 1fr); }
+  .btn-lg { padding: 14px 24px; font-size: 1rem; }
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<!-- HEADER -->
+<header role="banner">
+  <div class="logo" aria-label="SPOKE Board Configurator">
+    <span class="logo-led" aria-hidden="true"></span>
+    SPOKE
+  </div>
+  <div class="midi-status" role="status" aria-live="polite" aria-label="Connection status">
+    <span class="status-dot" id="midi-dot" aria-hidden="true"></span>
+    <span id="midi-txt">Not connected</span>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main id="main" tabindex="-1">
+
+<!-- ═══════════════════════════════════════ WELCOME -->
+<section id="screen-welcome" class="screen active" aria-labelledby="h-welcome">
+  <div class="card card-accent">
+    <h1 id="h-welcome"><span class="hi">SPOKE</span><br>Board Configurator</h1>
+    <p class="lead">Assign MIDI notes, chords, or keyboard shortcuts to each of your 27 touch sensors — then save the generated code directly onto your board.</p>
+  </div>
+
+  <div class="card">
+    <h2>Before you begin</h2>
+    <ul style="list-style:none;display:flex;flex-direction:column;gap:14px" role="list">
+      <li style="display:flex;gap:13px;align-items:flex-start">
+        <span aria-hidden="true" style="font-size:1.3rem;flex-shrink:0;line-height:1.5">🔌</span>
+        <div><strong>Plug in your SPOKE board</strong> via USB. It should appear as both a MIDI device and a USB drive called SPOKE.</div>
+      </li>
+      <li style="display:flex;gap:13px;align-items:flex-start">
+        <span aria-hidden="true" style="font-size:1.3rem;flex-shrink:0;line-height:1.5">🌐</span>
+        <div><strong>Use Chrome, Edge or Opera</strong> — these support Web MIDI (for auto pin-detection) and the File System Access API (for saving to the board).</div>
+      </li>
+      <li style="display:flex;gap:13px;align-items:flex-start">
+        <span aria-hidden="true" style="font-size:1.3rem;flex-shrink:0;line-height:1.5">✅</span>
+        <div><strong>Default firmware</strong> should be running for touch-detection to work. You can also select pins manually if needed.</div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary btn-lg" onclick="showScreen('connect')">
+      Begin Setup →
+    </button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ CONNECT -->
+<section id="screen-connect" class="screen" aria-labelledby="h-connect">
+  <div class="breadcrumb">Step 1 of 4 <span class="bc-sep">›</span> <span class="bc-current">Connect</span></div>
+  <h2 id="h-connect">Connect Your Board</h2>
+  <p>We'll connect via Web MIDI so your board can automatically detect which pin you're touching during setup.</p>
+
+  <div class="detector" id="det-connect" role="status" aria-live="polite">
+    <span class="det-icon" id="det-icon" aria-hidden="true">🎹</span>
+    <div class="det-title" id="det-title">Connect via Web MIDI</div>
+    <div class="det-sub"  id="det-sub">Your browser will ask permission to access MIDI devices</div>
+  </div>
+
+  <div id="no-midi-warn" class="alert alert-warning" style="display:none" role="alert">
+    <span class="alert-icon" aria-hidden="true">⚠️</span>
+    <div>Web MIDI is not supported in your browser. Switch to Chrome, Edge, or Opera for full features — or continue in <strong>manual mode</strong> and click pins to select them.</div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary" id="conn-btn" onclick="connectMidi()">Connect MIDI</button>
+    <button class="btn btn-ghost"   onclick="skipMidi()">Continue without MIDI →</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ TOUR -->
+<section id="screen-tour" class="screen" aria-labelledby="h-tour">
+  <div class="breadcrumb">Step 2 of 4 <span class="bc-sep">›</span> <span class="bc-current">Configure Pins</span></div>
+  <h2 id="h-tour">Configure Your Pins</h2>
+
+  <div class="progress-label">
+    <span>Progress</span>
+    <span id="prog-count" aria-live="polite">0 / 27 configured</span>
+  </div>
+  <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="27" aria-valuenow="0" id="prog-bar" aria-label="Pin configuration progress">
+    <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+  </div>
+
+  <div class="card">
+    <h3>Pin map — click any pin to configure it</h3>
+    <div class="pin-grid" id="pin-grid" role="group" aria-label="27 touch sensor pins — click to configure"></div>
+  </div>
+
+  <div id="midi-tour-info" class="alert alert-info" style="display:none" role="status">
+    <span class="alert-icon" aria-hidden="true">🎵</span>
+    <div>MIDI connected — <strong>touch any pin on your board</strong> to automatically detect and configure it.</div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-secondary" onclick="startDetect()" id="detect-btn">
+      <span aria-hidden="true">👆</span> Touch to Detect Pin
+    </button>
+    <button class="btn btn-primary" id="finish-btn" onclick="goReview()" disabled aria-disabled="true">
+      Review &amp; Generate →
+    </button>
+  </div>
+  <p style="margin-top:12px">
+    <button class="btn btn-ghost btn-sm" onclick="skipAllPins()">Skip all unconfigured pins</button>
+  </p>
+</section>
+
+<!-- ═══════════════════════════════════════ DETECT -->
+<section id="screen-detect" class="screen" aria-labelledby="h-detect">
+  <div class="breadcrumb">Configure Pins <span class="bc-sep">›</span> <span class="bc-current">Detect Pin</span></div>
+  <h2 id="h-detect">Touch a Pin</h2>
+
+  <div class="detector waiting" id="det-touch" role="status" aria-live="assertive" aria-label="Touch detector — waiting for input">
+    <span class="det-icon" id="touch-icon" aria-hidden="true">👆</span>
+    <div class="det-title" id="touch-title">Touch any pin on your board</div>
+    <div class="det-sub"  id="touch-sub">Listening for MIDI input…</div>
+  </div>
+
+  <div class="card">
+    <h3>Or select a pin manually</h3>
+    <div class="manual-pin-grid" id="manual-grid" role="group" aria-label="Select a pin manually"></div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-ghost" onclick="showScreen('tour')">← Cancel</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ PIN TYPE -->
+<section id="screen-pin-type" class="screen" aria-labelledby="h-pin-type">
+  <div class="breadcrumb" id="bc-pin-type">Configure Pins <span class="bc-sep">›</span> <span class="bc-current">GP1</span></div>
+  <h2 id="h-pin-type">What should this pin do?</h2>
+  <p>Configuring pin <strong id="cur-pin-name" aria-live="polite">GP1</strong>. Choose a mode below.</p>
+
+  <div class="option-grid cols-3" role="group" aria-labelledby="h-pin-type">
+    <button class="option-card" onclick="pickType('midi')">
+      <span class="option-icon" aria-hidden="true">🎵</span>
+      <span class="option-label">MIDI Music</span>
+      <span class="option-desc">Trigger notes or chords on any MIDI channel</span>
+    </button>
+    <button class="option-card hid" onclick="pickType('hid')">
+      <span class="option-icon" aria-hidden="true">⌨️</span>
+      <span class="option-label">Keyboard / Mouse</span>
+      <span class="option-desc">Key presses, shortcuts, gaming commands</span>
+    </button>
+    <button class="option-card dim" onclick="pickType('skip')">
+      <span class="option-icon" aria-hidden="true">⏭️</span>
+      <span class="option-label">Skip</span>
+      <span class="option-desc">Leave this pin inactive</span>
+    </button>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-ghost" onclick="showScreen('tour')">← Back to Pin Map</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ MIDI TYPE -->
+<section id="screen-midi-type" class="screen" aria-labelledby="h-midi-type">
+  <div class="breadcrumb">Pin <span id="bc-mt"></span> <span class="bc-sep">›</span> MIDI <span class="bc-sep">›</span> <span class="bc-current">Type</span></div>
+  <h2 id="h-midi-type">What type of MIDI?</h2>
+
+  <div class="option-grid cols-2">
+    <button class="option-card" onclick="pickMidiType('note')">
+      <span class="option-icon" aria-hidden="true">🎼</span>
+      <span class="option-label">Single Note</span>
+      <span class="option-desc">One pitch from a scale, mode, or custom selection</span>
+    </button>
+    <button class="option-card" onclick="pickMidiType('chord')">
+      <span class="option-icon" aria-hidden="true">🎹</span>
+      <span class="option-label">Chord</span>
+      <span class="option-desc">Trigger a full chord — triads, 7ths, power chords &amp; more</span>
+    </button>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-ghost" onclick="showScreen('pin-type')">← Back</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ MIDI NOTE -->
+<section id="screen-midi-note" class="screen" aria-labelledby="h-midi-note">
+  <div class="breadcrumb">Pin <span id="bc-mn"></span> <span class="bc-sep">›</span> MIDI <span class="bc-sep">›</span> <span class="bc-current">Note</span></div>
+  <h2 id="h-midi-note">Choose a Note</h2>
+
+  <div class="card">
+    <div class="grid-2">
+      <div class="form-group">
+        <label for="n-root">Root Note</label>
+        <select id="n-root" onchange="refreshNotes()">
+          <option>C</option><option>C#</option><option>D</option><option>D#</option>
+          <option>E</option><option>F</option><option>F#</option><option>G</option>
+          <option>G#</option><option>A</option><option>A#</option><option>B</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="n-oct">Octave</label>
+        <select id="n-oct" onchange="refreshNotes()">
+          <option>2</option><option>3</option>
+          <option selected>4</option><option>5</option><option>6</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="n-scale">Scale / Mode <span class="hint">(filters available notes)</span></label>
+      <select id="n-scale" onchange="refreshNotes()">
+        <option value="any">Chromatic (all notes)</option>
+        <option value="major">Major</option>
+        <option value="minor">Minor (Natural)</option>
+        <option value="pent_maj">Pentatonic Major</option>
+        <option value="pent_min">Pentatonic Minor</option>
+        <option value="blues">Blues</option>
+        <option value="dorian">Dorian</option>
+        <option value="mixolydian">Mixolydian</option>
+        <option value="phrygian">Phrygian</option>
+        <option value="lydian">Lydian</option>
+        <option value="locrian">Locrian</option>
+        <option value="harmonic_min">Harmonic Minor</option>
+        <option value="melodic_min">Melodic Minor</option>
+        <option value="whole_tone">Whole Tone</option>
+        <option value="diminished">Diminished (octatonic)</option>
+      </select>
+    </div>
+    <label id="note-pills-label">Select a note from the scale</label>
+    <div class="note-grid" id="note-pills" role="listbox" aria-labelledby="note-pills-label" aria-required="true"></div>
+
+    <h3 style="margin-top:20px">Piano — scale tones highlighted</h3>
+    <div class="piano-outer" aria-label="Piano keyboard — click a key to select that note">
+      <div class="piano-scroll" id="piano-keys" role="group" aria-label="Piano keys"></div>
+    </div>
+  </div>
+
+  <div id="note-preview" class="alert alert-success" style="display:none" aria-live="polite">
+    <span class="alert-icon" aria-hidden="true">🎵</span>
+    <div>Selected: <strong id="note-preview-txt">—</strong></div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary" id="conf-note-btn" onclick="confirmNote()" disabled aria-disabled="true">Confirm Note →</button>
+    <button class="btn btn-ghost" onclick="showScreen('midi-type')">← Back</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ MIDI CHORD -->
+<section id="screen-midi-chord" class="screen" aria-labelledby="h-midi-chord">
+  <div class="breadcrumb">Pin <span id="bc-mc"></span> <span class="bc-sep">›</span> MIDI <span class="bc-sep">›</span> <span class="bc-current">Chord</span></div>
+  <h2 id="h-midi-chord">Choose a Chord</h2>
+
+  <div class="card">
+    <div class="grid-2">
+      <div class="form-group">
+        <label for="c-root">Root Note</label>
+        <select id="c-root" onchange="refreshChord()">
+          <option>C</option><option>C#</option><option>D</option><option>D#</option>
+          <option>E</option><option>F</option><option>F#</option><option>G</option>
+          <option>G#</option><option>A</option><option>A#</option><option>B</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="c-oct">Octave</label>
+        <select id="c-oct" onchange="refreshChord()">
+          <option>2</option><option selected>3</option><option>4</option><option>5</option>
+        </select>
+      </div>
+    </div>
+    <label id="chord-types-label">Chord Type</label>
+    <div class="option-grid cols-4" id="chord-types" role="listbox" aria-labelledby="chord-types-label" style="margin:10px 0 14px"></div>
+    <div>
+      <h3>Notes in chord</h3>
+      <div class="chord-notes" id="chord-preview" aria-live="polite" aria-label="Chord notes preview"></div>
+    </div>
+
+    <h3 style="margin-top:20px">Piano — chord tones highlighted</h3>
+    <div class="piano-outer" aria-label="Piano keyboard showing chord voicing">
+      <div class="piano-scroll" id="chord-piano-keys" role="group" aria-label="Chord piano"></div>
+    </div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary" id="conf-chord-btn" onclick="confirmChord()">Confirm Chord →</button>
+    <button class="btn btn-ghost" onclick="showScreen('midi-type')">← Back</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ HID TYPE -->
+<section id="screen-hid-type" class="screen" aria-labelledby="h-hid-type">
+  <div class="breadcrumb">Pin <span id="bc-ht"></span> <span class="bc-sep">›</span> HID <span class="bc-sep">›</span> <span class="bc-current">Type</span></div>
+  <h2 id="h-hid-type">What kind of input?</h2>
+
+  <div class="option-grid cols-2">
+    <button class="option-card hid" onclick="pickHidType('single')">
+      <span class="option-icon" aria-hidden="true">🔤</span>
+      <span class="option-label">Single Key</span>
+      <span class="option-desc">One letter, number, function key, or special key</span>
+    </button>
+    <button class="option-card hid" onclick="pickHidType('shortcut')">
+      <span class="option-icon" aria-hidden="true">⚡</span>
+      <span class="option-label">Keyboard Shortcut</span>
+      <span class="option-desc">Ctrl, Alt, Shift combos — copy, paste, undo, macros…</span>
+    </button>
+    <button class="option-card hid" onclick="pickHidType('gaming')">
+      <span class="option-icon" aria-hidden="true">🎮</span>
+      <span class="option-label">Gaming Command</span>
+      <span class="option-desc">WASD, jump, crouch, sprint, weapons and more</span>
+    </button>
+    <button class="option-card hid" onclick="pickHidType('mouse')">
+      <span class="option-icon" aria-hidden="true">🖱️</span>
+      <span class="option-label">Mouse Button</span>
+      <span class="option-desc">Left, right, or middle click</span>
+    </button>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-ghost" onclick="showScreen('pin-type')">← Back</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ HID KEY -->
+<section id="screen-hid-key" class="screen" aria-labelledby="h-hid-key">
+  <div class="breadcrumb">Pin <span id="bc-hk"></span> <span class="bc-sep">›</span> HID <span class="bc-sep">›</span> <span class="bc-current">Single Key</span></div>
+  <h2 id="h-hid-key">Choose a Key</h2>
+
+  <div class="card">
+    <div class="kb-wrap" role="group" aria-label="Keyboard — press any key to select it">
+      <div class="kb-row" id="kb-nums"></div>
+      <div class="kb-row" id="kb-q"></div>
+      <div class="kb-row" id="kb-a"></div>
+      <div class="kb-row" id="kb-z"></div>
+    </div>
+    <hr>
+    <h3>Special Keys</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px" id="kb-special" role="group" aria-label="Special keys"></div>
+    <hr>
+    <h3>Function Keys</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px" id="kb-fn" role="group" aria-label="Function keys"></div>
+  </div>
+
+  <div id="key-preview" class="alert alert-info" style="display:none" role="status" aria-live="polite">
+    <span class="alert-icon" aria-hidden="true">⌨️</span>
+    <div>Selected: <strong id="key-preview-txt">—</strong></div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary" id="conf-key-btn" onclick="confirmKey()" disabled aria-disabled="true">Confirm Key →</button>
+    <button class="btn btn-ghost" onclick="showScreen('hid-type')">← Back</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ HID SHORTCUT -->
+<section id="screen-hid-shortcut" class="screen" aria-labelledby="h-hid-sc">
+  <div class="breadcrumb">Pin <span id="bc-sc"></span> <span class="bc-sep">›</span> HID <span class="bc-sep">›</span> <span class="bc-current">Shortcut</span></div>
+  <h2 id="h-hid-sc">Create a Shortcut</h2>
+
+  <div class="card">
+    <h3>1. Modifier Keys (select one or more)</h3>
+    <div class="mod-row" role="group" aria-label="Modifier keys">
+      <button class="mod-btn" data-mod="CONTROL" onclick="toggleMod(this)" aria-pressed="false">Ctrl</button>
+      <button class="mod-btn" data-mod="ALT"     onclick="toggleMod(this)" aria-pressed="false">Alt</button>
+      <button class="mod-btn" data-mod="SHIFT"   onclick="toggleMod(this)" aria-pressed="false">Shift</button>
+      <button class="mod-btn" data-mod="GUI"     onclick="toggleMod(this)" aria-pressed="false">Win / ⌘</button>
+    </div>
+    <h3>2. Main Key</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 16px" id="sc-keys" role="listbox" aria-label="Main key for shortcut"></div>
+    <hr>
+    <h3>Or pick a common shortcut</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px" id="common-sc" role="group" aria-label="Common shortcuts"></div>
+  </div>
+
+  <div class="alert alert-info" aria-live="polite">
+    <span class="alert-icon" aria-hidden="true">⚡</span>
+    <div>Shortcut: <strong id="sc-preview">—</strong></div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary" id="conf-sc-btn" onclick="confirmShortcut()">Confirm →</button>
+    <button class="btn btn-ghost" onclick="showScreen('hid-type')">← Back</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ HID GAMING -->
+<section id="screen-hid-gaming" class="screen" aria-labelledby="h-gaming">
+  <div class="breadcrumb">Pin <span id="bc-gm"></span> <span class="bc-sep">›</span> HID <span class="bc-sep">›</span> <span class="bc-current">Gaming</span></div>
+  <h2 id="h-gaming">Gaming Command</h2>
+  <div class="card">
+    <div class="option-grid cols-4" id="gaming-grid" role="group" aria-labelledby="h-gaming"></div>
+  </div>
+  <div class="btn-group">
+    <button class="btn btn-ghost" onclick="showScreen('hid-type')">← Back</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ HID MOUSE -->
+<section id="screen-hid-mouse" class="screen" aria-labelledby="h-mouse">
+  <div class="breadcrumb">Pin <span id="bc-ms"></span> <span class="bc-sep">›</span> HID <span class="bc-sep">›</span> <span class="bc-current">Mouse</span></div>
+  <h2 id="h-mouse">Mouse Button</h2>
+  <div class="option-grid cols-3">
+    <button class="option-card hid" onclick="confirmMouse('left')">
+      <span class="option-icon" aria-hidden="true">🖱️</span>
+      <span class="option-label">Left Click</span>
+      <span class="option-desc">Primary button — select, click</span>
+    </button>
+    <button class="option-card hid" onclick="confirmMouse('right')">
+      <span class="option-icon" aria-hidden="true">🖱️</span>
+      <span class="option-label">Right Click</span>
+      <span class="option-desc">Context menu button</span>
+    </button>
+    <button class="option-card hid" onclick="confirmMouse('middle')">
+      <span class="option-icon" aria-hidden="true">🖱️</span>
+      <span class="option-label">Middle Click</span>
+      <span class="option-desc">Scroll wheel / open in new tab</span>
+    </button>
+  </div>
+  <div class="btn-group">
+    <button class="btn btn-ghost" onclick="showScreen('hid-type')">← Back</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ REVIEW -->
+<section id="screen-review" class="screen" aria-labelledby="h-review">
+  <div class="breadcrumb">Step 3 of 4 <span class="bc-sep">›</span> <span class="bc-current">Review</span></div>
+  <h2 id="h-review">Review Your Setup</h2>
+  <p>Check all 27 pin assignments. Use <strong>Edit</strong> to change any pin before generating code.</p>
+
+  <div class="card" style="overflow:auto">
+    <table class="review-table" aria-label="Pin assignments">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Pin</th>
+          <th scope="col">Type</th>
+          <th scope="col">Assignment</th>
+          <th scope="col"><span class="sr-only">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody id="review-rows"></tbody>
+    </table>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary btn-lg" onclick="showGenerateScreen()">Generate Code →</button>
+    <button class="btn btn-ghost" onclick="showScreen('tour')">← Edit Pins</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ GENERATE -->
+<section id="screen-generate" class="screen" aria-labelledby="h-generate">
+  <div class="breadcrumb">Step 4 of 4 <span class="bc-sep">›</span> <span class="bc-current">Generate &amp; Save</span></div>
+  <h2 id="h-generate">Your Code Is Ready</h2>
+  <p>Review the generated CircuitPython below, then save it to your SPOKE drive.</p>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <span style="font-family:var(--mono);font-size:0.8rem;color:var(--t2)">code.py — CircuitPython</span>
+      <button class="btn btn-secondary btn-sm" onclick="copyCode()" id="copy-btn" aria-label="Copy generated code to clipboard">📋 Copy</button>
+    </div>
+    <pre class="code-block" id="code-out" tabindex="0" aria-label="Generated CircuitPython code — scroll to read"></pre>
+  </div>
+
+  <div class="card card-accent">
+    <h3>Save to Your Board</h3>
+    <p style="color:var(--text)">Click <strong>Save to Board</strong>, then select the <strong>SPOKE</strong> drive when the folder picker opens. This will overwrite <code>code.py</code> with your new configuration.</p>
+    <div class="btn-group mt">
+      <button class="btn btn-primary" onclick="saveBoard()" id="save-btn">💾 Save to Board</button>
+      <button class="btn btn-secondary" onclick="dlCode()">⬇️ Download code.py</button>
+    </div>
+    <div id="save-status" aria-live="polite" style="margin-top:12px"></div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-ghost" onclick="showScreen('review')">← Back to Review</button>
+  </div>
+</section>
+
+</main>
+
+<!-- ================================================================
+     JAVASCRIPT
+================================================================ -->
+<script>
+/* ================================================================
+   CONSTANTS & DATA
+================================================================ */
+const PIN_NAMES = [
+  'GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8',
+  'GP9','GP10','GP11','GP12','GP13','GP14','GP15','GP16',
+  'GP17','GP18','GP19','GP20','GP21','GP22','GP23','GP24',
+  'GP25','GP28','VOLTAGE_MONITOR'
+];
+
+// Default MIDI note assigned to each pin index (index 0 = GP1, etc.)
+const DEF_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36];
+// Map from MIDI note → pin index
+const N2P = {};
+DEF_NOTES.forEach((n,i) => N2P[n] = i);
+
+const NNAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+const SCALES = {
+  any:          [0,1,2,3,4,5,6,7,8,9,10,11],
+  major:        [0,2,4,5,7,9,11],
+  minor:        [0,2,3,5,7,8,10],
+  pent_maj:     [0,2,4,7,9],
+  pent_min:     [0,3,5,7,10],
+  blues:        [0,3,5,6,7,10],
+  dorian:       [0,2,3,5,7,9,10],
+  mixolydian:   [0,2,4,5,7,9,10],
+  phrygian:     [0,1,3,5,7,8,10],
+  lydian:       [0,2,4,6,7,9,11],
+  locrian:      [0,1,3,5,6,8,10],
+  harmonic_min: [0,2,3,5,7,8,11],
+  melodic_min:  [0,2,3,5,7,9,11],
+  whole_tone:   [0,2,4,6,8,10],
+  diminished:   [0,2,3,5,6,8,9,11],
+};
+
+const CHORD_TYPES = {
+  'Major':        [0,4,7],
+  'Minor':        [0,3,7],
+  'Dom 7th':      [0,4,7,10],
+  'Major 7th':    [0,4,7,11],
+  'Minor 7th':    [0,3,7,10],
+  'Sus2':         [0,2,7],
+  'Sus4':         [0,5,7],
+  'Power':        [0,7],
+  'Diminished':   [0,3,6],
+  'Augmented':    [0,4,8],
+  'Half-dim 7th': [0,3,6,10],
+  'Add 9':        [0,4,7,14],
+};
+
+// Special / function keys
+const SP_KEYS = [
+  {l:'Space',   c:'SPACE'},
+  {l:'Enter',   c:'ENTER'},
+  {l:'Bksp',    c:'BACKSPACE'},
+  {l:'Tab',     c:'TAB'},
+  {l:'Esc',     c:'ESCAPE'},
+  {l:'Del',     c:'DELETE'},
+  {l:'Insert',  c:'INSERT'},
+  {l:'Home',    c:'HOME'},
+  {l:'End',     c:'END'},
+  {l:'PgUp',    c:'PAGE_UP'},
+  {l:'PgDn',    c:'PAGE_DOWN'},
+  {l:'↑',       c:'UP_ARROW'},
+  {l:'↓',       c:'DOWN_ARROW'},
+  {l:'←',       c:'LEFT_ARROW'},
+  {l:'→',       c:'RIGHT_ARROW'},
+  {l:'PrtSc',   c:'PRINT_SCREEN'},
+  {l:'Pause',   c:'PAUSE'},
+  {l:'CapsLk',  c:'CAPS_LOCK'},
+];
+
+const FN_KEYS = Array.from({length:12},(_,i)=>({l:`F${i+1}`,c:`F${i+1}`}));
+
+const ALPHANUMS = {
+  nums: ['1','2','3','4','5','6','7','8','9','0','-','='],
+  q:    ['Q','W','E','R','T','Y','U','I','O','P','[',']','\\'],
+  a:    ['A','S','D','F','G','H','J','K','L',';',"'"],
+  z:    ['Z','X','C','V','B','N','M',',','.','/'],
+};
+
+const COMMON_SHORTCUTS = [
+  {l:'Copy',       mods:['CONTROL'], key:'C'},
+  {l:'Paste',      mods:['CONTROL'], key:'V'},
+  {l:'Cut',        mods:['CONTROL'], key:'X'},
+  {l:'Undo',       mods:['CONTROL'], key:'Z'},
+  {l:'Redo',       mods:['CONTROL','SHIFT'], key:'Z'},
+  {l:'Save',       mods:['CONTROL'], key:'S'},
+  {l:'Select All', mods:['CONTROL'], key:'A'},
+  {l:'Find',       mods:['CONTROL'], key:'F'},
+  {l:'New Tab',    mods:['CONTROL'], key:'T'},
+  {l:'Close Tab',  mods:['CONTROL'], key:'W'},
+  {l:'Play/Pause', mods:[], key:'MEDIA_PLAY_PAUSE'},
+  {l:'Vol Up',     mods:[], key:'KEYPAD_PLUS'},
+  {l:'Screenshot', mods:['GUI','SHIFT'], key:'S'},
+  {l:'Lock Screen',mods:['GUI'], key:'L'},
+];
+
+const GAMING_CMDS = [
+  {l:'▲ Forward', c:'W', icon:'⬆️'},
+  {l:'◀ Left',    c:'A', icon:'⬅️'},
+  {l:'▼ Back',    c:'S', icon:'⬇️'},
+  {l:'▶ Right',   c:'D', icon:'➡️'},
+  {l:'Jump',      c:'SPACE', icon:'🦘'},
+  {l:'Crouch',    c:'LEFT_CONTROL', icon:'🧎'},
+  {l:'Sprint',    c:'LEFT_SHIFT', icon:'🏃'},
+  {l:'Interact',  c:'E', icon:'🤝'},
+  {l:'Reload',    c:'R', icon:'🔄'},
+  {l:'Fire',      c:'MOUSE_LEFT', icon:'🔫'},
+  {l:'Zoom',      c:'MOUSE_RIGHT', icon:'🔭'},
+  {l:'Slot 1',    c:'1', icon:'①'},
+  {l:'Slot 2',    c:'2', icon:'②'},
+  {l:'Slot 3',    c:'3', icon:'③'},
+  {l:'Map',       c:'M', icon:'🗺️'},
+  {l:'Inventory', c:'I', icon:'🎒'},
+];
+
+/* ================================================================
+   STATE
+================================================================ */
+let pinConfigs = new Array(27).fill(null);   // null = not configured yet
+let currentPinIdx = -1;
+let midiConnected = false;
+let midiInputs = [];
+let selectedNote = null;       // { midi, name } for single note
+let selectedChordType = null;  // key into CHORD_TYPES
+let selectedKey = null;        // HID single key code
+let selectedMods = [];         // HID shortcut modifiers
+let selectedScKey = null;      // HID shortcut main key
+
+/* ================================================================
+   SCREEN NAVIGATION
+================================================================ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + id);
+  if (el) {
+    el.classList.add('active');
+    el.focus && el.focus();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+}
+
+/* ================================================================
+   MIDI CONNECTION
+================================================================ */
+async function connectMidi() {
+  if (!navigator.requestMIDIAccess) {
+    document.getElementById('no-midi-warn').style.display = 'flex';
+    document.getElementById('conn-btn').style.display = 'none';
+    return;
+  }
+  const btn = document.getElementById('conn-btn');
+  btn.textContent = 'Connecting…';
+  btn.disabled = true;
+  try {
+    const access = await navigator.requestMIDIAccess();
+    midiInputs = Array.from(access.inputs.values());
+    if (midiInputs.length === 0) throw new Error('No MIDI inputs found');
+    midiConnected = true;
+    setMidiStatus('connected', `Connected — ${midiInputs.length} input${midiInputs.length>1?'s':''}`);
+    // Update connect detector
+    document.getElementById('det-icon').textContent  = '✅';
+    document.getElementById('det-title').textContent = 'MIDI Connected!';
+    document.getElementById('det-sub').textContent   = `Found ${midiInputs.length} MIDI device(s)`;
+    document.getElementById('det-connect').classList.remove('waiting');
+    document.getElementById('det-connect').classList.add('done');
+    setTimeout(() => { buildTourScreen(); showScreen('tour'); }, 900);
+  } catch(e) {
+    setMidiStatus('', 'Connection failed');
+    btn.textContent = 'Retry Connection';
+    btn.disabled = false;
+    document.getElementById('det-title').textContent = 'Could not connect';
+    document.getElementById('det-sub').textContent   = e.message;
+    document.getElementById('det-icon').textContent  = '❌';
+  }
+}
+
+function skipMidi() {
+  setMidiStatus('', 'Manual mode');
+  buildTourScreen();
+  showScreen('tour');
+}
+
+function setMidiStatus(cls, txt) {
+  const dot = document.getElementById('midi-dot');
+  dot.className = 'status-dot' + (cls ? ' ' + cls : '');
+  document.getElementById('midi-txt').textContent = txt;
+}
+
+/* ================================================================
+   TOUR / PIN MAP
+================================================================ */
+function buildTourScreen() {
+  if (midiConnected) {
+    document.getElementById('midi-tour-info').style.display = 'flex';
+    document.getElementById('detect-btn').style.display = 'inline-flex';
+  } else {
+    document.getElementById('detect-btn').style.display = 'none';
+  }
+  renderPinGrid();
+  updateProgress();
+}
+
+function renderPinGrid() {
+  const grid = document.getElementById('pin-grid');
+  grid.innerHTML = '';
+  PIN_NAMES.forEach((name, i) => {
+    const cfg = pinConfigs[i];
+    const btn = document.createElement('button');
+    btn.className = 'pin-dot' + (cfg ? (cfg.skip ? ' skip' : ' cfg') : '');
+    btn.setAttribute('aria-label', name + (cfg ? ': ' + describeConfig(cfg) : ': not configured'));
+    btn.setAttribute('title', name);
+    btn.textContent = name.replace('GP','').replace('VOLTAGE_MONITOR','VM');
+    btn.onclick = () => openPinConfig(i);
+    grid.appendChild(btn);
+  });
+}
+
+function updateProgress() {
+  const done = pinConfigs.filter(c => c !== null).length;
+  const pct  = Math.round(done / 27 * 100);
+  document.getElementById('prog-count').textContent = `${done} / 27 configured`;
+  document.getElementById('prog-fill').style.width  = pct + '%';
+  const bar = document.getElementById('prog-bar');
+  bar.setAttribute('aria-valuenow', done);
+  // Enable finish button once at least one pin is configured
+  const fb = document.getElementById('finish-btn');
+  if (done > 0) {
+    fb.disabled = false;
+    fb.removeAttribute('aria-disabled');
+  } else {
+    fb.disabled = true;
+    fb.setAttribute('aria-disabled','true');
+  }
+}
+
+function openPinConfig(idx) {
+  currentPinIdx = idx;
+  const name = PIN_NAMES[idx];
+  // Update breadcrumbs and titles for all pin screens
+  ['bc-pin-type','bc-mt','bc-mn','bc-mc','bc-ht','bc-hk','bc-sc','bc-gm','bc-ms'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = name;
+  });
+  document.getElementById('bc-pin-type').innerHTML =
+    `Configure Pins <span class="bc-sep">›</span> <span class="bc-current">${name}</span>`;
+  document.getElementById('cur-pin-name').textContent = name;
+  // Reset temp state
+  selectedNote = null;
+  selectedChordType = null;
+  selectedKey = null;
+  selectedMods = [];
+  selectedScKey = null;
+  showScreen('pin-type');
+}
+
+/* ================================================================
+   DETECT SCREEN
+================================================================ */
+function startDetect() {
+  // Build manual grid
+  const grid = document.getElementById('manual-grid');
+  grid.innerHTML = '';
+  PIN_NAMES.forEach((name, i) => {
+    const cfg = pinConfigs[i];
+    const btn = document.createElement('button');
+    btn.className = 'manual-pin-btn' + (cfg ? ' cfg' : '');
+    btn.textContent = name;
+    btn.setAttribute('aria-label', name + (cfg ? ' (configured)' : ''));
+    btn.onclick = () => { openPinConfig(i); };
+    grid.appendChild(btn);
+  });
+  // Set up MIDI listener
+  if (midiConnected) {
+    setMidiStatus('listening', 'Listening…');
+    midiInputs.forEach(inp => {
+      inp.onmidimessage = handleDetectMessage;
+    });
+  }
+  showScreen('detect');
+}
+
+function handleDetectMessage(ev) {
+  const [status, note] = ev.data;
+  const isNoteOn = (status & 0xF0) === 0x90 && ev.data[2] > 0;
+  if (!isNoteOn) return;
+  const idx = N2P[note];
+  if (idx === undefined) return;
+  // Stop listening
+  midiInputs.forEach(inp => inp.onmidimessage = null);
+  setMidiStatus('connected', 'Connected');
+  // Flash detection UI
+  const det = document.getElementById('det-touch');
+  document.getElementById('touch-icon').textContent  = '✅';
+  document.getElementById('touch-title').textContent = `Detected: ${PIN_NAMES[idx]}`;
+  document.getElementById('touch-sub').textContent   = `MIDI note ${note}`;
+  det.classList.remove('waiting');
+  det.classList.add('done');
+  setTimeout(() => { openPinConfig(idx); }, 700);
+}
+
+/* ================================================================
+   PIN TYPE SELECTION
+================================================================ */
+function pickType(t) {
+  if (t === 'skip') {
+    pinConfigs[currentPinIdx] = { skip: true };
+    renderPinGrid();
+    updateProgress();
+    showScreen('tour');
+    return;
+  }
+  if (t === 'midi') { showScreen('midi-type'); return; }
+  if (t === 'hid')  { showScreen('hid-type');  return; }
+}
+
+/* ================================================================
+   MIDI — NOTE
+================================================================ */
+function pickMidiType(t) {
+  if (t === 'note') {
+    selectedNote = null;
+    refreshNotes();
+    showScreen('midi-note');
+  } else {
+    selectedChordType = null;
+    buildChordTypes();
+    refreshChord();
+    showScreen('midi-chord');
+  }
+}
+
+function midiNumToName(n) {
+  return NNAMES[n % 12] + Math.floor(n / 12 - 1);
+}
+
+function refreshNotes() {
+  const root  = NNAMES.indexOf(document.getElementById('n-root').value);
+  const oct   = parseInt(document.getElementById('n-oct').value);
+  const scale = document.getElementById('n-scale').value;
+  const intervals = SCALES[scale] || SCALES.any;
+  const container = document.getElementById('note-pills');
+  container.innerHTML = '';
+  selectedNote = null;
+  setBtn('conf-note-btn', false);
+  document.getElementById('note-preview').style.display = 'none';
+
+  // Build notes across 2 octaves starting from root
+  const notes = [];
+  for (let o = oct; o <= oct+1; o++) {
+    intervals.forEach(interval => {
+      const midi = (o + 1) * 12 + root + interval;
+      if (midi >= 0 && midi <= 127) notes.push(midi);
+    });
+  }
+  // Deduplicate & sort
+  const unique = [...new Set(notes)].sort((a,b)=>a-b);
+  unique.forEach(midi => {
+    const pill = document.createElement('button');
+    pill.className = 'note-pill';
+    pill.setAttribute('role','option');
+    pill.setAttribute('aria-selected','false');
+    pill.textContent = midiNumToName(midi);
+    pill.dataset.midi = midi;
+    pill.onclick = () => selectNotePill(pill, midi);
+    container.appendChild(pill);
+  });
+
+  renderPiano();
+}
+
+function selectNotePill(pill, midi) {
+  document.querySelectorAll('.note-pill').forEach(p => {
+    p.classList.remove('sel');
+    p.setAttribute('aria-selected','false');
+  });
+  pill.classList.add('sel');
+  pill.setAttribute('aria-selected','true');
+  selectedNote = { midi, name: midiNumToName(midi) };
+  document.getElementById('note-preview-txt').textContent = selectedNote.name + ` (MIDI ${midi})`;
+  document.getElementById('note-preview').style.display = 'flex';
+  setBtn('conf-note-btn', true);
+  renderPiano();
+  // Scroll the selected piano key into view
+  const selKey = document.querySelector(`#piano-keys [data-midi="${midi}"]`);
+  if (selKey) selKey.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
+}
+
+/* ================================================================
+   PIANO RENDER
+================================================================ */
+// Black key semitones within an octave and their pixel offsets
+// White key width = 26px; black key width = 17px
+// Offsets: positioned so they sit in the gap between the relevant white keys
+const BLACK_KEYS = [
+  { semi: 1,  left: 17  },  // C#
+  { semi: 3,  left: 43  },  // D#
+  { semi: 6,  left: 95  },  // F#
+  { semi: 8,  left: 121 },  // G#
+  { semi: 10, left: 147 },  // A#
+];
+const WHITE_SEMIS = [0, 2, 4, 5, 7, 9, 11]; // C D E F G A B
+
+function renderPiano() {
+  const root      = NNAMES.indexOf(document.getElementById('n-root').value);
+  const octSel    = parseInt(document.getElementById('n-oct').value);
+  const scale     = document.getElementById('n-scale').value;
+  const intervals = new Set(SCALES[scale] || SCALES.any);
+
+  // Show 4 octaves centred on the selected octave
+  const startOct = Math.max(0, octSel - 1);
+  const endOct   = startOct + 3;
+
+  // Build set of in-scale MIDI notes across the whole range
+  const inScaleSet = new Set();
+  for (let o = startOct; o <= endOct; o++) {
+    intervals.forEach(interval => {
+      const midi = (o + 1) * 12 + root + interval;
+      if (midi >= 0 && midi <= 127) inScaleSet.add(midi);
+    });
+  }
+
+  const container = document.getElementById('piano-keys');
+  container.innerHTML = '';
+
+  for (let o = startOct; o <= endOct; o++) {
+    const octDiv = document.createElement('div');
+    octDiv.className = 'piano-oct';
+
+    // --- White keys ---
+    WHITE_SEMIS.forEach(semi => {
+      const midi     = (o + 1) * 12 + semi;
+      const noteName = midiNumToName(midi);
+      const inScale  = inScaleSet.has(midi);
+      const isSel    = selectedNote && selectedNote.midi === midi;
+
+      const key = document.createElement('button');
+      key.className = 'piano-white' + (inScale ? ' in-scale' : '') + (isSel ? ' selected' : '');
+      key.setAttribute('aria-label', noteName + (inScale ? ' (in scale)' : ''));
+      key.setAttribute('data-midi', midi);
+      key.title = noteName;
+
+      // Label C notes and the selected note
+      if (semi === 0 || isSel) {
+        const lbl = document.createElement('span');
+        lbl.className = 'piano-key-label';
+        lbl.textContent = noteName;
+        key.appendChild(lbl);
+      }
+
+      key.onclick = () => {
+        // Click always selects — find or create matching pill
+        let pill = document.querySelector(`.note-pill[data-midi="${midi}"]`);
+        if (!pill) {
+          // Note is out of scale — add a transient pill so the confirm flow works
+          pill = document.createElement('button');
+          pill.className = 'note-pill';
+          pill.setAttribute('role','option');
+          pill.setAttribute('aria-selected','false');
+          pill.textContent = noteName;
+          pill.dataset.midi = midi;
+          pill.onclick = () => selectNotePill(pill, midi);
+          document.getElementById('note-pills').appendChild(pill);
+        }
+        selectNotePill(pill, midi);
+      };
+      octDiv.appendChild(key);
+    });
+
+    // --- Black keys (absolutely positioned) ---
+    BLACK_KEYS.forEach(({ semi, left }) => {
+      const midi     = (o + 1) * 12 + semi;
+      const noteName = midiNumToName(midi);
+      const inScale  = inScaleSet.has(midi);
+      const isSel    = selectedNote && selectedNote.midi === midi;
+
+      const key = document.createElement('button');
+      key.className = 'piano-black' + (inScale ? ' in-scale' : '') + (isSel ? ' selected' : '');
+      key.style.left = left + 'px';
+      key.setAttribute('aria-label', noteName + (inScale ? ' (in scale)' : ''));
+      key.setAttribute('data-midi', midi);
+      key.title = noteName;
+
+      key.onclick = () => {
+        let pill = document.querySelector(`.note-pill[data-midi="${midi}"]`);
+        if (!pill) {
+          pill = document.createElement('button');
+          pill.className = 'note-pill';
+          pill.setAttribute('role','option');
+          pill.setAttribute('aria-selected','false');
+          pill.textContent = noteName;
+          pill.dataset.midi = midi;
+          pill.onclick = () => selectNotePill(pill, midi);
+          document.getElementById('note-pills').appendChild(pill);
+        }
+        selectNotePill(pill, midi);
+      };
+      octDiv.appendChild(key);
+    });
+
+    // Octave label below keys
+    const lbl = document.createElement('div');
+    lbl.className = 'piano-oct-label';
+    lbl.textContent = `Oct ${o}`;
+    octDiv.appendChild(lbl);
+
+    container.appendChild(octDiv);
+
+    // Thin divider between octaves
+    if (o < endOct) {
+      const div = document.createElement('div');
+      div.className = 'piano-divider';
+      div.setAttribute('aria-hidden','true');
+      container.appendChild(div);
+    }
+  }
+}
+
+function confirmNote() {
+  if (!selectedNote) return;
+  pinConfigs[currentPinIdx] = {
+    type: 'midi', subtype: 'note',
+    midi: selectedNote.midi,
+    label: selectedNote.name,
+  };
+  finishPin();
+}
+
+/* ================================================================
+   CHORD PIANO RENDER
+================================================================ */
+function renderChordPiano(chordMidis, rootMidi) {
+  const container = document.getElementById('chord-piano-keys');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!chordMidis || chordMidis.length === 0) {
+    container.innerHTML = '<span style="color:var(--t3);font-size:0.85rem;padding:10px 14px;display:block">Select a chord type to see it on the piano</span>';
+    return;
+  }
+
+  const chordSet = new Set(chordMidis);
+  // Show 3 octaves centred on the root note's octave
+  const rootOct  = Math.floor(rootMidi / 12) - 1;
+  const startOct = Math.max(0, rootOct - 1);
+  const endOct   = startOct + 2;
+
+  for (let o = startOct; o <= endOct; o++) {
+    const octDiv = document.createElement('div');
+    octDiv.className = 'piano-oct';
+
+    // White keys
+    WHITE_SEMIS.forEach(semi => {
+      const midi     = (o + 1) * 12 + semi;
+      const noteName = midiNumToName(midi);
+      const isChord  = chordSet.has(midi);
+      const isRoot   = midi === rootMidi;
+
+      const key = document.createElement('button');
+      key.className = 'piano-white' + (isChord && !isRoot ? ' in-scale' : '') + (isRoot ? ' selected' : '');
+      key.setAttribute('aria-label', noteName + (isRoot ? ' (root)' : isChord ? ' (chord tone)' : ''));
+      key.title = noteName + (isRoot ? ' — root' : isChord ? ' — chord tone' : '');
+      key.style.cursor = 'default'; // chord piano is display-only
+
+      if (semi === 0 || isChord) {
+        const lbl = document.createElement('span');
+        lbl.className = 'piano-key-label';
+        lbl.textContent = noteName;
+        key.appendChild(lbl);
+      }
+      octDiv.appendChild(key);
+    });
+
+    // Black keys
+    BLACK_KEYS.forEach(({ semi, left }) => {
+      const midi     = (o + 1) * 12 + semi;
+      const noteName = midiNumToName(midi);
+      const isChord  = chordSet.has(midi);
+      const isRoot   = midi === rootMidi;
+
+      const key = document.createElement('button');
+      key.className = 'piano-black' + (isChord && !isRoot ? ' in-scale' : '') + (isRoot ? ' selected' : '');
+      key.style.left   = left + 'px';
+      key.style.cursor = 'default';
+      key.setAttribute('aria-label', noteName + (isRoot ? ' (root)' : isChord ? ' (chord tone)' : ''));
+      key.title = noteName + (isRoot ? ' — root' : isChord ? ' — chord tone' : '');
+      octDiv.appendChild(key);
+    });
+
+    const lbl = document.createElement('div');
+    lbl.className = 'piano-oct-label';
+    lbl.textContent = `Oct ${o}`;
+    octDiv.appendChild(lbl);
+
+    container.appendChild(octDiv);
+
+    if (o < endOct) {
+      const div = document.createElement('div');
+      div.className = 'piano-divider';
+      div.setAttribute('aria-hidden','true');
+      container.appendChild(div);
+    }
+  }
+}
+
+/* ================================================================
+   MIDI — CHORD
+================================================================ */
+function buildChordTypes() {
+  const container = document.getElementById('chord-types');
+  container.innerHTML = '';
+  Object.keys(CHORD_TYPES).forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'option-card';
+    btn.setAttribute('role','option');
+    btn.setAttribute('aria-selected','false');
+    btn.style.minHeight = '70px';
+    btn.style.padding = '12px 8px';
+    btn.style.gap = '4px';
+    btn.innerHTML = `<span class="option-label" style="font-size:0.85rem">${name}</span>`;
+    btn.onclick = () => selectChordType(btn, name);
+    container.appendChild(btn);
+  });
+  renderChordPiano([], -1);
+}
+
+function selectChordType(btn, name) {
+  document.querySelectorAll('#chord-types .option-card').forEach(b => {
+    b.classList.remove('sel');
+    b.style.borderColor = '';
+    b.style.background  = '';
+    b.setAttribute('aria-selected','false');
+  });
+  btn.style.borderColor = 'var(--amber)';
+  btn.style.background  = 'var(--amber-d)';
+  btn.setAttribute('aria-selected','true');
+  selectedChordType = name;
+  refreshChord();
+}
+
+function refreshChord() {
+  const rootName = document.getElementById('c-root').value;
+  const rootIdx  = NNAMES.indexOf(rootName);
+  const oct      = parseInt(document.getElementById('c-oct').value);
+  const preview  = document.getElementById('chord-preview');
+  preview.innerHTML = '';
+  if (!selectedChordType) {
+    preview.innerHTML = '<span style="color:var(--t3);font-size:0.85rem">Select a chord type above</span>';
+    renderChordPiano([], -1);
+    return;
+  }
+  const intervals = CHORD_TYPES[selectedChordType];
+  const rootMidi  = (oct + 1) * 12 + rootIdx;
+  const chordMidis = intervals.map(i => rootMidi + i);
+  chordMidis.forEach((midi, i) => {
+    const span = document.createElement('span');
+    span.className = 'chord-note';
+    span.textContent = midiNumToName(midi);
+    if (i === 0) span.style.boxShadow = '0 0 0 2px var(--amber)'; // root note stands out
+    preview.appendChild(span);
+  });
+  renderChordPiano(chordMidis, rootMidi);
+}
+
+function confirmChord() {
+  if (!selectedChordType) return;
+  const rootName = document.getElementById('c-root').value;
+  const rootIdx  = NNAMES.indexOf(rootName);
+  const oct      = parseInt(document.getElementById('c-oct').value);
+  const rootMidi = (oct + 1) * 12 + rootIdx;
+  const intervals = CHORD_TYPES[selectedChordType];
+  const notes    = intervals.map(i => rootMidi + i);
+  pinConfigs[currentPinIdx] = {
+    type: 'midi', subtype: 'chord',
+    notes,
+    label: `${rootName} ${selectedChordType}`,
+  };
+  finishPin();
+}
+
+/* ================================================================
+   HID — SINGLE KEY
+================================================================ */
+function pickHidType(t) {
+  if (t === 'single')   { buildKeyboard(); showScreen('hid-key'); return; }
+  if (t === 'shortcut') { buildShortcutScreen(); showScreen('hid-shortcut'); return; }
+  if (t === 'gaming')   { buildGaming(); showScreen('hid-gaming'); return; }
+  if (t === 'mouse')    { showScreen('hid-mouse'); return; }
+}
+
+function buildKeyboard() {
+  selectedKey = null;
+  setBtn('conf-key-btn', false);
+  document.getElementById('key-preview').style.display = 'none';
+
+  function makeKey(code, label, extraClass='') {
+    const btn = document.createElement('button');
+    btn.className = 'key ' + extraClass;
+    btn.textContent = label;
+    btn.dataset.code = code;
+    btn.setAttribute('aria-label', label);
+    btn.onclick = () => selectKey(btn, code, label);
+    return btn;
+  }
+  // Number row
+  const numRow = document.getElementById('kb-nums');
+  numRow.innerHTML = '';
+  ALPHANUMS.nums.forEach(k => numRow.appendChild(makeKey(k,k)));
+  // Q row
+  const qRow = document.getElementById('kb-q');
+  qRow.innerHTML = '';
+  ALPHANUMS.q.forEach(k => qRow.appendChild(makeKey(k,k)));
+  // A row
+  const aRow = document.getElementById('kb-a');
+  aRow.innerHTML = '';
+  ALPHANUMS.a.forEach(k => aRow.appendChild(makeKey(k,k)));
+  // Z row
+  const zRow = document.getElementById('kb-z');
+  zRow.innerHTML = '';
+  ALPHANUMS.z.forEach(k => zRow.appendChild(makeKey(k,k)));
+
+  // Special keys
+  const sp = document.getElementById('kb-special');
+  sp.innerHTML = '';
+  SP_KEYS.forEach(({l,c}) => sp.appendChild(makeKey(c,l)));
+
+  // Fn keys
+  const fn = document.getElementById('kb-fn');
+  fn.innerHTML = '';
+  FN_KEYS.forEach(({l,c}) => fn.appendChild(makeKey(c,l)));
+}
+
+function selectKey(btn, code, label) {
+  document.querySelectorAll('#screen-hid-key .key').forEach(k => k.classList.remove('sel'));
+  btn.classList.add('sel');
+  selectedKey = { code, label };
+  document.getElementById('key-preview-txt').textContent = label + ` (${code})`;
+  document.getElementById('key-preview').style.display = 'flex';
+  setBtn('conf-key-btn', true);
+}
+
+function confirmKey() {
+  if (!selectedKey) return;
+  pinConfigs[currentPinIdx] = {
+    type: 'hid', subtype: 'key',
+    code: selectedKey.code,
+    label: selectedKey.label,
+  };
+  finishPin();
+}
+
+/* ================================================================
+   HID — SHORTCUT
+================================================================ */
+function buildShortcutScreen() {
+  selectedMods  = [];
+  selectedScKey = null;
+  // Reset modifier buttons
+  document.querySelectorAll('.mod-btn').forEach(b => {
+    b.classList.remove('sel');
+    b.setAttribute('aria-pressed','false');
+  });
+  updateScPreview();
+
+  // Build key list (alphanums)
+  const container = document.getElementById('sc-keys');
+  container.innerHTML = '';
+  const all = [...ALPHANUMS.nums,...ALPHANUMS.q,...ALPHANUMS.a,...ALPHANUMS.z];
+  all.forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'key';
+    btn.setAttribute('role','option');
+    btn.setAttribute('aria-selected','false');
+    btn.textContent = k;
+    btn.onclick = () => {
+      document.querySelectorAll('#sc-keys .key').forEach(b=>{ b.classList.remove('sel'); b.setAttribute('aria-selected','false'); });
+      btn.classList.add('sel');
+      btn.setAttribute('aria-selected','true');
+      selectedScKey = k;
+      updateScPreview();
+    };
+    container.appendChild(btn);
+  });
+
+  // Common shortcuts
+  const cs = document.getElementById('common-sc');
+  cs.innerHTML = '';
+  COMMON_SHORTCUTS.forEach(sc => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-secondary btn-sm';
+    btn.textContent = sc.l;
+    btn.onclick = () => applyCommonSc(sc);
+    cs.appendChild(btn);
+  });
+}
+
+function applyCommonSc(sc) {
+  selectedMods  = [...sc.mods];
+  selectedScKey = sc.key;
+  // Update modifier buttons
+  document.querySelectorAll('.mod-btn').forEach(b => {
+    const active = selectedMods.includes(b.dataset.mod);
+    b.classList.toggle('sel', active);
+    b.setAttribute('aria-pressed', String(active));
+  });
+  // Update key selection in sc-keys
+  document.querySelectorAll('#sc-keys .key').forEach(b => {
+    const active = b.textContent === sc.key;
+    b.classList.toggle('sel', active);
+    b.setAttribute('aria-selected', String(active));
+  });
+  updateScPreview();
+}
+
+function toggleMod(btn) {
+  const mod = btn.dataset.mod;
+  const active = !btn.classList.contains('sel');
+  btn.classList.toggle('sel', active);
+  btn.setAttribute('aria-pressed', String(active));
+  if (active) { if (!selectedMods.includes(mod)) selectedMods.push(mod); }
+  else { selectedMods = selectedMods.filter(m => m !== mod); }
+  updateScPreview();
+}
+
+function updateScPreview() {
+  const parts = [...selectedMods.map(m=>m[0]+m.slice(1).toLowerCase()), selectedScKey||'?'];
+  document.getElementById('sc-preview').textContent = parts.join(' + ');
+}
+
+function confirmShortcut() {
+  if (!selectedScKey) return;
+  const label = [...selectedMods, selectedScKey].join('+');
+  pinConfigs[currentPinIdx] = {
+    type: 'hid', subtype: 'shortcut',
+    mods: [...selectedMods],
+    key: selectedScKey,
+    label,
+  };
+  finishPin();
+}
+
+/* ================================================================
+   HID — GAMING
+================================================================ */
+function buildGaming() {
+  const grid = document.getElementById('gaming-grid');
+  grid.innerHTML = '';
+  GAMING_CMDS.forEach(({l,c,icon}) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-card hid';
+    btn.style.minHeight = '80px';
+    btn.style.padding   = '14px 8px';
+    btn.innerHTML = `<span class="option-icon" aria-hidden="true">${icon}</span>
+                     <span class="option-label" style="font-size:0.88rem">${l}</span>`;
+    btn.onclick = () => {
+      if (c === 'MOUSE_LEFT' || c === 'MOUSE_RIGHT') {
+        const side = c === 'MOUSE_LEFT' ? 'left' : 'right';
+        confirmMouse(side);
+      } else {
+        pinConfigs[currentPinIdx] = { type:'hid', subtype:'key', code:c, label:l };
+        finishPin();
+      }
+    };
+    grid.appendChild(btn);
+  });
+}
+
+/* ================================================================
+   HID — MOUSE
+================================================================ */
+function confirmMouse(btn) {
+  const labels = { left:'Left Click', right:'Right Click', middle:'Middle Click' };
+  const codes  = { left:'MOUSE_LEFT', right:'MOUSE_RIGHT', middle:'MOUSE_MIDDLE' };
+  pinConfigs[currentPinIdx] = {
+    type: 'hid', subtype: 'mouse',
+    code: codes[btn],
+    label: labels[btn],
+  };
+  finishPin();
+}
+
+/* ================================================================
+   FINISH PIN
+================================================================ */
+function finishPin() {
+  renderPinGrid();
+  updateProgress();
+  // Stop any MIDI listener in detect screen
+  midiInputs.forEach(inp => inp.onmidimessage = null);
+  if (midiConnected) setMidiStatus('connected','Connected');
+  showScreen('tour');
+}
+
+/* ================================================================
+   SKIP ALL PINS
+================================================================ */
+function skipAllPins() {
+  pinConfigs = pinConfigs.map(c => c === null ? { skip:true } : c);
+  renderPinGrid();
+  updateProgress();
+}
+
+/* ================================================================
+   REVIEW
+================================================================ */
+function goReview() {
+  const tbody = document.getElementById('review-rows');
+  tbody.innerHTML = '';
+  PIN_NAMES.forEach((name, i) => {
+    const cfg = pinConfigs[i];
+    const tr  = document.createElement('tr');
+    let typeBadge = '<span class="badge bs">—</span>';
+    let assignment = '<span style="color:var(--t3)">not configured</span>';
+    if (cfg) {
+      if (cfg.skip) {
+        typeBadge  = '<span class="badge bs">Skip</span>';
+        assignment = '<span style="color:var(--t3)">inactive</span>';
+      } else if (cfg.type === 'midi') {
+        typeBadge  = '<span class="badge bm">MIDI</span>';
+        assignment = cfg.label || '—';
+      } else if (cfg.type === 'hid') {
+        typeBadge  = '<span class="badge bh">HID</span>';
+        assignment = cfg.label || cfg.code || '—';
+      }
+    }
+    tr.innerHTML = `
+      <td style="color:var(--t3);font-family:var(--mono);font-size:0.8rem">${i+1}</td>
+      <td style="font-family:var(--mono);font-weight:700">${name}</td>
+      <td>${typeBadge}</td>
+      <td>${assignment}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openPinConfig(${i});showScreen('pin-type')" aria-label="Edit ${name}">Edit</button></td>`;
+    tbody.appendChild(tr);
+  });
+  showScreen('review');
+}
+
+/* ================================================================
+   CODE GENERATION
+================================================================ */
+function generateCode() {
+  const lines = [];
+  lines.push('# SPOKE Board Configuration');
+  lines.push('# Generated by SPOKE Configurator');
+  lines.push('# https://spoke.music');
+  lines.push('');
+
+  // Collect what types are needed
+  const needsMidi = pinConfigs.some(c => c && c.type === 'midi');
+  const needsHid  = pinConfigs.some(c => c && c.type === 'hid' && c.subtype !== 'mouse');
+  const needsMouse= pinConfigs.some(c => c && c.type === 'hid' && c.subtype === 'mouse');
+
+  lines.push('import board');
+  lines.push('import time');
+  lines.push('import touchio');
+  if (needsMidi)  lines.push('import usb_midi');
+  if (needsMidi)  lines.push('import adafruit_midi');
+  if (needsMidi)  lines.push('from adafruit_midi.note_on  import NoteOn');
+  if (needsMidi)  lines.push('from adafruit_midi.note_off import NoteOff');
+  if (needsHid)   lines.push('import usb_hid');
+  if (needsHid)   lines.push('from adafruit_hid.keyboard       import Keyboard');
+  if (needsHid)   lines.push('from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS');
+  if (needsHid)   lines.push('from adafruit_hid.keycode         import Keycode');
+  if (needsMouse) lines.push('from adafruit_hid.mouse           import Mouse');
+  lines.push('');
+
+  if (needsMidi) {
+    lines.push('midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)');
+  }
+  if (needsHid) {
+    lines.push('keyboard = Keyboard(usb_hid.devices)');
+    lines.push('layout   = KeyboardLayoutUS(keyboard)');
+  }
+  if (needsMouse) {
+    lines.push('mouse = Mouse(usb_hid.devices)');
+  }
+  lines.push('');
+
+  // Touch pins setup
+  lines.push('# --- Touch Sensor Setup ---');
+  const activePins = [];
+  PIN_NAMES.forEach((name, i) => {
+    const cfg = pinConfigs[i];
+    if (cfg && !cfg.skip) {
+      const varName = `touch_${name.toLowerCase().replace(/[^a-z0-9]/g,'_')}`;
+      const boardPin = name === 'VOLTAGE_MONITOR' ? 'board.VOLTAGE_MONITOR' : `board.${name}`;
+      lines.push(`${varName} = touchio.TouchIn(${boardPin})`);
+      activePins.push({ varName, idx: i, cfg });
+    }
+  });
+  lines.push('');
+
+  // State tracking
+  if (activePins.length > 0) {
+    lines.push('# --- State Tracking ---');
+    activePins.forEach(({varName}) => {
+      lines.push(`prev_${varName} = False`);
+    });
+    lines.push('');
+  }
+
+  // Main loop
+  lines.push('# --- Main Loop ---');
+  lines.push('while True:');
+  if (activePins.length === 0) {
+    lines.push('    pass  # No active pins configured');
+  } else {
+    activePins.forEach(({varName, cfg}) => {
+      lines.push(`    if ${varName}.value and not prev_${varName}:`);
+      if (cfg.type === 'midi' && cfg.subtype === 'note') {
+        lines.push(`        midi.send(NoteOn(${cfg.midi}, 100))`);
+      } else if (cfg.type === 'midi' && cfg.subtype === 'chord') {
+        cfg.notes.forEach(n => lines.push(`        midi.send(NoteOn(${n}, 100))`));
+      } else if (cfg.type === 'hid' && cfg.subtype === 'key') {
+        const code = hidCode(cfg.code);
+        lines.push(`        keyboard.press(${code})`);
+      } else if (cfg.type === 'hid' && cfg.subtype === 'shortcut') {
+        const allKeys = [...cfg.mods.map(m=>`Keycode.${m}`), `Keycode.${cfg.key}`].join(', ');
+        lines.push(`        keyboard.press(${allKeys})`);
+      } else if (cfg.type === 'hid' && cfg.subtype === 'mouse') {
+        const btn = cfg.code === 'MOUSE_LEFT' ? 'Mouse.LEFT_BUTTON'
+                  : cfg.code === 'MOUSE_RIGHT' ? 'Mouse.RIGHT_BUTTON'
+                  : 'Mouse.MIDDLE_BUTTON';
+        lines.push(`        mouse.press(${btn})`);
+      }
+      lines.push(`    if not ${varName}.value and prev_${varName}:`);
+      if (cfg.type === 'midi' && cfg.subtype === 'note') {
+        lines.push(`        midi.send(NoteOff(${cfg.midi}, 0))`);
+      } else if (cfg.type === 'midi' && cfg.subtype === 'chord') {
+        cfg.notes.forEach(n => lines.push(`        midi.send(NoteOff(${n}, 0))`));
+      } else if (cfg.type === 'hid' && cfg.subtype === 'key') {
+        lines.push(`        keyboard.release_all()`);
+      } else if (cfg.type === 'hid' && cfg.subtype === 'shortcut') {
+        lines.push(`        keyboard.release_all()`);
+      } else if (cfg.type === 'hid' && cfg.subtype === 'mouse') {
+        const btn = cfg.code === 'MOUSE_LEFT' ? 'Mouse.LEFT_BUTTON'
+                  : cfg.code === 'MOUSE_RIGHT' ? 'Mouse.RIGHT_BUTTON'
+                  : 'Mouse.MIDDLE_BUTTON';
+        lines.push(`        mouse.release(${btn})`);
+      }
+      lines.push(`    prev_${varName} = ${varName}.value`);
+      lines.push('');
+    });
+    lines.push('    time.sleep(0.01)');
+  }
+
+  return lines.join('\n');
+}
+
+function hidCode(code) {
+  // Alphanumeric → Keycode.A etc.
+  if (/^[A-Z]$/.test(code)) return `Keycode.${code}`;
+  if (/^[0-9]$/.test(code)) return `Keycode.${code === '0' ? 'ZERO' : ['ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE'][parseInt(code)-1]}`;
+  // Special chars
+  const MAP = {'-':'MINUS','=':'EQUALS','[':'LEFT_BRACKET',']':'RIGHT_BRACKET',
+    '\\':'BACKSLASH',';':'SEMICOLON',"'":'QUOTE',',':'COMMA','.':'PERIOD','/':'FORWARD_SLASH'};
+  if (MAP[code]) return `Keycode.${MAP[code]}`;
+  // Already a Keycode name
+  return `Keycode.${code}`;
+}
+
+/* ================================================================
+   GENERATE SCREEN
+================================================================ */
+function showGenerateScreen() {
+  const code = generateCode();
+  document.getElementById('code-out').textContent = code;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-generate');
+  if (el) { el.classList.add('active'); window.scrollTo({top:0, behavior:'smooth'}); }
+}
+
+// showGenerateScreen is called directly from the review button
+
+/* ================================================================
+   COPY & DOWNLOAD & SAVE
+================================================================ */
+async function copyCode() {
+  const code = document.getElementById('code-out').textContent;
+  try {
+    await navigator.clipboard.writeText(code);
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy', 2000);
+  } catch(e) {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = code; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy', 2000);
+  }
+}
+
+function dlCode() {
+  const code = document.getElementById('code-out').textContent;
+  const blob = new Blob([code], {type:'text/plain'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'code.py';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function saveBoard() {
+  const code    = document.getElementById('code-out').textContent;
+  const status  = document.getElementById('save-status');
+  const saveBtn = document.getElementById('save-btn');
+
+  if (!window.showDirectoryPicker) {
+    status.innerHTML = `<div class="alert alert-warning"><span class="alert-icon">⚠️</span>
+      <div>File System Access API not supported. Use <strong>Download</strong> and copy <code>code.py</code> to your SPOKE drive manually.</div></div>`;
+    return;
+  }
+  try {
+    saveBtn.textContent = '⏳ Saving…';
+    saveBtn.disabled    = true;
+    const dir    = await window.showDirectoryPicker({ mode: 'readwrite' });
+    const file   = await dir.getFileHandle('code.py', { create: true });
+    const writer = await file.createWritable();
+    await writer.write(code);
+    await writer.close();
+    status.innerHTML = `<div class="alert alert-success"><span class="alert-icon">✅</span>
+      <div><strong>Saved successfully!</strong> Your SPOKE board will restart and use the new configuration.</div></div>`;
+    saveBtn.textContent = '✅ Saved!';
+  } catch(e) {
+    if (e.name !== 'AbortError') {
+      status.innerHTML = `<div class="alert alert-warning"><span class="alert-icon">⚠️</span>
+        <div>Could not save: ${e.message}. Try <strong>Download</strong> instead.</div></div>`;
+    }
+    saveBtn.textContent = '💾 Save to Board';
+    saveBtn.disabled    = false;
+  }
+}
+
+/* ================================================================
+   HELPERS
+================================================================ */
+function setBtn(id, enabled) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = !enabled;
+  if (enabled) btn.removeAttribute('aria-disabled');
+  else btn.setAttribute('aria-disabled','true');
+}
+
+function describeConfig(cfg) {
+  if (!cfg) return 'unconfigured';
+  if (cfg.skip) return 'inactive';
+  if (cfg.type === 'midi') return `MIDI: ${cfg.label}`;
+  if (cfg.type === 'hid')  return `HID: ${cfg.label || cfg.code}`;
+  return '—';
+}
+
+/* ================================================================
+   INIT
+================================================================ */
+(function init() {
+  // Build chord types now so they're ready
+  buildChordTypes();
+  refreshNotes();
+})();
+</script>
+</body>
+</html>
