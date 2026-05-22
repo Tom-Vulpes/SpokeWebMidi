@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPOKE-mini Setup</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100vh; background: #0f0f16; color: #ededf8; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 16px; }
+
+/* ── Serial bar ── */
+#serial-bar { position: sticky; top: 0; z-index: 100; background: #0a0a10; border-bottom: 1px solid #1e1e2a; padding: 0 20px; display: flex; align-items: center; gap: 10px; min-height: 48px; flex-wrap: wrap; }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; transition: background .3s; }
+.dot.idle       { background: #333; }
+.dot.connecting { background: #f5a623; animation: blink 1s infinite; }
+.dot.detecting  { background: #60a0ff; animation: blink .6s infinite; }
+.dot.running    { background: #4ade80; }
+.dot.error      { background: #f87171; }
+@keyframes blink { 50% { opacity: .2; } }
+.bar-label  { font-size: 13px; color: #9090b8; }
+.bar-device { font-size: 13px; font-weight: 600; color: #ededf8; }
+.bar-hint   { font-size: 12px; color: #505068; }
+.bar-last   { font-size: 12px; font-weight: 700; color: #fff; background: #2a2a10; border: 1px solid #f5a62350; border-radius: 20px; padding: 3px 10px; opacity: 0; transition: opacity .2s; }
+.bar-last.show { opacity: 1; }
+.connect-btn { margin-left: auto; padding: 7px 16px; background: #f5a623; color: #000; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; transition: opacity .12s; }
+.connect-btn:hover:not(:disabled) { opacity: .88; }
+.connect-btn:disabled { opacity: .4; cursor: not-allowed; }
+.connect-btn.ghost { background: transparent; color: #7070a0; border: 1px solid #2a2a3a; font-weight: 500; }
+.connect-btn.ghost:hover { color: #ededf8; border-color: #5a5a7a; }
+
+/* ── App ── */
+.app { max-width: 540px; margin: 0 auto; padding: 28px 18px 80px; }
+.screen-wrap { opacity: 0; transform: translateY(10px); animation: fadeUp .22s forwards; }
+@keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+/* ── Progress ── */
+.progress-track { display: flex; gap: 6px; margin-bottom: 36px; align-items: center; }
+.prog-seg { height: 4px; flex: 1; border-radius: 2px; background: #2a2a3a; transition: background .3s; }
+.prog-seg.done   { background: #4ade80; }
+.prog-seg.active { background: #f5a623; }
+.prog-label { font-size: 12px; color: #7070a0; white-space: nowrap; }
+
+/* ── Typography ── */
+.back-btn   { background: none; border: none; color: #7070a0; font-size: 14px; cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; margin-bottom: 28px; }
+.back-btn:hover { color: #ededf8; }
+.step-tag     { font-size: 12px; letter-spacing: .1em; color: #7070a0; text-transform: uppercase; margin-bottom: 8px; }
+.screen-title { font-size: 26px; font-weight: 800; line-height: 1.2; margin-bottom: 10px; letter-spacing: -.3px; }
+.screen-desc  { font-size: 15px; color: #9090b8; line-height: 1.65; margin-bottom: 28px; }
+.info-box     { background: #1a1a26; border: 1px solid #2e2e40; border-left: 3px solid #f5a623; border-radius: 10px; padding: 14px 16px; font-size: 14px; color: #9090b8; line-height: 1.6; margin-bottom: 24px; }
+.info-box strong { color: #ededf8; }
+
+/* ── Pin buttons ── */
+.pin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 9px; margin-bottom: 24px; }
+.pin-btn { background: #1c1c28; border: 2px solid #2a2a3a; border-radius: 10px; padding: 13px 8px; cursor: pointer; text-align: center; font-family: inherit; transition: border-color .1s, background .1s, transform .07s; }
+.pin-btn:hover:not(:disabled) { border-color: #5a5a7a; background: #22222e; }
+.pin-btn:disabled { cursor: not-allowed; }
+
+/* Role colours */
+.pin-btn.is-modifier { background: #241800; border-color: #f5a623; }
+.pin-btn.is-note     { background: #001e1c; border-color: #2dd4bf; }
+
+/* Confirmed (resistor present) — unassigned */
+.pin-btn.confirmed { border-color: #334; }
+
+/* Skipped — no resistor. Stays dim; cannot be assigned */
+.pin-btn.skipped { opacity: .28; }
+
+/* Live-press states — override role colours */
+.pin-btn.pad-active { background: #1e1e12 !important; border-color: #fff !important; transform: scale(.91); }
+.pin-btn.pad-active .pin-gp  { color: #fff !important; }
+.pin-btn.pad-recent { border-color: #888 !important; }
+.pin-btn.pad-recent .pin-gp  { color: #ccc !important; }
+
+/* Identify screen cards */
+.id-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 9px; margin-bottom: 28px; }
+.id-pin  { border-radius: 10px; padding: 13px 8px; text-align: center; transition: all .07s; user-select: none; background: #1c1c28; border: 2px solid #2a2a3a; }
+.id-pin.confirmed { border-color: #334; }
+.id-pin.skipped   { opacity: .25; }
+.id-pin.pad-active { background: #1e1e12 !important; border-color: #fff !important; transform: scale(.91); }
+.id-pin.pad-recent { border-color: #777 !important; }
+.id-pin .pin-gp  { font-size: 13px; font-weight: 700; font-family: monospace; color: #7070a0; }
+.id-pin.confirmed .pin-gp { color: #ededf8; }
+.id-pin.pad-active .pin-gp, .id-pin.pad-recent .pin-gp { color: #fff !important; }
+.id-pin .pin-tag { font-size: 10px; color: #404060; margin-top: 3px; min-height: 14px; }
+.id-pin.skipped .pin-tag { color: #664; }
+.id-pin.pad-active .pin-tag { color: #aaa; }
+.id-pin.pad-recent .pin-tag { color: #666; }
+
+.pin-gp  { font-size: 13px; font-weight: 700; font-family: monospace; }
+.pin-btn.is-modifier .pin-gp { color: #f5a623; }
+.pin-btn.is-note     .pin-gp { color: #2dd4bf; }
+.pin-tag { font-size: 10px; color: #7070a0; margin-top: 3px; }
+.pin-btn.is-modifier .pin-tag { color: #c07e1a; }
+.pin-btn.is-note     .pin-tag { color: #1ea89a; }
+.pin-btn.skipped .pin-tag { color: #554; font-size: 9px; }
+
+/* Detect progress bar */
+.detect-bar { background: #1a1a26; border: 1px solid #2a2a3a; border-radius: 10px; padding: 14px 16px; margin-bottom: 24px; }
+.detect-bar-label { font-size: 13px; color: #9090b8; margin-bottom: 8px; }
+.detect-track { height: 6px; background: #2a2a3a; border-radius: 3px; overflow: hidden; }
+.detect-fill  { height: 100%; background: #4ade80; border-radius: 3px; transition: width .15s; }
+.detect-counts { display: flex; gap: 18px; margin-top: 10px; font-size: 13px; }
+.detect-ok   { color: #4ade80; font-weight: 600; }
+.detect-skip { color: #666; }
+
+/* Chips */
+.chosen-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+.chip-amber { background: #241800; border: 1px solid #f5a62360; color: #f5a623; }
+
+/* Option buttons */
+.option-btn { width: 100%; padding: 16px 18px; background: #1c1c28; border: 2px solid #2a2a3a; border-radius: 13px; color: #ededf8; font-size: 15px; font-weight: 500; cursor: pointer; text-align: left; font-family: inherit; transition: all .14s; display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.option-btn:hover { border-color: #f5a623; background: #221800; }
+.option-icon { font-size: 22px; flex-shrink: 0; }
+.option-main { font-weight: 600; }
+.option-sub  { font-size: 13px; color: #7070a0; margin-top: 2px; }
+
+/* Chord picker */
+.section-label { font-size: 12px; letter-spacing: .08em; color: #7070a0; text-transform: uppercase; margin-bottom: 10px; }
+.root-grid  { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.root-btn   { padding: 10px 14px; min-width: 46px; background: #1c1c28; border: 2px solid #2a2a3a; border-radius: 9px; color: #ededf8; font-size: 14px; font-weight: 600; cursor: pointer; font-family: monospace; transition: all .12s; text-align: center; }
+.root-btn:hover { border-color: #5a5a7a; }
+.root-btn.sel   { background: #241800; border-color: #f5a623; color: #f5a623; }
+.chord-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 24px; }
+.chord-btn  { background: #1c1c28; border: 2px solid #2a2a3a; border-radius: 11px; padding: 13px 14px; cursor: pointer; text-align: left; font-family: inherit; transition: all .12s; }
+.chord-btn:hover { border-color: #5a5a7a; background: #22222e; }
+.chord-btn.sel  { background: #241800; border-color: #f5a623; }
+.chord-emoji { font-size: 20px; margin-bottom: 5px; }
+.chord-name  { font-size: 14px; font-weight: 700; color: #ededf8; }
+.chord-btn.sel .chord-name { color: #f5a623; }
+.chord-mood  { font-size: 12px; color: #7070a0; margin-top: 2px; }
+.oct-row { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+.oct-btn { width: 40px; height: 40px; border-radius: 10px; background: #1c1c28; border: 2px solid #2a2a3a; color: #ededf8; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: inherit; transition: border-color .12s; }
+.oct-btn:hover { border-color: #5a5a7a; }
+.oct-val  { font-size: 22px; font-weight: 800; min-width: 28px; text-align: center; }
+.oct-hint { font-size: 13px; color: #7070a0; }
+
+/* Preview */
+.preview-box { background: #121220; border: 1px solid #2a2a3a; border-radius: 11px; padding: 14px 16px; margin-bottom: 28px; }
+.preview-label { font-size: 11px; letter-spacing: .1em; color: #7070a0; text-transform: uppercase; margin-bottom: 10px; }
+.preview-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.preview-pill  { background: #001e1c; border: 1px solid #2dd4bf30; border-radius: 20px; padding: 5px 13px; font-size: 13px; color: #2dd4bf; font-family: monospace; font-weight: 700; }
+.preview-pill span { color: #7070a0; font-weight: 400; font-size: 11px; margin-right: 4px; }
+
+/* Buttons */
+.btn-main { width: 100%; padding: 16px; background: #f5a623; color: #000; border: none; border-radius: 13px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: inherit; transition: opacity .12s; margin-top: 4px; letter-spacing: -.2px; }
+.btn-main:hover  { opacity: .9; }
+.btn-main:disabled { opacity: .3; cursor: not-allowed; }
+.btn-ghost { width: 100%; padding: 14px; background: transparent; color: #ededf8; border: 2px solid #2a2a3a; border-radius: 13px; font-size: 15px; font-weight: 500; cursor: pointer; font-family: inherit; transition: border-color .12s; margin-top: 10px; }
+.btn-ghost:hover { border-color: #5a5a7a; }
+
+/* Review */
+.summary-card { background: #1a1a26; border: 1px solid #2a2a3a; border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+.summary-head  { font-size: 11px; letter-spacing: .1em; color: #7070a0; text-transform: uppercase; margin-bottom: 10px; }
+.summary-row   { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid #22222e; font-size: 14px; gap: 12px; }
+.summary-row:last-child { border-bottom: none; }
+.skey { color: #9090b8; flex-shrink: 0; }
+.sval { font-weight: 600; font-family: monospace; text-align: right; }
+.code-wrap { background: #09090f; border: 1px solid #2a2a3a; border-radius: 11px; overflow: auto; max-height: 280px; font-size: 12px; line-height: 1.75; margin-bottom: 16px; }
+.code-wrap pre { padding: 16px 18px; white-space: pre; font-family: 'Courier New', monospace; color: #c9d1d9; }
+.cm { color: #6a6a8a; } .kw { color: #ff9580; } .nm { color: #79c0ff; }
+.save-row { display: flex; gap: 9px; flex-wrap: wrap; margin-bottom: 8px; }
+.save-btn { flex: 1; min-width: 130px; padding: 13px 14px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; text-align: center; border: none; transition: opacity .12s; }
+.save-btn:hover { opacity: .88; }
+.save-primary { background: #f5a623; color: #000; }
+.save-ghost   { background: #1c1c28; color: #ededf8; border: 2px solid #2a2a3a; }
+.status-ok  { font-size: 13px; color: #4ade80; font-weight: 500; margin-top: 6px; }
+.status-err { font-size: 13px; color: #f87171; margin-top: 6px; }
+.instr-list { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+.instr-row  { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; color: #9090b8; }
+.instr-num  { width: 26px; height: 26px; border-radius: 50%; background: #f5a623; color: #000; font-size: 12px; font-weight: 800; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.instr-num.alt { background: #1c1c28; border: 1px solid #2a2a3a; color: #7070a0; }
+.instr-row strong { color: #ededf8; }
+code { background: #1c1c28; border: 1px solid #2a2a3a; border-radius: 4px; padding: 1px 7px; font-family: monospace; font-size: 12px; color: #2dd4bf; }
+.divider { border: none; border-top: 1px solid #22222e; margin: 20px 0; }
+.serial-hint { font-size: 13px; color: #7070a0; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+
+<div id="serial-bar">
+  <div class="dot idle" id="s-dot"></div>
+  <span id="s-label" class="bar-label">Not connected</span>
+  <span id="s-device" class="bar-device"></span>
+  <span id="s-hint" class="bar-hint"></span>
+  <span id="s-last" class="bar-last"></span>
+  <button class="connect-btn" id="s-btn" onclick="serialConnect()">🔌 Connect to SPOKE-mini</button>
+</div>
+
+<div class="app" id="app"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   CONSTANTS
+═══════════════════════════════════════════ */
+const GP_PINS = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,26,27,28];
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const ROOTS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const ROOT_MIDI = {C:60,'C#':61,D:62,'D#':63,E:64,F:65,'F#':66,G:67,'G#':68,A:69,'A#':70,B:71};
+const CHORD_TYPES = [
+  {key:'Major',label:'Major',      emoji:'😊',mood:'bright, happy',  iv:[0,4,7]   },
+  {key:'Minor',label:'Minor',      emoji:'😔',mood:'sad, moody',     iv:[0,3,7]   },
+  {key:'Dom7', label:'7th',        emoji:'🎷',mood:'bluesy, soulful',iv:[0,4,7,10]},
+  {key:'Maj7', label:'Major 7th',  emoji:'✨',mood:'smooth, dreamy', iv:[0,4,7,11]},
+  {key:'Min7', label:'Minor 7th',  emoji:'🌙',mood:'cool, dark',     iv:[0,3,7,10]},
+  {key:'Sus4', label:'Suspended',  emoji:'🌊',mood:'floating, open', iv:[0,5,7]   },
+  {key:'Dim',  label:'Diminished', emoji:'😰',mood:'tense, eerie',   iv:[0,3,6]   },
+  {key:'Aug',  label:'Augmented',  emoji:'🔮',mood:'mysterious',     iv:[0,4,8]   },
+  {key:'Power',label:'Power chord',emoji:'🎸',mood:'big, rock',      iv:[0,7,12]  },
+];
+function midiName(n){n=Math.max(0,Math.min(127,n));return NOTE_NAMES[n%12]+(Math.floor(n/12)-1);}
+function getIv(k){return CHORD_TYPES.find(c=>c.key===k)?.iv||[0,4,7];}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+/* ═══════════════════════════════════════════
+   DIAGNOSTIC SCRIPT
+   
+   Sent to the CircuitPython REPL via paste mode.
+   On startup prints:
+     OK:<gp>   — pin initialised successfully
+     SKIP:<gp> — pin skipped (no pull-down resistor / invalid)
+   Then continuously prints:
+     T:<gp>    — pad touched
+     R:<gp>    — pad released
+═══════════════════════════════════════════ */
+const DIAG = `
+import board,touchio,time
+s={}
+for g in [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,26,27,28]:
+ try:
+  s[g]=touchio.TouchIn(getattr(board,'GP%d'%g))
+  print('OK:%d'%g)
+ except:
+  print('SKIP:%d'%g)
+t={g:False for g in s}
+while True:
+ for g,x in s.items():
+  try:
+   v=x.value
+   if v!=t[g]:
+    t[g]=v
+    print(('T'if v else'R')+':%d'%g)
+  except:pass
+ time.sleep(0.02)
+`;
+
+/* ═══════════════════════════════════════════
+   SERIAL STATE
+═══════════════════════════════════════════ */
+const SL = {
+  port:null, writer:null, reader:null,
+  status:'idle',  // idle | connecting | detecting | running | error
+  device:'',
+  active:false,
+  buf:'',
+};
+
+// Which pins responded at startup
+const confirmedPins = new Set();  // OK — have a resistor, can be assigned
+const skippedPins   = new Set();  // SKIP — no resistor, grey out
+let   detectDone    = false;      // true once all 26 OK/SKIP received
+
+// Live pad state
+const activeGPs    = new Set();
+const recentTimers = {};
+
+// Debounced render for batch pin-detection updates
+let renderTimer = null;
+function scheduleRender(){
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(()=>{renderTimer=null;render();},60);
+}
+
+/* ═══════════════════════════════════════════
+   PAD EVENTS
+═══════════════════════════════════════════ */
+function onPadTouch(gp, isDown){
+  if(isDown){
+    clearTimeout(recentTimers[gp]); delete recentTimers[gp];
+    activeGPs.add(gp);
+    handleSerialPress(gp);
+    const el=document.getElementById('s-last');
+    if(el){el.textContent='GP'+gp+' pressed';el.className='bar-last show';}
+  } else {
+    activeGPs.delete(gp);
+    clearTimeout(recentTimers[gp]);
+    recentTimers[gp]=setTimeout(()=>{delete recentTimers[gp];updatePads();},1400);
+  }
+  updatePads();
+}
+
+function handleSerialPress(gp){
+  if(S.screen==='pick-modifier'){
+    if(!S.modifiers.some(m=>m.gp===gp)&&!S.notes.some(n=>n.gp===gp)) pickModifier(gp);
+  } else if(S.screen==='pick-notes'){
+    if(!S.modifiers.some(m=>m.gp===gp)) toggleNote(gp);
+  }
+}
+
+function updatePads(){
+  document.querySelectorAll('[data-gp]').forEach(el=>{
+    const gp=parseInt(el.dataset.gp);
+    el.classList.toggle('pad-active', activeGPs.has(gp));
+    el.classList.toggle('pad-recent', !activeGPs.has(gp)&&(gp in recentTimers));
+    const tag=el.querySelector('.pin-tag');
+    if(tag&&el.classList.contains('id-pin')){
+      if(skippedPins.has(gp)) tag.textContent='no resistor';
+      else if(activeGPs.has(gp)) tag.textContent='pressed!';
+      else if(gp in recentTimers) tag.textContent='just pressed';
+      else if(confirmedPins.has(gp)) tag.textContent='';
+      else tag.textContent='';
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════
+   SERIAL CONNECT / DISCONNECT
+═══════════════════════════════════════════ */
+async function serialConnect(){
+  if(!navigator.serial){
+    alert('Web Serial is not supported here.\n\nPlease open this file in Chrome or another Chromium-based browser.');
+    return;
+  }
+  if(SL.status==='running'||SL.status==='detecting'){serialDisconnect();return;}
+
+  setStatus('connecting');
+  confirmedPins.clear(); skippedPins.clear(); detectDone=false;
+
+  try{
+    const port=await navigator.serial.requestPort();
+    await port.open({baudRate:115200});
+    SL.port=port; SL.active=true;
+    SL.device='SPOKE-mini';
+    SL.writer=port.writable.getWriter();
+    _readLoop();
+
+    // Interrupt whatever is running
+    await _send('\x03'); await sleep(350);
+    await _send('\x03'); await sleep(350);
+
+    // Paste mode → inject diagnostic
+    await _send('\x05'); await sleep(150);
+    await _send(DIAG);
+    await _send('\x04');
+
+    setStatus('detecting');
+  } catch(e){
+    if(e.name!=='NotFoundError') setStatus('error',e.message);
+    else setStatus('idle');
+  }
+}
+
+async function serialDisconnect(){
+  if(!SL.port) return;
+  SL.active=false;
+  try{await _send('\x03');}catch(e){}
+  await sleep(200);
+  try{await _send('\x04');}catch(e){} // soft-reset → resumes code.py
+  try{SL.reader?.cancel();}catch(e){}
+  try{SL.writer?.releaseLock();}catch(e){}
+  try{await SL.port.close();}catch(e){}
+  SL.port=null; SL.writer=null; SL.reader=null;
+  setStatus('idle');
+  activeGPs.clear(); updatePads();
+}
+
+async function restartPico(){
+  if(!SL.writer) return;
+  await _send('\x03'); await sleep(250);
+  await _send('\x04');
+  SL.active=false;
+  try{SL.reader?.cancel();}catch(e){}
+  try{SL.writer?.releaseLock();}catch(e){}
+  try{await SL.port?.close();}catch(e){}
+  SL.port=null; SL.writer=null; SL.reader=null;
+  setStatus('idle');
+  activeGPs.clear(); updatePads();
+}
+
+async function _send(str){
+  if(!SL.writer) return;
+  await SL.writer.write(new TextEncoder().encode(str));
+}
+
+async function _readLoop(){
+  SL.reader=SL.port.readable.getReader();
+  const dec=new TextDecoder();
+  try{
+    while(SL.active){
+      const{value,done}=await SL.reader.read();
+      if(done) break;
+      SL.buf+=dec.decode(value);
+      _parse();
+    }
+  }catch(e){
+    if(SL.active) setStatus('error','Connection lost — try reconnecting');
+  }finally{
+    try{SL.reader.releaseLock();}catch(e){}
+  }
+}
+
+function _parse(){
+  const lines=SL.buf.split('\n');
+  SL.buf=lines.pop();
+  for(const raw of lines){
+    const line=raw.trim();
+
+    // Touch / release
+    const tr=line.match(/^([TR]):(\d+)$/);
+    if(tr){onPadTouch(parseInt(tr[2]),tr[1]==='T');continue;}
+
+    // Startup: pin confirmed working
+    const ok=line.match(/^OK:(\d+)$/);
+    if(ok){
+      confirmedPins.add(parseInt(ok[1]));
+      _checkDetectDone();
+      scheduleRender();
+      continue;
+    }
+
+    // Startup: pin skipped (no resistor)
+    const skip=line.match(/^SKIP:(\d+)$/);
+    if(skip){
+      skippedPins.add(parseInt(skip[1]));
+      _checkDetectDone();
+      scheduleRender();
+      continue;
+    }
+  }
+}
+
+function _checkDetectDone(){
+  if(!detectDone && confirmedPins.size+skippedPins.size>=GP_PINS.length){
+    detectDone=true;
+    setStatus('running');
+  }
+}
+
+/* ═══════════════════════════════════════════
+   STATUS BAR
+═══════════════════════════════════════════ */
+function setStatus(status, detail){
+  SL.status=status;
+  const dot=document.getElementById('s-dot');
+  const lbl=document.getElementById('s-label');
+  const dev=document.getElementById('s-device');
+  const hint=document.getElementById('s-hint');
+  const btn=document.getElementById('s-btn');
+  if(!dot) return;
+  dot.className='dot '+status;
+  dev.textContent='';
+  if(status==='idle'){
+    lbl.textContent='Not connected';
+    hint.textContent='';
+    btn.textContent='🔌 Connect to SPOKE-mini';
+    btn.className='connect-btn'; btn.disabled=false;
+  } else if(status==='connecting'){
+    lbl.textContent='Connecting…';
+    hint.textContent='';
+    btn.textContent='Connecting…'; btn.disabled=true;
+  } else if(status==='detecting'){
+    lbl.textContent='Scanning pins…';
+    hint.textContent='checking which pads have resistors';
+    btn.textContent='Disconnect'; btn.className='connect-btn ghost'; btn.disabled=false;
+  } else if(status==='running'){
+    lbl.textContent='Connected —';
+    dev.textContent=SL.device;
+    const n=skippedPins.size;
+    hint.textContent=`  ·  ${confirmedPins.size} pads active${n?', '+n+' skipped (no resistor)':''}  ·  press any pad`;
+    btn.textContent='Disconnect'; btn.className='connect-btn ghost'; btn.disabled=false;
+  } else if(status==='error'){
+    lbl.textContent=detail||'Connection error';
+    hint.textContent='';
+    btn.textContent='Try again'; btn.className='connect-btn'; btn.disabled=false;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   APP STATE & NAVIGATION
+═══════════════════════════════════════════ */
+let S={screen:'welcome',modifiers:[],notes:[],chords:{},chordIdx:0};
+let hist=[];
+function go(screen){if(S.screen!=='welcome')hist.push({screen:S.screen,chordIdx:S.chordIdx});S.screen=screen;render();}
+function back(){if(!hist.length)return;const p=hist.pop();S.screen=p.screen;S.chordIdx=p.chordIdx;render();}
+function resetAll(){S={screen:'welcome',modifiers:[],notes:[],chords:{},chordIdx:0};hist=[];render();}
+
+/* ═══════════════════════════════════════════
+   ACTIONS
+═══════════════════════════════════════════ */
+function pickModifier(gp){
+  if(S.modifiers.some(m=>m.gp===gp)) return;
+  S.modifiers.push({gp});
+  const mk=`mod_${S.modifiers.length-1}`;
+  if(!S.chords[mk]) S.chords[mk]={root:'A',type:'Minor',oct:4};
+  go('more-modifiers');
+}
+function toggleNote(gp){
+  const i=S.notes.findIndex(n=>n.gp===gp);
+  i>=0?S.notes.splice(i,1):S.notes.push({gp}); render();
+}
+function startChords(){S.chordIdx=0;if(!S.chords['default'])S.chords['default']={root:'C',type:'Major',oct:4};go('set-chord');}
+function setProp(key,prop,val){if(!S.chords[key])S.chords[key]={root:'C',type:'Major',oct:4};S.chords[key][prop]=val;render();}
+function changeOct(key,d){if(!S.chords[key])S.chords[key]={root:'C',type:'Major',oct:4};S.chords[key].oct=Math.max(1,Math.min(7,(S.chords[key].oct||4)+d));render();}
+function nextChord(){
+  const total=1+S.modifiers.length;
+  if(S.chordIdx+1<total){hist.push({screen:'set-chord',chordIdx:S.chordIdx});S.chordIdx++;const k=S.chordIdx===0?'default':`mod_${S.chordIdx-1}`;if(!S.chords[k])S.chords[k]={root:'C',type:'Major',oct:4};render();}
+  else go('review');
+}
+function chordNotes(key){
+  const c=S.chords[key]||{root:'C',type:'Major',oct:4};
+  const rm=ROOT_MIDI[c.root]+(c.oct-4)*12,iv=getIv(c.type);
+  return S.notes.map((_,i)=>Math.max(0,Math.min(127,rm+iv[i%iv.length]+Math.floor(i/iv.length)*12)));
+}
+
+/* ═══════════════════════════════════════════
+   PIN GRID HELPER
+   
+   When serial is detecting/running:
+     - confirmed pins are enabled
+     - skipped pins are greyed out and unclickable
+   When not connected:
+     - all pins are available (no info either way)
+═══════════════════════════════════════════ */
+function pinGrid({disabled=new Set(),modGPs=new Set(),noteGPs=new Set(),onclick=''}={}){
+  const serialActive = SL.status==='running'||SL.status==='detecting';
+  return `<div class="pin-grid">${GP_PINS.map(gp=>{
+    const isMod=modGPs.has(gp), isNote=noteGPs.has(gp);
+    const isSkipped=serialActive&&skippedPins.has(gp);
+    const isConfirmed=serialActive&&confirmedPins.has(gp);
+    const dis=disabled.has(gp)||isSkipped;
+    const roleCls=isMod?'is-modifier':isNote?'is-note':isConfirmed?'confirmed':isSkipped?'skipped':'';
+    const padCls=activeGPs.has(gp)?'pad-active':(gp in recentTimers)?'pad-recent':'';
+    const roleTag=isMod?'chord pad':isNote?'✓ selected':isSkipped?'no resistor':isConfirmed?'':' ';
+    return `<button class="pin-btn ${roleCls} ${padCls}" data-gp="${gp}"
+      ${dis?'disabled':`onclick="${onclick.replace('$GP',gp)}"`}>
+      <div class="pin-gp">GP${gp}</div>${roleTag?`<div class="pin-tag">${roleTag}</div>`:''}
+    </button>`;
+  }).join('')}</div>`;
+}
+
+function serialHint(text){
+  return SL.status==='running'||SL.status==='detecting'
+    ?`<p class="serial-hint">💡 ${text}</p>`:'';
+}
+
+/* ═══════════════════════════════════════════
+   PROGRESS
+═══════════════════════════════════════════ */
+function prog(phase){
+  const labels=['Chord pads','Note pads','Set chords','Done'];
+  return `<div class="progress-track">
+    ${labels.map((_,i)=>`<div class="prog-seg ${i+1<phase?'done':i+1===phase?'active':''}"></div>`).join('')}
+    <span class="prog-label">${labels[phase-1]||''}</span>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════
+   SCREENS
+═══════════════════════════════════════════ */
+function screenWelcome(){return `
+  <div style="text-align:center;padding:44px 0 24px">
+    <div style="font-size:52px;margin-bottom:18px">🎹</div>
+    <h1 style="font-size:30px;font-weight:900;margin-bottom:10px;letter-spacing:-.5px">SPOKE-mini Setup</h1>
+    <p style="color:#9090b8;font-size:16px;line-height:1.65;margin-bottom:32px;max-width:380px;margin-left:auto;margin-right:auto">
+      Set up your touch pads to play chords like an Omnichord. No experience needed.
+    </p>
+    <div class="info-box" style="text-align:left">
+      <strong>How it works:</strong><br>
+      Some pads will be <strong style="color:#f5a623">chord pads</strong> — hold one to switch to a different chord.<br>
+      The rest are <strong style="color:#2dd4bf">note pads</strong> — tap them to play notes of that chord.
+    </div>
+    ${SL.status==='idle'||SL.status==='error'?`
+    <div style="background:#1a1a22;border:1px solid #2a2a3a;border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:14px;color:#9090b8;text-align:left">
+      <strong style="color:#ededf8">Tip:</strong> click <strong style="color:#f5a623">Connect to SPOKE-mini</strong> in the bar above first — the wizard will automatically detect which pads are wired up and let you assign them by pressing the physical pads.
+    </div>`:''}
+    <button class="btn-main" onclick="go('identify')">Let's get started →</button>
+  </div>`;}
+
+function screenIdentify(){
+  const serialActive=SL.status==='running'||SL.status==='detecting';
+  const total=GP_PINS.length;
+  const detected=confirmedPins.size+skippedPins.size;
+  const pct=total>0?Math.round(detected/total*100):0;
+
+  // Detection progress bar (only while detecting)
+  const progressBar=(SL.status==='detecting')?`
+  <div class="detect-bar">
+    <div class="detect-bar-label">Scanning pads… ${detected} of ${total}</div>
+    <div class="detect-track"><div class="detect-fill" style="width:${pct}%"></div></div>
+    <div class="detect-counts">
+      <span class="detect-ok">✓ ${confirmedPins.size} working</span>
+      <span class="detect-skip">⊘ ${skippedPins.size} no resistor</span>
+    </div>
+  </div>`:
+  (detectDone)?`
+  <div class="detect-bar">
+    <div class="detect-bar-label" style="color:#4ade80;font-weight:600">All pads scanned</div>
+    <div class="detect-track"><div class="detect-fill" style="width:100%"></div></div>
+    <div class="detect-counts">
+      <span class="detect-ok">✓ ${confirmedPins.size} working — press them below</span>
+      <span class="detect-skip">⊘ ${skippedPins.size} no resistor (greyed out)</span>
+    </div>
+  </div>`:'';
+
+  const pins=GP_PINS.map(gp=>{
+    const isSkip=skippedPins.has(gp), isConf=confirmedPins.has(gp);
+    const cls=(isSkip?'skipped':isConf?'confirmed':'')+(activeGPs.has(gp)?' pad-active':(gp in recentTimers)?' pad-recent':'');
+    const tag=isSkip?'no resistor':activeGPs.has(gp)?'pressed!':(gp in recentTimers)?'just pressed':'';
+    return `<div class="id-pin ${cls}" data-gp="${gp}"><div class="pin-gp">GP${gp}</div><div class="pin-tag">${tag}</div></div>`;
+  }).join('');
+
+  return `
+  <div class="step-tag">Finding your pads</div>
+  <h2 class="screen-title">Which pad is which?</h2>
+  <p class="screen-desc">${serialActive
+    ?'The board is scanning all pads. Working pads are lit up — press each one to confirm which GP number it is. Greyed-out pads have no pull-down resistor fitted.'
+    :'Connect your device above to auto-detect which pads are wired up. Or skip ahead and assign them manually.'}</p>
+  ${!serialActive?`<div class="info-box">No device connected — press <strong>Connect to SPOKE-mini</strong> in the bar above first.</div>`:''}
+  ${progressBar}
+  <div class="id-grid">${pins}</div>
+  <button class="btn-main" onclick="go('pick-modifier')">Got it — assign pads →</button>`;}
+
+function screenPickModifier(){
+  const isAdding=S.modifiers.length>0;
+  const modGPs=new Set(S.modifiers.map(m=>m.gp));
+  const noteGPs=new Set(S.notes.map(n=>n.gp));
+  const chips=S.modifiers.map(m=>`<span class="chip chip-amber">GP${m.gp}</span>`).join('');
+  return `${prog(1)}
+  <div class="step-tag">${isAdding?'Adding more':'Step 1 — chord pads'}</div>
+  <h2 class="screen-title">${isAdding?'Add another chord pad?':'Which pad changes the chord?'}</h2>
+  <p class="screen-desc">${isAdding
+    ?'Tap or press another pad to add it, or continue when you have enough.'
+    :'Tap — or <strong>press on your device</strong> — the pad you\'ll hold to switch chords. Greyed-out pads have no resistor fitted.'}</p>
+  ${serialHint('Press a pad on your device to select it automatically')}
+  ${chips?`<div class="chosen-chips">${chips}</div>`:''}
+  ${pinGrid({disabled:new Set([...modGPs,...noteGPs]),modGPs,noteGPs,onclick:'pickModifier($GP)'})}
+  ${isAdding?`<button class="btn-ghost" onclick="go('pick-notes')">I have enough chord pads →</button>`:''}`;}
+
+function screenMoreModifiers(){
+  const last=S.modifiers[S.modifiers.length-1];
+  return `${prog(1)}
+  <div class="step-tag">Step 1 — chord pads</div>
+  <h2 class="screen-title">GP${last.gp} added ✓</h2>
+  <p class="screen-desc">When you hold <strong style="color:#f5a623">GP${last.gp}</strong>, all note pads switch to a different chord. Want to add more chord pads?</p>
+  <button class="option-btn" onclick="go('pick-modifier')">
+    <span class="option-icon">➕</span>
+    <div><div class="option-main">Add another chord pad</div><div class="option-sub">Each one gives you a different chord mode</div></div>
+  </button>
+  <button class="option-btn" onclick="go('pick-notes')">
+    <span class="option-icon">✓</span>
+    <div><div class="option-main">That's enough chord pads</div><div class="option-sub">Move on to picking note pads</div></div>
+  </button>`;}
+
+function screenPickNotes(){
+  const modGPs=new Set(S.modifiers.map(m=>m.gp));
+  const noteGPs=new Set(S.notes.map(n=>n.gp));
+  const n=S.notes.length;
+  return `${prog(2)}
+  <div class="step-tag">Step 2 — note pads</div>
+  <h2 class="screen-title">Which pads play notes?</h2>
+  <p class="screen-desc">Tap — or <strong>press on your device</strong> — every pad you want to play a note. More pads = fuller chords. Tap again to remove.</p>
+  ${serialHint('Press pads to add them — press again to remove')}
+  <div style="font-size:14px;color:${n?'#2dd4bf':'#7070a0'};margin-bottom:14px;font-weight:${n?600:400}">
+    ${n?`${n} note pad${n!==1?'s':''} selected`:'No pads selected yet'}
+  </div>
+  ${pinGrid({disabled:modGPs,modGPs,noteGPs,onclick:'toggleNote($GP)'})}
+  <button class="btn-main" ${n?'':'disabled'} onclick="startChords()">
+    ${n?'Next: set the chords →':'Select at least one pad first'}
+  </button>`;}
+
+function screenSetChord(){
+  const total=1+S.modifiers.length, isDefault=S.chordIdx===0;
+  const key=isDefault?'default':`mod_${S.chordIdx-1}`;
+  const modGp=isDefault?null:S.modifiers[S.chordIdx-1]?.gp;
+  if(!S.chords[key]) S.chords[key]={root:'C',type:'Major',oct:4};
+  const c=S.chords[key],ct=CHORD_TYPES.find(x=>x.key===c.type);
+  const notes=chordNotes(key);
+  const isLast=S.chordIdx+1>=total;
+  return `${prog(3)}
+  <div class="step-tag">Step 3 — chords · ${S.chordIdx+1} of ${total}</div>
+  <h2 class="screen-title">${isDefault?'Default chord':`Chord for GP${modGp}`}</h2>
+  <p class="screen-desc">${isDefault?'This plays when no chord pad is held — your starting sound.':`This plays when you hold <strong style="color:#f5a623">GP${modGp}</strong>. Try something different!`}</p>
+  <div class="section-label">Root note</div>
+  <div class="root-grid">${ROOTS.map(r=>`<button class="root-btn${c.root===r?' sel':''}" onclick="setProp('${key}','root','${r}')">${r}</button>`).join('')}</div>
+  <div class="section-label">Chord type</div>
+  <div class="chord-grid">${CHORD_TYPES.map(ct2=>`<button class="chord-btn${c.type===ct2.key?' sel':''}" onclick="setProp('${key}','type','${ct2.key}')">
+    <div class="chord-emoji">${ct2.emoji}</div><div class="chord-name">${ct2.label}</div><div class="chord-mood">${ct2.mood}</div>
+  </button>`).join('')}</div>
+  <div class="section-label">Octave</div>
+  <div class="oct-row">
+    <button class="oct-btn" onclick="changeOct('${key}',-1)">−</button>
+    <span class="oct-val">${c.oct}</span>
+    <button class="oct-btn" onclick="changeOct('${key}',1)">+</button>
+    <span class="oct-hint">4 = middle of the keyboard</span>
+  </div>
+  <div class="preview-box">
+    <div class="preview-label">Note pads will play — <strong style="color:#ededf8">${c.root} ${ct?.label||c.type}</strong></div>
+    <div class="preview-pills">${S.notes.map((np,i)=>`<div class="preview-pill"><span>pad ${i+1}</span>${midiName(notes[i])}</div>`).join('')}</div>
+  </div>
+  <button class="btn-main" onclick="nextChord()">
+    ${isLast?'Done — see my setup →':`Next chord (${S.chordIdx+1} of ${total-1} done) →`}
+  </button>`;}
+
+function screenReview(){
+  const mp=S.modifiers,np=S.notes,code=buildCode();
+  const modRows=[{label:'Default (nothing held)',key:'default'},...mp.map((m,i)=>({label:`GP${m.gp} held`,key:`mod_${i}`}))]
+    .map(({label,key})=>{const c=S.chords[key]||{root:'C',type:'Major',oct:4};const ct=CHORD_TYPES.find(x=>x.key===c.type);return `<div class="summary-row"><span class="skey">${label}</span><span class="sval" style="color:#f5a623">${ct?.emoji||''} ${c.root} ${ct?.label||c.type}</span></div>`;}).join('');
+  const hasSerial=SL.status==='running'||SL.status==='detecting';
+  return `${prog(4)}
+  <div class="step-tag">All done!</div>
+  <h2 class="screen-title">Your setup is ready 🎉</h2>
+  <p class="screen-desc">Save the code to your SPOKE-mini and start playing.</p>
+  <div class="summary-card">
+    <div class="summary-head">Pads</div>
+    <div class="summary-row"><span class="skey">Chord pads</span><span class="sval" style="color:#f5a623">${mp.map(m=>`GP${m.gp}`).join(', ')}</span></div>
+    <div class="summary-row"><span class="skey">Note pads</span><span class="sval" style="color:#2dd4bf">${np.map(n=>`GP${n.gp}`).join(', ')}</span></div>
+  </div>
+  <div class="summary-card"><div class="summary-head">Chord modes</div>${modRows}</div>
+  <hr class="divider">
+  <div style="font-size:12px;color:#7070a0;margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase">Generated code</div>
+  <div class="code-wrap"><pre>${syntaxHL(code)}</pre></div>
+  <div class="save-row">
+    <button class="save-btn save-primary" onclick="saveFilePicker()">💾 Save to Pico</button>
+    <button class="save-btn save-ghost"   onclick="dlFile()">⬇ Download</button>
+    <button class="save-btn save-ghost"   onclick="copyCode()">📋 Copy</button>
+  </div>
+  <div id="save-msg"></div>
+  ${hasSerial?`
+  <div style="margin-top:12px;padding:14px 16px;background:#0e1a0e;border:1px solid #2a402a;border-radius:10px;font-size:14px;color:#9090b8">
+    <strong style="color:#4ade80">Serial connected</strong> — after saving, click below to restart the Pico without unplugging:
+    <button onclick="restartPico()" style="display:block;margin-top:10px;width:100%;padding:12px;background:#4ade80;color:#000;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">⟳ Restart Pico now</button>
+  </div>`:''}
+  <div class="instr-list">
+    <div style="font-size:14px;font-weight:700;color:#ededf8;margin-bottom:4px">How to save to your Pico:</div>
+    <div class="instr-row"><div class="instr-num">1</div><div>Plug in via USB — a drive called <code>CIRCUITPY</code> appears.</div></div>
+    <div class="instr-row"><div class="instr-num">2</div><div>Click <strong>Save to Pico</strong>, navigate to <code>CIRCUITPY</code>, and save as <code>code.py</code>.</div></div>
+    <div class="instr-row"><div class="instr-num">3</div><div>The board restarts automatically.${hasSerial?' Or use the <strong style="color:#4ade80">Restart Pico</strong> button above.':''}</div></div>
+    <div class="instr-row"><div class="instr-num alt">!</div><div style="color:#7070a0">If <strong style="color:#ededf8">Save to Pico</strong> fails, click <strong style="color:#ededf8">Download</strong> and drag <code>code.py</code> onto the <code>CIRCUITPY</code> drive.</div></div>
+  </div>
+  <button class="btn-ghost" style="margin-top:28px" onclick="resetAll()">← Start over</button>`;}
+
+/* ═══════════════════════════════════════════
+   CODE GENERATOR
+   
+   Uses None placeholders for any sensors that
+   fail to init (no resistor), preserving indices.
+   The main loop skips None sensors gracefully.
+═══════════════════════════════════════════ */
+function buildCode(){
+  const mp=S.modifiers,np=S.notes;
+  if(!mp.length||!np.length) return '# Setup incomplete.';
+  function notesForKey(key){
+    const c=S.chords[key]||{root:'C',type:'Major',oct:4};
+    const r=ROOT_MIDI[c.root]+(c.oct-4)*12,iv=getIv(c.type);
+    return np.map((_,i)=>Math.max(0,Math.min(127,r+iv[i%iv.length]+Math.floor(i/iv.length)*12)));
+  }
+  const dc=S.chords['default']||{root:'C',type:'Major',oct:4};
+  const dct=CHORD_TYPES.find(x=>x.key===dc.type);
+  const mapLines=[
+    `    -1: [${notesForKey('default').join(', ')}],  # default — ${dc.root} ${dct?.label||dc.type}`,
+    ...mp.map((m,i)=>{const k=`mod_${i}`,c=S.chords[k]||{root:'C',type:'Major',oct:4},ct=CHORD_TYPES.find(x=>x.key===c.type);return `    ${i}: [${notesForKey(k).join(', ')}],  # GP${m.gp} held — ${c.root} ${ct?.label||c.type}`;})
+  ].join('\n');
+  return `# SPOKE-mini — Omnichord MIDI controller
+# Generated by SPOKE Chord Configurator
+
+import board, touchio, digitalio, usb_midi, adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+# Chord pads — hold one to change mode
+modifier_pins = [${mp.map(p=>`board.GP${p.gp}`).join(', ')}]
+
+# Note pads — tap to play
+note_pins = [${np.map(p=>`board.GP${p.gp}`).join(', ')}]
+
+# Init sensors — uses None for any pin without a pull-down resistor
+# so the code never crashes, it just skips that pad
+def init_sensors(pins):
+    sensors = []
+    for p in pins:
+        try:
+            sensors.append(touchio.TouchIn(p))
+        except ValueError:
+            print("Skipping", p, "— no pull-down resistor")
+            sensors.append(None)
+    return sensors
+
+modifier_sensors = init_sensors(modifier_pins)
+note_sensors     = init_sensors(note_pins)
+
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# note_mappings[-1] = default, [0] = first chord pad held, etc.
+note_mappings = {
+${mapLines}
+}
+
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+# Tracks which note is playing on each pad so NoteOff always
+# targets the right pitch even if mode changes mid-hold
+active_note = [None] * len(note_sensors)
+
+while True:
+    # Find held modifier (None sensor = skip it)
+    active_mod = -1
+    for i, sensor in enumerate(modifier_sensors):
+        if sensor and sensor.value:
+            active_mod = i
+            break
+
+    mapping = note_mappings.get(active_mod, note_mappings[-1])
+
+    any_active = False
+    for i, sensor in enumerate(note_sensors):
+        if sensor is None:
+            continue
+        if sensor.value:
+            any_active = True
+            if active_note[i] is None:
+                note = mapping[i] if i < len(mapping) else 60
+                midi.send(NoteOn(note, 120))
+                active_note[i] = note
+        else:
+            if active_note[i] is not None:
+                midi.send(NoteOff(active_note[i], 0))
+                active_note[i] = None
+
+    led.value = any_active
+`;}
+
+function syntaxHL(c){
+  return c.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(#[^\n]*)/g,'<span class="cm">$1</span>')
+    .replace(/\b(import|from|while|for|if|in|not|and|or|True|False|None|def|return|break|continue|enumerate|try|except|print)\b/g,'<span class="kw">$1</span>')
+    .replace(/\b(\d+)\b/g,'<span class="nm">$1</span>');
+}
+
+/* ═══════════════════════════════════════════
+   FILE OPS
+═══════════════════════════════════════════ */
+function saveFilePicker(){
+  const code=buildCode();
+  if(window.showSaveFilePicker){
+    window.showSaveFilePicker({suggestedName:'code.py',types:[{description:'CircuitPython',accept:{'text/x-python':['.py']}}]})
+      .then(async h=>{const w=await h.createWritable();await w.write(code);await w.close();msg('✓ Saved!',false);})
+      .catch(e=>{if(e.name!=='AbortError')msg("Couldn't save — try Download instead.",true);});
+  } else {dlFile();msg('Downloaded — drag code.py onto your CIRCUITPY drive.',false);}
+}
+function dlFile(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buildCode()],{type:'text/x-python'}));a.download='code.py';a.click();URL.revokeObjectURL(a.href);}
+function copyCode(){navigator.clipboard.writeText(buildCode()).then(()=>msg('✓ Copied!',false)).catch(()=>msg('Select the code and press Ctrl+C.',true));}
+function msg(text,err){const el=document.getElementById('save-msg');if(!el)return;el.className=err?'status-err':'status-ok';el.textContent=text;setTimeout(()=>{if(el)el.textContent='';},5000);}
+
+/* ═══════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════ */
+const SCREENS={welcome:screenWelcome,identify:screenIdentify,'pick-modifier':screenPickModifier,'more-modifiers':screenMoreModifiers,'pick-notes':screenPickNotes,'set-chord':screenSetChord,review:screenReview};
+function render(){
+  const fn=SCREENS[S.screen],showBack=hist.length>0&&S.screen!=='welcome';
+  document.getElementById('app').innerHTML=`<div class="screen-wrap">${showBack?`<button class="back-btn" onclick="back()">← Back</button>`:''}${fn?fn():'<p>Unknown screen.</p>'}</div>`;
+  updatePads();
+}
+
+setStatus('idle');
+render();
+</script>
+</body>
+</html>
