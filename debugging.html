@@ -9,8 +9,28 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Comfortaa',sans-serif;background:#1a1a1a;color:#e0e0e0;padding:16px}
 .container{max-width:1300px;margin:0 auto}
+
+/* ── Splash ── */
+.splash{position:fixed;inset:0;background:#111;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.splash-box{background:#252526;border-radius:16px;border:2px solid #ff6b35;padding:40px;max-width:640px;width:100%;text-align:center}
+.splash-title{font-size:28px;font-weight:700;color:#ff6b35;margin-bottom:8px}
+.splash-sub{font-size:13px;color:#888;margin-bottom:36px;line-height:1.6}
+.splash-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
+.splash-card{background:#1a1a1a;border:2px solid #3e3e42;border-radius:12px;padding:24px 16px;cursor:pointer;transition:border-color .2s,transform .15s}
+.splash-card:hover{border-color:#ff6b35;transform:translateY(-3px)}
+.splash-card.selected{border-color:#ff6b35;background:#2a1a10}
+.splash-card-title{font-size:16px;font-weight:700;color:#e0e0e0;margin-bottom:6px}
+.splash-card-sub{font-size:11px;color:#888;line-height:1.5}
+.splash-card-icon{font-size:32px;margin-bottom:10px}
+.splash-btn{font-family:'Comfortaa',sans-serif;background:#ff6b35;border:none;color:#fff;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s}
+.splash-btn:hover{background:#ff8555}
+.splash-btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* ── Layout ── */
 .header{background:#252526;padding:14px 18px;border-radius:10px;margin-bottom:14px;border:2px solid #ff6b35;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .title{font-size:20px;font-weight:700;color:#ff6b35}
+.board-badge{display:inline-block;background:#ff6b3522;border:1px solid #ff6b35;color:#ff6b35;font-size:10px;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;cursor:pointer}
+.board-badge:hover{background:#ff6b3544}
 .subtitle{color:#888;font-size:11px;margin-top:3px}
 .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .btn{font-family:'Comfortaa',sans-serif;background:#ff6b35;border:none;color:#fff;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px;transition:background .15s}
@@ -22,37 +42,8 @@ body{font-family:'Comfortaa',sans-serif;background:#1a1a1a;color:#e0e0e0;padding
 .dot{width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0}
 .dot.on{background:#4CAF50}
 .dot.warn{background:#ff9800}
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
-.stat{background:#252526;padding:10px 14px;border-radius:8px;border:1px solid #3e3e42}
-.stat-label{font-size:10px;color:#888;margin-bottom:3px}
-.stat-val{font-size:22px;font-weight:700}
-.sensors-panel{background:#252526;border-radius:10px;padding:14px;border:1px solid #3e3e42}
-.sensors-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.panel-title{font-size:15px;font-weight:700;color:#ff6b35}
-.legend{font-size:10px;color:#666;text-align:right;line-height:1.6}
-.sensor-row{display:grid;grid-template-columns:90px 1fr 100px;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #222}
-.sensor-row:last-child{border-bottom:none}
-.sensor-label{font-size:11px;color:#ccc;line-height:1.4}
-.sensor-label .sub{font-size:10px;color:#666;display:block}
-.bar-wrap{position:relative;height:26px;background:#111;border-radius:4px;cursor:crosshair;user-select:none;touch-action:none}
-.bar-fill{height:100%;border-radius:4px;background:#c45f00;pointer-events:none;transition:background .08s}
-.bar-fill.active{background:#1a5c29}
-.tline{position:absolute;top:0;height:100%;width:4px;background:#ff9800;border-radius:2px;transform:translateX(-50%);cursor:ew-resize;z-index:2}
-.tline-label{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:#ff9800;white-space:nowrap;pointer-events:none;font-family:'Comfortaa',sans-serif}
-.sensor-vals{font-size:11px;display:flex;flex-direction:column;gap:1px;text-align:right}
-.vr{color:#4CAF50}
-.vt{color:#ff9800}
-.vm{color:#666;font-size:9px}
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;align-items:center;justify-content:center;padding:20px}
-.modal-bg.open{display:flex}
-.modal{background:#252526;border-radius:12px;border:1px solid #3e3e42;width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column}
-.modal-head{padding:16px 20px;border-bottom:1px solid #3e3e42;display:flex;justify-content:space-between;align-items:center}
-.modal-head-title{font-size:15px;font-weight:700;color:#ff6b35}
-.modal-close{background:transparent;border:1px solid #555;color:#aaa;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:16px;font-family:'Comfortaa',sans-serif;display:flex;align-items:center;justify-content:center}
-.modal-close:hover{background:#333;color:#fff}
-.modal-body{padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px}
-.modal-section-label{font-size:12px;color:#888;margin-bottom:6px}
-.code-block{background:#0d0d0d;border:1px solid #3e3e42;border-radius:6px;padding:12px;font-family:'Comfortaa',sans-serif;font-size:11px;line-height:1.7;color:#d4d4d4;white-space:pre;overflow-x:auto;flex:1}
+
+/* ── Guide ── */
 .guide{background:#252526;border-radius:10px;padding:16px 20px;margin-bottom:12px;border:1px solid #3e3e42}
 .guide-title{font-size:13px;font-weight:700;color:#ff6b35;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
 .guide-title span{font-size:11px;color:#666;font-weight:400}
@@ -63,14 +54,82 @@ body{font-family:'Comfortaa',sans-serif;background:#1a1a1a;color:#e0e0e0;padding
 .step-body{font-size:11px;color:#888;line-height:1.6}
 .step-body b{color:#ccc;font-weight:700}
 .guide-collapsed .guide-steps{display:none}
+
+/* ── Stats ── */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.stat{background:#252526;padding:10px 14px;border-radius:8px;border:1px solid #3e3e42}
+.stat-label{font-size:10px;color:#888;margin-bottom:3px}
+.stat-val{font-size:22px;font-weight:700}
+
+/* ── Global threshold ── */
+.global-thresh{background:#252526;border-radius:10px;padding:14px 18px;margin-bottom:12px;border:1px solid #3e3e42;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.global-thresh-label{font-size:12px;color:#ff6b35;font-weight:700;white-space:nowrap}
+.global-thresh-wrap{flex:1;min-width:200px;position:relative;height:26px;background:#111;border-radius:4px;cursor:crosshair;user-select:none;touch-action:none}
+.global-thresh-line{position:absolute;top:0;height:100%;width:4px;background:#ff6b35;border-radius:2px;transform:translateX(-50%);cursor:ew-resize;z-index:2}
+.global-thresh-line-label{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:#ff6b35;white-space:nowrap;pointer-events:none}
+.global-thresh-hint{font-size:11px;color:#666;white-space:nowrap}
+
+/* ── Sensors ── */
+.sensors-panel{background:#252526;border-radius:10px;padding:14px;border:1px solid #3e3e42}
+.sensors-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.panel-title{font-size:15px;font-weight:700;color:#ff6b35}
+.legend{font-size:10px;color:#666;line-height:1.6}
+.sensor-row{display:grid;grid-template-columns:90px 1fr 100px;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #222}
+.sensor-row:last-child{border-bottom:none}
+.sensor-label{font-size:11px;color:#ccc;line-height:1.4}
+.sensor-label .sub{font-size:10px;color:#666;display:block}
+.bar-wrap{position:relative;height:26px;background:#111;border-radius:4px;cursor:crosshair;user-select:none;touch-action:none}
+.bar-fill{height:100%;border-radius:4px;background:#c45f00;pointer-events:none;transition:background .08s}
+.bar-fill.active{background:#1a5c29}
+.tline{position:absolute;top:0;height:100%;width:4px;background:#ff9800;border-radius:2px;transform:translateX(-50%);cursor:ew-resize;z-index:2}
+.tline-label{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:#ff9800;white-space:nowrap;pointer-events:none;font-family:'Comfortaa',sans-serif}
+.sensor-vals{font-size:11px;display:flex;flex-direction:column;gap:1px;text-align:right}
+.vr{color:#4CAF50}.vt{color:#ff9800}.vm{color:#666;font-size:9px}
+
+/* ── Modal ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#252526;border-radius:12px;border:1px solid #3e3e42;width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column}
+.modal-head{padding:16px 20px;border-bottom:1px solid #3e3e42;display:flex;justify-content:space-between;align-items:center}
+.modal-head-title{font-size:15px;font-weight:700;color:#ff6b35}
+.modal-close{background:transparent;border:1px solid #555;color:#aaa;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:16px;font-family:'Comfortaa',sans-serif;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:#333;color:#fff}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px}
+.modal-section-label{font-size:12px;color:#888;margin-bottom:6px}
+.code-block{background:#0d0d0d;border:1px solid #3e3e42;border-radius:6px;padding:12px;font-family:'Comfortaa',sans-serif;font-size:11px;line-height:1.7;color:#d4d4d4;white-space:pre;overflow-x:auto;flex:1;max-height:50vh}
+.copy-btn{font-family:'Comfortaa',sans-serif;background:#3b82f6;border:none;color:#fff;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer}
+.copy-btn:hover{background:#5b9df6}
 </style>
 </head>
 <body>
-<div class="container">
+
+<!-- ══ SPLASH ══ -->
+<div class="splash" id="splash">
+  <div class="splash-box">
+    <div class="splash-title">SPOKE Sensor Monitor</div>
+    <div class="splash-sub">Live sensor visualiser, threshold tuner and code exporter.<br>Which board are you using?</div>
+    <div class="splash-cards">
+      <div class="splash-card" id="cardSpoke" onclick="selectBoard('spoke')">
+        <div class="splash-card-icon">🎹</div>
+        <div class="splash-card-title">SPOKE</div>
+        <div class="splash-card-sub">Main board · 27 touch pads · built-in RP2040</div>
+      </div>
+      <div class="splash-card" id="cardMini" onclick="selectBoard('mini')">
+        <div class="splash-card-icon">🎛️</div>
+        <div class="splash-card-title">SPOKE Mini</div>
+        <div class="splash-card-sub">Mini board · Raspberry Pi Pico · fewer pads</div>
+      </div>
+    </div>
+    <button class="splash-btn" id="splashBtn" onclick="launchApp()" disabled>Continue →</button>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div class="container" id="app" style="display:none">
 
 <div class="header">
   <div>
-    <div class="title">SPOKE Sensor Monitor</div>
+    <div class="title">SPOKE Sensor Monitor <span class="board-badge" id="boardBadge" onclick="goSplash()" title="Click to switch board">SPOKE ↺</span></div>
     <div class="subtitle">Live bars · drag thresholds · download config</div>
   </div>
   <div class="controls">
@@ -86,84 +145,56 @@ body{font-family:'Comfortaa',sans-serif;background:#1a1a1a;color:#e0e0e0;padding
   <span id="statusTxt">Not connected — open code.py to begin</span>
 </div>
 
+<!-- Guide -->
 <div class="guide" id="guide">
   <div class="guide-title" onclick="toggleGuide()">
     How to use SPOKE Sensor Monitor
     <span id="guideToggle">click to collapse ▲</span>
   </div>
-  <div class="guide-steps">
-    <div class="guide-step">
-      <div class="step-num">1</div>
-      <div class="step-head">Connect your SPOKE</div>
-      <div class="step-body">Plug your SPOKE into your computer with a <b>data-capable USB cable</b>. It should appear as a drive called <b>CIRCUITPY</b> in your file explorer.</div>
-    </div>
-    <div class="guide-step">
-      <div class="step-num">2</div>
-      <div class="step-head">Open code.py</div>
-      <div class="step-body">Click <b>Open code.py</b> above. Navigate to the <b>CIRCUITPY</b> drive and select <b>code.py</b>. This tool needs access to write back to it later.</div>
-    </div>
-    <div class="guide-step">
-      <div class="step-num">3</div>
-      <div class="step-head">Upload diagnostic code</div>
-      <div class="step-body">Click <b>Upload diagnostic</b>. This temporarily replaces your code.py with test code that streams live sensor data. The board will restart automatically.</div>
-    </div>
-    <div class="guide-step">
-      <div class="step-num">4</div>
-      <div class="step-head">Connect serial monitor</div>
-      <div class="step-body">Click <b>Connect serial</b> and select your SPOKE from the port list. The sensor bars will come to life — you'll see the orange bars move and threshold markers appear.</div>
-    </div>
-    <div class="guide-step">
-      <div class="step-num">5</div>
-      <div class="step-head">Touch your pads</div>
-      <div class="step-body">Touch each pad on your SPOKE. The bar for that sensor will <b>turn green</b> when it triggers. If it doesn't trigger, the threshold marker may be set too low.</div>
-    </div>
-    <div class="guide-step">
-      <div class="step-num">6</div>
-      <div class="step-head">Adjust thresholds</div>
-      <div class="step-body"><b>Drag the orange marker</b> on any bar left or right to change the trigger threshold for that pad. Lower = more sensitive. Higher = less sensitive. Touch the pad to test it.</div>
-    </div>
-    <div class="guide-step">
-      <div class="step-num">7</div>
-      <div class="step-head">Save to your device</div>
-      <div class="step-body">When you're happy, click <b>Download thresholds</b>. A preview of your updated code.py will appear. Click <b>Save to device</b> to write it directly to your SPOKE — done!</div>
-    </div>
-    <div class="guide-step">
-      <div class="step-num">8</div>
-      <div class="step-head">Tips</div>
-      <div class="step-body">Use <b>Reset thresholds</b> to clear all markers back to blank. The board auto-calibrates on each restart, so thresholds may shift slightly between sessions.</div>
-    </div>
-  </div>
+  <div class="guide-steps" id="guideSteps"></div>
 </div>
 
-
+<!-- Stats -->
+<div class="stats-row">
   <div class="stat"><div class="stat-label">Touch events</div><div class="stat-val" id="sTouchEvents">0</div></div>
   <div class="stat"><div class="stat-label">MIDI events</div><div class="stat-val" id="sMidiEvents">0</div></div>
   <div class="stat"><div class="stat-label">Active sensors</div><div class="stat-val" id="sActive">0</div></div>
 </div>
 
+<!-- Global threshold -->
+<div class="global-thresh">
+  <div class="global-thresh-label">Global threshold</div>
+  <div class="global-thresh-wrap" id="globalWrap">
+    <div class="global-thresh-line" id="globalLine" style="left:50%;display:none">
+      <span class="global-thresh-line-label" id="globalVal">--</span>
+    </div>
+  </div>
+  <div class="global-thresh-hint">Drag to set all sensors at once, then fine-tune individually</div>
+  <button class="btn" style="font-size:11px;padding:6px 12px;background:#555;white-space:nowrap" onclick="resetThresholds()">Reset all</button>
+</div>
+
+<!-- Sensors -->
 <div class="sensors-panel">
   <div class="sensors-header">
     <div class="panel-title">Sensors</div>
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end">
-      <div class="legend">Orange bar = raw value &nbsp;|&nbsp; Orange marker = threshold (drag to set) &nbsp;|&nbsp; Bar turns green when triggered</div>
-      <button class="btn" style="font-size:11px;padding:6px 12px;background:#555;white-space:nowrap" onclick="resetThresholds()">Reset thresholds</button>
-    </div>
+    <div class="legend">Orange bar = raw value &nbsp;|&nbsp; Orange marker = threshold (drag to set) &nbsp;|&nbsp; Bar turns green when triggered</div>
   </div>
   <div id="sensorList"></div>
 </div>
 
 </div>
 
+<!-- ══ EXPORT MODAL ══ -->
 <div class="modal-bg" id="modalBg" onclick="bgClick(event)">
   <div class="modal">
     <div class="modal-head">
-      <div class="modal-head-title">Threshold export</div>
+      <div class="modal-head-title">Save thresholds to device</div>
       <button class="modal-close" onclick="closeModal()">&#x2715;</button>
     </div>
     <div class="modal-body">
-      <div class="modal-section-label">Default SPOKE code.py with your custom thresholds baked in. Save directly to your device or copy to paste manually.</div>
+      <div class="modal-section-label" id="modalLabel">Default SPOKE code.py with your custom thresholds baked in. Save directly to your device or copy to paste manually.</div>
       <pre class="code-block" id="codeFinal"></pre>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
         <button class="copy-btn" id="copyFinalBtn" onclick="copyFinal()">Copy</button>
         <button class="copy-btn" id="saveDeviceBtn" style="background:#22c55e;color:#052e16" onclick="saveToDevice()">Save to device</button>
       </div>
@@ -172,92 +203,95 @@ body{font-family:'Comfortaa',sans-serif;background:#1a1a1a;color:#e0e0e0;padding
 </div>
 
 <script>
-const PIN_NAMES = ['GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9','GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17','GP18','GP19','GP20','GP21','GP22','GP23','GP24','GP25','GP28','VOLTAGE_MONITOR'];
-const MIDI_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36];
-const N = 27;
-const MAX_RAW = 20000;
+// ── Board configs ──────────────────────────────────────────────────────────
+const BOARDS = {
+  spoke: {
+    name: 'SPOKE',
+    pinNames:  ['GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9','GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17','GP18','GP19','GP20','GP21','GP22','GP23','GP24','GP25','GP28','VOLTAGE_MONITOR'],
+    midiNotes: [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36],
+    neoPin: 'board.GP0',
+    pinList: `    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,\n    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,\n    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,\n    board.GP25, board.GP28, board.VOLTAGE_MONITOR`,
+    guideSteps: [
+      ['Connect your SPOKE', 'Plug your SPOKE into your computer with a <b>data-capable USB cable</b>. It should appear as a drive called <b>CIRCUITPY</b> in your file explorer.'],
+      ['Open code.py', 'Click <b>Open code.py</b> above. Navigate to the <b>CIRCUITPY</b> drive and select <b>code.py</b>. This tool needs access to write back to it later.'],
+      ['Upload diagnostic code', 'Click <b>Upload diagnostic</b>. This temporarily replaces your code.py with test code that streams live sensor data. The board will restart automatically.'],
+      ['Connect serial monitor', 'Click <b>Connect serial</b> and select your SPOKE from the port list. The sensor bars will come to life — you\'ll see orange bars move and threshold markers appear.'],
+      ['Touch your pads', 'Touch each pad on your SPOKE. The bar for that sensor will <b>turn green</b> when it triggers. If it doesn\'t trigger, the threshold marker may be set too low.'],
+      ['Set a global threshold', 'Drag the <b>Global threshold</b> bar above the sensor list to move all markers at once to a starting point that works for most pads.'],
+      ['Fine-tune individual pads', '<b>Drag the orange marker</b> on any individual bar to fine-tune that specific pad. Lower = more sensitive. Higher = less sensitive.'],
+      ['Save to your device', 'Click <b>Download thresholds</b>. Preview the updated code.py and click <b>Save to device</b> to write it directly to your SPOKE — done!'],
+    ]
+  },
+  mini: {
+    name: 'SPOKE Mini',
+    pinNames:  ['GP0','GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9','GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17','GP18','GP19','GP20','GP21','GP22','GP26','GP27','GP28'],
+    midiNotes: [36,38,40,43,45,48,50,52,55,57,60,62,64,67,69,72,74,76,79,81,84,86,88,91,93,96],
+    neoPin: null,  // no NeoPixels — uses onboard LED only
+    pinList: `    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, board.GP27, board.GP28`,
+    guideSteps: [
+      ['Connect your SPOKE Mini', 'Plug your SPOKE Mini (Raspberry Pi Pico) into your computer via <b>data-capable USB cable</b>. It should appear as <b>CIRCUITPY</b> in your file explorer.'],
+      ['Open code.py', 'Click <b>Open code.py</b>. Navigate to the <b>CIRCUITPY</b> drive and select <b>code.py</b>.'],
+      ['Upload diagnostic code', 'Click <b>Upload diagnostic</b> to replace code.py with test code. The Pico will restart and begin streaming sensor data.'],
+      ['Connect serial monitor', 'Click <b>Connect serial</b> and select your SPOKE Mini from the port list. Bars will animate as data arrives.'],
+      ['Touch your pads', 'Touch each pad on your board. The bar turns <b>green</b> when the raw value drops below the threshold marker. The onboard LED will also flash.'],
+      ['Set a global threshold', 'Drag the <b>Global threshold</b> bar to move all 26 markers at once to a sensible starting point.'],
+      ['Fine-tune individual pads', 'Drag individual orange markers left or right to fine-tune each pad. The mini has 13 pads per side so sensitivity may vary between sides.'],
+      ['Save to your device', 'Click <b>Download thresholds</b> then <b>Save to device</b> to write the updated code.py back to your SPOKE Mini.'],
+    ]
+  }
+};
 
-let rawValues = new Array(N).fill(0);
-let thresholds = new Array(N).fill(null); // null = not yet received from board
-let userPinned = new Array(N).fill(false);
-let activeFlags = new Array(N).fill(false);
+const MAX_RAW = 20000;
+let board = null;
+let PIN_NAMES = [], MIDI_NOTES = [], N = 0;
+let rawValues = [], thresholds = [], userPinned = [], activeFlags = [];
 let fileHandle = null, serialPort = null, serialReader = null, isReading = false;
 let touchCount = 0, midiCount = 0;
+let selectedBoard = null;
 
-function buildSensorList() {
-  const list = document.getElementById('sensorList');
-  list.innerHTML = '';
-  for (let i = 0; i < N; i++) {
-    const row = document.createElement('div');
-    row.className = 'sensor-row';
-    row.innerHTML =
-      '<div class="sensor-label">' + PIN_NAMES[i] +
-      '<span class="sub">Pad ' + (i+1) + ' · Note ' + MIDI_NOTES[i] + '</span></div>' +
-      '<div class="bar-wrap" id="bw' + i + '">' +
-        '<div class="bar-fill" id="bf' + i + '" style="width:0%"></div>' +
-        '<div class="tline" id="tl' + i + '" style="left:50%;display:none">' +
-          '<span class="tline-label" id="tlv' + i + '">--</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="sensor-vals">' +
-        '<span class="vr">Raw: <span id="rv' + i + '">--</span></span>' +
-        '<span class="vt">Thr: <span id="tv' + i + '">--</span></span>' +
-        '<span class="vm">MIDI ' + MIDI_NOTES[i] + '</span>' +
-      '</div>';
-    list.appendChild(row);
-    initDrag(i);
-  }
+// ── Splash ────────────────────────────────────────────────────────────────
+function selectBoard(type) {
+  selectedBoard = type;
+  document.getElementById('cardSpoke').classList.toggle('selected', type === 'spoke');
+  document.getElementById('cardMini').classList.toggle('selected', type === 'mini');
+  document.getElementById('splashBtn').disabled = false;
 }
 
-function initDrag(i) {
-  const bw = document.getElementById('bw' + i);
-  const tl = document.getElementById('tl' + i);
-  let active = false;
-  function calcVal(cx) {
-    const r = bw.getBoundingClientRect();
-    return Math.round(Math.max(0, Math.min(1, (cx - r.left) / r.width)) * MAX_RAW);
-  }
-  function apply(v) {
-    thresholds[i] = v; userPinned[i] = true;
-    const pct = (v / MAX_RAW * 100).toFixed(3);
-    tl.style.left = pct + '%';
-    tl.style.display = '';
-    document.getElementById('tlv' + i).textContent = v;
-    document.getElementById('tv' + i).textContent = v;
-    refreshBar(i);
-  }
-  tl.addEventListener('mousedown', e => { active = true; e.stopPropagation(); e.preventDefault(); });
-  bw.addEventListener('mousedown', e => { active = true; apply(calcVal(e.clientX)); e.preventDefault(); });
-  window.addEventListener('mousemove', e => { if (active) apply(calcVal(e.clientX)); });
-  window.addEventListener('mouseup', () => { active = false; });
-  tl.addEventListener('touchstart', e => { active = true; e.stopPropagation(); e.preventDefault(); }, {passive:false});
-  bw.addEventListener('touchstart', e => { active = true; apply(calcVal(e.touches[0].clientX)); e.preventDefault(); }, {passive:false});
-  window.addEventListener('touchmove', e => { if (active) apply(calcVal(e.touches[0].clientX)); }, {passive:false});
-  window.addEventListener('touchend', () => { active = false; });
+function launchApp() {
+  if (!selectedBoard) return;
+  board = BOARDS[selectedBoard];
+  PIN_NAMES  = board.pinNames;
+  MIDI_NOTES = board.midiNotes;
+  N = PIN_NAMES.length;
+  rawValues  = new Array(N).fill(0);
+  thresholds = new Array(N).fill(null);
+  userPinned = new Array(N).fill(false);
+  activeFlags= new Array(N).fill(false);
+  touchCount = 0; midiCount = 0;
+  document.getElementById('boardBadge').textContent = board.name + ' ↺';
+  document.getElementById('splash').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  buildGuide();
+  buildSensorList();
+  initGlobalThreshold();
 }
 
-function refreshBar(i) {
-  const bf = document.getElementById('bf' + i);
-  const rv = document.getElementById('rv' + i);
-  if (!bf) return;
-  bf.style.width = (Math.min(rawValues[i], MAX_RAW) / MAX_RAW * 100).toFixed(3) + '%';
-  rv.textContent = rawValues[i];
-  const thr = thresholds[i];
-  const triggered = thr !== null && rawValues[i] > 0 && rawValues[i] < thr;
-  bf.classList.toggle('active', triggered);
-  activeFlags[i] = triggered;
-  document.getElementById('sActive').textContent = activeFlags.filter(Boolean).length;
+function goSplash() {
+  if (isReading) { isReading = false; }
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('splash').style.display = 'flex';
+  document.getElementById('splashBtn').disabled = !selectedBoard;
 }
 
-function setThresholdUI(i, v) {
-  thresholds[i] = v;
-  const pct = (Math.min(v, MAX_RAW) / MAX_RAW * 100).toFixed(3);
-  const tl = document.getElementById('tl' + i);
-  if (tl) { tl.style.left = pct + '%'; tl.style.display = ''; }
-  const tlv = document.getElementById('tlv' + i);
-  if (tlv) tlv.textContent = v;
-  const tv = document.getElementById('tv' + i);
-  if (tv) tv.textContent = v;
+// ── Guide ─────────────────────────────────────────────────────────────────
+function buildGuide() {
+  const container = document.getElementById('guideSteps');
+  container.innerHTML = board.guideSteps.map((s, i) => `
+    <div class="guide-step">
+      <div class="step-num">${i+1}</div>
+      <div class="step-head">${s[0]}</div>
+      <div class="step-body">${s[1]}</div>
+    </div>`).join('');
 }
 
 function toggleGuide() {
@@ -267,64 +301,224 @@ function toggleGuide() {
   t.textContent = g.classList.contains('guide-collapsed') ? 'click to expand ▼' : 'click to collapse ▲';
 }
 
-function resetThresholds() {
+// ── Global threshold ──────────────────────────────────────────────────────
+function initGlobalThreshold() {
+  const wrap = document.getElementById('globalWrap');
+  const line = document.getElementById('globalLine');
+  let active = false;
+
+  function calcVal(cx) {
+    const r = wrap.getBoundingClientRect();
+    return Math.round(Math.max(0, Math.min(1, (cx - r.left) / r.width)) * MAX_RAW);
+  }
+  function applyGlobal(v) {
+    const pct = (v / MAX_RAW * 100).toFixed(3);
+    line.style.left = pct + '%';
+    line.style.display = '';
+    document.getElementById('globalVal').textContent = v;
+    for (let i = 0; i < N; i++) {
+      thresholds[i] = v;
+      userPinned[i] = true;
+      const pct2 = (v / MAX_RAW * 100).toFixed(3);
+      const tl = document.getElementById('tl'+i);
+      if (tl) { tl.style.left = pct2+'%'; tl.style.display = ''; }
+      const tlv = document.getElementById('tlv'+i);
+      if (tlv) tlv.textContent = v;
+      const tv = document.getElementById('tv'+i);
+      if (tv) tv.textContent = v;
+      refreshBar(i);
+    }
+  }
+
+  line.addEventListener('mousedown', e => { active=true; e.stopPropagation(); e.preventDefault(); });
+  wrap.addEventListener('mousedown', e => { active=true; applyGlobal(calcVal(e.clientX)); e.preventDefault(); });
+  window.addEventListener('mousemove', e => { if (active) applyGlobal(calcVal(e.clientX)); });
+  window.addEventListener('mouseup', () => { active=false; });
+  line.addEventListener('touchstart', e => { active=true; e.stopPropagation(); e.preventDefault(); }, {passive:false});
+  wrap.addEventListener('touchstart', e => { active=true; applyGlobal(calcVal(e.touches[0].clientX)); e.preventDefault(); }, {passive:false});
+  window.addEventListener('touchmove', e => { if (active) applyGlobal(calcVal(e.touches[0].clientX)); }, {passive:false});
+  window.addEventListener('touchend', () => { active=false; });
+}
+
+// ── Sensor list ───────────────────────────────────────────────────────────
+function buildSensorList() {
+  const list = document.getElementById('sensorList');
+  list.innerHTML = '';
   for (let i = 0; i < N; i++) {
-    thresholds[i] = null;
-    userPinned[i] = false;
-    const tl = document.getElementById('tl' + i);
-    if (tl) tl.style.display = 'none';
-    const tlv = document.getElementById('tlv' + i);
-    if (tlv) tlv.textContent = '--';
-    const tv = document.getElementById('tv' + i);
-    if (tv) tv.textContent = '--';
-    refreshBar(i);
+    const row = document.createElement('div');
+    row.className = 'sensor-row';
+    row.innerHTML =
+      '<div class="sensor-label">' + PIN_NAMES[i] +
+      '<span class="sub">Pad '+(i+1)+' · Note '+MIDI_NOTES[i]+'</span></div>'+
+      '<div class="bar-wrap" id="bw'+i+'">'+
+        '<div class="bar-fill" id="bf'+i+'" style="width:0%"></div>'+
+        '<div class="tline" id="tl'+i+'" style="left:50%;display:none">'+
+          '<span class="tline-label" id="tlv'+i+'">--</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="sensor-vals">'+
+        '<span class="vr">Raw: <span id="rv'+i+'">--</span></span>'+
+        '<span class="vt">Thr: <span id="tv'+i+'">--</span></span>'+
+        '<span class="vm">MIDI '+MIDI_NOTES[i]+'</span>'+
+      '</div>';
+    list.appendChild(row);
+    initDrag(i);
   }
 }
 
+function initDrag(i) {
+  const bw = document.getElementById('bw'+i);
+  const tl = document.getElementById('tl'+i);
+  let active = false;
+  function calcVal(cx) {
+    const r = bw.getBoundingClientRect();
+    return Math.round(Math.max(0, Math.min(1, (cx-r.left)/r.width))*MAX_RAW);
+  }
+  function apply(v) {
+    thresholds[i]=v; userPinned[i]=true;
+    tl.style.left=(v/MAX_RAW*100).toFixed(3)+'%';
+    tl.style.display='';
+    document.getElementById('tlv'+i).textContent=v;
+    document.getElementById('tv'+i).textContent=v;
+    refreshBar(i);
+  }
+  tl.addEventListener('mousedown', e=>{active=true;e.stopPropagation();e.preventDefault();});
+  bw.addEventListener('mousedown', e=>{active=true;apply(calcVal(e.clientX));e.preventDefault();});
+  window.addEventListener('mousemove', e=>{if(active)apply(calcVal(e.clientX));});
+  window.addEventListener('mouseup', ()=>{active=false;});
+  tl.addEventListener('touchstart', e=>{active=true;e.stopPropagation();e.preventDefault();},{passive:false});
+  bw.addEventListener('touchstart', e=>{active=true;apply(calcVal(e.touches[0].clientX));e.preventDefault();},{passive:false});
+  window.addEventListener('touchmove', e=>{if(active)apply(calcVal(e.touches[0].clientX));},{passive:false});
+  window.addEventListener('touchend', ()=>{active=false;});
+}
+
+function refreshBar(i) {
+  const bf = document.getElementById('bf'+i);
+  const rv = document.getElementById('rv'+i);
+  if (!bf) return;
+  bf.style.width=(Math.min(rawValues[i],MAX_RAW)/MAX_RAW*100).toFixed(3)+'%';
+  rv.textContent=rawValues[i];
+  const thr=thresholds[i];
+  const triggered=thr!==null&&rawValues[i]>0&&rawValues[i]<thr;
+  bf.classList.toggle('active',triggered);
+  activeFlags[i]=triggered;
+  document.getElementById('sActive').textContent=activeFlags.filter(Boolean).length;
+}
+
+function setThresholdUI(i, v) {
+  thresholds[i]=v;
+  const pct=(Math.min(v,MAX_RAW)/MAX_RAW*100).toFixed(3);
+  const tl=document.getElementById('tl'+i);
+  if(tl){tl.style.left=pct+'%';tl.style.display='';}
+  const tlv=document.getElementById('tlv'+i);
+  if(tlv)tlv.textContent=v;
+  const tv=document.getElementById('tv'+i);
+  if(tv)tv.textContent=v;
+}
+
+function resetThresholds() {
+  for(let i=0;i<N;i++){
+    thresholds[i]=null; userPinned[i]=false;
+    const tl=document.getElementById('tl'+i);
+    if(tl)tl.style.display='none';
+    const tlv=document.getElementById('tlv'+i);
+    if(tlv)tlv.textContent='--';
+    const tv=document.getElementById('tv'+i);
+    if(tv)tv.textContent='--';
+    refreshBar(i);
+  }
+  const gl=document.getElementById('globalLine');
+  if(gl)gl.style.display='none';
+  document.getElementById('globalVal').textContent='--';
+}
+
+// ── File + upload ─────────────────────────────────────────────────────────
 async function setupBoard() {
   try {
     if (!('showOpenFilePicker' in window)) { alert('Use Chrome, Edge or Opera.'); return; }
-    const [h] = await window.showOpenFilePicker({ types:[{description:'Python',accept:{'text/x-python':['.py']}}] });
-    fileHandle = h;
-    setStatus('on', 'code.py open');
-    document.getElementById('uploadBtn').disabled = false;
-    document.getElementById('serialBtn').disabled = false;
-  } catch(e) { if (e.name !== 'AbortError') setStatus('warn', 'Error: ' + e.message); }
+    const [h] = await window.showOpenFilePicker({types:[{description:'Python',accept:{'text/x-python':['.py']}}]});
+    fileHandle=h;
+    setStatus('on','code.py open');
+    document.getElementById('uploadBtn').disabled=false;
+    document.getElementById('serialBtn').disabled=false;
+  } catch(e){if(e.name!=='AbortError')setStatus('warn','Error: '+e.message);}
 }
 
 async function uploadDiagnostic() {
   if (!fileHandle) return;
   try {
-    const w = await fileHandle.createWritable();
+    const w=await fileHandle.createWritable();
     await w.write(buildDiagCode());
     await w.close();
-    setStatus('on', 'Diagnostic uploaded — connect serial when board restarts');
-  } catch(e) { setStatus('warn', 'Upload error: ' + e.message); }
+    setStatus('on','Diagnostic uploaded — connect serial when board restarts');
+  } catch(e){setStatus('warn','Upload error: '+e.message);}
 }
 
+function tVal(i){ return thresholds[i]!==null?thresholds[i]:7000; }
+
 function buildDiagCode() {
-  const thStr = thresholds.map(t => t !== null ? t : 7000).join(', ');
-  return `# SPOKE Diagnostic — generated by SPOKE Sensor Monitor
-import board, touchio, neopixel, usb_midi, adafruit_midi, time
-from adafruit_midi.note_on import NoteOn
+  const thStr = Array.from({length:N},(_,i)=>tVal(i)).join(', ');
+  const pinListStr = board.pinList;
+  const pinNamesStr = "['"+PIN_NAMES.join("','")+"']";
+  const midiStr = '['+MIDI_NOTES.join(',')+']';
+  const nCount = N;
+  const isMini = selectedBoard === 'mini';
+
+  const pixelSetup = isMini ? `` : `
+pixels = neopixel.NeoPixel(${board.neoPin}, ${nCount}, brightness=0.1, auto_write=False)
+for i in range(${nCount}): pixels[i]=(0,0,30)
+pixels.show()
+IDLE_COLOR  = (0, 0, 30)
+TOUCH_COLOR = (0, 220, 0)
+FLASH_COLOR = (255, 255, 255)
+flash_timer = [0] * len(touch_sensors)`;
+
+  const pixelImport = isMini ? `` : `import neopixel\n`;
+  const ledSetup = isMini ? `\nled = digitalio.DigitalInOut(board.LED)\nled.direction = digitalio.Direction.OUTPUT` : ``;
+
+  const loopBody = isMini ? `
+        if touched != prev[i]:
+            prev[i] = touched
+            if touched:
+                midi.send(NoteOn(MIDI_NOTES[i], 100))
+                led.value = True
+                print(f"TOUCH_ON: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh} | MIDI: Note {MIDI_NOTES[i]} ON")
+            else:
+                midi.send(NoteOff(MIDI_NOTES[i], 0))
+                led.value = False
+                print(f"TOUCH_OFF: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh} | MIDI: Note {MIDI_NOTES[i]} OFF")` : `
+        if touched != prev[i]:
+            prev[i] = touched
+            if touched:
+                midi.send(NoteOn(MIDI_NOTES[i], 100))
+                pixels[i] = FLASH_COLOR
+                flash_timer[i] = 3
+                print(f"TOUCH_ON: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh} | MIDI: Note {MIDI_NOTES[i]} ON")
+            else:
+                midi.send(NoteOff(MIDI_NOTES[i], 0))
+                pixels[i] = IDLE_COLOR
+                flash_timer[i] = 0
+                print(f"TOUCH_OFF: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh} | MIDI: Note {MIDI_NOTES[i]} OFF")
+        elif flash_timer[i] > 0:
+            flash_timer[i] -= 1
+            if flash_timer[i] == 0:
+                pixels[i] = TOUCH_COLOR if touched else IDLE_COLOR`;
+
+  const pixelShow = isMini ? `` : `\n    pixels.show()`;
+
+  return `# SPOKE${isMini?' Mini':''} Diagnostic — SPOKE Sensor Monitor
+import board, touchio, digitalio, usb_midi, adafruit_midi, time
+${pixelImport}from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
 
 touch_pins_raw = [
-    board.GP1,board.GP2,board.GP3,board.GP4,board.GP5,board.GP6,board.GP7,board.GP8,board.GP9,
-    board.GP10,board.GP11,board.GP12,board.GP13,board.GP14,board.GP15,board.GP16,board.GP17,
-    board.GP18,board.GP19,board.GP20,board.GP21,board.GP22,board.GP23,board.GP24,board.GP25,
-    board.GP28,board.VOLTAGE_MONITOR
+${pinListStr}
 ]
-pin_names = ['GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9',
-             'GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17',
-             'GP18','GP19','GP20','GP21','GP22','GP23','GP24','GP25','GP28','VOLTAGE_MONITOR']
-MIDI_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36]
+pin_names = ${pinNamesStr}
+MIDI_NOTES = ${midiStr}
 THRESHOLDS = [${thStr}]
 
-midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
-pixels = neopixel.NeoPixel(board.GP0, 27, brightness=0.1, auto_write=False)
-for i in range(27): pixels[i]=(0,0,0)
-pixels.show()
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)${ledSetup}${pixelSetup}
 
 touch_sensors = []
 for i, pin in enumerate(touch_pins_raw):
@@ -335,16 +529,7 @@ for i, pin in enumerate(touch_pins_raw):
     except:
         touch_sensors.append(None)
 
-# Dim blue on all pads at startup to show they are alive
-for i in range(27): pixels[i] = (0, 0, 30)
-pixels.show()
-
-IDLE_COLOR  = (0, 0, 30)      # dim blue  — alive, untouched
-TOUCH_COLOR = (0, 220, 0)     # green     — held
-FLASH_COLOR = (255, 255, 255) # white     — moment of contact
-
-prev        = [False] * len(touch_sensors)
-flash_timer = [0]     * len(touch_sensors)
+prev = [False] * len(touch_sensors)
 
 while True:
     for i, s in enumerate(touch_sensors):
@@ -354,36 +539,23 @@ while True:
             thresh = s.threshold
             touched = raw < thresh
             print(f"RAW: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh}")
-
-            if touched != prev[i]:
-                prev[i] = touched
-                if touched:
-                    midi.send(NoteOn(MIDI_NOTES[i], 100))
-                    pixels[i]    = FLASH_COLOR
-                    flash_timer[i] = 3
-                    print(f"TOUCH_ON: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh} | MIDI: Note {MIDI_NOTES[i]} ON")
-                else:
-                    midi.send(NoteOff(MIDI_NOTES[i], 0))
-                    pixels[i]    = IDLE_COLOR
-                    flash_timer[i] = 0
-                    print(f"TOUCH_OFF: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh} | MIDI: Note {MIDI_NOTES[i]} OFF")
-            elif flash_timer[i] > 0:
-                flash_timer[i] -= 1
-                if flash_timer[i] == 0:
-                    pixels[i] = TOUCH_COLOR if touched else IDLE_COLOR
-
+${loopBody}
         except Exception:
             pass
-
-    pixels.show()
+${pixelShow}
     time.sleep(0.05)
 `;
 }
 
-// Modal — builds the real default SPOKE code.py with thresholds injected
+// ── Export modal ──────────────────────────────────────────────────────────
 function buildFinalCode() {
-  const thStr = thresholds.map((t,i) => '    ' + (t !== null ? t : 7000) + ',  # ' + PIN_NAMES[i] + ' — Pad ' + (i+1) + ', MIDI ' + MIDI_NOTES[i]).join('\n');
-  return `# This is the default code for the main SPOKE board. If you have the mini version or an older version with a visible Raspbery Pi Pico board attached, then use the code in the /SPOKE-mini folder on Github
+  const thStr = Array.from({length:N},(_,i)=>'    '+tVal(i)+',  # '+PIN_NAMES[i]+' — Pad '+(i+1)+', MIDI '+MIDI_NOTES[i]).join('\n');
+  const pinListStr = board.pinList;
+  const midiStr = MIDI_NOTES.join(', ');
+  const nCount = N;
+
+  if (selectedBoard === 'spoke') {
+    return `# This is the default code for the main SPOKE board. If you have the mini version or an older version with a visible Raspbery Pi Pico board attached, then use the code in the /SPOKE-mini folder on Github
 #This code sets up the touch pins as capacitive touch sensors, it also sets up the neopixels to match the touch sensor it is next to. The MIDI-out in this example os polyphonic on/off. Read through the code to see what each section does and edit the parts you need!
 import time
 import board
@@ -396,13 +568,10 @@ from adafruit_midi.note_off import NoteOff
 import neopixel
 from rainbowio import colorwheel
 # MIDI note numbers corresponding to each touch pin
-midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
+midi_notes = [${midiStr}]
 # Define the touch pins
 touch_pins = [
-    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,
-    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,
-    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
-    board.GP25, board.GP28, board.VOLTAGE_MONITOR
+${pinListStr}
 ]
 # Custom thresholds set with SPOKE Sensor Monitor — lower = more sensitive
 touch_thresholds = [
@@ -423,7 +592,7 @@ midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
 note_played = [False] * len(touch_pins)
 # NeoPixel setup
 num_pixels = len(touch_sensors)
-pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+pixels = neopixel.NeoPixel(${board.neoPin}, num_pixels, brightness=0.03, auto_write=True)
 # Startup animation
 def rainbow(speed, duration, step_size=10):
     start_time = time.monotonic()
@@ -436,11 +605,9 @@ def rainbow(speed, duration, step_size=10):
             if time.monotonic() - start_time >= duration:
                 return
             time.sleep(speed)
-# Fill all pixels blue
 def all_blue():
     pixels.fill((0, 0, 255))
     pixels.show()
-# Start
 rainbow(0.01, 2, step_size=10)
 all_blue()
 # Main loop
@@ -457,104 +624,152 @@ while True:
                 note_played[i] = False
                 pixels[i] = (0, 0, 255)
 `;
+  } else {
+    // SPOKE Mini — matches default mini code.py exactly, with thresholds injected
+    return `# This is the code for USB-MIDI. In this code we assign a midi value to each pin, and when the board senses that the pin has been touched it will send a NoteOn message. When the pin is released, it sends a NoteOff message.
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+# Define the touch pins
+touch_pins = [${pinListStr.trim()}]
+# Custom thresholds set with SPOKE Sensor Monitor — lower = more sensitive
+touch_thresholds = [
+${thStr}
+]
+touch_sensors = []
+for i, pin in enumerate(touch_pins):
+    try:
+        sensor = touchio.TouchIn(pin)
+        sensor.threshold = touch_thresholds[i]
+        touch_sensors.append(sensor)
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+# MIDI setup - If you want to assign the midi device to a specific channel or port then just change the values in this line.
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+# MIDI note numbers corresponding to each touch pin - change these to whatever midi note you prefer.
+midi_notes = [${midiStr}]
+# State variables to track if a note has been played for each touch pin
+note_played = [False] * len(touch_pins)
+# Setup LED toggling
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+# Main loop
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        # Capacitive touch sensing
+        if touch_sensor.value:
+            # Check if the note has already been played
+            if not note_played[i]:
+                # Send MIDI note on message when touch is detected. The Velocity is set to 120, change the value if you want to.
+                midi.send(NoteOn(midi_notes[i], 120))
+                led.value = True
+                note_played[i] = True  # Update state variable
+        else:
+            # Check if the note has been played and turn it off
+            if note_played[i]:
+                # Send MIDI note off message when touch is released
+                midi.send(NoteOff(midi_notes[i], 120))
+                led.value = False
+                note_played[i] = False  # Update state variable
+`;
+  }
 }
 
 function openModal() {
+  document.getElementById('modalLabel').textContent =
+    board.name + ' code.py with your custom thresholds baked in. Save directly to your device or copy to paste manually.';
   document.getElementById('codeFinal').textContent = buildFinalCode();
   document.getElementById('modalBg').classList.add('open');
 }
-function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
-function bgClick(e) { if (e.target === document.getElementById('modalBg')) closeModal(); }
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+function bgClick(e){ if(e.target===document.getElementById('modalBg'))closeModal(); }
 
 function copyFinal() {
-  navigator.clipboard.writeText(document.getElementById('codeFinal').textContent).then(() => {
-    const btn = document.getElementById('copyFinalBtn');
-    btn.textContent = 'Copied!';
-    setTimeout(() => btn.textContent = 'Copy', 1500);
+  navigator.clipboard.writeText(document.getElementById('codeFinal').textContent).then(()=>{
+    const btn=document.getElementById('copyFinalBtn');
+    btn.textContent='Copied!';
+    setTimeout(()=>btn.textContent='Copy',1500);
   });
 }
 
 async function saveToDevice() {
   if (!fileHandle) {
-    setStatus('warn', 'No file open — click "Open code.py" first to select the file on your SPOKE');
-    closeModal();
-    return;
+    setStatus('warn','No file open — click "Open code.py" first');
+    closeModal(); return;
   }
   try {
-    const code = buildFinalCode();
-    const w = await fileHandle.createWritable();
-    await w.write(code);
+    const w=await fileHandle.createWritable();
+    await w.write(buildFinalCode());
     await w.close();
-    const btn = document.getElementById('saveDeviceBtn');
-    btn.textContent = 'Saved!';
-    setStatus('on', 'code.py saved to device — board will restart with new thresholds');
-    setTimeout(() => btn.textContent = 'Save to device', 2000);
-  } catch(e) {
-    setStatus('warn', 'Save error: ' + e.message);
-  }
+    const btn=document.getElementById('saveDeviceBtn');
+    btn.textContent='Saved!';
+    setStatus('on','code.py saved to device — board will restart with new thresholds');
+    setTimeout(()=>btn.textContent='Save to device',2000);
+  } catch(e){ setStatus('warn','Save error: '+e.message); }
 }
 
-// Serial
+// ── Serial ────────────────────────────────────────────────────────────────
 async function connectSerial() {
   try {
     if (!('serial' in navigator)) { alert('Use Chrome/Edge/Opera for Web Serial.'); return; }
-    serialPort = await navigator.serial.requestPort();
+    serialPort=await navigator.serial.requestPort();
     await serialPort.open({baudRate:115200});
-    setStatus('on', 'Serial connected — touch pads to see bars update');
-    isReading = true;
+    setStatus('on','Serial connected — touch pads to see bars update');
+    isReading=true;
     readSerial();
-  } catch(e) { setStatus('warn', 'Serial error: ' + e.message); }
+  } catch(e){ setStatus('warn','Serial error: '+e.message); }
 }
 
 async function readSerial() {
   try {
-    const dec = new TextDecoderStream();
+    const dec=new TextDecoderStream();
     serialPort.readable.pipeTo(dec.writable);
-    serialReader = dec.readable.getReader();
-    let buf = '';
-    while (isReading) {
-      const {value, done} = await serialReader.read();
-      if (done) break;
-      buf += value;
+    serialReader=dec.readable.getReader();
+    let buf='';
+    while(isReading){
+      const{value,done}=await serialReader.read();
+      if(done)break;
+      buf+=value;
       let nl;
-      while ((nl = buf.indexOf('\n')) !== -1) {
-        const line = buf.slice(0, nl).trim();
-        buf = buf.slice(nl + 1);
-        if (line) processLine(line);
+      while((nl=buf.indexOf('\n'))!==-1){
+        const line=buf.slice(0,nl).trim();
+        buf=buf.slice(nl+1);
+        if(line)processLine(line);
       }
-      if (buf.length > 2000) buf = buf.slice(-500);
+      if(buf.length>2000)buf=buf.slice(-500);
     }
-  } catch(e) { setStatus('warn', 'Serial read error: ' + e.message); }
+  } catch(e){ setStatus('warn','Serial read error: '+e.message); }
 }
 
 function processLine(line) {
-  const m = line.match(/index\s+(\d+)\D+Raw:\s*(\d+)\D+Threshold:\s*(\d+)/);
-  if (m) {
-    const idx = parseInt(m[1]), raw = parseInt(m[2]), thr = parseInt(m[3]);
-    if (idx >= 0 && idx < N) {
-      rawValues[idx] = raw;
-      if (!userPinned[idx]) {
-        setThresholdUI(idx, thr);
-      }
+  const m=line.match(/index\s+(\d+)\D+Raw:\s*(\d+)\D+Threshold:\s*(\d+)/);
+  if(m){
+    const idx=parseInt(m[1]),raw=parseInt(m[2]),thr=parseInt(m[3]);
+    if(idx>=0&&idx<N){
+      rawValues[idx]=raw;
+      if(!userPinned[idx])setThresholdUI(idx,thr);
       refreshBar(idx);
     }
   }
-  if (line.includes('TOUCH_ON') || line.includes('TOUCH_OFF')) {
+  if(line.includes('TOUCH_ON')||line.includes('TOUCH_OFF')){
     touchCount++;
-    document.getElementById('sTouchEvents').textContent = touchCount;
+    document.getElementById('sTouchEvents').textContent=touchCount;
   }
-  if (line.includes('MIDI: Note')) {
+  if(line.includes('MIDI: Note')){
     midiCount++;
-    document.getElementById('sMidiEvents').textContent = midiCount;
+    document.getElementById('sMidiEvents').textContent=midiCount;
   }
 }
 
-function setStatus(state, msg) {
-  document.getElementById('dot').className = 'dot' + (state==='on'?' on':state==='warn'?' warn':'');
-  document.getElementById('statusTxt').textContent = msg;
+function setStatus(state,msg){
+  document.getElementById('dot').className='dot'+(state==='on'?' on':state==='warn'?' warn':'');
+  document.getElementById('statusTxt').textContent=msg;
 }
-
-buildSensorList();
 </script>
 </body>
 </html>
