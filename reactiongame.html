@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPOKE // Reaction Trainer</title>
+<style>
+  :root{
+    --bg:#0b0f0d;
+    --panel:#111815;
+    --line:#26352e;
+    --phosphor:#5dffa0;
+    --phosphor-dim:#2c5c44;
+    --amber:#ffb454;
+    --red:#ff5d5d;
+    --text:#d8e6df;
+    --text-dim:#7d9389;
+    --mono: "IBM Plex Mono", "Courier New", monospace;
+    --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 16px 64px;
+  }
+
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:
+      repeating-linear-gradient(0deg, rgba(93,255,160,0.025) 0px, rgba(93,255,160,0.025) 1px, transparent 1px, transparent 28px),
+      repeating-linear-gradient(90deg, rgba(93,255,160,0.025) 0px, rgba(93,255,160,0.025) 1px, transparent 1px, transparent 28px);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  header{
+    text-align:center;
+    margin-bottom:8px;
+    z-index:1;
+  }
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.3em;
+    color:var(--phosphor-dim);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+
+  h1{
+    font-family:var(--mono);
+    font-weight:600;
+    font-size:clamp(28px, 6vw, 46px);
+    margin:0;
+    letter-spacing:0.04em;
+    color:var(--phosphor);
+    text-shadow:0 0 18px rgba(93,255,160,0.35);
+  }
+
+  .sub{
+    font-size:14px;
+    color:var(--text-dim);
+    margin-top:8px;
+    max-width:520px;
+  }
+
+  main{
+    width:100%;
+    max-width:980px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:24px;
+    margin-top:28px;
+    z-index:1;
+  }
+
+  @media (max-width: 820px){
+    main{ grid-template-columns: 1fr; }
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px;
+    position:relative;
+  }
+
+  .panel-title{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.2em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin:0 0 16px 0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  .dot{
+    width:7px; height:7px; border-radius:50%;
+    background:var(--phosphor-dim);
+    box-shadow:0 0 0 0 transparent;
+    transition:background .2s, box-shadow .2s;
+  }
+  .dot.live{
+    background:var(--phosphor);
+    box-shadow:0 0 8px var(--phosphor);
+  }
+
+  /* --- Setup panel --- */
+  .row{
+    display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;
+  }
+
+  button{
+    font-family:var(--sans);
+    font-size:14px;
+    font-weight:600;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--text);
+    padding:11px 18px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:border-color .15s, color .15s, background .15s, transform .05s;
+  }
+  button:hover:not(:disabled){
+    border-color:var(--phosphor);
+    color:var(--phosphor);
+  }
+  button:active:not(:disabled){ transform:scale(0.98); }
+  button:disabled{ opacity:0.35; cursor:not-allowed; }
+
+  button.primary{
+    background:var(--phosphor);
+    color:#08130d;
+    border-color:var(--phosphor);
+  }
+  button.primary:hover{ background:#7dffb6; }
+
+  select, input[type=range]{
+    font-family:var(--mono);
+    background:var(--bg);
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:13px;
+  }
+
+  label{
+    font-size:12px;
+    color:var(--text-dim);
+    display:block;
+    margin-bottom:6px;
+    font-family:var(--mono);
+    letter-spacing:0.05em;
+  }
+
+  .field{ margin-bottom:14px; }
+
+  .status-line{
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--text-dim);
+    margin-top:14px;
+    line-height:1.6;
+  }
+  .status-line span{ color:var(--phosphor); }
+  .status-line .warn{ color:var(--amber); }
+  .status-line .err{ color:var(--red); }
+
+  /* --- Ring --- */
+  .ring-wrap{
+    display:flex; flex-direction:column; align-items:center; gap:18px;
+  }
+
+  .ring-stage{
+    position:relative;
+    width:min(100%, 360px);
+    aspect-ratio:1/1;
+  }
+
+  .ring-svg{ width:100%; height:100%; display:block; }
+
+  .pad{
+    fill:#1b2620;
+    stroke:#2c3b34;
+    stroke-width:1.5;
+    transition:fill .12s, stroke .12s;
+  }
+  .pad.target{ fill:#1f3d34; stroke:var(--phosphor-dim); }
+  .pad.armed{ fill:var(--phosphor); stroke:var(--phosphor); filter:drop-shadow(0 0 6px var(--phosphor)); }
+  .pad.correct{ fill:var(--phosphor); stroke:var(--phosphor); }
+  .pad.wrong{ fill:var(--red); stroke:var(--red); }
+
+  .ring-center{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    pointer-events:none;
+    text-align:center;
+  }
+
+  .timer-big{
+    font-family:var(--mono);
+    font-size:clamp(34px, 9vw, 54px);
+    font-weight:600;
+    color:var(--phosphor);
+    line-height:1;
+  }
+  .timer-label{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.2em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-top:6px;
+  }
+  .round-pill{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--text-dim);
+    margin-top:10px;
+    letter-spacing:0.1em;
+  }
+
+  /* --- Stats / log --- */
+  .stat-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:12px;
+    margin-bottom:16px;
+  }
+  .stat{
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px;
+    text-align:center;
+  }
+  .stat-value{
+    font-family:var(--mono);
+    font-size:22px;
+    color:var(--phosphor);
+    font-weight:600;
+  }
+  .stat-label{
+    font-size:11px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    margin-top:4px;
+  }
+
+  .log{
+    font-family:var(--mono);
+    font-size:12.5px;
+    max-height:220px;
+    overflow-y:auto;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:var(--bg);
+  }
+  .log-row{
+    display:grid;
+    grid-template-columns: 36px 1fr 70px 64px;
+    gap:8px;
+    padding:7px 10px;
+    border-bottom:1px solid var(--line);
+    color:var(--text-dim);
+  }
+  .log-row:last-child{ border-bottom:none; }
+  .log-row.head{
+    color:var(--text-dim);
+    text-transform:uppercase;
+    font-size:10px;
+    letter-spacing:0.15em;
+    position:sticky; top:0;
+    background:var(--bg);
+  }
+  .log-row .ok{ color:var(--phosphor); }
+  .log-row .miss{ color:var(--red); }
+  .log-row .time{ color:var(--text); }
+
+  footer{
+    margin-top:32px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text-dim);
+    text-align:center;
+    max-width:600px;
+    z-index:1;
+    line-height:1.7;
+  }
+  footer a{ color:var(--phosphor-dim); text-decoration:none; border-bottom:1px dotted var(--phosphor-dim); }
+  footer a:hover{ color:var(--phosphor); }
+
+  code{
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:1px 5px;
+    color:var(--phosphor);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">spoke // 27-pad capacitive controller</div>
+  <h1>Reaction Trainer</h1>
+  <p class="sub">Touch the lit pads as fast as you can. The target zone shrinks each round — from a whole quarter of the ring down to a single pad.</p>
+</header>
+
+<main>
+  <!-- LEFT: connection + ring -->
+  <section class="panel ring-wrap">
+    <div class="panel-title"><span class="dot" id="connDot"></span> device link</div>
+
+    <div class="row" style="width:100%; justify-content:center;">
+      <button class="primary" id="connectBtn">Connect to SPOKE</button>
+      <button id="startBtn" disabled>Start Game</button>
+      <button id="resetBtn" disabled>Reset</button>
+    </div>
+    <div class="row" style="width:100%; justify-content:center;">
+      <button id="downloadBtn">Download code.py to board</button>
+    </div>
+
+    <div class="ring-stage">
+      <svg class="ring-svg" viewBox="0 0 400 400" id="ringSvg"></svg>
+      <div class="ring-center">
+        <div class="timer-big" id="timerDisplay">--</div>
+        <div class="timer-label">ms reaction</div>
+        <div class="round-pill" id="roundPill">round 0 / 0</div>
+      </div>
+    </div>
+
+    <div class="status-line" id="statusLine">Plug in your SPOKE board, then click <span>Connect to SPOKE</span>.</div>
+  </section>
+
+  <!-- RIGHT: stats + log + settings -->
+  <section class="panel">
+    <div class="panel-title"><span class="dot live"></span> session</div>
+
+    <div class="stat-grid">
+      <div class="stat"><div class="stat-value" id="statAvg">--</div><div class="stat-label">avg ms</div></div>
+      <div class="stat"><div class="stat-value" id="statBest">--</div><div class="stat-label">best ms</div></div>
+      <div class="stat"><div class="stat-value" id="statAcc">--</div><div class="stat-label">accuracy</div></div>
+    </div>
+
+    <div class="field">
+      <label>Rounds</label>
+      <select id="roundsSelect">
+        <option value="9">9 (quarter → single pad)</option>
+        <option value="6">6 (quick run)</option>
+        <option value="12">12 (long run)</option>
+      </select>
+    </div>
+
+    <div class="log">
+      <div class="log-row head">
+        <span>#</span><span>target</span><span>hit</span><span>result</span>
+      </div>
+      <div id="logBody"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Run on a SPOKE (RP2040 / CircuitPython) board. Flash <code>code.py</code> to your CIRCUITPY drive,
+  then connect via the <a href="https://github.com/WebAudio/web-midi-api" target="_blank" rel="noopener">Web MIDI API</a>
+  (Chrome / Edge recommended). The board lights target pads blue, flashes green for a correct hit
+  and red for a miss.
+</footer>
+
+<script>
+(() => {
+  const NUM_PADS = 27;
+  // Matches midi_notes[] in code.py - maps incoming note number -> pad index
+  const MIDI_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36];
+  const NOTE_TO_PAD = {};
+  MIDI_NOTES.forEach((note, pad) => { NOTE_TO_PAD[note] = pad; });
+
+  // ---- Embedded firmware (code.py) ----
+  const CODE_PY = `# SPOKE Reaction Game - code.py
+# Based directly on the default SPOKE MIDI example, with minimal additions
+# for the Reaction Trainer web page:
+#   - keeps the original midi_notes list and pixels[i] <-> touch_sensors[i]
+#     mapping exactly as in the default code (proven to line up correctly)
+#   - adds incoming MIDI handling (Control Change) so the web page can light
+#     target pads and flash correct/wrong feedback
+#
+# Protocol (channel 1 / out_channel=0):
+#   Board -> Page:
+#     Note On  (note = midi_notes[pad_index], velocity 120) -> pad touched
+#     Note Off (note = midi_notes[pad_index])               -> pad released
+#
+#   Page -> Board:
+#     CC 20, value = pad_index   -> add pad_index to "lit" (target) set
+#     CC 21, value = 0           -> clear all lit pads / reset to all-blue
+#     CC 22, value = 0/1         -> 0 = waiting (dim blue), 1 = GO (bright white)
+#     CC 23, value = 0/1         -> flash feedback on pad set by CC24:
+#                                    1 = correct (green), 0 = wrong (red)
+#     CC 24, value = pad_index   -> target pad index for the CC23 flash
+
+import time
+import board
+import touchio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+from adafruit_midi.control_change import ControlChange
+import neopixel
+from rainbowio import colorwheel
+
+# MIDI note numbers corresponding to each touch pin (unchanged from default)
+midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
+
+# Define the touch pins (unchanged from default)
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,
+    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,
+    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
+    board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+# Initialize touch sensors (unchanged from default)
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# MIDI setup - now bidirectional (default was send-only)
+midi = adafruit_midi.MIDI(
+    midi_in=usb_midi.ports[0],
+    midi_out=usb_midi.ports[1],
+    in_channel=0,
+    out_channel=0,
+)
+
+# State tracking (unchanged from default)
+note_played = [False] * len(touch_pins)
+
+# NeoPixel setup (unchanged from default, except brightness for visibility)
+num_pixels = len(touch_sensors)
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.05, auto_write=True)
+
+# Colours
+BLACK = (0, 0, 0)
+BLUE = (0, 0, 60)         # dim blue: target pad, waiting
+WHITE = (255, 255, 255)   # bright white: GO - touch now
+GREEN = (0, 255, 0)
+RED = (255, 0, 0)
+TOUCH_COLOR = (255, 0, 255)  # colour while a pad is physically touched (default behaviour)
+
+# --- Startup animation (unchanged from default) ----------------------------
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+rainbow(0.01, 2, step_size=10)
+
+# --- Reaction game state -----------------------------------------------------
+lit_pads = set()   # pad indices currently shown as "target"
+armed = False       # False = dim blue (waiting), True = bright white (GO)
+
+
+def base_color(pad_index):
+    if pad_index in lit_pads:
+        return WHITE if armed else BLUE
+    return BLACK
+
+
+def redraw():
+    for i in range(num_pixels):
+        pixels[i] = base_color(i)
+
+
+redraw()
+print("SPOKE Reaction Game ready.")
+
+# --- Main loop ----------------------------------------------------------
+while True:
+    # Handle incoming MIDI from the web page
+    msg = midi.receive()
+    if msg is not None and isinstance(msg, ControlChange):
+        if msg.control == 20:
+            lit_pads.add(msg.value)
+            redraw()
+        elif msg.control == 21:
+            lit_pads.clear()
+            armed = False
+            redraw()
+        elif msg.control == 22:
+            armed = (msg.value == 1)
+            redraw()
+        elif msg.control == 24:
+            _pending_flash_pad = msg.value
+        elif msg.control == 23:
+            try:
+                pad = _pending_flash_pad
+            except NameError:
+                pad = None
+            if pad is not None and 0 <= pad < num_pixels:
+                color = GREEN if msg.value == 1 else RED
+                pixels[pad] = color
+                time.sleep(0.15)
+                pixels[pad] = base_color(pad)
+
+    # Poll touch pads & send Note On/Off (unchanged logic from default,
+    # but touched pads briefly override the base colour)
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(midi_notes[i], 120))
+                note_played[i] = True
+                pixels[i] = TOUCH_COLOR
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(midi_notes[i], 120))
+                note_played[i] = False
+                pixels[i] = base_color(i)
+`;
+
+  // ---- Download code.py onto the board ----
+  const downloadBtn = document.getElementById('downloadBtn');
+  downloadBtn.addEventListener('click', async () => {
+    const blob = new Blob([CODE_PY], { type: 'text/x-python' });
+
+    if (window.showSaveFilePicker) {
+      // Chromium-based browsers: lets the user pick the CIRCUITPY drive directly
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: 'code.py',
+          types: [{ description: 'Python file', accept: { 'text/x-python': ['.py'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        statusLine.innerHTML = 'Saved <span>code.py</span>. If you saved it to the CIRCUITPY drive, the board will restart and run the reaction game firmware automatically.';
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          statusLine.innerHTML = `<span class="err">Couldn't save file: ${err.message}</span>`;
+        }
+      }
+    } else {
+      // Fallback: regular download, user copies it onto CIRCUITPY manually
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'code.py';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      statusLine.innerHTML = 'Downloaded <span>code.py</span>. Copy it onto your CIRCUITPY drive (overwriting the existing code.py) — the board will restart and run the reaction game firmware.';
+    }
+  });
+
+  // ---- DOM ----
+  const connectBtn = document.getElementById('connectBtn');
+  const startBtn = document.getElementById('startBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const connDot = document.getElementById('connDot');
+  const statusLine = document.getElementById('statusLine');
+  const ringSvg = document.getElementById('ringSvg');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const roundPill = document.getElementById('roundPill');
+  const statAvg = document.getElementById('statAvg');
+  const statBest = document.getElementById('statBest');
+  const statAcc = document.getElementById('statAcc');
+  const roundsSelect = document.getElementById('roundsSelect');
+  const logBody = document.getElementById('logBody');
+
+  // ---- MIDI state ----
+  let midiAccess = null;
+  let midiIn = null;
+  let midiOut = null;
+
+  // ---- Game state ----
+  let gameActive = false;
+  let totalRounds = 9;
+  let currentRound = 0;
+  let targetPads = [];      // array of pad indices for current round
+  let roundStart = 0;       // performance.now() timestamp when zone lit
+  let waitingForTouch = false;
+  let results = [];         // {round, targetSize, hitMs, correct}
+
+  // ---- Build the ring of 27 pads as SVG ----
+  // If the on-screen ring doesn't line up with your physical board (e.g. the
+  // GUI shows a "miss" on a different pad than the one whose pixel actually
+  // lit up), adjust these two values:
+  //   RING_START_PAD : which pad index appears at the top of the ring (12 o'clock)
+  //   RING_DIRECTION : 1 = clockwise, -1 = counter-clockwise
+  const RING_START_PAD = 0;
+  const RING_DIRECTION = 1;
+
+  const cx = 200, cy = 200, rOuter = 180, rInner = 130;
+  const pads = [];
+  for (let i = 0; i < NUM_PADS; i++) {
+    const slot = ((i - RING_START_PAD) * RING_DIRECTION + NUM_PADS * 2) % NUM_PADS;
+    const a0 = (slot / NUM_PADS) * Math.PI * 2 - Math.PI / 2;
+    const a1 = ((slot + 1) / NUM_PADS) * Math.PI * 2 - Math.PI / 2;
+    const pad = makeWedge(cx, cy, rInner, rOuter, a0, a1, i);
+    ringSvg.appendChild(pad);
+    pads.push(pad);
+  }
+
+  function makeWedge(cx, cy, rIn, rOut, a0, a1, index) {
+    const p = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+    const gap = 0.018; // small visual gap between pads
+    a0 += gap; a1 -= gap;
+    const [x0o, y0o] = p(rOut, a0);
+    const [x1o, y1o] = p(rOut, a1);
+    const [x0i, y0i] = p(rIn, a0);
+    const [x1i, y1i] = p(rIn, a1);
+    const d = `M ${x0i} ${y0i} L ${x0o} ${y0o} A ${rOut} ${rOut} 0 0 1 ${x1o} ${y1o} L ${x1i} ${y1i} A ${rIn} ${rIn} 0 0 0 ${x0i} ${y0i} Z`;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('class', 'pad');
+    path.dataset.index = index;
+    return path;
+  }
+
+  function setPadClass(index, cls) {
+    const el = pads[index];
+    el.setAttribute('class', 'pad' + (cls ? ' ' + cls : ''));
+  }
+
+  function clearAllPads() {
+    pads.forEach((_, i) => setPadClass(i, ''));
+  }
+
+  // ---- MIDI connection ----
+  connectBtn.addEventListener('click', async () => {
+    if (!navigator.requestMIDIAccess) {
+      statusLine.innerHTML = '<span class="err">Web MIDI is not supported in this browser. Try Chrome or Edge.</span>';
+      return;
+    }
+    try {
+      midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+    } catch (err) {
+      statusLine.innerHTML = `<span class="err">MIDI access denied: ${err.message}</span>`;
+      return;
+    }
+
+    const inputs = Array.from(midiAccess.inputs.values());
+    const outputs = Array.from(midiAccess.outputs.values());
+
+    const spokeIn = inputs.find(p => /spoke|circuitpython/i.test(p.name)) || inputs[0];
+    const spokeOut = outputs.find(p => /spoke|circuitpython/i.test(p.name)) || outputs[0];
+
+    if (!spokeIn || !spokeOut) {
+      statusLine.innerHTML = '<span class="err">No MIDI device found. Plug in your SPOKE board running code.py and reconnect.</span>';
+      return;
+    }
+
+    midiIn = spokeIn;
+    midiOut = spokeOut;
+    midiIn.onmidimessage = handleMidiMessage;
+
+    connDot.classList.add('live');
+    connectBtn.textContent = `Connected: ${midiIn.name}`;
+    connectBtn.disabled = true;
+    startBtn.disabled = false;
+    resetBtn.disabled = false;
+    statusLine.innerHTML = `Linked to <span>${midiIn.name}</span>. Set your round count and hit <span>Start Game</span>.`;
+
+    // tell board to clear pads
+    sendCC(21, 0);
+  });
+
+  // ---- Send MIDI helpers ----
+  function sendCC(controller, value) {
+    if (!midiOut) return;
+    midiOut.send([0xB0, controller, value]); // CC on channel 1
+  }
+
+  function sendNoteOn(note, vel) {
+    if (!midiOut) return;
+    midiOut.send([0x90, note, vel]);
+  }
+
+  // ---- Incoming MIDI handler ----
+  function handleMidiMessage(e) {
+    const [status, d1, d2] = e.data;
+    const type = status & 0xf0;
+
+    if (type === 0x90 && d2 > 0) {
+      // Note On = pad touched
+      const pad = NOTE_TO_PAD[d1];
+      if (pad === undefined) return;
+      onPadTouched(pad);
+    }
+    // Note Off ignored for game logic (we only care about touch-down)
+  }
+
+  // ---- Game logic ----
+  startBtn.addEventListener('click', startGame);
+  resetBtn.addEventListener('click', resetGame);
+
+  function resetGame() {
+    gameActive = false;
+    waitingForTouch = false;
+    currentRound = 0;
+    results = [];
+    clearAllPads();
+    sendCC(21, 0); // clear board lights
+    timerDisplay.textContent = '--';
+    roundPill.textContent = `round 0 / 0`;
+    updateStats();
+    logBody.innerHTML = '';
+    statusLine.innerHTML = 'Reset. Set your round count and hit <span>Start Game</span>.';
+    startBtn.disabled = false;
+    startBtn.textContent = 'Start Game';
+  }
+
+  function startGame() {
+    totalRounds = parseInt(roundsSelect.value, 10);
+    currentRound = 0;
+    results = [];
+    logBody.innerHTML = '';
+    updateStats();
+    gameActive = true;
+    startBtn.disabled = true;
+    startBtn.textContent = 'Running...';
+    nextRound();
+  }
+
+  // Zone sizes: shrink from a quarter of the ring (≈7 pads) down to 1 pad
+  // across totalRounds, never going below 1.
+  function zoneSizeForRound(roundIndex, total) {
+    const maxSize = Math.max(2, Math.round(NUM_PADS / 4)); // ~7 for 27 pads
+    const minSize = 1;
+    if (total <= 1) return maxSize;
+    const t = roundIndex / (total - 1); // 0..1
+    const size = Math.round(maxSize - t * (maxSize - minSize));
+    return Math.max(minSize, size);
+  }
+
+  function nextRound() {
+    if (!gameActive) return;
+    currentRound++;
+    roundPill.textContent = `round ${currentRound} / ${totalRounds}`;
+    timerDisplay.textContent = '--';
+
+    if (currentRound > totalRounds) {
+      finishGame();
+      return;
+    }
+
+    const size = zoneSizeForRound(currentRound - 1, totalRounds);
+    const startPad = Math.floor(Math.random() * NUM_PADS);
+    targetPads = [];
+    for (let k = 0; k < size; k++) {
+      targetPads.push((startPad + k) % NUM_PADS);
+    }
+
+    clearAllPads();
+    sendCC(21, 0); // clear board
+    targetPads.forEach(p => {
+      setPadClass(p, 'target');
+      sendCC(20, p); // tell board this pad is lit
+    });
+
+    statusLine.innerHTML = `Round ${currentRound}: touch the highlighted zone (${size} pad${size > 1 ? 's' : ''}). Get ready...`;
+
+    // brief delay before arming - kept short for fast-paced reaction testing
+    const delay = 100 + Math.random() * 200;
+    setTimeout(() => {
+      if (!gameActive) return;
+      targetPads.forEach(p => setPadClass(p, 'armed'));
+      sendCC(22, 1); // tell board: GO - brighten/flash target pads
+      roundStart = performance.now();
+      waitingForTouch = true;
+      statusLine.innerHTML = `Round ${currentRound}: <span>GO!</span> touch the lit zone now.`;
+    }, delay);
+  }
+
+  function onPadTouched(pad) {
+    if (!waitingForTouch) return;
+
+    const elapsed = performance.now() - roundStart;
+    const correct = targetPads.includes(pad);
+    waitingForTouch = false;
+
+    // visual + board feedback
+    setPadClass(pad, correct ? 'correct' : 'wrong');
+    sendCC(24, pad);          // target pad for flash
+    sendCC(23, correct ? 1 : 0);
+
+    timerDisplay.textContent = correct ? Math.round(elapsed) : '--';
+
+    results.push({
+      round: currentRound,
+      targetSize: targetPads.length,
+      hitMs: correct ? elapsed : null,
+      correct,
+      hitPad: pad,
+    });
+
+    addLogRow(results[results.length - 1]);
+    updateStats();
+
+    statusLine.innerHTML = correct
+      ? `Correct — ${Math.round(elapsed)} ms.`
+      : `Missed — pad ${pad} wasn't in the target zone.`;
+
+    setTimeout(() => {
+      if (gameActive) nextRound();
+    }, 700);
+  }
+
+  function finishGame() {
+    gameActive = false;
+    clearAllPads();
+    sendCC(21, 0);
+    startBtn.disabled = false;
+    startBtn.textContent = 'Start Game';
+    roundPill.textContent = `done — ${totalRounds} rounds`;
+    statusLine.innerHTML = `Session complete. Average <span>${statAvg.textContent} ms</span>, accuracy <span>${statAcc.textContent}</span>. Hit <span>Start Game</span> to go again.`;
+  }
+
+  function updateStats() {
+    const hits = results.filter(r => r.correct && r.hitMs !== null);
+    const avg = hits.length ? Math.round(hits.reduce((s, r) => s + r.hitMs, 0) / hits.length) : null;
+    const best = hits.length ? Math.round(Math.min(...hits.map(r => r.hitMs))) : null;
+    const acc = results.length ? Math.round((hits.length / results.length) * 100) : null;
+
+    statAvg.textContent = avg !== null ? avg : '--';
+    statBest.textContent = best !== null ? best : '--';
+    statAcc.textContent = acc !== null ? `${acc}%` : '--';
+  }
+
+  function addLogRow(r) {
+    const row = document.createElement('div');
+    row.className = 'log-row';
+    const resultClass = r.correct ? 'ok' : 'miss';
+    const resultText = r.correct ? 'HIT' : 'MISS';
+    const timeText = r.hitMs !== null ? Math.round(r.hitMs) + ' ms' : '—';
+    row.innerHTML = `
+      <span>${r.round}</span>
+      <span>${r.targetSize} pad${r.targetSize > 1 ? 's' : ''}</span>
+      <span class="time">${timeText}</span>
+      <span class="${resultClass}">${resultText}</span>
+    `;
+    logBody.prepend(row);
+  }
+
+})();
+</script>
+
+</body>
+</html>
