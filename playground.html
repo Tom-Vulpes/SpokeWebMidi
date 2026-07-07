@@ -467,9 +467,9 @@
                         <div class="template-name">Sequencer</div>
                         <div class="template-desc">Loop arpeggios while held</div>
                     </div>
-                    <div class="template-item" onclick="loadTemplate('sensitivity')">
-                        <div class="template-name">Sensitivity</div>
-                        <div class="template-desc">Adjustable pad sensitivity</div>
+                    <div class="template-item" onclick="loadTemplate('synth')">
+                        <div class="template-name">On-Board Synth</div>
+                        <div class="template-desc">Lush synthio pad synth, no external audio needed</div>
                     </div>
                     <div class="template-item" onclick="loadTemplate('keyboard')">
                         <div class="template-name">Letters</div>
@@ -669,6 +669,7 @@
                     <li><strong>adafruit_midi</strong> - MIDI messages</li>
                     <li><strong>neopixel</strong> - LED control (27 LEDs on GP0)</li>
                     <li><strong>rainbowio</strong> - colorwheel() for rainbow effects</li>
+                    <li><strong>synthio</strong> - on-board synthesis (PWM audio out)</li>
                     <li><strong>time</strong> - Delays and timing</li>
                 </ul>
                 
@@ -1470,171 +1471,6 @@ while True:
                 midi.send(NoteOff(midi_notes[i], 120))
                 note_played[i] = False
                 pixels[i] = (0, 0, 255)
-`,
-                
-                'sensitivity': `# ============================================================================
-# SPOKE BOARD - WITH SENSITIVITY CONTROLS
-# ============================================================================
-# This code sets up 27 touch pads as MIDI controllers with NeoPixel feedback
-# Edit the settings below to customize sensitivity and behavior
-# ============================================================================
-
-import time
-import board
-import touchio
-import digitalio
-import usb_midi
-import adafruit_midi
-from adafruit_midi.note_on import NoteOn
-from adafruit_midi.note_off import NoteOff
-import neopixel
-from rainbowio import colorwheel
-
-
-# ============================================================================
-# SENSITIVITY SETTINGS - ADJUST THESE TO FIX TRIGGERING ISSUES
-# ============================================================================
-
-# GLOBAL SENSITIVITY
-# Higher number = less sensitive (harder to trigger)
-# Lower number = more sensitive (easier to trigger)
-# Recommended range: 1.0 (very sensitive) to 3.0 (hard to trigger)
-SENSITIVITY_MULTIPLIER = 1.5
-
-# PER-PAD SENSITIVITY (fine-tune individual pads)
-# Each number adjusts that specific pad ON TOP of the global setting
-# 1.0 = normal | 2.0 = twice as hard to trigger | 0.5 = twice as easy
-# Raise values for pads that false-trigger too easily
-
-pin_sensitivity = [
-    # Pads 1-9
-    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-    
-    # Pads 10-18
-    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-    
-    # Pads 19-27
-    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-]
-
-# DEBOUNCE TIME (prevents rapid re-triggering)
-# How long a pad must stay touched/released before sending MIDI
-# Higher = more stable but less responsive
-# Recommended range: 0.02 to 0.1 seconds
-DEBOUNCE_TIME = 0.05
-
-
-# ============================================================================
-# MIDI NOTE MAPPING
-# ============================================================================
-# These are the MIDI notes sent when each pad is touched
-# Change these to customize your note layout
-
-midi_notes = [
-    98, 96, 93, 91, 88, 86, 84, 81, 79,  # Pads 1-9
-    76, 74, 72, 69, 67, 64, 62, 60,      # Pads 10-17
-    57, 55, 52, 50, 48, 45, 43, 40,      # Pads 18-25
-    38, 36                                # Pads 26-27
-]
-
-
-# ============================================================================
-# NEOPIXEL COLORS
-# ============================================================================
-# Change these RGB values to customize your colors
-# Format: (Red, Green, Blue) - each value 0-255
-
-COLOR_IDLE = (0, 0, 255)      # Blue when not touched
-COLOR_TOUCHED = (255, 0, 255)  # Magenta when touched
-
-
-# ============================================================================
-# HARDWARE SETUP - DON'T EDIT BELOW HERE UNLESS YOU KNOW WHAT YOU'RE DOING
-# ============================================================================
-
-# Touch pin definitions
-touch_pins = [
-    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,
-    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,
-    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
-    board.GP25, board.GP28, board.VOLTAGE_MONITOR
-]
-
-# Initialize touch sensors with sensitivity settings
-touch_sensors = []
-for idx, pin in enumerate(touch_pins):
-    try:
-        sensor = touchio.TouchIn(pin)
-        combined = SENSITIVITY_MULTIPLIER * pin_sensitivity[idx]
-        sensor.threshold = int(sensor.threshold * combined)
-        print(f"Pad {idx+1} threshold: {sensor.threshold} (x{combined:.2f})")
-        touch_sensors.append(sensor)
-    except ValueError:
-        print(f"No pulldown resistor found on pin {pin}, skipping...")
-
-# MIDI setup
-midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
-
-# State tracking for debouncing
-note_played = [False] * len(touch_sensors)
-last_change_time = [0.0] * len(touch_sensors)
-pending_state = [False] * len(touch_sensors)
-
-# NeoPixel setup
-num_pixels = len(touch_sensors)
-pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
-
-# Rainbow startup animation
-def rainbow(speed, duration, step_size=10):
-    start_time = time.monotonic()
-    while time.monotonic() - start_time < duration:
-        for j in range(0, 256, step_size):
-            for i in range(num_pixels):
-                pixel_index = (i * 256 // num_pixels + j) % 256
-                pixels[i] = colorwheel(pixel_index)
-            pixels.show()
-            if time.monotonic() - start_time >= duration:
-                return
-            time.sleep(speed)
-
-# Show startup animation and set idle color
-rainbow(0.01, 2, step_size=10)
-pixels.fill(COLOR_IDLE)
-pixels.show()
-
-print("SPOKE board ready!")
-print(f"Sensitivity: {SENSITIVITY_MULTIPLIER}x | Debounce: {DEBOUNCE_TIME}s")
-
-
-# ============================================================================
-# MAIN LOOP
-# ============================================================================
-
-while True:
-    now = time.monotonic()
-    
-    for i, touch_sensor in enumerate(touch_sensors):
-        raw = touch_sensor.value
-        
-        # Detect state changes
-        if raw != pending_state[i]:
-            pending_state[i] = raw
-            last_change_time[i] = now
-        
-        # Only trigger after state has been stable for debounce time
-        stable = (now - last_change_time[i]) >= DEBOUNCE_TIME
-        
-        # Pad touched
-        if stable and raw and not note_played[i]:
-            midi.send(NoteOn(midi_notes[i], 120))
-            note_played[i] = True
-            pixels[i] = COLOR_TOUCHED
-        
-        # Pad released
-        elif stable and not raw and note_played[i]:
-            midi.send(NoteOff(midi_notes[i], 120))
-            note_played[i] = False
-            pixels[i] = COLOR_IDLE
 `,
                 
                 'neopixel': `# NeoPixel Playground - 27 Visual Effects!
@@ -2685,6 +2521,194 @@ while True:
                 last_touched[i] = False
     
     time.sleep(0.01)
+`,
+
+                'synth': `# SPOKE board: 27-pad capacitive touch -> lush synthio pad synth
+# -> PWM audio out (GP26), with per-pad neopixel feedback (GP0)
+#
+# No aftertouch here - this version is tuned purely for sound quality.
+# Each touch triggers a two-voice detuned "unison" (classic analog-synth
+# thickening trick), each voice with its own gentle vibrato via an LFO,
+# a warm custom waveform instead of a bare sine, a resonant low-pass for
+# character, slight stereo spread, and a slow pad-like envelope so notes
+# swell in and trail off instead of clicking on/off.
+#
+# Wiring note: GP26/GP27 are SPOKE's stemma connector pins, broken out for
+# i2c1/ADC/PWM - GP26 is used here as PWM audio out. A small RC low-pass
+# (e.g. 1k + 100nF to ground) before your speaker/amp cleans up PWM hiss.
+
+import time
+import math
+import array
+import board
+import touchio
+import audiopwmio
+import synthio
+import neopixel
+import rainbowio
+
+# --- Audio setup -------------------------------------------------------------
+# Stereo output gives us room for the unison voices to spread left/right.
+
+SAMPLE_RATE = 22050
+audio = audiopwmio.PWMAudioOut(board.GP26)
+synth = synthio.Synthesizer(sample_rate=SAMPLE_RATE, channel_count=2)
+audio.play(synth)
+
+# --- Waveform: a warm, rounded tone instead of a bare sine --------------------
+# Sum a few harmonics at decreasing amplitude for a mellow, Rhodes/pad-ish
+# character rather than the cold default sine. Precomputed once at startup.
+
+WAVE_SAMPLES = 512
+WAVE_VOLUME = 26000  # keep headroom under int16 max so summed voices don't clip
+
+
+def make_waveform(harmonics):
+    """harmonics: list of (harmonic_number, relative_amplitude)."""
+    total = sum(amp for _, amp in harmonics)
+    buf = array.array("h", [0] * WAVE_SAMPLES)
+    for i in range(WAVE_SAMPLES):
+        phase = 2 * math.pi * i / WAVE_SAMPLES
+        sample = 0.0
+        for harmonic, amp in harmonics:
+            sample += (amp / total) * math.sin(phase * harmonic)
+        buf[i] = int(sample * WAVE_VOLUME)
+    return buf
+
+
+# Warm, slightly rounded - fundamental plus a soft 2nd/3rd/5th harmonic.
+WARM_WAVE = make_waveform([(1, 1.0), (2, 0.45), (3, 0.2), (5, 0.08)])
+
+# --- Neopixel setup ------------------------------------------------------------
+
+NUM_PADS = 27
+pixels = neopixel.NeoPixel(board.GP0, NUM_PADS, brightness=0.4, auto_write=False)
+pixels.fill((0, 0, 0))
+pixels.show()
+
+# --- Pads: all 27 touch-capable pins on SPOKE ---------------------------------
+
+PAD_PINS = [getattr(board, f"GP{n}") for n in range(1, 26)]
+PAD_PINS.append(board.GP28)
+PAD_PINS.append(board.VOLTAGE_MONITOR)
+assert len(PAD_PINS) == NUM_PADS
+
+# NOTE ON PIXEL INDEX: assumes onboard neopixels follow the same order as
+# PAD_PINS (GP1 = pixel 0 ... VOLTAGE_MONITOR = pixel 26). If a touch lights
+# the wrong LED, touch each pad once, note which LED lit, and reorder PAD_PINS.
+
+# --- Scale: major scale across pads instead of raw chromatic ------------------
+# Any combination of notes from a major scale tends to sound pleasant
+# together, so chords formed by touching multiple pads at once are far more
+# likely to sound "glorious" than an arbitrary chromatic cluster would.
+
+MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11]
+BASE_MIDI_NOTE = 48  # C3
+
+scale_midi_notes = []
+octave = 0
+while len(scale_midi_notes) < NUM_PADS:
+    for step in MAJOR_STEPS:
+        scale_midi_notes.append(BASE_MIDI_NOTE + step + 12 * octave)
+        if len(scale_midi_notes) == NUM_PADS:
+            break
+    octave += 1
+
+FREQUENCIES = [440.0 * (2 ** ((m - 69) / 12)) for m in scale_midi_notes]
+
+
+def _unpack_color(packed):
+    return ((packed >> 16) & 0xFF, (packed >> 8) & 0xFF, packed & 0xFF)
+
+
+COLORS = [_unpack_color(rainbowio.colorwheel(int(i * 255 / NUM_PADS))) for i in range(NUM_PADS)]
+
+# --- Per-pad state -------------------------------------------------------------
+
+touches = [touchio.TouchIn(pin) for pin in PAD_PINS]
+# Each held pad stores a tuple of (voice_a, voice_b) - the two unison notes.
+active_voices = [None] * NUM_PADS
+
+# Give the touch pads a moment to calibrate against their resting state.
+time.sleep(0.5)
+
+# Shared pad-like envelope: slow swell in, gentle sustain, long release so
+# chords trail off nicely instead of cutting off abruptly.
+PAD_ENVELOPE = synthio.Envelope(
+    attack_time=0.08,
+    decay_time=0.15,
+    release_time=0.9,
+    attack_level=1.0,
+    sustain_level=0.75,
+)
+
+# A shared, slightly resonant low-pass for warmth/character on every voice.
+TONE_FILTER = synth.low_pass_filter(frequency=3200, Q=1.3)
+
+# Detune amount for the unison voice, in cents-ish (as an octave fraction).
+# 0.006 of an octave is roughly 7 cents - enough to sound lush/wide without
+# sounding "out of tune".
+DETUNE = 0.006
+
+
+def make_voice_pair(freq, vibrato_rate):
+    """Two detuned voices (unison) for one note, each with its own subtle
+    vibrato so the pair slowly drifts in and out of phase - this "chorus"
+    movement is a big part of what makes a pad sound alive rather than
+    static."""
+    vibrato_a = synthio.LFO(rate=vibrato_rate, scale=0.01)
+    vibrato_b = synthio.LFO(rate=vibrato_rate * 1.13, scale=0.01)
+
+    voice_a = synthio.Note(
+        frequency=freq,
+        waveform=WARM_WAVE,
+        envelope=PAD_ENVELOPE,
+        filter=TONE_FILTER,
+        amplitude=0.6,
+        panning=-0.35,
+        bend=vibrato_a,
+    )
+    voice_b = synthio.Note(
+        frequency=freq * (2 ** DETUNE),
+        waveform=WARM_WAVE,
+        envelope=PAD_ENVELOPE,
+        filter=TONE_FILTER,
+        amplitude=0.5,
+        panning=0.35,
+        bend=vibrato_b,
+    )
+    return voice_a, voice_b
+
+
+# --- Main loop -----------------------------------------------------------------
+
+while True:
+    pixels_changed = False
+
+    for i in range(NUM_PADS):
+        touched = touches[i].value
+        voices = active_voices[i]
+
+        if touched and voices is None:
+            # Slight per-pad variation in vibrato speed (4.5-6.5 Hz) so
+            # different notes don't all wobble in lockstep.
+            vibrato_rate = 4.5 + (i % 5) * 0.5
+            voices = make_voice_pair(FREQUENCIES[i], vibrato_rate)
+            synth.press(voices)
+            active_voices[i] = voices
+            pixels[i] = COLORS[i]
+            pixels_changed = True
+
+        elif not touched and voices is not None:
+            synth.release(voices)
+            active_voices[i] = None
+            pixels[i] = (0, 0, 0)
+            pixels_changed = True
+
+    if pixels_changed:
+        pixels.show()
+
+    time.sleep(0.01)  # ~100Hz poll rate, plenty responsive for touch
 `
             };
         }
