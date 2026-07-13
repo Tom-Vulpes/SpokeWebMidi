@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPOKE — Voice Grid Instrument</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0d0f;
+    --panel: #14171a;
+    --panel-2: #1b1f23;
+    --line: #262b30;
+    --text: #e8e6e1;
+    --text-dim: #8b9198;
+    --amber: #ff8a3d;
+    --amber-dim: #7a4423;
+    --cyan: #4fd1c5;
+    --red: #e5484d;
+    --green: #8bd17c;
+    --radius: 3px;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button{ font-family: inherit; }
+  ::selection{ background: var(--amber-dim); color: var(--text); }
+
+  :focus-visible{ outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* ---------- Layout ---------- */
+  .app{
+    display:flex;
+    flex-direction: column;
+    height:100vh;
+  }
+
+  header.top{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--panel), var(--bg));
+    flex-shrink:0;
+  }
+
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .brand .hub{
+    width:9px; height:9px; border-radius:50%;
+    background: var(--amber);
+    display:inline-block;
+    box-shadow: 0 0 8px var(--amber);
+  }
+  .brand h1{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size: 19px;
+    letter-spacing: 0.08em;
+    margin:0;
+  }
+  .brand .sub{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+  }
+
+  .status-row{ display:flex; gap:10px; }
+  .badge{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    display:flex; align-items:center; gap:6px;
+    background: var(--panel-2);
+  }
+  .badge .dot{ width:6px; height:6px; border-radius:50%; background: var(--text-dim); }
+  .badge.on .dot{ background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .badge.on{ color: var(--text); border-color: #2a3a2a; }
+  .badge.rec .dot{ background: var(--red); }
+  .badge.rec.on .dot{ animation: pulse 1s infinite; box-shadow: 0 0 6px var(--red); }
+
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+
+  .content{
+    flex:1;
+    display:flex;
+    min-height:0;
+  }
+
+  aside{
+    width: 360px;
+    flex-shrink:0;
+    border-right: 1px solid var(--line);
+    background: var(--panel);
+    overflow-y:auto;
+    padding: 18px;
+  }
+
+  main.stage{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding: 30px;
+    gap: 22px;
+    position:relative;
+    overflow:auto;
+  }
+
+  section.panel{
+    margin-bottom: 22px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  section.panel:last-child{ border-bottom:none; }
+
+  .panel h2{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 0 0 12px 0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel h2 .n{ color: var(--amber); }
+
+  .row{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .row.wrap{ flex-wrap:wrap; }
+  .row label{ font-size:12px; color: var(--text-dim); flex:1; }
+  .row select, .row input[type="number"]{
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: var(--radius);
+    flex: 1;
+    max-width: 150px;
+  }
+
+  .btn{
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    padding: 9px 14px;
+    border-radius: var(--radius);
+    cursor:pointer;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .btn:hover{ border-color: var(--amber); color: var(--amber); }
+  .btn:active{ transform: translateY(1px); }
+  .btn.primary{ background: var(--amber); border-color: var(--amber); color: #1a0f06; font-weight:600; }
+  .btn.primary:hover{ background: #ffa05f; color:#1a0f06; }
+  .btn.danger{ border-color: #4a2224; color: var(--red); }
+  .btn.danger:hover{ background: var(--red); color: #1a0708; }
+  .btn.block{ width:100%; }
+  .btn:disabled{ opacity:0.35; cursor:not-allowed; }
+  .btn:disabled:hover{ border-color: var(--line); color: var(--text); }
+
+  .btn-group{ display:flex; gap:8px; }
+  .btn-group .btn{ flex:1; }
+
+  input[type="range"]{
+    -webkit-appearance:none; appearance:none;
+    width:100%; height:3px; background: var(--line); border-radius:2px; outline:none;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
+    background: var(--amber); cursor:pointer; margin-top:-5px;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:13px; height:13px; border-radius:50%; background: var(--amber); border:none; cursor:pointer;
+  }
+
+  .val{ font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); min-width: 38px; text-align:right; }
+
+  canvas#waveform{
+    width:100%; height:56px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    display:block;
+  }
+
+  .timer{
+    font-family: var(--font-mono);
+    font-size: 22px;
+    color: var(--amber);
+    text-align:center;
+    margin: 8px 0;
+  }
+
+  .hint{
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height:1.5;
+    margin-top: 6px;
+  }
+
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .toggle-row label{ font-size:12px; color: var(--text); }
+  .switch{
+    position:relative; width:36px; height:20px; background: var(--panel-2);
+    border: 1px solid var(--line); border-radius:10px; cursor:pointer; flex-shrink:0;
+  }
+  .switch .knob{
+    position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%;
+    background: var(--text-dim); transition: transform .15s, background .15s;
+  }
+  .switch.on{ border-color: var(--amber); }
+  .switch.on .knob{ transform: translateX(16px); background: var(--amber); }
+
+  /* ---------- Grid stage ---------- */
+  .grid-wrap{
+    position:relative;
+    width: min(560px, 82vh, 88vw);
+    aspect-ratio: 1/1;
+  }
+
+  svg.spokes{
+    position:absolute; inset:0; width:100%; height:100%; pointer-events:none;
+  }
+  svg.spokes line{
+    stroke: var(--amber);
+    stroke-width: 1.4;
+    opacity: 0;
+    stroke-dasharray: 4 3;
+  }
+  svg.spokes line.firing{
+    opacity: 0.9;
+    transition: opacity .5s ease-out;
+  }
+  svg.spokes circle.hub{
+    fill: var(--amber);
+    opacity: 0.15;
+  }
+
+  .pad-grid{
+    position:relative;
+    width:100%; height:100%;
+    display:grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 6px;
+  }
+
+  .pad{
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    user-select:none;
+    position:relative;
+    transition: background .08s, border-color .08s, transform .05s;
+  }
+  .pad:hover{ border-color: #3a4046; }
+  .pad:active{ transform: scale(0.96); }
+  .pad .note{
+    font-family: var(--font-mono);
+    font-size: clamp(11px, 2vw, 14px);
+    color: var(--text-dim);
+  }
+  .pad .idx{
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: #4a5157;
+    position:absolute;
+    top:4px; left:6px;
+  }
+  .pad.learned{ border-color: #2a3a2a; }
+  .pad.learned::after{
+    content:'';
+    position:absolute; bottom:5px; right:6px;
+    width:5px; height:5px; border-radius:50%;
+    background: var(--green);
+  }
+  .pad.next-to-learn{ border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan) inset; }
+  .pad.next-to-learn .note{ color: var(--cyan); }
+  .pad.firing{
+    background: var(--amber);
+    border-color: var(--amber);
+  }
+  .pad.firing .note{ color: #1a0f06; font-weight:600; }
+
+  .stage-footer{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+
+  .log{
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-dim);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    height: 110px;
+    overflow-y:auto;
+    padding: 8px;
+    line-height:1.6;
+  }
+  .log div{ white-space: pre-wrap; word-break: break-word; }
+  .log div.warn{ color: var(--amber); }
+  .log div.ev{ color: var(--cyan); }
+
+  @media (max-width: 820px){
+    .content{ flex-direction:column; }
+    aside{ width:100%; border-right:none; border-bottom:1px solid var(--line); max-height:44vh; }
+    main.stage{ padding:18px; }
+  }
+
+  /* ---------- advanced disclosure ---------- */
+  details.adv{ border:none; }
+  details.adv summary{
+    list-style:none;
+    cursor:pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 4px 0;
+    display:flex; align-items:center; gap:6px;
+    user-select:none;
+  }
+  details.adv summary::-webkit-details-marker{ display:none; }
+  details.adv summary::before{
+    content:'›';
+    display:inline-block;
+    transition: transform .15s;
+    font-size:13px;
+  }
+  details.adv[open] summary::before{ transform: rotate(90deg); }
+  details.adv summary:hover{ color: var(--text); }
+  details.adv .adv-body{ padding-top: 12px; }
+
+  /* ---------- view states ---------- */
+  body.ui-clean header.top,
+  body.ui-clean aside,
+  body.ui-blank header.top,
+  body.ui-blank aside{
+    display:none;
+  }
+  body.ui-clean .content, body.ui-blank .content{ height:100vh; }
+  body.ui-clean main.stage, body.ui-blank main.stage{ padding:0; }
+  body.ui-clean .stage-footer, body.ui-blank .stage-footer{ display:none; }
+
+  /* in clean/blank the pad grid is replaced by the visualizer */
+  body.ui-clean .grid-wrap, body.ui-blank .grid-wrap{ display:none; }
+  body.ui-clean main.stage, body.ui-blank main.stage{ background:#000; }
+
+  canvas#visCanvas{
+    display:none;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+  }
+  body.ui-clean canvas#visCanvas, body.ui-blank canvas#visCanvas{ display:block; }
+
+  /* floating control pill — present in every view state */
+  .pill{
+    position: fixed;
+    bottom: 18px;
+    right: 18px;
+    display:flex;
+    gap: 2px;
+    background: rgba(20,23,26,0.7);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 4px;
+    backdrop-filter: blur(6px);
+    opacity: 0.4;
+    transition: opacity .2s;
+    z-index: 50;
+  }
+  .pill:hover, .pill:focus-within{ opacity: 1; }
+  .pill button{
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    cursor:pointer;
+    font-size: 15px;
+    display:flex; align-items:center; justify-content:center;
+    transition: background .15s, color .15s;
+  }
+  .pill button:hover{ background: var(--panel-2); color: var(--amber); }
+  .pill button.state-indicator{ font-family: var(--font-mono); font-size: 9px; width:auto; padding:0 10px; letter-spacing:0.06em; text-transform:uppercase; }
+
+  body.ui-blank .pill{ opacity: 0.12; }
+  body.ui-blank .pill:hover, body.ui-blank .pill:focus-within{ opacity: 1; }
+
+  /* ---------- on-screen instructions ---------- */
+  .instructions{
+    position:absolute;
+    left:50%;
+    bottom:9%;
+    transform:translateX(-50%);
+    max-width:640px;
+    width:86%;
+    text-align:center;
+    padding:0 20px;
+    pointer-events:none;
+    z-index: 10;
+    opacity:0;
+    visibility:hidden;
+    transition: opacity .8s ease;
+  }
+  .instructions.visible{ opacity:1; visibility:visible; }
+  .instructions .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+    opacity: 0.9;
+  }
+  .instructions h2{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size: clamp(19px, 3.2vw, 32px);
+    margin: 0 0 10px;
+    color: #fdfcfa;
+    text-shadow: 0 2px 24px rgba(0,0,0,0.7);
+    line-height:1.2;
+  }
+  .instructions p{
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    line-height:1.6;
+    margin:0;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.6);
+  }
+
+  /* ---------- splash + session-expired + recording overlays ---------- */
+  .splash, .expired-prompt, .recording-prompt{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding: 0 48px;
+    pointer-events:none;
+    z-index: 15;
+    opacity:0;
+    visibility:hidden;
+    transition: opacity .5s ease;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.15), rgba(0,0,0,0.7));
+  }
+  .splash.visible, .expired-prompt.visible, .recording-prompt.visible{ opacity:1; visibility:visible; }
+  .splash .eyebrow, .expired-prompt .eyebrow, .recording-prompt .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+  }
+  .splash h2, .expired-prompt h2, .recording-prompt h2{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size: clamp(22px, 4vw, 40px);
+    max-width: 780px;
+    color: #fdfcfa;
+    margin: 0 0 14px;
+    line-height:1.25;
+    text-shadow: 0 2px 30px rgba(0,0,0,0.7);
+  }
+  .splash p{
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: rgba(255,255,255,0.68);
+    max-width: 520px;
+    margin:0;
+  }
+  .expired-prompt .eyebrow{ color: var(--red); }
+  .expired-prompt.visible h2{ animation: promptPulse 1.8s ease-in-out infinite; }
+  @keyframes promptPulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.55; } }
+
+  .recording-prompt{ justify-content: flex-end; padding-bottom: 12%; }
+  .recording-prompt .eyebrow{ color: var(--red); }
+  .rec-dot{
+    width:9px; height:9px; border-radius:50%;
+    background: var(--red);
+    display:inline-block;
+    animation: recBlink 1s ease-in-out infinite;
+    box-shadow: 0 0 8px var(--red);
+  }
+  @keyframes recBlink{ 0%,100%{ opacity:1; } 50%{ opacity:0.25; } }
+
+
+  /* text form fields (instructions editor) */
+  textarea, input[type="text"]{
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    width: 100%;
+    resize: vertical;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <span class="hub"></span>
+      <h1>SPOKE</h1>
+      <span class="sub">VOICE&nbsp;GRID&nbsp;INSTRUMENT&nbsp;·&nbsp;5×5</span>
+    </div>
+    <div class="status-row">
+      <div class="badge rec" id="badgeRec"><span class="dot"></span>MIC</div>
+      <div class="badge" id="badgeMidi"><span class="dot"></span>MIDI</div>
+      <div class="badge" id="badgeAudio"><span class="dot"></span>AUDIO</div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <aside>
+
+      <!-- RECORDING -->
+      <section class="panel">
+        <h2><span class="n">01</span> Voice Source</h2>
+        <canvas id="waveform" width="600" height="112"></canvas>
+        <div class="timer" id="timer">0.0s</div>
+        <div class="btn-group">
+          <button class="btn primary block" id="btnRecord">Record</button>
+          <button class="btn block" id="btnPreview" disabled>Preview</button>
+          <button class="btn danger block" id="btnClear" disabled>Clear</button>
+        </div>
+        <div class="hint" style="margin-top:10px;">Each take is fixed at 3 seconds.</div>
+        <div class="row" style="margin-top:8px;">
+          <label for="baseNote">Recorded pitch =</label>
+          <select id="baseNote"></select>
+        </div>
+        <div class="toggle-row" style="margin-top:8px;">
+          <label>Trim to onset (auto-start on sound)</label>
+          <div class="switch on" id="toggleTrim"><div class="knob"></div></div>
+        </div>
+        <div class="hint">Tell it what note the voice was recorded at — every pad's pitch shift is calculated relative to this. Middle-ish speaking voice ≈ C3–C4.</div>
+      </section>
+
+      <!-- SCALE -->
+      <section class="panel">
+        <h2><span class="n">02</span> Melodic Scale</h2>
+
+        <button class="btn primary block" id="btnRandomise" style="margin-bottom:14px;">⟳ Randomise scale &amp; melody</button>
+
+        <div class="row">
+          <label for="scaleType">Scale</label>
+          <select id="scaleType">
+            <option value="major" selected>Major</option>
+            <option value="naturalMinor">Natural minor</option>
+            <option value="majorPentatonic">Major pentatonic</option>
+            <option value="minorPentatonic">Minor pentatonic</option>
+            <option value="blues">Blues</option>
+            <option value="dorian">Dorian</option>
+            <option value="mixolydian">Mixolydian</option>
+            <option value="wholeTone">Whole tone</option>
+            <option value="chromatic">Chromatic</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="rootPc">Root</label>
+          <select id="rootPc"></select>
+        </div>
+        <div class="row">
+          <label for="rootOct">Start octave</label>
+          <select id="rootOct"></select>
+        </div>
+        <div class="row">
+          <label for="orient">Pad 1 (top-left) is</label>
+          <select id="orient">
+            <option value="lowest" selected>Lowest note</option>
+            <option value="highest">Highest note</option>
+          </select>
+        </div>
+        <div class="toggle-row">
+          <label>Shuffle melody (off = ascending scale)</label>
+          <div class="switch" id="toggleShuffle"><div class="knob"></div></div>
+        </div>
+        <div class="hint" id="scaleSpan"></div>
+      </section>
+
+      <!-- MIDI -->
+      <section class="panel">
+        <h2><span class="n">03</span> SPOKE / MIDI Input</h2>
+        <div class="row">
+          <label for="midiDevice">Device</label>
+          <select id="midiDevice"><option>Requesting access…</option></select>
+        </div>
+        <div class="row">
+          <label for="midiChannel">Channel</label>
+          <select id="midiChannel"></select>
+        </div>
+
+        <div class="toggle-row">
+          <label>Hold mode (note-off stops voice)</label>
+          <div class="switch" id="toggleHold"><div class="knob"></div></div>
+        </div>
+
+        <div class="row">
+          <label for="randomiseNote">Randomise = MIDI note</label>
+          <input type="number" id="randomiseNote" min="0" max="127" value="36" style="max-width:90px;">
+        </div>
+        <div class="hint">Pads 1–25 use the SPOKE board's default note table (98, 96, 93 … down to 40). Touch sensor 27 triggers Randomise; sensor 26 isn't currently assigned. The log below shows every note the board sends, in case your unit differs.</div>
+      </section>
+
+      <!-- INSTRUCTIONS -->
+      <section class="panel">
+        <h2><span class="n">04</span> On-screen Instructions</h2>
+        <div class="row"><label for="instrTitleInput">Title</label></div>
+        <input type="text" id="instrTitleInput" value="Touch a panel to add your voice" style="margin-bottom:10px;">
+        <div class="row"><label for="instrBodyInput">Body</label></div>
+        <textarea id="instrBodyInput" rows="3">Your voice comes back as a note. Explore the grid to build a melody together.</textarea>
+        <div class="toggle-row" style="margin-top:12px;">
+          <label>Show in Clean view</label>
+          <div class="switch on" id="toggleInstructions"><div class="knob"></div></div>
+        </div>
+        <div class="hint">Instructions appear over the visualiser in Clean view, and are hidden in Blank view for a pure visual.</div>
+      </section>
+
+      <!-- SESSION -->
+      <section class="panel">
+        <h2><span class="n">05</span> Session</h2>
+        <div class="row">
+          <label for="masterVol">Master volume</label>
+          <input type="range" id="masterVol" min="0" max="1" step="0.01" value="0.85">
+        </div>
+        <div class="row">
+          <label for="sessionLength">Play time per recording</label>
+          <select id="sessionLength">
+            <option value="30">30s</option>
+            <option value="60">60s</option>
+            <option value="90" selected>90s</option>
+            <option value="120">120s</option>
+            <option value="180">180s</option>
+          </select>
+        </div>
+        <button class="btn danger block" id="btnPanic" style="margin-top:6px;">Panic — stop all voices</button>
+
+        <div class="hint" style="margin:16px 0 6px;">Splash message (shown before the first recording)</div>
+        <input type="text" id="splashMsgInput" value="Touch any pad to start recording a new clip" style="margin-bottom:10px;">
+        <div class="hint" style="margin:0 0 6px;">Recording message (shown while capturing a take)</div>
+        <input type="text" id="recordingMsgInput" value="Recording — sing now!" style="margin-bottom:10px;">
+        <div class="hint" style="margin:0 0 6px;">Timeout message (shown when time runs out)</div>
+        <input type="text" id="timeoutMsgInput" value="Touch any pad to record a new clip">
+
+        <details class="adv" style="margin-top:16px;">
+          <summary>Advanced</summary>
+          <div class="adv-body">
+            <div class="btn-group">
+              <button class="btn block" id="btnExport">Export config</button>
+              <button class="btn block" id="btnImport">Import config</button>
+            </div>
+            <input type="file" id="fileImport" accept="application/json" style="display:none;">
+            <div class="hint" style="margin:12px 0 6px;">Log</div>
+            <div class="log" id="log"></div>
+          </div>
+        </details>
+      </section>
+
+    </aside>
+
+    <main class="stage">
+      <div class="grid-wrap" id="gridWrap">
+        <svg class="spokes" id="spokes"></svg>
+        <div class="pad-grid" id="padGrid"></div>
+      </div>
+      <canvas id="visCanvas"></canvas>
+
+      <div class="splash" id="splash">
+        <div class="eyebrow">SPOKE</div>
+        <h2 id="splashMsg">Touch any pad to start recording a new clip</h2>
+        <p id="splashSub">You'll sing for 3 seconds, then have 90 seconds to play.</p>
+      </div>
+
+      <div class="recording-prompt" id="recordingPrompt">
+        <div class="eyebrow"><span class="rec-dot"></span>RECORDING</div>
+        <h2 id="recordingMsg">Recording — sing now!</h2>
+      </div>
+
+      <div class="expired-prompt" id="expiredPrompt">
+        <div class="eyebrow">TIME'S UP</div>
+        <h2 id="timeoutMsg">Touch any pad to record a new clip</h2>
+      </div>
+
+      <div class="instructions" id="instructions">
+        <div class="eyebrow">SPOKE</div>
+        <h2 id="instrTitle">Touch a panel to add your voice</h2>
+        <p id="instrBody">Your voice comes back as a note. Explore the grid to build a melody together.</p>
+      </div>
+      <div class="stage-footer">
+        <span class="hint">Click / tap a pad to test playback without the physical board connected.</span>
+      </div>
+    </main>
+
+  </div>
+
+  <div class="pill" id="pill">
+    <button id="btnPillRandomise" title="Randomise (R)">⟳</button>
+    <button id="btnPillView" class="state-indicator" title="Toggle interface (H)">Full</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ============ constants ============ */
+  const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const SCALE_STEPS = {
+    major: [0,2,4,5,7,9,11],
+    naturalMinor: [0,2,3,5,7,8,10],
+    majorPentatonic: [0,2,4,7,9],
+    minorPentatonic: [0,3,5,7,10],
+    blues: [0,3,5,6,7,10],
+    dorian: [0,2,3,5,7,9,10],
+    mixolydian: [0,2,4,5,7,9,10],
+    wholeTone: [0,2,4,6,8,10],
+    chromatic: [0,1,2,3,4,5,6,7,8,9,10,11]
+  };
+  const RANDOM_SCALE_POOL = ["major","naturalMinor","majorPentatonic","minorPentatonic","blues","dorian","mixolydian","wholeTone"];
+  const MAX_VOICES = 16;
+  const PAD_COUNT = 25;
+
+  /* ============ state ============ */
+  let audioCtx = null;
+  let masterGain = null;
+  let recordingBuffer = null;
+  let mediaRecorder = null;
+  let mediaStream = null;
+  let recordedChunks = [];
+  let recordStartTime = 0;
+  let recordTimerHandle = null;
+  const maxRecordMs = 3000; // every take is a fixed 3-second clip
+  let baseNoteMidi = 48; // C3
+  let trimEnabled = true;
+
+  let scaleNotes = []; // 25 target MIDI notes, index = pad index (visual order)
+
+  // the SPOKE board's default firmware sends this fixed, non-sequential note
+  // per touch sensor — index 0-24 are the 25 grid pads, index 25 (sensor 26)
+  // is currently unused, index 26 (sensor 27) is the randomise trigger
+  const SPOKE_DEFAULT_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36];
+  let padNoteTable = SPOKE_DEFAULT_NOTES.slice(0, PAD_COUNT);
+  let padNoteToIndex = new Map(padNoteTable.map((note, i) => [note, i]));
+
+  let midiAccess = null;
+  let midiChannelFilter = "any";
+  let holdMode = false;
+  let randomiseNote = SPOKE_DEFAULT_NOTES[26]; // touch sensor 27
+
+  let shuffleMelody = false;
+  const VIEW_STATES = ["full", "clean", "blank"];
+  const VIEW_LABELS = { full: "Full", clean: "Clean", blank: "Blank" };
+  let viewState = "full";
+
+  let activeVoiceCount = 0;
+  let activeHoldVoices = new Map(); // midi note -> {src, gain}
+  let voiceOrder = []; // for voice stealing
+
+  // visualizer
+  let analyser = null;
+  let analyserBuffer = null;
+  let recordAnalyser = null;
+  let recordAnalyserBuffer = null;
+  let isRecording = false;
+  let visCtx = null;
+  const VIS_ROWS = 16;
+  const SAMPLES_PER_ROW = 48;
+  function blankRow(){ return { data: new Float32Array(SAMPLES_PER_ROW), wave: false, huePhase: 0 }; }
+  let ridgeHistory = Array.from({length: VIS_ROWS}, blankRow);
+  let rowInsertCounter = 0;
+  let visFrame = 0;
+  let instructionsEnabled = true;
+  const WAVE_THICKNESS = 3; // rows a single trigger burst occupies
+
+  // participant session timer
+  let SESSION_DURATION = 90;
+  let sessionSecondsLeft = SESSION_DURATION;
+  let sessionTimerHandle = null;
+  let sessionExpired = false;
+
+  const els = {};
+
+  /* ============ helpers ============ */
+  function $(id){ return document.getElementById(id); }
+
+  function log(msg, cls){
+    const line = document.createElement("div");
+    if(cls) line.className = cls;
+    const t = new Date().toLocaleTimeString([], {hour12:false});
+    line.textContent = `[${t}] ${msg}`;
+    els.log.appendChild(line);
+    els.log.scrollTop = els.log.scrollHeight;
+    while(els.log.children.length > 200) els.log.removeChild(els.log.firstChild);
+  }
+
+  function noteName(midi){
+    const pc = ((midi % 12) + 12) % 12;
+    const oct = Math.floor(midi / 12) - 1;
+    return NOTE_NAMES[pc] + oct;
+  }
+
+  function ensureAudioCtx(){
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = parseFloat(els.masterVol.value);
+      masterGain.connect(audioCtx.destination);
+
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.6;
+      analyserBuffer = new Uint8Array(analyser.fftSize);
+      masterGain.connect(analyser);
+
+      setBadge(els.badgeAudio, true);
+    }
+    if(audioCtx.state === "suspended") audioCtx.resume();
+  }
+
+  function setBadge(el, on){
+    el.classList.toggle("on", !!on);
+  }
+
+  /* ============ visualizer — scrolling ridge scope ============ */
+  function resizeVisCanvas(){
+    if(!els.visCanvas) return;
+    const rect = els.visCanvas.getBoundingClientRect();
+    if(rect.width === 0 || rect.height === 0) return;
+    const dpr = window.devicePixelRatio || 1;
+    els.visCanvas.width = rect.width * dpr;
+    els.visCanvas.height = rect.height * dpr;
+    visCtx = els.visCanvas.getContext("2d");
+    visCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // quiet ambient backdrop, sampled continuously from whatever is currently playing
+  function pushAmbientRow(){
+    const row = new Float32Array(SAMPLES_PER_ROW);
+    if(analyser){
+      analyser.getByteTimeDomainData(analyserBuffer);
+      const step = Math.max(1, Math.floor(analyserBuffer.length / SAMPLES_PER_ROW));
+      for(let i = 0; i < SAMPLES_PER_ROW; i++){
+        row[i] = (analyserBuffer[i * step] - 128) / 128;
+      }
+    }
+    ridgeHistory.unshift({ data: row, wave: false, huePhase: 0 });
+    ridgeHistory.pop();
+  }
+
+  // downsample the actual recorded clip's own waveform — this is the shape
+  // that gets pushed through as a dramatic rainbow wave whenever a pad fires
+  function sampleClipWaveform(buffer, samples){
+    const data = buffer.getChannelData(0);
+    const out = new Float32Array(samples);
+    const step = data.length / samples;
+    for(let i = 0; i < samples; i++){
+      out[i] = data[Math.min(data.length - 1, Math.floor(i * step))];
+    }
+    return out;
+  }
+
+  // fire a bright rainbow ridge — built from the recording's own waveform —
+  // that sweeps back through the whole ridge stack over the next couple of seconds
+  function triggerWave(buffer, midiNote){
+    if(!buffer) return;
+    const shape = sampleClipWaveform(buffer, SAMPLES_PER_ROW);
+    const huePhase = ((((midiNote % 12) + 12) % 12) / 12) * 360;
+    for(let k = 0; k < WAVE_THICKNESS; k++){
+      const eased = shape.map(v => v * (1 - k * 0.06)); // slight taper through the burst
+      ridgeHistory.unshift({ data: eased, wave: true, huePhase: huePhase + k * 10 });
+      ridgeHistory.pop();
+    }
+  }
+
+  function renderRidges(){
+    if(!visCtx || !els.visCanvas) return;
+    const rect = els.visCanvas.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    if(w === 0 || h === 0) return;
+
+    if(isRecording){
+      renderLiveWaveform(w, h);
+      return;
+    }
+
+    visCtx.fillStyle = "#000";
+    visCtx.fillRect(0, 0, w, h);
+
+    const topMargin = h * 0.06;
+    const bottomMargin = h * 0.05;
+    const usableH = h - topMargin - bottomMargin;
+    const rowSpacing = usableH / (VIS_ROWS - 1);
+    const ambientAmp = rowSpacing * 3.2;
+    const waveAmp = rowSpacing * 5.4;
+
+    for(let r = VIS_ROWS - 1; r >= 0; r--){
+      const row = ridgeHistory[r];
+      const data = row.data;
+      // r=0 is the newest data — draw it nearest the bottom, drawn LAST in this
+      // loop, so its (smaller) occluding fill can't wipe out the older rows
+      // stacked above it. Getting this the other way round is what previously
+      // collapsed the whole scene down to a single line pinned at the top.
+      const depth = VIS_ROWS - 1 - r;
+      const baseline = topMargin + depth * rowSpacing;
+      const closeness = 1 - r / VIS_ROWS; // 0 = far/back, 1 = near/front
+      const ampScale = row.wave ? waveAmp : ambientAmp;
+
+      const pathAt = (i) => {
+        const x = (i / (SAMPLES_PER_ROW - 1)) * w;
+        const y = baseline - data[i] * ampScale;
+        return [x, y];
+      };
+
+      // occlude whatever is behind this ridge — solid black fill down to canvas bottom
+      visCtx.beginPath();
+      for(let i = 0; i < SAMPLES_PER_ROW; i++){
+        const [x, y] = pathAt(i);
+        if(i === 0) visCtx.moveTo(x, y); else visCtx.lineTo(x, y);
+      }
+      visCtx.lineTo(w, h);
+      visCtx.lineTo(0, h);
+      visCtx.closePath();
+      visCtx.fillStyle = "#000";
+      visCtx.fill();
+
+      // stroke the ridge — ambient rows get a gentle depth-based tint,
+      // trigger waves get a full saturated rainbow sweep across the row
+      visCtx.beginPath();
+      for(let i = 0; i < SAMPLES_PER_ROW; i++){
+        const [x, y] = pathAt(i);
+        if(i === 0) visCtx.moveTo(x, y); else visCtx.lineTo(x, y);
+      }
+
+      if(row.wave){
+        const gradient = visCtx.createLinearGradient(0, 0, w, 0);
+        const stops = 8;
+        for(let s = 0; s <= stops; s++){
+          const hue = (row.huePhase + (s / stops) * 300) % 360;
+          gradient.addColorStop(s / stops, `hsl(${hue.toFixed(0)}, 95%, ${58 + closeness * 12}%)`);
+        }
+        visCtx.strokeStyle = gradient;
+        visCtx.lineWidth = 2.4 + closeness * 2.2;
+        visCtx.shadowColor = `hsl(${row.huePhase.toFixed(0)}, 95%, 60%)`;
+        visCtx.shadowBlur = 16 + closeness * 14;
+      } else {
+        const hue = (r * 3.4 + visFrame * 0.3) % 360;
+        const light = 30 + closeness * 22;
+        const sat = 35 + closeness * 15;
+        visCtx.strokeStyle = `hsl(${hue.toFixed(1)}, ${sat.toFixed(0)}%, ${light.toFixed(0)}%)`;
+        visCtx.lineWidth = 1.2 + closeness * 1.1;
+        visCtx.shadowColor = visCtx.strokeStyle;
+        visCtx.shadowBlur = 3 * closeness;
+      }
+      visCtx.stroke();
+    }
+    visCtx.shadowBlur = 0;
+    drawCountdown(w, h);
+  }
+
+  // a single bold, centered scope of the mic input — shown only while a
+  // take is actively being captured, distinct from the ambient playback ridges
+  function renderLiveWaveform(w, h){
+    visCtx.fillStyle = "#000";
+    visCtx.fillRect(0, 0, w, h);
+    if(!recordAnalyser) return;
+
+    recordAnalyser.getByteTimeDomainData(recordAnalyserBuffer);
+    const n = recordAnalyserBuffer.length;
+    const points = 120;
+    const step = Math.max(1, Math.floor(n / points));
+    const midY = h * 0.46;
+    const amp = h * 0.3;
+
+    visCtx.beginPath();
+    let plotted = 0;
+    for(let i = 0; i < n; i += step){
+      const v = (recordAnalyserBuffer[i] - 128) / 128;
+      const x = (plotted / (points - 1)) * w;
+      const y = midY - v * amp;
+      if(plotted === 0) visCtx.moveTo(x, y); else visCtx.lineTo(x, y);
+      plotted++;
+    }
+    visCtx.strokeStyle = "hsl(358, 88%, 62%)";
+    visCtx.lineWidth = 3;
+    visCtx.shadowColor = "hsl(358, 88%, 55%)";
+    visCtx.shadowBlur = 20;
+    visCtx.stroke();
+    visCtx.shadowBlur = 0;
+
+    // recording progress bar — same position/style language as the session
+    // countdown, but red, so it reads as a distinct "capturing" state
+    const elapsed = performance.now() - recordStartTime;
+    const pct = Math.max(0, Math.min(1, elapsed / maxRecordMs));
+    const barW = w * 0.3;
+    const barH = 4;
+    const x = (w - barW) / 2;
+    const y = h * 0.62;
+    visCtx.fillStyle = "rgba(255,255,255,0.1)";
+    visCtx.fillRect(x, y, barW, barH);
+    visCtx.fillStyle = "hsl(358, 88%, 58%)";
+    visCtx.fillRect(x, y, barW * pct, barH);
+  }
+
+  function visualizerLoop(){
+    requestAnimationFrame(visualizerLoop);
+    if(viewState === "full") return; // don't waste cycles when hidden
+    if(!isRecording){
+      rowInsertCounter++;
+      if(rowInsertCounter >= 5){
+        rowInsertCounter = 0;
+        pushAmbientRow();
+      }
+    }
+    renderRidges();
+    visFrame++;
+  }
+
+  /* ============ on-screen instructions / splash / session state ============ */
+  function updateInstructionsVisibility(){
+    updateStageOverlays();
+  }
+
+  function updateStageOverlays(){
+    const hasRecording = !!recordingBuffer;
+    const visible = viewState !== "full";
+    const showRecording = isRecording && visible;
+    const showSplash = !hasRecording && !isRecording && visible;
+    const showExpired = hasRecording && sessionExpired && !isRecording && visible;
+    const showInstructions = hasRecording && !sessionExpired && !isRecording && viewState === "clean" && instructionsEnabled;
+
+    if(els.recordingPrompt) els.recordingPrompt.classList.toggle("visible", showRecording);
+    if(els.splash) els.splash.classList.toggle("visible", showSplash);
+    if(els.expiredPrompt) els.expiredPrompt.classList.toggle("visible", showExpired);
+    if(els.instructions) els.instructions.classList.toggle("visible", showInstructions);
+  }
+
+  /* ============ participant session timer ============ */
+  function startSession(){
+    clearInterval(sessionTimerHandle);
+    sessionExpired = false;
+    sessionSecondsLeft = SESSION_DURATION;
+    sessionTimerHandle = setInterval(tickSession, 1000);
+    updateStageOverlays();
+  }
+
+  function tickSession(){
+    sessionSecondsLeft--;
+    if(sessionSecondsLeft <= 0){
+      sessionSecondsLeft = 0;
+      expireSession();
+    }
+  }
+
+  function expireSession(){
+    clearInterval(sessionTimerHandle);
+    sessionExpired = true;
+    updateStageOverlays();
+    log("Session time's up — waiting for a new recording.", "warn");
+  }
+
+  function resetSession(){
+    clearInterval(sessionTimerHandle);
+    sessionExpired = false;
+    sessionSecondsLeft = SESSION_DURATION;
+    updateStageOverlays();
+  }
+
+  function drawCountdown(w, h){
+    if(!recordingBuffer || sessionExpired) return;
+    const pct = Math.max(0, Math.min(1, sessionSecondsLeft / SESSION_DURATION));
+    const barW = w * 0.3;
+    const barH = 3;
+    const x = (w - barW) / 2;
+    const y = h * 0.055;
+
+    visCtx.fillStyle = "rgba(255,255,255,0.1)";
+    visCtx.fillRect(x, y, barW, barH);
+
+    const hue = 190 * pct; // cyan when fresh, drifts to red as time runs low
+    visCtx.fillStyle = `hsl(${hue.toFixed(0)}, 75%, 58%)`;
+    visCtx.fillRect(x, y, barW * pct, barH);
+
+    if(sessionSecondsLeft <= 10){
+      visCtx.font = '600 13px "IBM Plex Mono", monospace';
+      visCtx.textAlign = "center";
+      visCtx.fillStyle = "rgba(255,255,255,0.6)";
+      visCtx.fillText(String(sessionSecondsLeft), w / 2, y + barH + 20);
+      visCtx.textAlign = "left";
+    }
+  }
+
+  /* ============ scale generation ============ */
+  function shuffleArray(arr){
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function generateScale(){
+    const type = els.scaleType.value;
+    const steps = SCALE_STEPS[type];
+    const rootPc = parseInt(els.rootPc.value, 10);
+    const rootOct = parseInt(els.rootOct.value, 10);
+    const rootMidi = (rootOct + 1) * 12 + rootPc;
+
+    let notes = [];
+    let i = 0, octave = 0;
+    while(notes.length < PAD_COUNT){
+      const stepIdx = i % steps.length;
+      if(stepIdx === 0 && i !== 0) octave++;
+      notes.push(rootMidi + steps[stepIdx] + 12 * octave);
+      i++;
+    }
+
+    if(shuffleMelody){
+      notes = shuffleArray(notes);
+    } else if(els.orient.value === "highest"){
+      notes.reverse();
+    }
+    scaleNotes = notes;
+
+    // update pad labels
+    document.querySelectorAll(".pad").forEach((pad, idx) => {
+      pad.querySelector(".note").textContent = noteName(scaleNotes[idx]);
+    });
+
+    const lo = Math.min(...scaleNotes), hi = Math.max(...scaleNotes);
+    const span = shuffleMelody
+      ? `${noteName(lo)}–${noteName(hi)}  ·  ${type}  ·  shuffled`
+      : `${noteName(scaleNotes[0])} → ${noteName(scaleNotes[scaleNotes.length-1])}  ·  ${type}`;
+    els.scaleSpan.textContent = span;
+  }
+
+  function randomizeScale(){
+    const type = RANDOM_SCALE_POOL[Math.floor(Math.random() * RANDOM_SCALE_POOL.length)];
+    els.scaleType.value = type;
+    els.rootPc.value = String(Math.floor(Math.random() * 12));
+    els.rootOct.value = String([2,3,4][Math.floor(Math.random() * 3)]);
+    shuffleMelody = true;
+    els.toggleShuffle.classList.add("on");
+    generateScale();
+    log(`Randomised — ${type}, root ${NOTE_NAMES[parseInt(els.rootPc.value,10)]}, shuffled melody`, "ev");
+    rippleFeedback();
+  }
+
+  function rippleFeedback(){
+    for(let i = 0; i < PAD_COUNT; i++){
+      setTimeout(() => {
+        pulseSpoke(i);
+        if(viewState !== "blank") flashPad(i);
+      }, i * 14);
+    }
+  }
+
+  /* ============ grid build ============ */
+  function buildGrid(){
+    els.padGrid.innerHTML = "";
+    for(let i = 0; i < PAD_COUNT; i++){
+      const pad = document.createElement("div");
+      pad.className = "pad";
+      pad.dataset.index = i;
+      pad.innerHTML = `<span class="idx">${i+1}</span><span class="note">–</span>`;
+      pad.addEventListener("pointerdown", () => onPadClicked(i));
+      els.padGrid.appendChild(pad);
+    }
+    buildSpokes();
+  }
+
+  function buildSpokes(){
+    const svg = els.spokes;
+    svg.innerHTML = "";
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("preserveAspectRatio", "none");
+
+    const hub = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    hub.setAttribute("cx", "50"); hub.setAttribute("cy", "50"); hub.setAttribute("r", "2.2");
+    hub.setAttribute("class", "hub");
+    svg.appendChild(hub);
+
+    for(let i = 0; i < PAD_COUNT; i++){
+      const row = Math.floor(i / 5), col = i % 5;
+      const cx = (col + 0.5) / 5 * 100;
+      const cy = (row + 0.5) / 5 * 100;
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", "50"); line.setAttribute("y1", "50");
+      line.setAttribute("x2", cx.toFixed(2)); line.setAttribute("y2", cy.toFixed(2));
+      line.dataset.index = i;
+      svg.appendChild(line);
+    }
+  }
+
+  function pulseSpoke(index){
+    const line = els.spokes.querySelector(`line[data-index="${index}"]`);
+    if(!line) return;
+    line.classList.remove("firing");
+    void line.offsetWidth; // restart animation
+    line.classList.add("firing");
+    setTimeout(() => line.classList.remove("firing"), 480);
+  }
+
+  function flashPad(index){
+    const pad = els.padGrid.children[index];
+    if(!pad) return;
+    pad.classList.add("firing");
+    setTimeout(() => pad.classList.remove("firing"), 160);
+  }
+
+  /* ============ playback ============ */
+  function triggerPad(index, velocity = 100, holdNote = null){
+    if(viewState !== "full" && (!recordingBuffer || sessionExpired)){
+      if(!(mediaRecorder && mediaRecorder.state === "recording")){
+        ensureAudioCtx();
+        log("Pad touched — starting a new 3s recording.", "ev");
+        startRecording();
+      }
+      return;
+    }
+    if(!recordingBuffer){
+      log("No recording loaded — record a voice clip first.", "warn");
+      return;
+    }
+    ensureAudioCtx();
+
+    const targetMidi = scaleNotes[index];
+    const rate = Math.pow(2, (targetMidi - baseNoteMidi) / 12);
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = recordingBuffer;
+    src.playbackRate.value = rate;
+
+    const gain = audioCtx.createGain();
+    const velGain = Math.max(0.25, Math.min(1, velocity / 127));
+    gain.gain.value = velGain;
+
+    src.connect(gain).connect(masterGain);
+
+    // simple voice stealing
+    voiceOrder.push({src, gain});
+    activeVoiceCount++;
+    if(voiceOrder.length > MAX_VOICES){
+      const old = voiceOrder.shift();
+      try{ old.gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.01); old.src.stop(audioCtx.currentTime + 0.03); }catch(e){}
+    }
+
+    src.start();
+    src.onended = () => {
+      activeVoiceCount = Math.max(0, activeVoiceCount - 1);
+      voiceOrder = voiceOrder.filter(v => v.src !== src);
+    };
+
+    if(holdMode && holdNote !== null){
+      activeHoldVoices.set(holdNote, {src, gain});
+    }
+
+    flashPad(index);
+    pulseSpoke(index);
+    triggerWave(recordingBuffer, targetMidi);
+  }
+
+  function releaseHoldNote(note){
+    const v = activeHoldVoices.get(note);
+    if(!v) return;
+    const now = audioCtx.currentTime;
+    v.gain.gain.setTargetAtTime(0, now, 0.03);
+    try{ v.src.stop(now + 0.08); }catch(e){}
+    activeHoldVoices.delete(note);
+  }
+
+  function panic(){
+    voiceOrder.forEach(v => {
+      try{ v.gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.01); v.src.stop(audioCtx.currentTime + 0.03); }catch(e){}
+    });
+    voiceOrder = [];
+    activeHoldVoices.clear();
+    activeVoiceCount = 0;
+    log("Panic — all voices stopped.", "warn");
+  }
+
+  function onPadClicked(index){
+    triggerPad(index, 100);
+  }
+
+  /* ============ MIDI I/O ============ */
+  function setupMIDI(){
+    if(!navigator.requestMIDIAccess){
+      els.midiDevice.innerHTML = "<option>Web MIDI not supported in this browser</option>";
+      log("Web MIDI API not available — use Chrome/Edge over HTTPS or localhost.", "warn");
+      return;
+    }
+    navigator.requestMIDIAccess({ sysex: false }).then(access => {
+      midiAccess = access;
+      populateMidiDevices();
+      access.onstatechange = populateMidiDevices;
+    }).catch(err => {
+      log("MIDI access denied: " + err.message, "warn");
+    });
+  }
+
+  function populateMidiDevices(){
+    const inputs = Array.from(midiAccess.inputs.values());
+    els.midiDevice.innerHTML = "";
+    if(inputs.length === 0){
+      els.midiDevice.innerHTML = "<option>No MIDI devices found</option>";
+      setBadge(els.badgeMidi, false);
+      return;
+    }
+    inputs.forEach((input, i) => {
+      const opt = document.createElement("option");
+      opt.value = input.id;
+      opt.textContent = input.name || `Input ${i+1}`;
+      els.midiDevice.appendChild(opt);
+    });
+    attachMidiListener(inputs[0].id);
+    els.midiDevice.onchange = () => attachMidiListener(els.midiDevice.value);
+  }
+
+  function attachMidiListener(id){
+    if(!midiAccess) return;
+    midiAccess.inputs.forEach(input => { input.onmidimessage = null; });
+    const input = midiAccess.inputs.get(id);
+    if(!input) return;
+    input.onmidimessage = onMidiMessage;
+    setBadge(els.badgeMidi, true);
+    log(`Listening on "${input.name}"`, "ev");
+  }
+
+  // the SPOKE board's default firmware sends a fixed, non-sequential note per
+  // touch sensor (see SPOKE_DEFAULT_NOTES above) — no calibration step needed.
+  function onMidiMessage(event){
+    const [statusByte, note, velocity] = event.data;
+    const cmd = statusByte >> 4;
+    const channel = (statusByte & 0x0f) + 1;
+
+    if(midiChannelFilter !== "any" && parseInt(midiChannelFilter, 10) !== channel) return;
+
+    const isNoteOn = cmd === 9 && velocity > 0;
+    const isNoteOff = cmd === 8 || (cmd === 9 && velocity === 0);
+
+    if(isNoteOn){
+      if(note === randomiseNote){
+        randomizeScale();
+        return;
+      }
+      if(note === SPOKE_DEFAULT_NOTES[25]){
+        log(`Note ${note} received — touch sensor 26 isn't assigned to anything yet.`, "warn");
+        return;
+      }
+      const padIndex = padNoteToIndex.get(note);
+      if(padIndex === undefined){
+        log(`Note ${note} received — doesn't match any known SPOKE sensor.`, "warn");
+        return;
+      }
+      triggerPad(padIndex, velocity, holdMode ? note : null);
+    } else if(isNoteOff){
+      if(holdMode) releaseHoldNote(note);
+    }
+  }
+
+  /* ============ recording ============ */
+  async function ensureMicStream(){
+    if(mediaStream && mediaStream.active) return mediaStream;
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // tap the raw mic input into its own analyser (never connected to
+    // destination) so we can draw a live "what's being captured" waveform
+    const micSource = audioCtx.createMediaStreamSource(mediaStream);
+    recordAnalyser = audioCtx.createAnalyser();
+    recordAnalyser.fftSize = 1024;
+    recordAnalyserBuffer = new Uint8Array(recordAnalyser.fftSize);
+    micSource.connect(recordAnalyser);
+    return mediaStream;
+  }
+
+  async function startRecording(){
+    try{
+      ensureAudioCtx();
+      const stream = await ensureMicStream();
+      setBadge(els.badgeRec, true);
+      recordedChunks = [];
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : (MediaRecorder.isTypeSupported("audio/ogg") ? "audio/ogg" : "");
+      mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      mediaRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
+      mediaRecorder.onstop = onRecordingStop;
+      mediaRecorder.start();
+      recordStartTime = performance.now();
+      isRecording = true;
+      updateStageOverlays();
+      els.btnRecord.textContent = "Stop";
+      els.btnRecord.classList.remove("primary");
+      els.btnRecord.classList.add("danger");
+      els.btnPreview.disabled = true;
+      els.btnClear.disabled = true;
+      tickTimer();
+      log("Recording…", "ev");
+    }catch(err){
+      log("Microphone access failed: " + err.message, "warn");
+    }
+  }
+
+  function tickTimer(){
+    const elapsed = (performance.now() - recordStartTime);
+    els.timer.textContent = (elapsed/1000).toFixed(1) + "s";
+    if(elapsed >= maxRecordMs){
+      stopRecording();
+      return;
+    }
+    if(mediaRecorder && mediaRecorder.state === "recording"){
+      recordTimerHandle = requestAnimationFrame(tickTimer);
+    }
+  }
+
+  function stopRecording(){
+    if(mediaRecorder && mediaRecorder.state === "recording"){
+      mediaRecorder.stop();
+    }
+    // deliberately NOT stopping mediaStream's tracks here — keeping the mic
+    // stream alive means the browser only ever asks for permission once,
+    // instead of re-prompting on every single take
+    cancelAnimationFrame(recordTimerHandle);
+    isRecording = false;
+    updateStageOverlays();
+    setBadge(els.badgeRec, false);
+    els.btnRecord.textContent = "Record";
+    els.btnRecord.classList.add("primary");
+    els.btnRecord.classList.remove("danger");
+  }
+
+  // finds where the sound actually starts and cuts the dead air before it,
+  // keeping a short pre-roll so the attack of the voice isn't clipped off
+  function trimToOnset(buffer, thresholdRatio = 0.09, preRollMs = 25){
+    const numCh = buffer.numberOfChannels;
+    const len = buffer.length;
+    const sr = buffer.sampleRate;
+    const channelData = [];
+    let peak = 0;
+    for(let c = 0; c < numCh; c++){
+      const data = buffer.getChannelData(c);
+      channelData.push(data);
+      for(let i = 0; i < len; i++){
+        const a = Math.abs(data[i]);
+        if(a > peak) peak = a;
+      }
+    }
+    if(peak < 0.005){
+      log("Recording is very quiet — skipped auto-trim.", "warn");
+      return buffer;
+    }
+    const threshold = peak * thresholdRatio;
+
+    let onset = -1;
+    for(let i = 0; i < len; i++){
+      let loud = false;
+      for(let c = 0; c < numCh; c++){
+        if(Math.abs(channelData[c][i]) >= threshold){ loud = true; break; }
+      }
+      if(loud){ onset = i; break; }
+    }
+    if(onset <= 0) return buffer; // already starts at the sound, or nothing found
+
+    const preRollSamples = Math.round((preRollMs / 1000) * sr);
+    const start = Math.max(0, onset - preRollSamples);
+    if(start === 0) return buffer;
+
+    const newLen = len - start;
+    const trimmed = audioCtx.createBuffer(numCh, newLen, sr);
+    for(let c = 0; c < numCh; c++){
+      trimmed.getChannelData(c).set(channelData[c].subarray(start));
+    }
+    log(`Trimmed ${(start / sr).toFixed(2)}s of lead-in silence.`, "ev");
+    return trimmed;
+  }
+
+  async function onRecordingStop(){
+    const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+    const arrayBuffer = await blob.arrayBuffer();
+    try{
+      let decoded = await audioCtx.decodeAudioData(arrayBuffer);
+      if(trimEnabled) decoded = trimToOnset(decoded);
+      recordingBuffer = decoded;
+      els.btnPreview.disabled = false;
+      els.btnClear.disabled = false;
+      drawWaveform(recordingBuffer);
+      log(`Recording captured — ${recordingBuffer.duration.toFixed(2)}s`, "ev");
+      startSession();
+    }catch(err){
+      log("Could not decode recording: " + err.message, "warn");
+    }
+  }
+
+  function previewRecording(){
+    if(!recordingBuffer) return;
+    ensureAudioCtx();
+    const src = audioCtx.createBufferSource();
+    src.buffer = recordingBuffer;
+    src.connect(masterGain);
+    src.start();
+  }
+
+  function clearRecording(){
+    recordingBuffer = null;
+    els.btnPreview.disabled = true;
+    els.btnClear.disabled = true;
+    els.timer.textContent = "0.0s";
+    drawWaveform(null);
+    resetSession();
+    updateStageOverlays();
+    log("Recording cleared.");
+  }
+
+  function drawWaveform(buffer){
+    const canvas = els.waveform;
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = "#262b30";
+    ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+    if(!buffer) return;
+    const data = buffer.getChannelData(0);
+    const step = Math.ceil(data.length / w);
+    ctx.strokeStyle = "#ff8a3d";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for(let x = 0; x < w; x++){
+      let min = 1.0, max = -1.0;
+      for(let j = 0; j < step; j++){
+        const idx = x * step + j;
+        if(idx >= data.length) break;
+        const v = data[idx];
+        if(v < min) min = v;
+        if(v > max) max = v;
+      }
+      ctx.moveTo(x, (1 + min) * h/2);
+      ctx.lineTo(x, (1 + max) * h/2);
+    }
+    ctx.stroke();
+  }
+
+  /* ============ config export / import ============ */
+  function exportConfig(){
+    const config = {
+      version: 4,
+      baseNoteMidi,
+      scaleType: els.scaleType.value,
+      rootPc: els.rootPc.value,
+      rootOct: els.rootOct.value,
+      orient: els.orient.value,
+      shuffleMelody,
+      midiChannel: els.midiChannel.value,
+      holdMode,
+      randomiseNote,
+      instrTitle: els.instrTitleInput.value,
+      instrBody: els.instrBodyInput.value,
+      instructionsEnabled,
+      sessionLength: SESSION_DURATION,
+      splashMsg: els.splashMsgInput.value,
+      recordingMsg: els.recordingMsgInput.value,
+      timeoutMsg: els.timeoutMsgInput.value,
+      trimEnabled
+    };
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "spoke-config.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    log("Config exported.");
+  }
+
+  function importConfig(file){
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const config = JSON.parse(reader.result);
+        els.baseNote.value = config.baseNoteMidi;
+        baseNoteMidi = config.baseNoteMidi;
+        els.scaleType.value = config.scaleType;
+        els.rootPc.value = config.rootPc;
+        els.rootOct.value = config.rootOct;
+        els.orient.value = config.orient;
+        shuffleMelody = !!config.shuffleMelody;
+        els.toggleShuffle.classList.toggle("on", shuffleMelody);
+        els.midiChannel.value = config.midiChannel || "any";
+        midiChannelFilter = els.midiChannel.value;
+        holdMode = !!config.holdMode;
+        els.toggleHold.classList.toggle("on", holdMode);
+
+        if(config.randomiseNote !== undefined){
+          randomiseNote = parseInt(config.randomiseNote, 10);
+          els.randomiseNote.value = randomiseNote;
+        }
+
+        if(config.instrTitle !== undefined){
+          els.instrTitleInput.value = config.instrTitle;
+          els.instrTitle.textContent = config.instrTitle;
+        }
+        if(config.instrBody !== undefined){
+          els.instrBodyInput.value = config.instrBody;
+          els.instrBody.textContent = config.instrBody;
+        }
+        if(config.instructionsEnabled !== undefined){
+          instructionsEnabled = !!config.instructionsEnabled;
+          els.toggleInstructions.classList.toggle("on", instructionsEnabled);
+        }
+        if(config.sessionLength !== undefined){
+          SESSION_DURATION = parseInt(config.sessionLength, 10);
+          els.sessionLength.value = String(SESSION_DURATION);
+          els.splashSub.textContent = `You'll sing for 3 seconds, then have ${SESSION_DURATION} seconds to play.`;
+        }
+        if(config.splashMsg !== undefined){
+          els.splashMsgInput.value = config.splashMsg;
+          els.splashMsg.textContent = config.splashMsg;
+        }
+        if(config.recordingMsg !== undefined){
+          els.recordingMsgInput.value = config.recordingMsg;
+          els.recordingMsg.textContent = config.recordingMsg;
+        }
+        if(config.timeoutMsg !== undefined){
+          els.timeoutMsgInput.value = config.timeoutMsg;
+          els.timeoutMsg.textContent = config.timeoutMsg;
+        }
+        if(config.trimEnabled !== undefined){
+          trimEnabled = !!config.trimEnabled;
+          els.toggleTrim.classList.toggle("on", trimEnabled);
+        }
+
+        generateScale();
+        log("Config imported.");
+      }catch(err){
+        log("Import failed: " + err.message, "warn");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  /* ============ option builders ============ */
+  function populateNoteOptions(select, defaultMidi){
+    select.innerHTML = "";
+    for(let m = 36; m <= 72; m++){ // C2..C5
+      const opt = document.createElement("option");
+      opt.value = m;
+      opt.textContent = noteName(m);
+      if(m === defaultMidi) opt.selected = true;
+      select.appendChild(opt);
+    }
+  }
+
+  function populatePitchClasses(select){
+    select.innerHTML = "";
+    NOTE_NAMES.forEach((n, i) => {
+      const opt = document.createElement("option");
+      opt.value = i; opt.textContent = n;
+      if(i === 0) opt.selected = true;
+      select.appendChild(opt);
+    });
+  }
+
+  function populateOctaves(select){
+    select.innerHTML = "";
+    [1,2,3,4,5].forEach(o => {
+      const opt = document.createElement("option");
+      opt.value = o; opt.textContent = o;
+      if(o === 3) opt.selected = true;
+      select.appendChild(opt);
+    });
+  }
+
+  function populateChannels(select){
+    select.innerHTML = "<option value='any' selected>Any</option>";
+    for(let c = 1; c <= 16; c++){
+      const opt = document.createElement("option");
+      opt.value = c; opt.textContent = "Ch " + c;
+      select.appendChild(opt);
+    }
+  }
+
+  /* ============ view states (clean / hide UI) ============ */
+  function setViewState(state){
+    viewState = state;
+    document.body.classList.remove("ui-full", "ui-clean", "ui-blank");
+    document.body.classList.add("ui-" + state);
+    els.btnPillView.textContent = VIEW_LABELS[state];
+    updateInstructionsVisibility();
+    if(state !== "full"){
+      ensureAudioCtx();
+      requestAnimationFrame(resizeVisCanvas);
+    }
+  }
+
+  function cycleViewState(){
+    const idx = VIEW_STATES.indexOf(viewState);
+    setViewState(VIEW_STATES[(idx + 1) % VIEW_STATES.length]);
+  }
+
+  /* ============ wire up ============ */
+  function init(){
+    [
+      "waveform","timer","btnRecord","btnPreview","btnClear","baseNote","toggleTrim",
+      "btnRandomise","scaleType","rootPc","rootOct","orient","toggleShuffle","scaleSpan",
+      "midiDevice","midiChannel","toggleHold","randomiseNote",
+      "masterVol","btnExport","btnImport","fileImport","btnPanic",
+      "log","badgeRec","badgeMidi","badgeAudio","padGrid","spokes","gridWrap",
+      "pill","btnPillRandomise","btnPillView",
+      "visCanvas","instructions","instrTitle","instrBody",
+      "instrTitleInput","instrBodyInput","toggleInstructions",
+      "splash","expiredPrompt","recordingPrompt","recordingMsg","splashMsg","splashSub","timeoutMsg",
+      "splashMsgInput","timeoutMsgInput","recordingMsgInput","sessionLength"
+    ].forEach(id => els[id] = $(id));
+
+    populateNoteOptions(els.baseNote, baseNoteMidi);
+    populatePitchClasses(els.rootPc);
+    populateOctaves(els.rootOct);
+    populateChannels(els.midiChannel);
+
+    buildGrid();
+    generateScale();
+    drawWaveform(null);
+
+    els.btnRecord.addEventListener("click", () => {
+      if(mediaRecorder && mediaRecorder.state === "recording"){
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+    els.btnPreview.addEventListener("click", previewRecording);
+    els.btnClear.addEventListener("click", clearRecording);
+
+    els.baseNote.addEventListener("change", () => { baseNoteMidi = parseInt(els.baseNote.value, 10); });
+
+    els.toggleTrim.addEventListener("click", () => {
+      trimEnabled = !trimEnabled;
+      els.toggleTrim.classList.toggle("on", trimEnabled);
+    });
+
+    [els.scaleType, els.rootPc, els.rootOct, els.orient].forEach(el =>
+      el.addEventListener("change", generateScale)
+    );
+
+    els.toggleShuffle.addEventListener("click", () => {
+      shuffleMelody = !shuffleMelody;
+      els.toggleShuffle.classList.toggle("on", shuffleMelody);
+      generateScale();
+    });
+
+    els.btnRandomise.addEventListener("click", randomizeScale);
+    els.btnPillRandomise.addEventListener("click", randomizeScale);
+    els.btnPillView.addEventListener("click", cycleViewState);
+
+    els.midiChannel.addEventListener("change", () => { midiChannelFilter = els.midiChannel.value; });
+
+    els.toggleHold.addEventListener("click", () => {
+      holdMode = !holdMode;
+      els.toggleHold.classList.toggle("on", holdMode);
+    });
+
+    els.randomiseNote.addEventListener("change", () => {
+      randomiseNote = parseInt(els.randomiseNote.value, 10) || 0;
+    });
+
+    els.masterVol.addEventListener("input", () => {
+      if(masterGain) masterGain.gain.value = parseFloat(els.masterVol.value);
+    });
+
+    els.btnExport.addEventListener("click", exportConfig);
+    els.btnImport.addEventListener("click", () => els.fileImport.click());
+    els.fileImport.addEventListener("change", (e) => {
+      if(e.target.files[0]) importConfig(e.target.files[0]);
+    });
+
+    els.btnPanic.addEventListener("click", panic);
+
+    els.instrTitleInput.addEventListener("input", () => {
+      els.instrTitle.textContent = els.instrTitleInput.value;
+    });
+    els.instrBodyInput.addEventListener("input", () => {
+      els.instrBody.textContent = els.instrBodyInput.value;
+    });
+    els.toggleInstructions.addEventListener("click", () => {
+      instructionsEnabled = !instructionsEnabled;
+      els.toggleInstructions.classList.toggle("on", instructionsEnabled);
+      updateInstructionsVisibility();
+    });
+
+    els.splashMsgInput.addEventListener("input", () => {
+      els.splashMsg.textContent = els.splashMsgInput.value;
+    });
+    els.recordingMsgInput.addEventListener("input", () => {
+      els.recordingMsg.textContent = els.recordingMsgInput.value;
+    });
+    els.timeoutMsgInput.addEventListener("input", () => {
+      els.timeoutMsg.textContent = els.timeoutMsgInput.value;
+    });
+    els.sessionLength.addEventListener("change", () => {
+      SESSION_DURATION = parseInt(els.sessionLength.value, 10);
+      els.splashSub.textContent = `You'll sing for 3 seconds, then have ${SESSION_DURATION} seconds to play.`;
+    });
+    els.splashSub.textContent = `You'll sing for 3 seconds, then have ${SESSION_DURATION} seconds to play.`;
+
+    window.addEventListener("resize", () => {
+      if(viewState !== "full") resizeVisCanvas();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      const tag = document.activeElement ? document.activeElement.tagName : "";
+      if(tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+      if(e.key === "h" || e.key === "H"){ cycleViewState(); }
+      else if(e.key === "Escape"){ setViewState("full"); }
+      else if(e.key === "r" || e.key === "R"){ randomizeScale(); }
+    });
+
+    setViewState("full");
+    requestAnimationFrame(visualizerLoop);
+    setupMIDI();
+    log("Ready. Record a 3s voice clip to begin. Press H to hide the interface, R to randomise (or touch sensor 27 on the board).");
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+</body>
+</html>
