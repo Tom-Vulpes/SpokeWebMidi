@@ -410,6 +410,7 @@
   }
 
   function triggerPinOn(pin, velocity){
+    setPinActive(pin.id, true);
     if(!pin.sound) return;
     let audio = audioElements[pin.id];
     if(!audio || audio.src !== pin.sound.url){
@@ -420,7 +421,6 @@
     audio.volume = Math.min(1, Math.max(0.05, velocity/127));
     audio.currentTime = 0;
     audio.play().catch(()=>{});
-    setPinActive(pin.id, true);
   }
   function triggerPinOff(pin){
     const audio = audioElements[pin.id];
