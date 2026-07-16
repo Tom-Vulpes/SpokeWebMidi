@@ -110,6 +110,15 @@
   .empty-note{font-size:0.85rem; color:var(--ink-soft); font-style:italic; margin:0;}
 
   .sensor-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(70px,1fr)); gap:8px; margin-bottom:16px;}
+
+  .live-signal{
+    background:var(--parchment-dark); border:1px dashed var(--gold); border-radius:6px;
+    padding:9px 12px; font-size:0.85rem; margin-bottom:12px; transition:background 0.15s;
+  }
+  .live-signal.known{border-style:solid; border-color:var(--wax); background:rgba(156,59,50,0.12); color:var(--wax);}
+  .live-signal.new{border-style:solid; border-color:var(--gold); background:rgba(212,172,84,0.25); font-weight:600;}
+  .live-signal.flash{animation:signalFlash 0.35s ease-out;}
+  @keyframes signalFlash{ from{ filter:brightness(1.6); } to{ filter:brightness(1); } }
   .sensor-tile{
     background:#8c8c84; border:2px solid var(--parchment-dark); border-radius:6px;
     color:#fff; font-size:0.72rem; padding:8px 4px; text-align:center; cursor:pointer;
@@ -181,7 +190,10 @@
       <section class="panel-box">
         <h2>Find a sound</h2>
         <p class="hint">Try a suggestion, or search for anything.</p>
-        <div class="suggested-terms" id="suggestedTerms"></div>
+        <h3 style="margin-top:0;">Landscapes &amp; ambience</h3>
+        <div class="suggested-terms" id="suggestedTermsAmbience"></div>
+        <h3>Traditional &amp; folk music</h3>
+        <div class="suggested-terms" id="suggestedTermsFolk"></div>
         <div class="search-row">
           <input type="text" id="searchInput" placeholder="e.g. cave drips, market crowd, wolf howl">
           <button id="searchBtn">Go</button>
@@ -194,6 +206,7 @@
       <section class="panel-box">
         <h2>Sensors</h2>
         <p class="hint">Click a sensor, then map it below.</p>
+        <div id="liveSignal" class="live-signal">Waiting for a sensor to be touched…</div>
         <div id="sensorGrid" class="sensor-grid"></div>
         <div class="sensor-editor" id="pinEditor" hidden>
           <label>Name
@@ -229,6 +242,13 @@
     'cave drips', 'ocean waves', 'wind through trees', 'marketplace crowd',
     'thunderstorm', 'campfire crackle', 'birdsong dawn chorus', 'footsteps on gravel',
     'wolf howl', 'creaking windmill', 'rain on roof'
+  ];
+  const SUGGESTED_TERMS_FOLK = [
+    'Irish pub session', 'Irish folk fiddle', 'Highland bagpipes', 'Balkan brass band',
+    'gamelan orchestra', 'West African talking drum', 'Andean panpipes',
+    'Mongolian throat singing', 'Bulgarian women\'s choir', 'flamenco palmas clapping',
+    'Sufi devotional chant', 'klezmer clarinet', 'Appalachian fiddle tune',
+    'powwow drum circle', 'Cajun zydeco dance', 'shrine ritual bell', 'sea shanty'
   ];
 
   let state = { pins:[], favorites:[] };
@@ -270,6 +290,16 @@
   function pulseCompass(){
     pulseCompass.angle = (pulseCompass.angle || 0) + 25;
     compass.style.transform = `rotate(${pulseCompass.angle}deg)`;
+  }
+
+  function showLiveSignal({ text, cls }){
+    const el = $('liveSignal');
+    el.textContent = text;
+    el.className = 'live-signal ' + cls;
+    // restart flash animation
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
   }
 
   function logMidi(text){
@@ -348,6 +378,16 @@
         renderSensorGrid(); renderEditor(); saveState();
       }
       return;
+    }
+
+    const isTriggerOn = (type === 0x90 && d2 > 0) || (type === 0xb0 && d2 > 0);
+    if(isTriggerOn){
+      const kind = type === 0xb0 ? 'CC' : 'Note';
+      const matched = state.pins.find(p => p.midi && p.midi.channel === channel && p.midi.number === d1 &&
+        p.midi.type === (type === 0xb0 ? 'cc' : 'note'));
+      showLiveSignal(matched
+        ? { text: `Signal received → mapped to "${matched.name}"`, cls: 'known' }
+        : { text: `New signal: ${kind} #${d1} (channel ${channel+1}) — not yet mapped. Select a sensor below and click "Learn MIDI," then touch it again.`, cls: 'new' });
     }
 
     state.pins.forEach(pin => {
@@ -460,9 +500,13 @@
 
   // ---------- suggested search terms ----------
   function renderSuggestedTerms(){
-    const box = $('suggestedTerms');
+    populateChips('suggestedTermsAmbience', SUGGESTED_TERMS);
+    populateChips('suggestedTermsFolk', SUGGESTED_TERMS_FOLK);
+  }
+  function populateChips(containerId, terms){
+    const box = $(containerId);
     box.innerHTML = '';
-    SUGGESTED_TERMS.forEach(term => {
+    terms.forEach(term => {
       const chip = document.createElement('button');
       chip.className = 'chip';
       chip.type = 'button';
