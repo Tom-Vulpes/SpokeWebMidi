@@ -179,10 +179,9 @@
     <section class="instructions-panel">
       <h2>How to add a sound to the map</h2>
       <ol>
-        <li><strong>1. Craft a sensor</strong>Build your sensor and wire it into the spoke board.</li>
-        <li><strong>2. Pick a spot on the map</strong>Choose where on the map it belongs, and give it a name below.</li>
-        <li><strong>3. Choose its sound</strong>Search below (try the suggestions) or pick a favorite for that spot.</li>
-        <li><strong>4. Map it to the board</strong>Select the sensor, press "Learn MIDI," then trigger it for real. Then assign the sound.</li>
+        <li><strong>1. Craft a sensor</strong>Build your sensor and wire it into the spoke board's pad.</li>
+        <li><strong>2. Pick a spot on the map</strong>Choose where it belongs, then find that pad number below and name it.</li>
+        <li><strong>3. Choose its sound</strong>Search below (try the suggestions) or pick a favorite, then assign it to that pad.</li>
       </ol>
     </section>
 
@@ -192,7 +191,7 @@
         <p class="hint">Try a suggestion, or search for anything.</p>
         <h3 style="margin-top:0;">Landscapes &amp; ambience</h3>
         <div class="suggested-terms" id="suggestedTermsAmbience"></div>
-        <h3>Traditional &amp; folk music</h3>
+        <h3>Field recordings</h3>
         <div class="suggested-terms" id="suggestedTermsFolk"></div>
         <div class="search-row">
           <input type="text" id="searchInput" placeholder="e.g. cave drips, market crowd, wolf howl">
@@ -205,7 +204,7 @@
 
       <section class="panel-box">
         <h2>Sensors</h2>
-        <p class="hint">Click a sensor, then map it below.</p>
+        <p class="hint">Each tile is already wired to its pad number on the board — just pick one, name it, and give it a sound.</p>
         <div id="liveSignal" class="live-signal">Waiting for a sensor to be touched…</div>
         <div id="sensorGrid" class="sensor-grid"></div>
         <div class="sensor-editor" id="pinEditor" hidden>
@@ -213,15 +212,15 @@
             <input type="text" id="pinNameInput" placeholder="e.g. Whispering Falls">
           </label>
           <div class="midi-learn-row">
-            <button id="learnMidiBtn">Learn MIDI</button>
             <span id="pinMidiDisplay">unmapped</span>
+            <button id="learnMidiBtn" class="secondary">Remap pad (advanced)</button>
           </div>
           <div class="sound-assign">
             <span id="pinSoundDisplay">No sound assigned</span>
           </div>
           <div class="editor-actions">
             <button id="testPinBtn" class="secondary">▶ Test sound</button>
-            <button id="deletePinBtn" class="danger">Remove sensor</button>
+            <button id="deletePinBtn" class="danger">Reset name &amp; sound</button>
           </div>
         </div>
       </section>
@@ -244,12 +243,13 @@
     'wolf howl', 'creaking windmill', 'rain on roof'
   ];
   const SUGGESTED_TERMS_FOLK = [
-    'Irish pub session', 'Irish folk fiddle', 'Highland bagpipes', 'Balkan brass band',
-    'gamelan orchestra', 'West African talking drum', 'Andean panpipes',
-    'Mongolian throat singing', 'Bulgarian women\'s choir', 'flamenco palmas clapping',
-    'Sufi devotional chant', 'klezmer clarinet', 'Appalachian fiddle tune',
-    'powwow drum circle', 'Cajun zydeco dance', 'shrine ritual bell', 'sea shanty'
+    'bagpipes drone', 'tin whistle', 'bodhran drum', 'sitar drone', 'tabla rhythm',
+    'gamelan gong', 'kalimba', 'hang drum', 'steel drum', 'didgeridoo',
+    'throat singing', 'shofar horn', 'monastery bell', 'temple chant',
+    'accordion waltz', 'shamisen', 'hand drum circle'
   ];
+
+  const DEFAULT_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36];
 
   let state = { pins:[], favorites:[] };
   let selectedPinId = null;
@@ -265,7 +265,12 @@
   function makeDefaultSensors(){
     const arr = [];
     for(let i=1; i<=MAX_PINS; i++){
-      arr.push({ id:'pin_'+i, name:'Sensor '+i, midi:null, sound:null });
+      const note = DEFAULT_NOTES[i-1];
+      arr.push({
+        id:'pin_'+i, name:'Sensor '+i,
+        midi: (note !== undefined) ? { type:'note', number:note, channel:0 } : null,
+        sound:null
+      });
     }
     return arr;
   }
@@ -374,7 +379,7 @@
         if(pin){ pin.midi = mapping; }
         learningPinId = null;
         $('learnMidiBtn').classList.remove('learning');
-        $('learnMidiBtn').textContent = 'Learn MIDI';
+        $('learnMidiBtn').textContent = 'Remap pad (advanced)';
         renderSensorGrid(); renderEditor(); saveState();
       }
       return;
@@ -387,7 +392,7 @@
         p.midi.type === (type === 0xb0 ? 'cc' : 'note'));
       showLiveSignal(matched
         ? { text: `Signal received → mapped to "${matched.name}"`, cls: 'known' }
-        : { text: `New signal: ${kind} #${d1} (channel ${channel+1}) — not yet mapped. Select a sensor below and click "Learn MIDI," then touch it again.`, cls: 'new' });
+        : { text: `Signal received: ${kind} #${d1} (channel ${channel+1}) — doesn't match any pad's default note. If this pad needs remapping, select its sensor below and use "Remap pad (advanced)."`, cls: 'new' });
     }
 
     state.pins.forEach(pin => {
@@ -459,7 +464,7 @@
     $('pinNameInput').value = pin.name;
     $('pinMidiDisplay').textContent = pin.midi
       ? `${pin.midi.type.toUpperCase()} #${pin.midi.number} (ch ${pin.midi.channel+1})`
-      : 'unmapped — press Learn MIDI, then trigger the sensor';
+      : 'unmapped — use "Remap pad (advanced)" if this pad needs a different note';
     $('pinSoundDisplay').textContent = pin.sound ? pin.sound.name : 'No sound assigned — pick one from search or favorites';
     document.querySelectorAll('#searchResults button, #favoritesList button').forEach(b => {
       if(b.textContent === 'Assign to selected sensor') b.disabled = !selectedPinId;
@@ -492,9 +497,14 @@
     if(!selectedPinId) return;
     const pin = state.pins.find(p => p.id === selectedPinId);
     if(!pin) return;
-    if(!confirm('Clear this sensor\'s name, MIDI mapping and sound?')) return;
+    if(!confirm('Reset this sensor\'s name and sound? (Its pad note mapping stays the same.)')) return;
     const idx = state.pins.indexOf(pin);
-    state.pins[idx] = { id: pin.id, name: 'Sensor ' + (idx+1), midi:null, sound:null };
+    const defaultNote = DEFAULT_NOTES[idx];
+    state.pins[idx] = {
+      id: pin.id, name: 'Sensor ' + (idx+1),
+      midi: (defaultNote !== undefined) ? { type:'note', number:defaultNote, channel:0 } : null,
+      sound:null
+    };
     renderSensorGrid(); renderEditor(); updatePinCount(); saveState();
   });
 
