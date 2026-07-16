@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartophone — Fantasy Map MIDI Table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment: #ece0c2;
+    --parchment-dark: #dccda3;
+    --ink: #2a2e24;
+    --ink-soft: #4a4536;
+    --navy: #253347;
+    --navy-deep: #172230;
+    --wax: #9c3b32;
+    --wax-glow: #d9614f;
+    --gold: #ab8434;
+    --gold-bright: #d4ac54;
+    --line: rgba(42,46,36,0.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top left, rgba(171,132,52,0.08), transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(37,51,71,0.08), transparent 60%),
+      var(--parchment);
+    color:var(--ink);
+    font-family:'Crimson Text', serif;
+    font-size:17px;
+  }
+  h1,h2,h3{font-family:'Cinzel', serif; letter-spacing:0.04em; margin:0;}
+  .app{display:flex; flex-direction:column; min-height:100vh;}
+
+  header{
+    background:linear-gradient(180deg, var(--navy), var(--navy-deep));
+    color:var(--parchment);
+    padding:14px 22px;
+    display:flex; align-items:center; gap:22px; flex-wrap:wrap;
+    border-bottom:3px solid var(--gold);
+  }
+  header h1{font-size:1.5rem; color:var(--gold-bright); display:flex; align-items:center; gap:10px;}
+  #compass{width:30px;height:30px; transition:transform 0.25s ease-out; filter:drop-shadow(0 0 2px rgba(212,172,84,0.6));}
+  .status-bar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:0.9rem; margin-left:auto;}
+  .pill{
+    background:rgba(255,255,255,0.08); border:1px solid rgba(212,172,84,0.4);
+    padding:4px 10px; border-radius:20px; font-size:0.82rem;
+  }
+  .pill.on{border-color:#7fbf7f; color:#c9f0c9;}
+
+  button{
+    font-family:'Crimson Text', serif; font-size:0.95rem;
+    background:var(--gold); color:var(--navy-deep); border:none;
+    padding:6px 14px; border-radius:4px; cursor:pointer; font-weight:600;
+    transition:transform 0.1s, background 0.15s;
+  }
+  button:hover{background:var(--gold-bright);}
+  button:active{transform:scale(0.96);}
+  button.secondary{background:transparent; color:var(--navy-deep); border:1px solid var(--gold);}
+  button.secondary:hover{background:rgba(171,132,52,0.15);}
+  header button.secondary{color:var(--parchment); border-color:rgba(212,172,84,0.5);}
+  header button.secondary:hover{background:rgba(212,172,84,0.15);}
+  button.danger{background:var(--wax); color:var(--parchment);}
+  button.danger:hover{background:var(--wax-glow);}
+  button:disabled{opacity:0.4; cursor:not-allowed;}
+  select, input[type=text]{
+    font-family:'Crimson Text', serif; font-size:0.95rem;
+    background:#fff; border:1px solid var(--line); border-radius:4px;
+    padding:6px 8px; color:var(--ink);
+  }
+
+  .landscape{width:100%; display:block; height:56px; border-bottom:1px solid var(--line);}
+
+  main.main-content{flex:1; padding:20px 26px 40px; max-width:1180px; margin:0 auto; width:100%;}
+
+  .instructions-panel{
+    background:rgba(255,255,255,0.4); border:1px solid var(--gold); border-radius:8px;
+    padding:18px 24px; margin-bottom:26px;
+  }
+  .instructions-panel h2{color:var(--wax); font-size:1.15rem; margin-bottom:4px;}
+  .instructions-panel > p.hint{margin:0 0 14px;}
+  .instructions-panel ol{list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:14px;}
+  .instructions-panel li{border-left:3px solid var(--gold); padding-left:12px; line-height:1.45; font-size:0.95rem;}
+  .instructions-panel li strong{display:block; font-family:'Cinzel'; font-size:0.85rem; color:var(--navy); margin-bottom:2px;}
+
+  .workspace{display:grid; grid-template-columns:1fr 1fr; gap:26px; align-items:start;}
+  @media (max-width: 880px){ .workspace{grid-template-columns:1fr;} }
+
+  .panel-box{background:rgba(255,255,255,0.35); border:1px solid var(--line); border-radius:8px; padding:18px 20px;}
+  .panel-box h2{font-size:1.05rem; color:var(--ink-soft); border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:12px;}
+  .panel-box h3{font-size:0.9rem; color:var(--ink-soft); margin:18px 0 8px;}
+  .hint{font-size:0.82rem; color:var(--ink-soft); font-style:italic; margin:4px 0 10px;}
+
+  .search-row{display:flex; gap:8px; margin-bottom:10px;}
+  .search-row input{flex:1;}
+  .suggested-terms{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;}
+  .chip{
+    background:var(--parchment-dark); border:1px solid var(--gold); color:var(--ink);
+    font-size:0.78rem; padding:4px 10px; border-radius:14px; cursor:pointer; font-family:'Crimson Text', serif;
+  }
+  .chip:hover{background:var(--gold-bright); color:var(--navy-deep);}
+
+  .sound-list{display:flex; flex-direction:column; gap:6px; max-height:280px; overflow-y:auto;}
+  .sound-item{background:#fff; border:1px solid var(--line); border-radius:5px; padding:7px 9px; font-size:0.85rem;}
+  .sound-item .name{font-weight:600; display:block; margin-bottom:4px;}
+  .sound-item .actions{display:flex; gap:5px; flex-wrap:wrap;}
+  .sound-item button{padding:3px 9px; font-size:0.78rem;}
+  .empty-note{font-size:0.85rem; color:var(--ink-soft); font-style:italic; margin:0;}
+
+  .sensor-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(70px,1fr)); gap:8px; margin-bottom:16px;}
+  .sensor-tile{
+    background:#8c8c84; border:2px solid var(--parchment-dark); border-radius:6px;
+    color:#fff; font-size:0.72rem; padding:8px 4px; text-align:center; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:3px; min-height:56px; justify-content:center;
+  }
+  .sensor-tile .num{font-family:'Cinzel'; font-size:0.7rem; opacity:0.8;}
+  .sensor-tile .label{font-size:0.68rem; line-height:1.1; word-break:break-word;}
+  .sensor-tile.has-sound{background:var(--gold); color:var(--navy-deep);}
+  .sensor-tile.ready{background:var(--wax); color:var(--parchment);}
+  .sensor-tile.selected{outline:3px solid var(--navy); outline-offset:1px;}
+  .sensor-tile.active{box-shadow:0 0 0 5px rgba(217,97,79,0.55), 0 0 14px 4px var(--wax-glow); background:var(--wax-glow);}
+
+  .sensor-editor{border-top:1px dashed var(--gold); padding-top:14px;}
+  .sensor-editor label{display:block; font-size:0.85rem; margin-bottom:10px;}
+  .sensor-editor input{width:100%; margin-top:3px;}
+  .midi-learn-row{display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;}
+  #pinMidiDisplay, #pinSoundDisplay{font-size:0.85rem; color:var(--ink-soft);}
+  .sound-assign{margin-bottom:10px;}
+  .editor-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
+  .learning{animation:pulse 0.8s infinite alternate;}
+  @keyframes pulse{from{background:var(--wax);} to{background:var(--wax-glow);}}
+
+  footer{background:var(--navy-deep); color:var(--parchment); padding:6px 14px; font-size:0.75rem; border-top:1px solid var(--gold);}
+  .midi-log{max-height:60px; overflow-y:auto; font-family:monospace; opacity:0.75;}
+  .midi-log div{white-space:nowrap;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>
+      <svg id="compass" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#d4ac54" stroke-width="2"/>
+        <g stroke="#d4ac54" stroke-width="1.5">
+          <line x1="50" y1="6" x2="50" y2="18"/><line x1="50" y1="82" x2="50" y2="94"/>
+          <line x1="6" y1="50" x2="18" y2="50"/><line x1="82" y1="50" x2="94" y2="50"/>
+        </g>
+        <polygon points="50,20 58,50 50,80 42,50" fill="#9c3b32"/>
+      </svg>
+      Cartophone
+    </h1>
+    <div class="status-bar">
+      <span id="midiStatus" class="pill">MIDI: disconnected</span>
+      <button id="connectMidiBtn">Connect MIDI device</button>
+      <select id="midiInputSelect" style="display:none;"></select>
+      <span id="pinCount" class="pill">0 / 27 sensors mapped</span>
+    </div>
+  </header>
+
+  <svg class="landscape" viewBox="0 0 1200 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="100" fill="#dccda3"/>
+    <polygon points="0,100 0,55 150,15 300,60 420,25 560,65 700,20 860,58 1000,30 1120,62 1200,45 1200,100" fill="#b39a63"/>
+    <polygon points="0,100 0,75 200,60 400,80 620,58 850,78 1050,55 1200,72 1200,100" fill="#8c7a4e"/>
+    <circle cx="1080" cy="24" r="14" fill="#ab8434" opacity="0.6"/>
+  </svg>
+
+  <main class="main-content">
+    <section class="instructions-panel">
+      <h2>How to add a sound to the map</h2>
+      <ol>
+        <li><strong>1. Craft a sensor</strong>Build your sensor and wire it into the spoke board.</li>
+        <li><strong>2. Pick a spot on the map</strong>Choose where on the map it belongs, and give it a name below.</li>
+        <li><strong>3. Choose its sound</strong>Search below (try the suggestions) or pick a favorite for that spot.</li>
+        <li><strong>4. Map it to the board</strong>Select the sensor, press "Learn MIDI," then trigger it for real. Then assign the sound.</li>
+      </ol>
+    </section>
+
+    <div class="workspace">
+      <section class="panel-box">
+        <h2>Find a sound</h2>
+        <p class="hint">Try a suggestion, or search for anything.</p>
+        <div class="suggested-terms" id="suggestedTerms"></div>
+        <div class="search-row">
+          <input type="text" id="searchInput" placeholder="e.g. cave drips, market crowd, wolf howl">
+          <button id="searchBtn">Go</button>
+        </div>
+        <div id="searchResults" class="sound-list"><p class="empty-note">Search results appear here.</p></div>
+        <h3>Favorites</h3>
+        <div id="favoritesList" class="sound-list"><p class="empty-note">No favorites saved yet.</p></div>
+      </section>
+
+      <section class="panel-box">
+        <h2>Sensors</h2>
+        <p class="hint">Click a sensor, then map it below.</p>
+        <div id="sensorGrid" class="sensor-grid"></div>
+        <div class="sensor-editor" id="pinEditor" hidden>
+          <label>Name
+            <input type="text" id="pinNameInput" placeholder="e.g. Whispering Falls">
+          </label>
+          <div class="midi-learn-row">
+            <button id="learnMidiBtn">Learn MIDI</button>
+            <span id="pinMidiDisplay">unmapped</span>
+          </div>
+          <div class="sound-assign">
+            <span id="pinSoundDisplay">No sound assigned</span>
+          </div>
+          <div class="editor-actions">
+            <button id="testPinBtn" class="secondary">▶ Test sound</button>
+            <button id="deletePinBtn" class="danger">Remove sensor</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div id="midiLog" class="midi-log"><div>MIDI activity log will appear here…</div></div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const MAX_PINS = 27;
+  const BUILTIN_FREESOUND_KEY = 'ENXBH14HDdboFnq4ttqKQGed9tV7xxYJOghOaPbo';
+  const SUGGESTED_TERMS = [
+    'forest field recording', 'waterfall', 'city street ambience', 'temple bell',
+    'cave drips', 'ocean waves', 'wind through trees', 'marketplace crowd',
+    'thunderstorm', 'campfire crackle', 'birdsong dawn chorus', 'footsteps on gravel',
+    'wolf howl', 'creaking windmill', 'rain on roof'
+  ];
+
+  let state = { pins:[], favorites:[] };
+  let selectedPinId = null;
+  let learningPinId = null;
+  let midiAccess = null;
+  let activeInput = null;
+  const audioElements = {};
+  const previewAudios = {};
+
+  const $ = (id) => document.getElementById(id);
+  const compass = $('compass');
+
+  function makeDefaultSensors(){
+    const arr = [];
+    for(let i=1; i<=MAX_PINS; i++){
+      arr.push({ id:'pin_'+i, name:'Sensor '+i, midi:null, sound:null });
+    }
+    return arr;
+  }
+
+  // ---------- persistence ----------
+  async function loadState(){
+    try{
+      const r = await window.storage.get('cartophone-state', false);
+      if(r && r.value){ state = Object.assign(state, JSON.parse(r.value)); }
+    }catch(e){ /* nothing saved yet */ }
+    if(!state.pins || state.pins.length === 0){ state.pins = makeDefaultSensors(); }
+    renderSuggestedTerms();
+    renderSensorGrid();
+    renderFavorites();
+    updatePinCount();
+  }
+  async function saveState(){
+    try{ await window.storage.set('cartophone-state', JSON.stringify(state), false); }
+    catch(e){ console.error('Save failed', e); }
+  }
+
+  function pulseCompass(){
+    pulseCompass.angle = (pulseCompass.angle || 0) + 25;
+    compass.style.transform = `rotate(${pulseCompass.angle}deg)`;
+  }
+
+  function logMidi(text){
+    const log = $('midiLog');
+    const line = document.createElement('div');
+    line.textContent = text;
+    log.prepend(line);
+    while(log.children.length > 40) log.removeChild(log.lastChild);
+  }
+
+  // ---------- MIDI connect ----------
+  $('connectMidiBtn').addEventListener('click', async () => {
+    if(!navigator.requestMIDIAccess){
+      alert('Web MIDI is not supported in this browser. Try Chrome or Edge (desktop).');
+      return;
+    }
+    try{
+      midiAccess = await navigator.requestMIDIAccess({ sysex:false });
+      $('midiStatus').textContent = 'MIDI: connected';
+      $('midiStatus').classList.add('on');
+      populateInputSelect();
+      midiAccess.onstatechange = populateInputSelect;
+    }catch(e){
+      alert('Could not access MIDI devices: ' + e.message);
+    }
+  });
+
+  function populateInputSelect(){
+    const select = $('midiInputSelect');
+    select.innerHTML = '';
+    const inputs = Array.from(midiAccess.inputs.values());
+    if(inputs.length === 0){
+      const opt = document.createElement('option');
+      opt.textContent = 'No MIDI inputs found';
+      select.appendChild(opt);
+      select.style.display = 'inline-block';
+      return;
+    }
+    inputs.forEach(inp => {
+      const opt = document.createElement('option');
+      opt.value = inp.id; opt.textContent = inp.name;
+      select.appendChild(opt);
+    });
+    select.style.display = 'inline-block';
+    attachInput(inputs[0].id);
+    select.onchange = () => attachInput(select.value);
+  }
+
+  function attachInput(id){
+    if(activeInput) activeInput.onmidimessage = null;
+    activeInput = midiAccess.inputs.get(id);
+    if(activeInput) activeInput.onmidimessage = handleMidiMessage;
+  }
+
+  function handleMidiMessage(e){
+    const [status, d1, d2] = e.data;
+    const type = status & 0xf0;
+    const channel = status & 0x0f;
+    pulseCompass();
+
+    if(type === 0x90 || type === 0x80 || type === 0xb0){
+      const kind = type === 0xb0 ? 'CC' : 'Note';
+      logMidi(`${kind} ch${channel+1} #${d1} val${d2}`);
+    }
+
+    if(learningPinId){
+      let mapping = null;
+      if(type === 0x90 && d2 > 0) mapping = { type:'note', number:d1, channel };
+      else if(type === 0xb0) mapping = { type:'cc', number:d1, channel };
+      if(mapping){
+        const pin = state.pins.find(p => p.id === learningPinId);
+        if(pin){ pin.midi = mapping; }
+        learningPinId = null;
+        $('learnMidiBtn').classList.remove('learning');
+        $('learnMidiBtn').textContent = 'Learn MIDI';
+        renderSensorGrid(); renderEditor(); saveState();
+      }
+      return;
+    }
+
+    state.pins.forEach(pin => {
+      if(!pin.midi || pin.midi.channel !== channel) return;
+      const m = pin.midi;
+      if(m.type === 'note' && d1 === m.number){
+        if(type === 0x90 && d2 > 0) triggerPinOn(pin, d2);
+        else if(type === 0x80 || (type === 0x90 && d2 === 0)) triggerPinOff(pin);
+      } else if(m.type === 'cc' && d1 === m.number){
+        if(type === 0xb0){
+          if(d2 > 0) triggerPinOn(pin, d2); else triggerPinOff(pin);
+        }
+      }
+    });
+  }
+
+  function triggerPinOn(pin, velocity){
+    if(!pin.sound) return;
+    let audio = audioElements[pin.id];
+    if(!audio || audio.src !== pin.sound.url){
+      audio = new Audio(pin.sound.url);
+      audio.loop = true;
+      audioElements[pin.id] = audio;
+    }
+    audio.volume = Math.min(1, Math.max(0.05, velocity/127));
+    audio.currentTime = 0;
+    audio.play().catch(()=>{});
+    setPinActive(pin.id, true);
+  }
+  function triggerPinOff(pin){
+    const audio = audioElements[pin.id];
+    if(audio){ audio.pause(); }
+    setPinActive(pin.id, false);
+  }
+  function setPinActive(id, active){
+    const el = document.querySelector(`.sensor-tile[data-pin-id="${id}"]`);
+    if(el) el.classList.toggle('active', active);
+  }
+
+  // ---------- sensor grid ----------
+  function renderSensorGrid(){
+    const grid = $('sensorGrid');
+    grid.innerHTML = '';
+    state.pins.forEach((pin, idx) => {
+      const el = document.createElement('div');
+      let cls = 'sensor-tile';
+      if(pin.midi && pin.sound) cls += ' ready';
+      else if(pin.sound) cls += ' has-sound';
+      if(pin.id === selectedPinId) cls += ' selected';
+      el.className = cls;
+      el.dataset.pinId = pin.id;
+      el.innerHTML = `<span class="num">#${idx+1}</span><span class="label">${escapeHtml(pin.name)}</span>`;
+      el.addEventListener('click', () => { selectedPinId = pin.id; renderSensorGrid(); renderEditor(); });
+      grid.appendChild(el);
+    });
+  }
+
+  function updatePinCount(){
+    const mapped = state.pins.filter(p => p.midi && p.sound).length;
+    $('pinCount').textContent = `${mapped} / ${MAX_PINS} sensors mapped`;
+  }
+
+  // ---------- sensor editor ----------
+  function renderEditor(){
+    const panel = $('pinEditor');
+    const pin = state.pins.find(p => p.id === selectedPinId);
+    if(!pin){ panel.hidden = true; return; }
+    panel.hidden = false;
+    $('pinNameInput').value = pin.name;
+    $('pinMidiDisplay').textContent = pin.midi
+      ? `${pin.midi.type.toUpperCase()} #${pin.midi.number} (ch ${pin.midi.channel+1})`
+      : 'unmapped — press Learn MIDI, then trigger the sensor';
+    $('pinSoundDisplay').textContent = pin.sound ? pin.sound.name : 'No sound assigned — pick one from search or favorites';
+    document.querySelectorAll('#searchResults button, #favoritesList button').forEach(b => {
+      if(b.textContent === 'Assign to selected sensor') b.disabled = !selectedPinId;
+    });
+  }
+
+  $('pinNameInput').addEventListener('input', (e) => {
+    const pin = state.pins.find(p => p.id === selectedPinId);
+    if(pin){ pin.name = e.target.value || pin.name; renderSensorGrid(); saveState(); }
+  });
+
+  $('learnMidiBtn').addEventListener('click', () => {
+    if(!selectedPinId) return;
+    learningPinId = selectedPinId;
+    $('learnMidiBtn').classList.add('learning');
+    $('learnMidiBtn').textContent = 'Listening… trigger the sensor';
+  });
+
+  $('testPinBtn').addEventListener('click', () => {
+    const pin = state.pins.find(p => p.id === selectedPinId);
+    if(!pin || !pin.sound){ alert('Assign a sound to this sensor first.'); return; }
+    const a = new Audio(pin.sound.url);
+    a.play().catch(()=>{});
+    setPinActive(pin.id, true);
+    a.onended = () => setPinActive(pin.id, false);
+    setTimeout(() => { a.pause(); setPinActive(pin.id, false); }, 4000);
+  });
+
+  $('deletePinBtn').addEventListener('click', () => {
+    if(!selectedPinId) return;
+    const pin = state.pins.find(p => p.id === selectedPinId);
+    if(!pin) return;
+    if(!confirm('Clear this sensor\'s name, MIDI mapping and sound?')) return;
+    const idx = state.pins.indexOf(pin);
+    state.pins[idx] = { id: pin.id, name: 'Sensor ' + (idx+1), midi:null, sound:null };
+    renderSensorGrid(); renderEditor(); updatePinCount(); saveState();
+  });
+
+  // ---------- suggested search terms ----------
+  function renderSuggestedTerms(){
+    const box = $('suggestedTerms');
+    box.innerHTML = '';
+    SUGGESTED_TERMS.forEach(term => {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.type = 'button';
+      chip.textContent = term;
+      chip.addEventListener('click', () => {
+        $('searchInput').value = term;
+        doSearch();
+      });
+      box.appendChild(chip);
+    });
+  }
+
+  // ---------- Freesound ----------
+  $('searchBtn').addEventListener('click', doSearch);
+  $('searchInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') doSearch(); });
+
+  async function doSearch(){
+    const query = $('searchInput').value.trim();
+    if(!query) return;
+    const box = $('searchResults');
+    box.innerHTML = '<p class="empty-note">Searching…</p>';
+    try{
+      const url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(query)}&token=${encodeURIComponent(BUILTIN_FREESOUND_KEY)}&fields=id,name,previews,duration,tags&page_size=12`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('Freesound request failed (' + res.status + ')');
+      const data = await res.json();
+      renderSoundList(box, data.results || [], true);
+    }catch(e){
+      box.innerHTML = `<p class="empty-note">Search failed: ${e.message}</p>`;
+    }
+  }
+
+  function renderFavorites(){
+    renderSoundList($('favoritesList'), state.favorites, false);
+  }
+
+  function renderSoundList(container, items, isSearchResult){
+    if(!items.length){ container.innerHTML = '<p class="empty-note">Nothing here yet.</p>'; return; }
+    container.innerHTML = '';
+    items.forEach(item => {
+      const previewUrl = item.previews ? (item.previews['preview-hq-mp3'] || item.previews['preview-lq-mp3']) : item.url;
+      const row = document.createElement('div');
+      row.className = 'sound-item';
+      row.innerHTML = `<span class="name">${escapeHtml(item.name)}</span>`;
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+
+      const playBtn = document.createElement('button');
+      playBtn.textContent = '▶';
+      playBtn.addEventListener('click', () => togglePreview(item.id, previewUrl, playBtn));
+      actions.appendChild(playBtn);
+
+      if(isSearchResult){
+        const favBtn = document.createElement('button');
+        favBtn.textContent = '★ Save';
+        favBtn.addEventListener('click', () => {
+          if(!state.favorites.find(f => f.id === item.id)){
+            state.favorites.push({ id:item.id, name:item.name, url:previewUrl });
+            renderFavorites(); saveState();
+          }
+        });
+        actions.appendChild(favBtn);
+      } else {
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', () => {
+          state.favorites = state.favorites.filter(f => f.id !== item.id);
+          renderFavorites(); saveState();
+        });
+        actions.appendChild(removeBtn);
+      }
+
+      const assignBtn = document.createElement('button');
+      assignBtn.textContent = 'Assign to selected sensor';
+      assignBtn.disabled = !selectedPinId;
+      assignBtn.addEventListener('click', () => {
+        const pin = state.pins.find(p => p.id === selectedPinId);
+        if(!pin){ alert('Select a sensor on the right first.'); return; }
+        pin.sound = { id:item.id, name:item.name, url:previewUrl };
+        renderSensorGrid(); renderEditor(); updatePinCount(); saveState();
+      });
+      actions.appendChild(assignBtn);
+
+      row.appendChild(actions);
+      container.appendChild(row);
+    });
+  }
+
+  function togglePreview(id, url, btn){
+    let audio = previewAudios[id];
+    if(audio && !audio.paused){ audio.pause(); btn.textContent = '▶'; return; }
+    Object.values(previewAudios).forEach(a => a.pause());
+    if(!audio){ audio = new Audio(url); previewAudios[id] = audio; }
+    audio.currentTime = 0;
+    audio.play().catch(()=>{});
+    btn.textContent = '❚❚';
+    audio.onended = () => { btn.textContent = '▶'; };
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  loadState();
+})();
+</script>
+</body>
+</html>
