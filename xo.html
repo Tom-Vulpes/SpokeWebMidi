@@ -170,6 +170,10 @@
     border-top:1px solid #ffffff12;
   }
   #looperMap{ font-size:0.85rem; color:var(--muted); padding:0 1em; }
+  #scopeCanvas{
+    width:100%; max-width:480px; height:110px;
+    background:#00000050; border-radius:12px; border:1px solid #ffffff14;
+  }
 
   .hidden{ display:none !important; }
   .visually-hidden{
@@ -224,6 +228,7 @@
     </div>
     <div id="looperBody">
       <div id="looperStateText">Empty</div>
+      <canvas id="scopeCanvas" width="600" height="120"></canvas>
       <div id="looperSub">Press Start to record your first loop.</div>
       <div id="layerDots"></div>
       <div id="looperMap"></div>
@@ -355,6 +360,8 @@
   const audioBanner = $("audioBanner");
   const looperScreen = $("looperScreen"), looperStateText = $("looperStateText"), looperSub = $("looperSub");
   const layerDotsEl = $("layerDots"), looperMapEl = $("looperMap");
+  const scopeCanvas = $("scopeCanvas");
+  const scopeCtx = scopeCanvas.getContext("2d");
 
   /* ============================================================
      SPEECH FEEDBACK
@@ -892,12 +899,22 @@
   async function ensureMic(){
     if(micReady) return true;
     if(micErrorMsg) return false;
+    if(!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      micErrorMsg = "The microphone needs a secure address to work \u2014 this page is loaded over plain http://, which browsers block. Host it over https:// instead (GitHub Pages, Netlify, or Vercel all give you an https address for free), then reload.";
+      return false;
+    }
     try{
       micStream = await navigator.mediaDevices.getUserMedia({
         audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
       });
     }catch(e){
-      micErrorMsg = "Microphone access was blocked. Allow it in the browser's site settings, then re-enter the looper.";
+      if(e && e.name === "NotAllowedError"){
+        micErrorMsg = "Microphone access was blocked. Allow it in the browser's site settings, then re-enter the looper.";
+      }else if(e && e.name === "NotFoundError"){
+        micErrorMsg = "No microphone was found on this device.";
+      }else{
+        micErrorMsg = "Couldn't access the microphone (" + (e && e.name ? e.name : "unknown error") + ").";
+      }
       return false;
     }
     const ctx = Tone.context.rawContext;
@@ -916,6 +933,7 @@
 
   function onAudioProcess(e){
     const input = e.inputBuffer.getChannelData(0);
+    if(mode === "looper") drawScope(input);
     if(looperState === "recording_first"){
       firstTakeChunks.push(new Float32Array(input));
     } else if(looperState === "recording_overdub" && pendingOverdub){
@@ -925,6 +943,24 @@
         overdubWritePos = (overdubWritePos + 1) % loopLength;
       }
     }
+  }
+
+  function drawScope(data){
+    const w = scopeCanvas.width, h = scopeCanvas.height;
+    scopeCtx.clearRect(0,0,w,h);
+    scopeCtx.strokeStyle = (looperState==="recording_first" || looperState==="recording_overdub") ? "#e0637f" : "#7bc79a";
+    scopeCtx.lineWidth = 2;
+    scopeCtx.beginPath();
+    const n = data.length;
+    const step = Math.max(1, Math.floor(n / w));
+    let x = 0;
+    for(let i=0;i<n && x<w;i+=step){
+      const v = data[i];
+      const y = h/2 - v*(h/2)*0.9;
+      if(x===0) scopeCtx.moveTo(x,y); else scopeCtx.lineTo(x,y);
+      x++;
+    }
+    scopeCtx.stroke();
   }
 
   function currentPhaseSample(){
@@ -1008,8 +1044,35 @@
 
   async function enterLooperMode(){
     updateLooperUI();
+    drawPlaceholderScope("Connecting to microphone\u2026");
     const ok = await ensureMic();
-    if(!ok) updateLooperUI();
+    if(!ok){ drawPlaceholderScope(micErrorMsg || "Microphone unavailable"); updateLooperUI(); }
+  }
+
+  function drawPlaceholderScope(text){
+    const w = scopeCanvas.width, h = scopeCanvas.height;
+    scopeCtx.clearRect(0,0,w,h);
+    scopeCtx.strokeStyle = "#ffffff30";
+    scopeCtx.lineWidth = 2;
+    scopeCtx.beginPath();
+    scopeCtx.moveTo(0,h/2); scopeCtx.lineTo(w,h/2);
+    scopeCtx.stroke();
+    scopeCtx.fillStyle = "#8fa0ad";
+    scopeCtx.font = "14px sans-serif";
+    scopeCtx.textAlign = "center";
+    const words = text.split(" ");
+    const lines = [];
+    let line = "";
+    words.forEach(word => {
+      const test = line ? (line + " " + word) : word;
+      if(scopeCtx.measureText(test).width > w - 24 && line){
+        lines.push(line); line = word;
+      }else{ line = test; }
+    });
+    if(line) lines.push(line);
+    const lineHeight = 18;
+    const startY = h/2 - ((lines.length-1)*lineHeight)/2 - 8;
+    lines.forEach((l,i) => scopeCtx.fillText(l, w/2, startY + i*lineHeight));
   }
 
   function onLooperRecordToggle(){
