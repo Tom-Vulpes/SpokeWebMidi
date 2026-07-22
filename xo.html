@@ -973,12 +973,28 @@
 
   function finalizeFirstTake(){
     let total = firstTakeChunks.reduce((a,c)=>a+c.length,0);
+    firstTakeChunks = [];
+    if(total < 512){
+      looperState = "empty";
+      looperSub.textContent = "No audio was captured. Tap the sound banner at the top of the screen once (this unlocks audio for the whole session), then try recording again.";
+      updateLooperUI();
+      speak("No audio captured. Please enable sound first.");
+      return false;
+    }
     const data = new Float32Array(total);
     let off=0; firstTakeChunks.forEach(c=>{ data.set(c, off); off+=c.length; });
-    firstTakeChunks = [];
     loopLength = total;
     layers = [data];
-    remixAndSwap(true);
+    try{
+      remixAndSwap(true);
+      return true;
+    }catch(err){
+      looperState = "empty";
+      loopLength = 0; layers = [];
+      looperSub.textContent = "Something went wrong starting playback. Please try recording again.";
+      updateLooperUI();
+      return false;
+    }
   }
 
   function remixAndSwap(fresh){
@@ -1045,8 +1061,12 @@
   async function enterLooperMode(){
     updateLooperUI();
     drawPlaceholderScope("Connecting to microphone\u2026");
+    await ensureAudio(); // best-effort; needs a prior tap on the sound banner to actually succeed
     const ok = await ensureMic();
-    if(!ok){ drawPlaceholderScope(micErrorMsg || "Microphone unavailable"); updateLooperUI(); }
+    if(!ok){ drawPlaceholderScope(micErrorMsg || "Microphone unavailable"); updateLooperUI(); return; }
+    if(Tone.context.state !== "running"){
+      looperSub.textContent = "Sound isn't enabled yet. Tap the sound banner at the top of the screen once, then come back and try recording.";
+    }
   }
 
   function drawPlaceholderScope(text){
@@ -1082,7 +1102,8 @@
       looperState = "recording_first";
       speak("Recording");
     } else if(looperState==="recording_first"){
-      finalizeFirstTake();
+      const ok = finalizeFirstTake();
+      if(!ok) return; // finalizeFirstTake already updated the UI with a specific message
       looperState = "playing";
       speak("Loop set");
     } else if(looperState==="playing"){
