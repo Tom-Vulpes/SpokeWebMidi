@@ -252,6 +252,7 @@
       <div id="looperSub">Press Start to record your first loop.</div>
       <div id="layerDots"></div>
       <div id="looperMap"></div>
+      <div id="looperDebug" style="font-size:0.75rem; color:#ffffff40; margin-top:0.4em;"></div>
     </div>
     <div id="looperFooter">
       <button class="loopbtn" id="btnLoopStart">Record / Stop</button>
@@ -379,7 +380,7 @@
   const calStart = $("calStart"), calRedo = $("calRedo"), calBody=$("calBody"), calTitle=$("calTitle");
   const audioBanner = $("audioBanner");
   const looperScreen = $("looperScreen"), looperStateText = $("looperStateText"), looperSub = $("looperSub");
-  const layerDotsEl = $("layerDots"), looperMapEl = $("looperMap");
+  const layerDotsEl = $("layerDots"), looperMapEl = $("looperMap"), looperDebugEl = $("looperDebug");
   const scopeCanvas = $("scopeCanvas");
   const scopeCtx = scopeCanvas.getContext("2d");
 
@@ -740,6 +741,8 @@
      MODE SWITCHING
      ============================================================ */
   function setMode(next){
+    if(synth){ try{ synth.releaseAll(); }catch(e){} }
+    padGrid.querySelectorAll(".pad.active").forEach(el => el.classList.remove("active"));
     mode = next;
     modeBadge.textContent = mode === "play" ? "PLAY" : mode.toUpperCase();
     modeBadge.classList.toggle("settings", mode === "settings");
@@ -1012,14 +1015,16 @@
 
   function startScopeLoop(){
     if(scopeRAF) return;
-    function tick(){
+    let lastDebug = 0;
+    function tick(now){
       if(analyserNode && mode === "looper"){
         analyserNode.getFloatTimeDomainData(scopeData);
         drawScope(scopeData);
+        if(!lastDebug || now - lastDebug > 200){ lastDebug = now; updateLooperUI(); }
       }
       scopeRAF = requestAnimationFrame(tick);
     }
-    tick();
+    tick(0);
   }
 
   function onAudioChunk(input){
@@ -1144,7 +1149,13 @@
       looperMapEl.textContent = "Record/Stop: " + nm(lp.record) +
         "  \u00b7  Overdub: " + nm(lp.overdub) + "  \u00b7  Remove Last: " + nm(lp.undo) +
         "  \u00b7  Start Fresh: " + nm(lp.clear);
+    }else{
+      looperMapEl.textContent = "No looper pads configured yet \u2014 open Settings \u2192 Reassign controls.";
     }
+    looperDebugEl.textContent = "debug \u2014 looper pads: " + (state.looperPads ? "configured" : "MISSING") +
+      " | mic: " + (micErrorMsg ? ("error - " + micErrorMsg) : (micReady ? "ready" : "not ready yet")) +
+      " | audio: " + (window.Tone && Tone.context ? Tone.context.state : "?") +
+      " | recorded samples so far: " + firstTakeChunks.reduce((a,c)=>a+c.length,0);
   }
 
   async function enterLooperMode(){
@@ -1265,6 +1276,26 @@
   $("btnLoopUndo").addEventListener("click", onLooperUndo);
   $("btnLoopClear").addEventListener("click", onLooperClear);
 
+  function ensureControlDefaults(){
+    if(!state.padMap) return; // not calibrated yet; startCalibration() sets everything fresh
+    let changed = false;
+    if(!state.controlPads){
+      state.controlPads = { next:0, select:1, back:2, toggleA:0, toggleB:1 };
+      changed = true;
+    }
+    if(!state.looperPads){
+      state.looperPads = {
+        toggleA: N_PADS-2, toggleB: N_PADS-1,
+        record: Math.min(3, N_PADS-1),
+        overdub: Math.min(4, N_PADS-1),
+        undo: Math.min(5, N_PADS-1),
+        clear: Math.min(6, N_PADS-1),
+      };
+      changed = true;
+    }
+    if(changed) saveState();
+  }
+
   /* ============================================================
      BOOT
      ============================================================ */
@@ -1274,6 +1305,7 @@
       return; // MIDI, mic, and audio-worklet features won't function from a local file
     }
 
+    ensureControlDefaults();
     buildPadGrid();
     refreshNowPlaying();
     rebuildPadIndex();
