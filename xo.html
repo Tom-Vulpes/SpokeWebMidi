@@ -151,6 +151,15 @@
     padding:0.7em 1em; font-size:1rem; font-weight:700; width:auto;
   }
 
+  #fileWarning{
+    position:absolute; inset:0; z-index:100; background:#1b1206; color:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:2em; gap:0.8em;
+  }
+  #fileWarning h1{ font-size:1.4rem; margin:0; color:var(--accent); }
+  #fileWarning p{ max-width:34em; line-height:1.5; margin:0; }
+  #fileWarning code{ background:#00000050; padding:0.1em 0.4em; border-radius:6px; }
+
   /* ---------- looper ---------- */
   #looperScreen{
     position:absolute; inset:0; display:none; flex-direction:column;
@@ -191,6 +200,17 @@
   </div>
 
   <button id="audioBanner" class="hidden" aria-live="polite">🔈 Tap once to enable sound for this session</button>
+
+  <div id="fileWarning" class="hidden" role="alert">
+    <h1>This page needs to be hosted online</h1>
+    <p>
+      You're opening this as a local file (the address starts with <code>file:///</code>).
+      Microphone recording, and reliable MIDI connection, only work when this page is
+      loaded from a real web address starting with <code>https://</code>.
+    </p>
+    <p>Upload this exact file to a free host (GitHub Pages, Netlify, or Vercel all work), then open the
+      <code>https://</code> link they give you instead of double-clicking the file.</p>
+  </div>
 
   <div id="playScreen">
     <div id="nowPlaying">
@@ -1249,6 +1269,11 @@
      BOOT
      ============================================================ */
   async function boot(){
+    if(location.protocol === "file:"){
+      document.getElementById("fileWarning").classList.remove("hidden");
+      return; // MIDI, mic, and audio-worklet features won't function from a local file
+    }
+
     buildPadGrid();
     refreshNowPlaying();
     rebuildPadIndex();
