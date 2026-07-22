@@ -160,6 +160,22 @@
   #fileWarning p{ max-width:34em; line-height:1.5; margin:0; }
   #fileWarning code{ background:#00000050; padding:0.1em 0.4em; border-radius:6px; }
 
+  #debugPanel{
+    position:absolute; inset:0; z-index:90; background:#0a0e13; display:none;
+    flex-direction:column;
+  }
+  #debugPanel.show{ display:flex; }
+  #debugHeader{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:0.7em 0.9em; border-bottom:1px solid #ffffff20; color:var(--muted);
+    font-weight:700;
+  }
+  #debugLog{
+    flex:1 1 auto; margin:0; padding:0.8em; overflow:auto;
+    font-family:ui-monospace, "SF Mono", Consolas, monospace;
+    font-size:0.78rem; line-height:1.5; color:#a8f0c0; white-space:pre-wrap;
+  }
+
   /* ---------- looper ---------- */
   #looperScreen{
     position:absolute; inset:0; display:none; flex-direction:column;
@@ -197,6 +213,19 @@
     <div id="dot"></div>
     <div id="statusText">Looking for your MIDI device&hellip;</div>
     <div id="modeBadge">PLAY</div>
+    <button id="debugToggle" style="padding:0.3em 0.6em; font-size:0.8rem; font-weight:400;">🐞 Debug</button>
+  </div>
+
+  <div id="debugPanel">
+    <div id="debugHeader">
+      <span>Debug log</span>
+      <div style="display:flex; gap:0.4em;">
+        <button class="ghost" id="debugCopy" style="font-size:0.8rem; padding:0.4em 0.7em;">Copy</button>
+        <button class="ghost" id="debugClear" style="font-size:0.8rem; padding:0.4em 0.7em;">Clear</button>
+        <button class="ghost" id="debugClose" style="font-size:0.8rem; padding:0.4em 0.7em;">Close</button>
+      </div>
+    </div>
+    <pre id="debugLog"></pre>
   </div>
 
   <button id="audioBanner" class="hidden" aria-live="polite">🔈 Tap once to enable sound for this session</button>
@@ -323,6 +352,22 @@
      STATE
      ============================================================ */
   let state = loadState();
+
+  /* ============================================================
+     DEBUG LOG (on-screen console for troubleshooting without devtools)
+     ============================================================ */
+  const debugLines = [];
+  function log(msg){
+    const line = "[" + new Date().toLocaleTimeString() + "] " + msg;
+    debugLines.push(line);
+    if(debugLines.length > 300) debugLines.shift();
+    const el = document.getElementById("debugLog");
+    if(el && document.getElementById("debugPanel").classList.contains("show")){
+      el.textContent = debugLines.join("\n");
+      el.scrollTop = el.scrollHeight;
+    }
+    if(window.console) console.log("[SpokePlayer] " + msg);
+  }
   let midiAccess = null;
   let midiInput = null;
   let synth = null;
@@ -508,22 +553,27 @@
   }
 
   async function initMidi(){
+    log("initMidi: requesting Web MIDI access\u2026");
     if(!navigator.requestMIDIAccess){
       statusSet(false, "This browser can't see MIDI devices. Use Chrome, Edge, Firefox, or Samsung Internet.");
+      log("initMidi: navigator.requestMIDIAccess is not available in this browser.");
       return;
     }
     try{
       midiAccess = await navigator.requestMIDIAccess({ sysex:false });
+      log("initMidi: access granted.");
     }catch(e){
       statusSet(false, "MIDI access was blocked. Ask a helper to allow it once in the browser's site settings.");
+      log("initMidi: requestMIDIAccess rejected: " + (e && e.message ? e.message : e));
       return;
     }
-    midiAccess.onstatechange = () => attachBestInput();
+    midiAccess.onstatechange = () => { log("MIDI device list changed."); attachBestInput(); };
     attachBestInput();
   }
 
   function attachBestInput(){
     const inputs = Array.from(midiAccess.inputs.values());
+    log("attachBestInput: " + inputs.length + " MIDI input(s) found: " + inputs.map(i=>i.name).join(", "));
     if(inputs.length === 0){
       statusSet(false, "No MIDI device found. Check the controller is connected.");
       midiInput = null;
@@ -541,6 +591,7 @@
     state.midiInputId = midiInput.id;
     saveState();
     statusSet(true, "Connected: " + (midiInput.name || "MIDI device"));
+    log("attachBestInput: connected to \"" + (midiInput.name || midiInput.id) + "\".");
   }
 
   function listInputs(){
@@ -674,6 +725,7 @@
   function beginGestureHold(key){
     const g = gestures[key];
     g.start = performance.now();
+    log("gesture: \"" + key + "\" hold started (pads " + JSON.stringify(g.getPads()) + ")");
     gestureOverlay.classList.add("show");
     gestureLabel.textContent = (mode === g.target) ? "Returning to play\u2026" : ("Opening " + g.target + "\u2026");
     tickRing(key);
@@ -689,6 +741,7 @@
   }
   function cancelGestureHold(key){
     const g = gestures[key];
+    log("gesture: \"" + key + "\" hold released early (cancelled)");
     clearTimeout(g.timer); g.timer = null;
     if(g.raf) cancelAnimationFrame(g.raf);
     gestureOverlay.classList.remove("show");
@@ -697,6 +750,7 @@
   }
   function finishGesture(key){
     const g = gestures[key];
+    log("gesture: \"" + key + "\" completed (held 5s) \u2014 switching mode");
     g.timer = null;
     if(g.raf) cancelAnimationFrame(g.raf);
     gestureOverlay.classList.remove("show");
@@ -713,8 +767,9 @@
     heldNotes.add(note);
     checkGestures();
     if(calCapturing){ calibrationCaptureNote(note); return; }
-    if(activeGestureKey != null) return;
     const pad = padOfNote[note];
+    log("NOTE ON  note=" + note + " -> pad=" + pad + " | mode=" + mode + (activeGestureKey ? " | gesture in progress ("+activeGestureKey+"), suppressed" : ""));
+    if(activeGestureKey != null) return;
     if(pad == null) return;
 
     if(mode === "play"){
@@ -730,6 +785,7 @@
     heldNotes.delete(note);
     checkGestures();
     const pad = padOfNote[note];
+    log("NOTE OFF note=" + note + " -> pad=" + pad);
     if(pad == null) return;
     if(mode === "play"){
       setPadActive(pad, false);
@@ -741,6 +797,7 @@
      MODE SWITCHING
      ============================================================ */
   function setMode(next){
+    log("setMode: " + mode + " -> " + next);
     if(synth){ try{ synth.releaseAll(); }catch(e){} }
     padGrid.querySelectorAll(".pad.active").forEach(el => el.classList.remove("active"));
     mode = next;
@@ -919,19 +976,24 @@
   let pendingOverdub = null;
   let overdubWritePos = 0;
   let micReady = false;
+  let recorderKind = "none";
   let micErrorMsg = null;
 
   async function ensureMic(){
-    if(micReady) return true;
-    if(micErrorMsg) return false;
+    if(micReady){ log("ensureMic: already ready."); return true; }
+    if(micErrorMsg){ log("ensureMic: previously failed, not retrying: " + micErrorMsg); return false; }
+    log("ensureMic: starting. isSecureContext=" + window.isSecureContext + " protocol=" + location.protocol);
     if(!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
       micErrorMsg = "The microphone needs a secure address to work \u2014 this page is loaded over plain http://, which browsers block. Host it over https:// instead (GitHub Pages, Netlify, or Vercel all give you an https address for free), then reload.";
+      log("ensureMic: FAILED secure-context check.");
       return false;
     }
+    log("ensureMic: calling getUserMedia\u2026");
     try{
       micStream = await navigator.mediaDevices.getUserMedia({
         audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
       });
+      log("ensureMic: getUserMedia resolved.");
     }catch(e){
       if(e && e.name === "NotAllowedError"){
         micErrorMsg = "Microphone access was blocked. Allow it in the browser's site settings, then re-enter the looper.";
@@ -940,15 +1002,19 @@
       }else{
         micErrorMsg = "Couldn't access the microphone (" + (e && e.name ? e.name : "unknown error") + ").";
       }
+      log("ensureMic: getUserMedia REJECTED: " + (e && e.name) + " - " + (e && e.message));
       return false;
     }
     const track = micStream.getAudioTracks()[0];
+    log("ensureMic: audio track = " + (track ? (track.label + " | muted=" + track.muted + " | readyState=" + track.readyState) : "none"));
     if(!track || track.muted || track.readyState !== "live"){
       micErrorMsg = "The microphone track isn't live (it may be muted or in use by another app). Check your device's mic isn't muted and try again.";
+      log("ensureMic: FAILED track-liveness check.");
       return false;
     }
     const ctx = Tone.context.rawContext;
     sr = ctx.sampleRate;
+    log("ensureMic: AudioContext state=" + ctx.state + " sampleRate=" + sr);
     try{
       micSource = ctx.createMediaStreamSource(micStream);
 
@@ -959,8 +1025,10 @@
       analyserNode.fftSize = 1024;
       micSource.connect(analyserNode);
       startScopeLoop();
+      log("ensureMic: analyser + waveform loop set up OK.");
     }catch(err){
       micErrorMsg = "Couldn't set up the microphone visualizer (" + (err && err.name ? err.name : "error") + ").";
+      log("ensureMic: FAILED analyser setup: " + (err && err.message));
       return false;
     }
     try{
@@ -969,11 +1037,14 @@
       // current Chrome) createScriptProcessor API; fall back to the old
       // API only if a worklet can't be set up for some reason.
       await setupRecorderNode(ctx);
+      log("ensureMic: recorder node ready (" + recorderKind + ").");
     }catch(err){
       micErrorMsg = "The microphone is connected and the waveform should work, but recording setup failed (" + (err && err.name ? err.name : "error") + "). Try reloading the page, or try a different browser (Chrome or Firefox).";
+      log("ensureMic: FAILED recorder node setup: " + (err && err.message));
       return false;
     }
     micReady = true;
+    log("ensureMic: fully ready.");
     return true;
   }
 
@@ -994,14 +1065,21 @@
       const url = URL.createObjectURL(blob);
       await ctx.audioWorklet.addModule(url);
       const workletNode = new AudioWorkletNode(ctx, "spoke-recorder-processor");
-      workletNode.port.onmessage = (ev) => { onAudioChunk(ev.data); };
+      let chunkCount = 0;
+      workletNode.port.onmessage = (ev) => {
+        chunkCount++;
+        if(chunkCount % 40 === 1) log("worklet: received audio chunk #" + chunkCount + " (" + ev.data.length + " samples)");
+        onAudioChunk(ev.data);
+      };
       silentGain = ctx.createGain();
       silentGain.gain.value = 0;
       micSource.connect(workletNode);
       workletNode.connect(silentGain);
       silentGain.connect(ctx.destination);
       scriptNode = workletNode; // kept for symmetry / potential teardown later
+      recorderKind = "AudioWorklet";
     }catch(workletErr){
+      log("setupRecorderNode: AudioWorklet path failed (" + (workletErr && workletErr.message) + "), falling back to ScriptProcessorNode.");
       // Fallback for environments without AudioWorklet support.
       scriptNode = ctx.createScriptProcessor(2048, 1, 1);
       silentGain = ctx.createGain();
@@ -1009,7 +1087,14 @@
       micSource.connect(scriptNode);
       scriptNode.connect(silentGain);
       silentGain.connect(ctx.destination);
-      scriptNode.onaudioprocess = (e) => { onAudioChunk(e.inputBuffer.getChannelData(0)); };
+      let chunkCount = 0;
+      scriptNode.onaudioprocess = (e) => {
+        chunkCount++;
+        const data = e.inputBuffer.getChannelData(0);
+        if(chunkCount % 40 === 1) log("scriptProcessor: received audio chunk #" + chunkCount + " (" + data.length + " samples)");
+        onAudioChunk(data);
+      };
+      recorderKind = "ScriptProcessorNode (fallback)";
     }
   }
 
@@ -1067,6 +1152,7 @@
 
   function finalizeFirstTake(){
     let total = firstTakeChunks.reduce((a,c)=>a+c.length,0);
+    log("finalizeFirstTake: total samples captured = " + total + " (need >= 512)");
     firstTakeChunks = [];
     if(total < 512){
       looperState = "empty";
@@ -1081,8 +1167,10 @@
     layers = [data];
     try{
       remixAndSwap(true);
+      log("finalizeFirstTake: loop created OK, length=" + loopLength + " samples (" + (loopLength/sr).toFixed(2) + "s)");
       return true;
     }catch(err){
+      log("finalizeFirstTake: remixAndSwap threw: " + (err && err.message));
       looperState = "empty";
       loopLength = 0; layers = [];
       looperSub.textContent = "Something went wrong starting playback. Please try recording again.";
@@ -1153,12 +1241,13 @@
       looperMapEl.textContent = "No looper pads configured yet \u2014 open Settings \u2192 Reassign controls.";
     }
     looperDebugEl.textContent = "debug \u2014 looper pads: " + (state.looperPads ? "configured" : "MISSING") +
-      " | mic: " + (micErrorMsg ? ("error - " + micErrorMsg) : (micReady ? "ready" : "not ready yet")) +
+      " | mic: " + (micErrorMsg ? ("error - " + micErrorMsg) : (micReady ? "ready (" + recorderKind + ")" : "not ready yet")) +
       " | audio: " + (window.Tone && Tone.context ? Tone.context.state : "?") +
       " | recorded samples so far: " + firstTakeChunks.reduce((a,c)=>a+c.length,0);
   }
 
   async function enterLooperMode(){
+    log("enterLooperMode: entered. state.looperPads=" + JSON.stringify(state.looperPads));
     updateLooperUI();
     drawPlaceholderScope("Connecting to microphone\u2026");
     await ensureAudio(); // best-effort; needs a prior tap on the sound banner to actually succeed
@@ -1196,6 +1285,7 @@
   }
 
   function onLooperRecordToggle(){
+    log("onLooperRecordToggle: called. looperState=" + looperState + " micErrorMsg=" + micErrorMsg);
     if(micErrorMsg) return;
     if(looperState==="empty"){
       firstTakeChunks = [];
@@ -1264,11 +1354,13 @@
 
   function handleLooperPad(pad){
     const lp = state.looperPads;
-    if(!lp) return;
+    if(!lp){ log("handleLooperPad: pad=" + pad + " but state.looperPads is MISSING \u2014 nothing will happen."); return; }
+    log("handleLooperPad: pad=" + pad + " (record=" + lp.record + " overdub=" + lp.overdub + " undo=" + lp.undo + " clear=" + lp.clear + ") | looperState=" + looperState);
     if(pad === lp.record) onLooperRecordToggle();
     else if(pad === lp.overdub) onLooperOverdub();
     else if(pad === lp.undo) onLooperUndo();
     else if(pad === lp.clear) onLooperClear();
+    else log("handleLooperPad: pad=" + pad + " doesn't match any configured looper role.");
   }
 
   $("btnLoopStart").addEventListener("click", onLooperRecordToggle);
@@ -1332,6 +1424,39 @@
     audioBanner.classList.toggle("hidden", !show);
   }
   audioBanner.addEventListener("click", () => { ensureAudio().then(checkAudioBanner); });
+
+  document.getElementById("debugToggle").addEventListener("click", () => {
+    const panel = document.getElementById("debugPanel");
+    panel.classList.toggle("show");
+    if(panel.classList.contains("show")){
+      const el = document.getElementById("debugLog");
+      el.textContent = debugLines.join("\n");
+      el.scrollTop = el.scrollHeight;
+    }
+  });
+  document.getElementById("debugClose").addEventListener("click", () => {
+    document.getElementById("debugPanel").classList.remove("show");
+  });
+  document.getElementById("debugClear").addEventListener("click", () => {
+    debugLines.length = 0;
+    document.getElementById("debugLog").textContent = "";
+  });
+  document.getElementById("debugCopy").addEventListener("click", async () => {
+    const text = debugLines.join("\n");
+    try{
+      await navigator.clipboard.writeText(text);
+      document.getElementById("debugCopy").textContent = "Copied!";
+      setTimeout(() => { document.getElementById("debugCopy").textContent = "Copy"; }, 1200);
+    }catch(e){
+      // Clipboard API blocked (common on http or older browsers): select the text instead.
+      const el = document.getElementById("debugLog");
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  });
 
   window.addEventListener("load", boot);
 })();
