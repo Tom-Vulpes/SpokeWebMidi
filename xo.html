@@ -229,10 +229,10 @@
       <div id="looperMap"></div>
     </div>
     <div id="looperFooter">
-      <button class="loopbtn" id="btnLoopStart">Start Loop</button>
-      <button class="loopbtn" id="btnLoopStop">Stop Loop</button>
+      <button class="loopbtn" id="btnLoopStart">Record / Stop</button>
       <button class="loopbtn" id="btnLoopOverdub">Overdub</button>
       <button class="ghost" id="btnLoopUndo">Remove Last</button>
+      <button class="ghost" id="btnLoopClear">Start Fresh</button>
     </div>
   </div>
 
@@ -582,10 +582,10 @@
     state.controlPads = { next:0, select:1, back:2, toggleA:0, toggleB:1 };
     state.looperPads = {
       toggleA: N_PADS-2, toggleB: N_PADS-1,
-      start: Math.min(3, N_PADS-1),
-      stop: Math.min(4, N_PADS-1),
-      overdub: Math.min(5, N_PADS-1),
-      undo: Math.min(6, N_PADS-1),
+      record: Math.min(3, N_PADS-1),
+      overdub: Math.min(4, N_PADS-1),
+      undo: Math.min(5, N_PADS-1),
+      clear: Math.min(6, N_PADS-1),
     };
     saveState();
     rebuildPadIndex();
@@ -794,10 +794,10 @@
       {key:"toggleB", label:"Second settings-toggle pad", target:"controlPads"},
       {key:"toggleA", label:"First looper-toggle pad", target:"looperPads"},
       {key:"toggleB", label:"Second looper-toggle pad", target:"looperPads"},
-      {key:"start", label:"Looper: Start Loop pad", target:"looperPads"},
-      {key:"stop", label:"Looper: Stop Loop pad", target:"looperPads"},
+      {key:"record", label:"Looper: Record/Stop pad", target:"looperPads"},
       {key:"overdub", label:"Looper: Overdub pad", target:"looperPads"},
       {key:"undo", label:"Looper: Remove Last pad", target:"looperPads"},
+      {key:"clear", label:"Looper: Start Fresh pad", target:"looperPads"},
     ];
     let ri = 0;
     const cpCtrl = Object.assign({}, state.controlPads);
@@ -982,10 +982,10 @@
     };
     looperStateText.textContent = texts[looperState] || looperState;
     const subs = {
-      empty: "Press Start Loop to record your first pass.",
-      recording_first: "Sing or play now. Press Stop Loop to close the loop.",
-      playing: "Loop is playing. Press Overdub to add a layer, or Remove Last to undo.",
-      paused: "Press Start Loop to resume.",
+      empty: "Press Record to start your first pass.",
+      recording_first: "Sing or play now. Press Record again to close the loop.",
+      playing: "Loop is playing. Overdub to add a layer, Remove Last to undo, Record to pause, Start Fresh to clear everything.",
+      paused: "Paused. Press Record to resume.",
       recording_overdub: "Recording a new layer in time with the loop. Press Overdub again to finish.",
     };
     looperSub.textContent = subs[looperState] || "";
@@ -1000,8 +1000,9 @@
     const lp = state.looperPads;
     if(lp){
       const nm = (i) => (state.padNames && state.padNames[i]) || ("Pad "+(i+1));
-      looperMapEl.textContent = "Start: " + nm(lp.start) + "  \u00b7  Stop: " + nm(lp.stop) +
-        "  \u00b7  Overdub: " + nm(lp.overdub) + "  \u00b7  Remove Last: " + nm(lp.undo);
+      looperMapEl.textContent = "Record/Stop: " + nm(lp.record) +
+        "  \u00b7  Overdub: " + nm(lp.overdub) + "  \u00b7  Remove Last: " + nm(lp.undo) +
+        "  \u00b7  Start Fresh: " + nm(lp.clear);
     }
   }
 
@@ -1011,29 +1012,29 @@
     if(!ok) updateLooperUI();
   }
 
-  function onLooperStart(){
+  function onLooperRecordToggle(){
     if(micErrorMsg) return;
     if(looperState==="empty"){
       firstTakeChunks = [];
       looperState = "recording_first";
       speak("Recording");
+    } else if(looperState==="recording_first"){
+      finalizeFirstTake();
+      looperState = "playing";
+      speak("Loop set");
+    } else if(looperState==="playing"){
+      stopPlayback();
+      looperState = "paused";
+      speak("Loop paused");
     } else if(looperState==="paused"){
       swapPlaybackBuffer(true);
       looperState = "playing";
       speak("Loop playing");
-    }
-    updateLooperUI();
-  }
-  function onLooperStop(){
-    if(looperState==="recording_first"){
-      finalizeFirstTake();
-      looperState = "playing";
-      speak("Loop set");
-    } else if(looperState==="playing" || looperState==="recording_overdub"){
-      if(looperState==="recording_overdub") pendingOverdub = null;
+    } else if(looperState==="recording_overdub"){
+      pendingOverdub = null;
       stopPlayback();
       looperState = "paused";
-      speak("Loop stopped");
+      speak("Loop paused");
     }
     updateLooperUI();
   }
@@ -1067,20 +1068,29 @@
     }
     updateLooperUI();
   }
+  function onLooperClear(){
+    pendingOverdub = null;
+    stopPlayback();
+    layers = [];
+    loopLength = 0;
+    looperState = "empty";
+    speak("Starting fresh");
+    updateLooperUI();
+  }
 
   function handleLooperPad(pad){
     const lp = state.looperPads;
     if(!lp) return;
-    if(pad === lp.start) onLooperStart();
-    else if(pad === lp.stop) onLooperStop();
+    if(pad === lp.record) onLooperRecordToggle();
     else if(pad === lp.overdub) onLooperOverdub();
     else if(pad === lp.undo) onLooperUndo();
+    else if(pad === lp.clear) onLooperClear();
   }
 
-  $("btnLoopStart").addEventListener("click", onLooperStart);
-  $("btnLoopStop").addEventListener("click", onLooperStop);
+  $("btnLoopStart").addEventListener("click", onLooperRecordToggle);
   $("btnLoopOverdub").addEventListener("click", onLooperOverdub);
   $("btnLoopUndo").addEventListener("click", onLooperUndo);
+  $("btnLoopClear").addEventListener("click", onLooperClear);
 
   /* ============================================================
      BOOT
