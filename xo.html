@@ -883,6 +883,8 @@
      VOCAL LOOPER
      ============================================================ */
   let micStream = null, micSource = null, scriptNode = null, silentGain = null;
+  let analyserNode = null, scopeRAF = null;
+  const scopeData = new Float32Array(1024);
   let looperState = "empty"; // empty | recording_first | playing | paused | recording_overdub
   let firstTakeChunks = [];
   let loopLength = 0;        // samples
@@ -917,23 +919,58 @@
       }
       return false;
     }
+    const track = micStream.getAudioTracks()[0];
+    if(!track || track.muted || track.readyState !== "live"){
+      micErrorMsg = "The microphone track isn't live (it may be muted or in use by another app). Check your device's mic isn't muted and try again.";
+      return false;
+    }
     const ctx = Tone.context.rawContext;
     sr = ctx.sampleRate;
-    micSource = ctx.createMediaStreamSource(micStream);
-    scriptNode = ctx.createScriptProcessor(2048, 1, 1);
-    silentGain = ctx.createGain();
-    silentGain.gain.value = 0;
-    micSource.connect(scriptNode);
-    scriptNode.connect(silentGain);
-    silentGain.connect(ctx.destination);
-    scriptNode.onaudioprocess = onAudioProcess;
+    try{
+      micSource = ctx.createMediaStreamSource(micStream);
+
+      // Live waveform display: an AnalyserNode is simpler and more broadly reliable
+      // than pulling data out of the recording node, so the visual and the recorder
+      // don't depend on each other.
+      analyserNode = ctx.createAnalyser();
+      analyserNode.fftSize = 1024;
+      micSource.connect(analyserNode);
+      startScopeLoop();
+    }catch(err){
+      micErrorMsg = "Couldn't set up the microphone visualizer (" + (err && err.name ? err.name : "error") + ").";
+      return false;
+    }
+    try{
+      // Sample-accurate capture for the actual loop recording.
+      scriptNode = ctx.createScriptProcessor(2048, 1, 1);
+      silentGain = ctx.createGain();
+      silentGain.gain.value = 0;
+      micSource.connect(scriptNode);
+      scriptNode.connect(silentGain);
+      silentGain.connect(ctx.destination);
+      scriptNode.onaudioprocess = onAudioProcess;
+    }catch(err){
+      micErrorMsg = "The microphone is connected and the waveform should work, but recording setup failed (" + (err && err.name ? err.name : "error") + "). Try a different browser (Chrome or Firefox) or reload the page.";
+      return false;
+    }
     micReady = true;
     return true;
   }
 
+  function startScopeLoop(){
+    if(scopeRAF) return;
+    function tick(){
+      if(analyserNode && mode === "looper"){
+        analyserNode.getFloatTimeDomainData(scopeData);
+        drawScope(scopeData);
+      }
+      scopeRAF = requestAnimationFrame(tick);
+    }
+    tick();
+  }
+
   function onAudioProcess(e){
     const input = e.inputBuffer.getChannelData(0);
-    if(mode === "looper") drawScope(input);
     if(looperState === "recording_first"){
       firstTakeChunks.push(new Float32Array(input));
     } else if(looperState === "recording_overdub" && pendingOverdub){
