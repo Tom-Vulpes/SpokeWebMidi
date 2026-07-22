@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Spoke Player</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+<style>
+  :root{
+    --bg:#10151c;
+    --surface:#1b232d;
+    --surface-raised:#232d38;
+    --ink:#eef2f5;
+    --muted:#8fa0ad;
+    --accent:#e8a24b;
+    --accent-dim:#7a5a2c;
+    --good:#5fb98c;
+    --bad:#d9695f;
+    --ring:#e8a24b;
+    --focus:#7fd0e6;
+    --loop-accent:#7bc79a;
+    --pad-colors: #e8a24b,#e6bd5a,#d7c96a,#a9c97e,#7bc79a,#5fb9ad,#6bacc7,#8b9ce0,#b08be0,#cf7fce,#e07ba0;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--bg); color:var(--ink);
+    font-family:"Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    overflow:hidden;
+    user-select:none;
+  }
+  button{
+    font-family:inherit; color:inherit; background:var(--surface-raised);
+    border:2px solid transparent; border-radius:14px;
+    padding:0.9em 1.2em; font-size:1.05rem; font-weight:700;
+    cursor:pointer;
+  }
+  button:focus-visible, [tabindex]:focus-visible{
+    outline:3px solid var(--focus); outline-offset:2px;
+  }
+  button.primary{ background:var(--accent); color:#1b1206; }
+  button.loopbtn{ background:var(--loop-accent); color:#0c2016; }
+  button.ghost{ background:transparent; border-color:var(--muted); }
+
+  #app{ position:relative; width:100vw; height:100dvh; display:flex; flex-direction:column; }
+
+  #statusbar{
+    display:flex; align-items:center; gap:0.6em;
+    padding:0.6em 0.9em; background:var(--surface);
+    border-bottom:1px solid #00000040; flex:0 0 auto;
+    font-size:0.95rem; color:var(--muted);
+  }
+  #dot{ width:0.7em; height:0.7em; border-radius:50%; background:var(--bad); flex:0 0 auto; }
+  #dot.connected{ background:var(--good); }
+  #statusText{ flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #modeBadge{
+    font-weight:700; letter-spacing:0.06em; font-size:0.8rem;
+    padding:0.25em 0.7em; border-radius:999px; background:var(--surface-raised); color:var(--ink);
+  }
+  #modeBadge.settings{ background:var(--accent); color:#1b1206; }
+  #modeBadge.looper{ background:var(--loop-accent); color:#0c2016; }
+
+  #playScreen{ flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
+  #nowPlaying{
+    text-align:center; padding:0.6em 0.5em 0.2em;
+    color:var(--muted); font-size:1rem;
+  }
+  #nowPlaying b{ color:var(--ink); }
+  #padGrid{
+    flex:1 1 auto; display:grid; gap:0.6em; padding:0.7em;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 1fr;
+    min-height:0;
+  }
+  .pad{
+    border-radius:18px; background:var(--surface);
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:0.15em;
+    font-weight:700; font-size:1.1rem; color:var(--ink);
+    border:2px solid #ffffff10;
+    transition:transform 60ms linear, background 60ms linear, box-shadow 120ms linear;
+  }
+  .pad small{ font-weight:400; color:var(--muted); font-size:0.75em; }
+  .pad.active{
+    transform:scale(0.96);
+    box-shadow:0 0 0 4px var(--pad-glow, var(--accent)) inset, 0 0 22px 2px var(--pad-glow, var(--accent));
+    background:var(--surface-raised);
+  }
+  @media (prefers-reduced-motion: reduce){ .pad{ transition:none; } }
+
+  #gestureOverlay{
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    background:#000000b0; z-index:40; flex-direction:column; gap:1em;
+  }
+  #gestureOverlay.show{ display:flex; }
+  #ringWrap{ width:180px; height:180px; position:relative; }
+  #ringWrap svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  #ringWrap circle{ fill:none; stroke-width:10; }
+  #ringBg{ stroke:#ffffff22; }
+  #ringFg{ stroke:var(--ring); stroke-linecap:round; transition:none; }
+  #gestureLabel{ font-size:1.2rem; text-align:center; max-width:80vw; }
+
+  #settingsScreen{
+    position:absolute; inset:0; display:none; flex-direction:column;
+    background:var(--bg); z-index:30;
+  }
+  #settingsScreen.show{ display:flex; }
+  #settingsHeader{
+    padding:0.9em; text-align:center; color:var(--muted);
+    border-bottom:1px solid #ffffff12;
+  }
+  #settingsHeader h1{ margin:0; font-size:1.3rem; color:var(--ink); }
+  #menuList{ flex:1 1 auto; overflow:hidden; padding:0.8em; display:flex; flex-direction:column; gap:0.5em; }
+  .menuItem{
+    padding:0.9em 1em; border-radius:14px; background:var(--surface);
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:1.15rem;
+  }
+  .menuItem .val{ color:var(--muted); font-weight:400; }
+  .menuItem.current{ background:var(--accent); color:#1b1206; outline:3px solid #fff4; }
+  .menuItem.current .val{ color:#3a2a10; }
+  #settingsFooter{
+    padding:0.7em; display:flex; gap:0.5em; justify-content:center;
+    border-top:1px solid #ffffff12; flex-wrap:wrap;
+  }
+  #settingsFooter span{ font-size:0.85rem; color:var(--muted); align-self:center; }
+
+  #calScreen{
+    position:absolute; inset:0; z-index:50; background:var(--bg);
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:2em; gap:1.2em;
+  }
+  #calScreen.show{ display:flex; }
+  #calScreen h1{ font-size:1.6rem; margin:0; }
+  #calScreen p{ color:var(--muted); max-width:34em; line-height:1.5; margin:0; }
+  #calStep{ font-size:2rem; font-weight:700; color:var(--accent); }
+  #calNameInput{
+    font-size:1.1rem; padding:0.6em 0.8em; border-radius:10px; border:2px solid var(--muted);
+    background:var(--surface); color:var(--ink); width:16em; max-width:80vw;
+    font-family:inherit;
+  }
+
+  #audioBanner{
+    position:absolute; top:3.2em; left:0.7em; right:0.7em; z-index:60;
+    background:var(--accent); color:#1b1206; border:none; border-radius:12px;
+    padding:0.7em 1em; font-size:1rem; font-weight:700; width:auto;
+  }
+
+  /* ---------- looper ---------- */
+  #looperScreen{
+    position:absolute; inset:0; display:none; flex-direction:column;
+    background:var(--bg); z-index:35; text-align:center;
+  }
+  #looperScreen.show{ display:flex; }
+  #looperHeader{ padding:0.9em; border-bottom:1px solid #ffffff12; color:var(--muted); }
+  #looperHeader h1{ margin:0; font-size:1.3rem; color:var(--ink); }
+  #looperBody{ flex:1 1 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1em; padding:1em; }
+  #looperStateText{ font-size:1.6rem; font-weight:700; color:var(--loop-accent); }
+  #looperSub{ color:var(--muted); font-size:1rem; max-width:28em; }
+  #layerDots{ display:flex; gap:0.4em; }
+  .layerDot{ width:14px; height:14px; border-radius:50%; background:#ffffff20; }
+  .layerDot.filled{ background:var(--loop-accent); }
+  #looperFooter{
+    padding:0.8em; display:flex; gap:0.5em; justify-content:center; flex-wrap:wrap;
+    border-top:1px solid #ffffff12;
+  }
+  #looperMap{ font-size:0.85rem; color:var(--muted); padding:0 1em; }
+
+  .hidden{ display:none !important; }
+  .visually-hidden{
+    position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="statusbar">
+    <div id="dot"></div>
+    <div id="statusText">Looking for your MIDI device&hellip;</div>
+    <div id="modeBadge">PLAY</div>
+  </div>
+
+  <button id="audioBanner" class="hidden" aria-live="polite">🔈 Tap once to enable sound for this session</button>
+
+  <div id="playScreen">
+    <div id="nowPlaying">
+      <b id="npScale">Major</b> &middot; <span id="npRoot">C</span> &middot; <span id="npInstrument">Warm Piano</span> &middot; <span id="npMode">Note</span>
+    </div>
+    <div id="padGrid" role="list" aria-label="Pads"></div>
+  </div>
+
+  <div id="gestureOverlay" aria-live="polite">
+    <div id="ringWrap">
+      <svg viewBox="0 0 100 100">
+        <circle id="ringBg" cx="50" cy="50" r="42"></circle>
+        <circle id="ringFg" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="264"></circle>
+      </svg>
+    </div>
+    <div id="gestureLabel">Hold both pads&hellip;</div>
+  </div>
+
+  <div id="settingsScreen" aria-live="polite">
+    <div id="settingsHeader">
+      <h1 id="settingsTitle">Settings</h1>
+      <div id="settingsSub" style="margin-top:0.3em;">One pad moves down, one selects, one goes back</div>
+    </div>
+    <div id="menuList"></div>
+    <div id="settingsFooter">
+      <button class="ghost" id="btnManualBack">Back</button>
+      <button class="ghost" id="btnManualNext">Next</button>
+      <button class="primary" id="btnManualSelect">Select</button>
+    </div>
+  </div>
+
+  <div id="looperScreen" aria-live="polite">
+    <div id="looperHeader">
+      <h1>Vocal Looper</h1>
+    </div>
+    <div id="looperBody">
+      <div id="looperStateText">Empty</div>
+      <div id="looperSub">Press Start to record your first loop.</div>
+      <div id="layerDots"></div>
+      <div id="looperMap"></div>
+    </div>
+    <div id="looperFooter">
+      <button class="loopbtn" id="btnLoopStart">Start Loop</button>
+      <button class="loopbtn" id="btnLoopStop">Stop Loop</button>
+      <button class="loopbtn" id="btnLoopOverdub">Overdub</button>
+      <button class="ghost" id="btnLoopUndo">Remove Last</button>
+    </div>
+  </div>
+
+  <div id="calScreen">
+    <h1 id="calTitle">Let's set up the pads</h1>
+    <p id="calBody">
+      This only needs doing once. When ready, touch each pad on the controller, one at a time,
+      in whatever order is easiest &mdash; we'll learn which pad is which. A helper can rename each
+      one afterwards if useful.
+    </p>
+    <div id="calStep">Pad 1 of 11</div>
+    <input id="calNameInput" class="hidden" placeholder="Name this pad (optional)" />
+    <div style="display:flex; gap:0.6em; flex-wrap:wrap; justify-content:center;">
+      <button class="primary" id="calStart">Start setup</button>
+      <button class="ghost hidden" id="calRedo">Start over</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     CONFIG / CONSTANTS
+     ============================================================ */
+  const PIN_ORDER = [24,23,14,22,21,20,19,15,16,17,18];
+  const N_PADS = PIN_ORDER.length;
+  const TOGGLE_HOLD_MS = 5000;
+
+  const SCALES = {
+    "Major":            [0,2,4,5,7,9,11],
+    "Natural Minor":    [0,2,3,5,7,8,10],
+    "Pentatonic Major": [0,2,4,7,9],
+    "Pentatonic Minor": [0,3,5,7,10],
+    "Blues":            [0,3,5,6,7,10],
+    "Chromatic":        [0,1,2,3,4,5,6,7,8,9,10,11],
+  };
+  const SCALE_NAMES = Object.keys(SCALES);
+  const ROOTS = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const ROOT_BASE_MIDI = 60;
+
+  const INSTRUMENTS = {
+    "Warm Piano":  () => new Tone.PolySynth(Tone.Synth, { oscillator:{type:"triangle"}, envelope:{attack:0.01, decay:0.25, sustain:0.4, release:0.8} }),
+    "Synth Lead":  () => new Tone.PolySynth(Tone.Synth, { oscillator:{type:"sawtooth"}, envelope:{attack:0.02, decay:0.15, sustain:0.6, release:0.4} }),
+    "Soft Pad":    () => new Tone.PolySynth(Tone.AMSynth, { envelope:{attack:0.4, decay:0.3, sustain:0.8, release:1.6} }),
+    "Bell":        () => new Tone.PolySynth(Tone.FMSynth, { harmonicity:3.2, modulationIndex:8, envelope:{attack:0.005, decay:1.2, sustain:0.05, release:1.2} }),
+    "Deep Bass":   () => new Tone.PolySynth(Tone.Synth, { oscillator:{type:"sine"}, envelope:{attack:0.02, decay:0.3, sustain:0.5, release:0.6} }),
+    "Xylophone":   () => new Tone.PolySynth(Tone.Synth, { oscillator:{type:"sine"}, envelope:{attack:0.001, decay:0.4, sustain:0, release:0.3} }),
+    "Organ":       () => new Tone.PolySynth(Tone.Synth, { oscillator:{type:"square"}, envelope:{attack:0.01, decay:0.05, sustain:0.9, release:0.1} }),
+    "Music Box":   () => new Tone.PolySynth(Tone.FMSynth, { harmonicity:8, modulationIndex:2, envelope:{attack:0.001, decay:1.5, sustain:0, release:0.5} }),
+    "Drum Hit":    () => new Tone.PolySynth(Tone.MembraneSynth, { envelope:{attack:0.001, decay:0.4, sustain:0.01, release:0.4} }),
+    "Glass Chime": () => new Tone.PolySynth(Tone.MetalSynth, { harmonicity:5.1, modulationIndex:16, resonance:3000, octaves:1.2 }),
+  };
+  const INSTRUMENT_NAMES = Object.keys(INSTRUMENTS);
+  const PLAY_MODES = ["Note","Chord","Melody"];
+
+  const STORAGE_KEY = "spokePlayer.v1";
+
+  /* ============================================================
+     STATE
+     ============================================================ */
+  let state = loadState();
+  let midiAccess = null;
+  let midiInput = null;
+  let synth = null;
+  let currentInstrumentName = null;
+
+  let heldNotes = new Set();
+  let padOfNote = {};
+  let noteOfPad = [];
+
+  let mode = "play"; // "play" | "settings" | "looper"
+
+  let settingsMenu = [];
+  let settingsIndex = 0;
+  let settingsContext = null;
+
+  /* ============================================================
+     STORAGE
+     ============================================================ */
+  function defaultState(){
+    return {
+      padMap: null,
+      padNames: null,
+      controlPads: null,       // { next, select, back, toggleA, toggleB }
+      looperPads: null,        // { toggleA, toggleB, start, stop, overdub, undo }
+      midiInputId: null,
+      scale: "Major",
+      root: "C",
+      instrument: "Warm Piano",
+      playMode: "Note",
+      voiceFeedback: true,
+    };
+  }
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return defaultState();
+      const parsed = JSON.parse(raw);
+      return Object.assign(defaultState(), parsed);
+    }catch(e){ return defaultState(); }
+  }
+  function saveState(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){ /* ignore */ }
+  }
+
+  /* ============================================================
+     DOM refs
+     ============================================================ */
+  const $ = (id) => document.getElementById(id);
+  const dot = $("dot"), statusText = $("statusText"), modeBadge = $("modeBadge");
+  const padGrid = $("padGrid");
+  const npScale = $("npScale"), npRoot = $("npRoot"), npInstrument = $("npInstrument"), npMode = $("npMode");
+  const gestureOverlay = $("gestureOverlay"), gestureLabel = $("gestureLabel"), ringFg = $("ringFg");
+  const settingsScreen = $("settingsScreen"), menuListEl = $("menuList"), settingsSub = $("settingsSub");
+  const calScreen = $("calScreen"), calStep = $("calStep"), calNameInput = $("calNameInput");
+  const calStart = $("calStart"), calRedo = $("calRedo"), calBody=$("calBody"), calTitle=$("calTitle");
+  const audioBanner = $("audioBanner");
+  const looperScreen = $("looperScreen"), looperStateText = $("looperStateText"), looperSub = $("looperSub");
+  const layerDotsEl = $("layerDots"), looperMapEl = $("looperMap");
+
+  /* ============================================================
+     SPEECH FEEDBACK
+     ============================================================ */
+  function speak(text){
+    if(!state.voiceFeedback) return;
+    if(!("speechSynthesis" in window)) return;
+    try{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.05;
+      window.speechSynthesis.speak(u);
+    }catch(e){ /* ignore */ }
+  }
+
+  /* ============================================================
+     AUDIO (instruments)
+     ============================================================ */
+  async function ensureAudio(){
+    if(Tone.context.state !== "running"){
+      try{ await Tone.start(); }catch(e){ /* will retry on next touch */ }
+    }
+    setInstrument(state.instrument);
+    if(typeof checkAudioBanner === "function") checkAudioBanner();
+  }
+  function setInstrument(name){
+    if(currentInstrumentName === name && synth) return;
+    if(synth){ try{ synth.releaseAll(); synth.dispose(); }catch(e){} }
+    const factory = INSTRUMENTS[name] || INSTRUMENTS["Warm Piano"];
+    synth = factory().toDestination();
+    currentInstrumentName = name;
+  }
+  function midiToFreq(m){ return Tone.Frequency(m, "midi").toFrequency(); }
+
+  function scaleDegreeMidi(padIndex){
+    const intervals = SCALES[state.scale] || SCALES.Major;
+    const rootIdx = ROOTS.indexOf(state.root);
+    const rootMidi = ROOT_BASE_MIDI + (rootIdx < 0 ? 0 : rootIdx);
+    const octave = Math.floor(padIndex / intervals.length);
+    const degree = intervals[padIndex % intervals.length];
+    return rootMidi + degree + (octave * 12);
+  }
+
+  function playPad(padIndex, on){
+    if(!synth) return;
+    const base = scaleDegreeMidi(padIndex);
+    if(state.playMode === "Note"){
+      const f = midiToFreq(base);
+      if(on) synth.triggerAttack(f, undefined, padIndex); else synth.triggerRelease(f);
+    } else if(state.playMode === "Chord"){
+      const intervals = SCALES[state.scale] || SCALES.Major;
+      const len = intervals.length;
+      const notes = [padIndex, padIndex+2, padIndex+4].map(i => {
+        const oct = Math.floor(i/len), deg = intervals[i%len];
+        const rootIdx = ROOTS.indexOf(state.root);
+        const rootMidi = ROOT_BASE_MIDI + (rootIdx<0?0:rootIdx);
+        return rootMidi + deg + oct*12;
+      });
+      const freqs = notes.map(midiToFreq);
+      if(on) synth.triggerAttack(freqs); else synth.triggerRelease(freqs);
+    } else if(state.playMode === "Melody"){
+      if(on){
+        const phrase = [0,1,2,3].map(k => scaleDegreeMidi(padIndex + k*2));
+        let t = Tone.now();
+        phrase.forEach((m,i) => {
+          const f = midiToFreq(m);
+          synth.triggerAttackRelease(f, "8n", t + i*0.14);
+        });
+      }
+    }
+  }
+
+  /* ============================================================
+     PAD GRID (visual)
+     ============================================================ */
+  function padColor(i){
+    const colors = getComputedStyle(document.documentElement).getPropertyValue('--pad-colors').split(',');
+    return (colors[i] || colors[0]).trim();
+  }
+  function buildPadGrid(){
+    padGrid.innerHTML = "";
+    for(let i=0;i<N_PADS;i++){
+      const el = document.createElement("div");
+      el.className = "pad";
+      el.dataset.pad = i;
+      el.style.setProperty("--pad-glow", padColor(i));
+      const name = (state.padNames && state.padNames[i]) || ("Pad " + (i+1));
+      el.innerHTML = `<span>${escapeHtml(name)}</span><small></small>`;
+      el.setAttribute("role","listitem");
+      padGrid.appendChild(el);
+    }
+    updatePadSubLabels();
+  }
+  function updatePadSubLabels(){
+    const els = padGrid.querySelectorAll(".pad");
+    els.forEach((el,i) => {
+      const midi = scaleDegreeMidi(i);
+      const name = ROOTS[((midi%12)+12)%12];
+      const octave = Math.floor(midi/12) - 1;
+      el.querySelector("small").textContent = name + octave;
+    });
+  }
+  function setPadActive(padIndex, active){
+    const el = padGrid.querySelector('.pad[data-pad="'+padIndex+'"]');
+    if(el) el.classList.toggle("active", active);
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  function refreshNowPlaying(){
+    npScale.textContent = state.scale;
+    npRoot.textContent = state.root;
+    npInstrument.textContent = state.instrument;
+    npMode.textContent = state.playMode;
+    updatePadSubLabels();
+  }
+
+  /* ============================================================
+     MIDI
+     ============================================================ */
+  function statusSet(connected, text){
+    dot.classList.toggle("connected", connected);
+    statusText.textContent = text;
+  }
+
+  async function initMidi(){
+    if(!navigator.requestMIDIAccess){
+      statusSet(false, "This browser can't see MIDI devices. Use Chrome, Edge, Firefox, or Samsung Internet.");
+      return;
+    }
+    try{
+      midiAccess = await navigator.requestMIDIAccess({ sysex:false });
+    }catch(e){
+      statusSet(false, "MIDI access was blocked. Ask a helper to allow it once in the browser's site settings.");
+      return;
+    }
+    midiAccess.onstatechange = () => attachBestInput();
+    attachBestInput();
+  }
+
+  function attachBestInput(){
+    const inputs = Array.from(midiAccess.inputs.values());
+    if(inputs.length === 0){
+      statusSet(false, "No MIDI device found. Check the controller is connected.");
+      midiInput = null;
+      return;
+    }
+    let chosen = null;
+    if(state.midiInputId){
+      chosen = inputs.find(i => i.id === state.midiInputId) || null;
+    }
+    if(!chosen) chosen = inputs[0];
+    if(midiInput && midiInput.id === chosen.id) return;
+    if(midiInput) midiInput.onmidimessage = null;
+    midiInput = chosen;
+    midiInput.onmidimessage = onMidiMessage;
+    state.midiInputId = midiInput.id;
+    saveState();
+    statusSet(true, "Connected: " + (midiInput.name || "MIDI device"));
+  }
+
+  function listInputs(){
+    if(!midiAccess) return [];
+    return Array.from(midiAccess.inputs.values());
+  }
+
+  function onMidiMessage(msg){
+    const [status, note, velocity] = msg.data;
+    const cmd = status & 0xf0;
+    if(cmd === 0x90 && velocity > 0){
+      handleNoteOn(note);
+    } else if(cmd === 0x80 || (cmd === 0x90 && velocity === 0)){
+      handleNoteOff(note);
+    }
+  }
+
+  /* ============================================================
+     CALIBRATION
+     ============================================================ */
+  let calIndex = 0;
+  let calCapturing = false;
+  let calNames = [];
+
+  function startCalibration(){
+    calIndex = 0;
+    calNames = [];
+    calCapturing = true;
+    calScreen.classList.add("show");
+    calStart.classList.add("hidden");
+    calRedo.classList.add("hidden");
+    calNameInput.classList.remove("hidden");
+    calNameInput.value = "";
+    calTitle.textContent = "Let's set up the pads";
+    calBody.textContent = "Touch pad " + (calIndex+1) + " now.";
+    calStep.textContent = "Pad " + (calIndex+1) + " of " + N_PADS;
+    speak("Touch pad " + (calIndex+1));
+  }
+
+  function calibrationCaptureNote(note){
+    if(!calCapturing) return true;
+    const already = calNames.findIndex(n => n && n.note === note);
+    if(already !== -1) return true;
+    calNames[calIndex] = { note: note, name: calNameInput.value.trim() || ("Pad " + (calIndex+1)) };
+    calIndex++;
+    if(calIndex >= N_PADS){
+      finishCalibration();
+    }else{
+      calNameInput.value = "";
+      calBody.textContent = "Touch pad " + (calIndex+1) + " now.";
+      calStep.textContent = "Pad " + (calIndex+1) + " of " + N_PADS;
+      speak("Touch pad " + (calIndex+1));
+    }
+    return true;
+  }
+
+  function finishCalibration(){
+    calCapturing = false;
+    const padMap = {};
+    const padNames = [];
+    calNames.forEach((entry, i) => {
+      padMap[entry.note] = i;
+      padNames[i] = entry.name;
+    });
+    state.padMap = padMap;
+    state.padNames = padNames;
+    state.controlPads = { next:0, select:1, back:2, toggleA:0, toggleB:1 };
+    state.looperPads = {
+      toggleA: N_PADS-2, toggleB: N_PADS-1,
+      start: Math.min(3, N_PADS-1),
+      stop: Math.min(4, N_PADS-1),
+      overdub: Math.min(5, N_PADS-1),
+      undo: Math.min(6, N_PADS-1),
+    };
+    saveState();
+    rebuildPadIndex();
+    buildPadGrid();
+    calScreen.classList.remove("show");
+    speak("Setup complete. You're ready to play.");
+  }
+
+  calStart.addEventListener("click", startCalibration);
+  calRedo.addEventListener("click", startCalibration);
+
+  function rebuildPadIndex(){
+    padOfNote = {};
+    noteOfPad = new Array(N_PADS).fill(null);
+    if(state.padMap){
+      Object.keys(state.padMap).forEach(noteStr => {
+        const note = parseInt(noteStr,10);
+        const pad = state.padMap[noteStr];
+        padOfNote[note] = pad;
+        noteOfPad[pad] = note;
+      });
+    }
+  }
+
+  /* ============================================================
+     GESTURES: hold two pads 5s to toggle a mode
+     Two independent gestures: settings, looper
+     ============================================================ */
+  const gestures = {
+    settings: { getPads: () => state.controlPads ? [state.controlPads.toggleA, state.controlPads.toggleB] : null, timer:null, raf:null, start:0, ignore:false, target:"settings" },
+    looper:   { getPads: () => state.looperPads ? [state.looperPads.toggleA, state.looperPads.toggleB] : null, timer:null, raf:null, start:0, ignore:false, target:"looper" },
+  };
+  let activeGestureKey = null;
+
+  function gestureHeld(g){
+    const pads = g.getPads();
+    if(!pads || pads[0]==null || pads[1]==null) return false;
+    const a = noteOfPad[pads[0]], b = noteOfPad[pads[1]];
+    if(a==null || b==null) return false;
+    return heldNotes.has(a) && heldNotes.has(b);
+  }
+
+  function checkGestures(){
+    Object.keys(gestures).forEach(key => {
+      const g = gestures[key];
+      const held = gestureHeld(g);
+      if(held && !g.ignore){
+        if(activeGestureKey == null || activeGestureKey === key){
+          if(g.timer == null){ activeGestureKey = key; beginGestureHold(key); }
+        }
+      }else{
+        if(g.timer != null) cancelGestureHold(key);
+        if(!held) g.ignore = false;
+      }
+    });
+  }
+
+  function beginGestureHold(key){
+    const g = gestures[key];
+    g.start = performance.now();
+    gestureOverlay.classList.add("show");
+    gestureLabel.textContent = (mode === g.target) ? "Returning to play\u2026" : ("Opening " + g.target + "\u2026");
+    tickRing(key);
+    g.timer = setTimeout(() => { finishGesture(key); }, TOGGLE_HOLD_MS);
+  }
+  function tickRing(key){
+    const g = gestures[key];
+    const elapsed = performance.now() - g.start;
+    const frac = Math.min(1, elapsed / TOGGLE_HOLD_MS);
+    const circumference = 264;
+    ringFg.setAttribute("stroke-dashoffset", String(circumference * (1 - frac)));
+    if(g.timer != null){ g.raf = requestAnimationFrame(() => tickRing(key)); }
+  }
+  function cancelGestureHold(key){
+    const g = gestures[key];
+    clearTimeout(g.timer); g.timer = null;
+    if(g.raf) cancelAnimationFrame(g.raf);
+    gestureOverlay.classList.remove("show");
+    ringFg.setAttribute("stroke-dashoffset","264");
+    if(activeGestureKey === key) activeGestureKey = null;
+  }
+  function finishGesture(key){
+    const g = gestures[key];
+    g.timer = null;
+    if(g.raf) cancelAnimationFrame(g.raf);
+    gestureOverlay.classList.remove("show");
+    ringFg.setAttribute("stroke-dashoffset","264");
+    g.ignore = true;
+    activeGestureKey = null;
+    setMode(mode === g.target ? "play" : g.target);
+  }
+
+  /* ============================================================
+     NOTE HANDLING
+     ============================================================ */
+  function handleNoteOn(note){
+    heldNotes.add(note);
+    checkGestures();
+    if(calCapturing){ calibrationCaptureNote(note); return; }
+    if(activeGestureKey != null) return;
+    const pad = padOfNote[note];
+    if(pad == null) return;
+
+    if(mode === "play"){
+      setPadActive(pad, true);
+      ensureAudio().then(() => playPad(pad, true));
+    }else if(mode === "settings"){
+      handleSettingsPad(pad);
+    }else if(mode === "looper"){
+      handleLooperPad(pad);
+    }
+  }
+  function handleNoteOff(note){
+    heldNotes.delete(note);
+    checkGestures();
+    const pad = padOfNote[note];
+    if(pad == null) return;
+    if(mode === "play"){
+      setPadActive(pad, false);
+      if(state.playMode !== "Melody") playPad(pad, false);
+    }
+  }
+
+  /* ============================================================
+     MODE SWITCHING
+     ============================================================ */
+  function setMode(next){
+    mode = next;
+    modeBadge.textContent = mode === "play" ? "PLAY" : mode.toUpperCase();
+    modeBadge.classList.toggle("settings", mode === "settings");
+    modeBadge.classList.toggle("looper", mode === "looper");
+    settingsScreen.classList.toggle("show", mode === "settings");
+    looperScreen.classList.toggle("show", mode === "looper");
+    if(mode === "settings"){
+      openSettingsRoot();
+      speak("Settings");
+    }else if(mode === "looper"){
+      enterLooperMode();
+      speak("Vocal looper");
+    }else{
+      speak("Play mode");
+    }
+  }
+
+  /* ============================================================
+     SETTINGS MENU SYSTEM
+     ============================================================ */
+  function openSettingsRoot(){
+    settingsContext = null;
+    settingsMenu = [
+      { label:"Scale",             get:()=>state.scale,      open: () => openPicker("Scale", SCALE_NAMES, state.scale, v => { state.scale=v; saveState(); refreshNowPlaying(); }) },
+      { label:"Key",                get:()=>state.root,       open: () => openPicker("Key", ROOTS, state.root, v => { state.root=v; saveState(); refreshNowPlaying(); }) },
+      { label:"Instrument",        get:()=>state.instrument, open: () => openPicker("Instrument", INSTRUMENT_NAMES, state.instrument, v => { state.instrument=v; saveState(); setInstrument(v); refreshNowPlaying(); }) },
+      { label:"Play style",        get:()=>state.playMode,   open: () => openPicker("Play style", PLAY_MODES, state.playMode, v => { state.playMode=v; saveState(); refreshNowPlaying(); }) },
+      { label:"Spoken feedback",   get:()=>(state.voiceFeedback?"On":"Off"), open: () => openPicker("Spoken feedback", ["On","Off"], state.voiceFeedback?"On":"Off", v => { state.voiceFeedback = (v==="On"); saveState(); }) },
+      { label:"MIDI device",       get:()=>(midiInput? (midiInput.name||"device") : "none"), open: () => openDevicePicker() },
+      { label:"Re-set up pads",    get:()=>"", open: () => { setMode("play"); startCalibration(); } },
+      { label:"Reassign controls", get:()=>"", open: () => openReassign() },
+      { label:"Exit settings",     get:()=>"", open: () => setMode("play") },
+    ];
+    settingsIndex = 0;
+    settingsSub.textContent = "One pad moves down the list, one selects, one goes back";
+    renderMenu();
+  }
+
+  function openPicker(title, options, current, onPick){
+    settingsContext = { title, options, onPick };
+    settingsMenu = options.map(opt => ({
+      label: opt,
+      get: () => (opt === current ? "current" : ""),
+      open: () => { onPick(opt); openSettingsRoot(); }
+    }));
+    settingsMenu.push({ label:"Back", get:()=>"", open: openSettingsRoot });
+    settingsIndex = Math.max(0, options.indexOf(current));
+    settingsSub.textContent = title + " \u2014 choose, then select";
+    renderMenu();
+    speak(title);
+  }
+
+  function openDevicePicker(){
+    const inputs = listInputs();
+    if(inputs.length === 0){
+      settingsMenu = [{ label:"No devices found", get:()=>"", open: openSettingsRoot }];
+      settingsIndex = 0;
+      renderMenu();
+      return;
+    }
+    settingsContext = { title:"MIDI device" };
+    settingsMenu = inputs.map(inp => ({
+      label: inp.name || inp.id,
+      get: () => (midiInput && midiInput.id===inp.id ? "current" : ""),
+      open: () => { state.midiInputId = inp.id; saveState(); midiInput=null; attachBestInput(); openSettingsRoot(); }
+    }));
+    settingsMenu.push({ label:"Back", get:()=>"", open: openSettingsRoot });
+    settingsIndex = 0;
+    settingsSub.textContent = "Choose the MIDI device";
+    renderMenu();
+  }
+
+  function openReassign(){
+    const roles = [
+      {key:"next", label:"Move-down pad", target:"controlPads"},
+      {key:"select", label:"Select pad", target:"controlPads"},
+      {key:"back", label:"Back pad", target:"controlPads"},
+      {key:"toggleA", label:"First settings-toggle pad", target:"controlPads"},
+      {key:"toggleB", label:"Second settings-toggle pad", target:"controlPads"},
+      {key:"toggleA", label:"First looper-toggle pad", target:"looperPads"},
+      {key:"toggleB", label:"Second looper-toggle pad", target:"looperPads"},
+      {key:"start", label:"Looper: Start Loop pad", target:"looperPads"},
+      {key:"stop", label:"Looper: Stop Loop pad", target:"looperPads"},
+      {key:"overdub", label:"Looper: Overdub pad", target:"looperPads"},
+      {key:"undo", label:"Looper: Remove Last pad", target:"looperPads"},
+    ];
+    let ri = 0;
+    const cpCtrl = Object.assign({}, state.controlPads);
+    const cpLoop = Object.assign({}, state.looperPads);
+    function currentVal(role){ return role.target === "controlPads" ? cpCtrl[role.key] : cpLoop[role.key]; }
+    function setVal(role, i){ if(role.target === "controlPads") cpCtrl[role.key] = i; else cpLoop[role.key] = i; }
+    function showRole(){
+      const role = roles[ri];
+      settingsContext = { title: role.label };
+      settingsMenu = Array.from({length:N_PADS}, (_,i) => ({
+        label: (state.padNames && state.padNames[i]) || ("Pad "+(i+1)),
+        get: () => (currentVal(role)===i ? "current" : ""),
+        open: () => {
+          setVal(role, i);
+          ri++;
+          if(ri >= roles.length){
+            state.controlPads = cpCtrl;
+            state.looperPads = cpLoop;
+            saveState();
+            openSettingsRoot();
+          }else{
+            showRole();
+          }
+        }
+      }));
+      settingsMenu.push({ label:"Cancel", get:()=>"", open: openSettingsRoot });
+      settingsIndex = 0;
+      settingsSub.textContent = "Choose the pad for: " + role.label;
+      renderMenu();
+      speak(role.label);
+    }
+    showRole();
+  }
+
+  function renderMenu(){
+    menuListEl.innerHTML = "";
+    settingsMenu.forEach((item, i) => {
+      const row = document.createElement("div");
+      row.className = "menuItem" + (i===settingsIndex ? " current" : "");
+      const val = item.get ? item.get() : "";
+      row.innerHTML = `<span>${escapeHtml(item.label)}</span><span class="val">${escapeHtml(val)}</span>`;
+      row.addEventListener("click", () => { settingsIndex = i; renderMenu(); });
+      menuListEl.appendChild(row);
+    });
+    const cur = menuListEl.children[settingsIndex];
+    if(cur) cur.scrollIntoView({ block:"nearest" });
+  }
+
+  function menuNext(){
+    settingsIndex = (settingsIndex + 1) % settingsMenu.length;
+    renderMenu();
+    speak(settingsMenu[settingsIndex].label);
+  }
+  function menuSelect(){
+    const item = settingsMenu[settingsIndex];
+    if(item && item.open) item.open();
+  }
+  function menuBack(){
+    if(settingsContext){ openSettingsRoot(); }
+    else { setMode("play"); }
+  }
+
+  function handleSettingsPad(pad){
+    const cp = state.controlPads;
+    if(!cp) return;
+    if(pad === cp.next) menuNext();
+    else if(pad === cp.select) menuSelect();
+    else if(pad === cp.back) menuBack();
+  }
+
+  $("btnManualNext").addEventListener("click", menuNext);
+  $("btnManualSelect").addEventListener("click", menuSelect);
+  $("btnManualBack").addEventListener("click", menuBack);
+
+  /* ============================================================
+     VOCAL LOOPER
+     ============================================================ */
+  let micStream = null, micSource = null, scriptNode = null, silentGain = null;
+  let looperState = "empty"; // empty | recording_first | playing | paused | recording_overdub
+  let firstTakeChunks = [];
+  let loopLength = 0;        // samples
+  let sr = 44100;
+  let layers = [];           // array of Float32Array, each length loopLength
+  let loopBuffer = null;     // Float32Array mixdown
+  let playbackSource = null; // AudioBufferSourceNode
+  let loopStartCtxTime = 0;
+  let pendingOverdub = null;
+  let overdubWritePos = 0;
+  let micReady = false;
+  let micErrorMsg = null;
+
+  async function ensureMic(){
+    if(micReady) return true;
+    if(micErrorMsg) return false;
+    try{
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+      });
+    }catch(e){
+      micErrorMsg = "Microphone access was blocked. Allow it in the browser's site settings, then re-enter the looper.";
+      return false;
+    }
+    const ctx = Tone.context.rawContext;
+    sr = ctx.sampleRate;
+    micSource = ctx.createMediaStreamSource(micStream);
+    scriptNode = ctx.createScriptProcessor(2048, 1, 1);
+    silentGain = ctx.createGain();
+    silentGain.gain.value = 0;
+    micSource.connect(scriptNode);
+    scriptNode.connect(silentGain);
+    silentGain.connect(ctx.destination);
+    scriptNode.onaudioprocess = onAudioProcess;
+    micReady = true;
+    return true;
+  }
+
+  function onAudioProcess(e){
+    const input = e.inputBuffer.getChannelData(0);
+    if(looperState === "recording_first"){
+      firstTakeChunks.push(new Float32Array(input));
+    } else if(looperState === "recording_overdub" && pendingOverdub){
+      const n = input.length;
+      for(let i=0;i<n;i++){
+        pendingOverdub[overdubWritePos] = input[i];
+        overdubWritePos = (overdubWritePos + 1) % loopLength;
+      }
+    }
+  }
+
+  function currentPhaseSample(){
+    const ctx = Tone.context.rawContext;
+    const dur = loopLength / sr;
+    if(dur <= 0) return 0;
+    const elapsed = (ctx.currentTime - loopStartCtxTime) % dur;
+    return Math.floor((elapsed < 0 ? elapsed + dur : elapsed) * sr) % loopLength;
+  }
+
+  function finalizeFirstTake(){
+    let total = firstTakeChunks.reduce((a,c)=>a+c.length,0);
+    const data = new Float32Array(total);
+    let off=0; firstTakeChunks.forEach(c=>{ data.set(c, off); off+=c.length; });
+    firstTakeChunks = [];
+    loopLength = total;
+    layers = [data];
+    remixAndSwap(true);
+  }
+
+  function remixAndSwap(fresh){
+    const mixed = new Float32Array(loopLength);
+    layers.forEach(layer => { for(let i=0;i<loopLength;i++) mixed[i]+=layer[i]; });
+    let peak=0; for(let i=0;i<loopLength;i++) peak=Math.max(peak, Math.abs(mixed[i]));
+    const scale = peak>1 ? 1/peak : 1;
+    if(scale!==1) for(let i=0;i<loopLength;i++) mixed[i]*=scale;
+    loopBuffer = mixed;
+    swapPlaybackBuffer(!!fresh);
+  }
+
+  function swapPlaybackBuffer(fresh){
+    const ctx = Tone.context.rawContext;
+    const newBuf = ctx.createBuffer(1, loopLength, sr);
+    newBuf.copyToChannel(loopBuffer, 0);
+    const phase = fresh ? 0 : currentPhaseSample()/sr;
+    const newSrc = ctx.createBufferSource();
+    newSrc.buffer = newBuf;
+    newSrc.loop = true;
+    newSrc.connect(ctx.destination);
+    const now = ctx.currentTime;
+    newSrc.start(now, phase);
+    if(playbackSource){ try{ playbackSource.stop(now); }catch(e){} }
+    playbackSource = newSrc;
+    loopStartCtxTime = now - phase;
+  }
+
+  function stopPlayback(){
+    if(playbackSource){ try{ playbackSource.stop(); }catch(e){} playbackSource = null; }
+  }
+
+  function updateLooperUI(){
+    const texts = {
+      empty: "Empty", recording_first: "Recording\u2026", playing: "Looping",
+      paused: "Paused", recording_overdub: "Overdubbing\u2026"
+    };
+    looperStateText.textContent = texts[looperState] || looperState;
+    const subs = {
+      empty: "Press Start Loop to record your first pass.",
+      recording_first: "Sing or play now. Press Stop Loop to close the loop.",
+      playing: "Loop is playing. Press Overdub to add a layer, or Remove Last to undo.",
+      paused: "Press Start Loop to resume.",
+      recording_overdub: "Recording a new layer in time with the loop. Press Overdub again to finish.",
+    };
+    looperSub.textContent = subs[looperState] || "";
+    layerDotsEl.innerHTML = "";
+    const count = layers.length + (looperState==="recording_overdub" ? 1 : 0);
+    for(let i=0;i<Math.max(count,1);i++){
+      const d = document.createElement("div");
+      d.className = "layerDot" + (i < layers.length ? " filled" : "");
+      layerDotsEl.appendChild(d);
+    }
+    if(micErrorMsg){ looperSub.textContent = micErrorMsg; }
+    const lp = state.looperPads;
+    if(lp){
+      const nm = (i) => (state.padNames && state.padNames[i]) || ("Pad "+(i+1));
+      looperMapEl.textContent = "Start: " + nm(lp.start) + "  \u00b7  Stop: " + nm(lp.stop) +
+        "  \u00b7  Overdub: " + nm(lp.overdub) + "  \u00b7  Remove Last: " + nm(lp.undo);
+    }
+  }
+
+  async function enterLooperMode(){
+    updateLooperUI();
+    const ok = await ensureMic();
+    if(!ok) updateLooperUI();
+  }
+
+  function onLooperStart(){
+    if(micErrorMsg) return;
+    if(looperState==="empty"){
+      firstTakeChunks = [];
+      looperState = "recording_first";
+      speak("Recording");
+    } else if(looperState==="paused"){
+      swapPlaybackBuffer(true);
+      looperState = "playing";
+      speak("Loop playing");
+    }
+    updateLooperUI();
+  }
+  function onLooperStop(){
+    if(looperState==="recording_first"){
+      finalizeFirstTake();
+      looperState = "playing";
+      speak("Loop set");
+    } else if(looperState==="playing" || looperState==="recording_overdub"){
+      if(looperState==="recording_overdub") pendingOverdub = null;
+      stopPlayback();
+      looperState = "paused";
+      speak("Loop stopped");
+    }
+    updateLooperUI();
+  }
+  function onLooperOverdub(){
+    if(looperState==="playing"){
+      pendingOverdub = new Float32Array(loopLength);
+      overdubWritePos = currentPhaseSample();
+      looperState = "recording_overdub";
+      speak("Overdubbing");
+    } else if(looperState==="recording_overdub"){
+      layers.push(pendingOverdub);
+      pendingOverdub = null;
+      remixAndSwap(false);
+      looperState = "playing";
+      speak("Layer added");
+    }
+    updateLooperUI();
+  }
+  function onLooperUndo(){
+    if(layers.length===0) return;
+    if(looperState==="recording_overdub"){ pendingOverdub = null; looperState="playing"; }
+    layers.pop();
+    if(layers.length===0){
+      stopPlayback();
+      looperState = "empty";
+      loopLength = 0;
+      speak("Loop cleared");
+    } else {
+      remixAndSwap(false);
+      speak("Removed last layer");
+    }
+    updateLooperUI();
+  }
+
+  function handleLooperPad(pad){
+    const lp = state.looperPads;
+    if(!lp) return;
+    if(pad === lp.start) onLooperStart();
+    else if(pad === lp.stop) onLooperStop();
+    else if(pad === lp.overdub) onLooperOverdub();
+    else if(pad === lp.undo) onLooperUndo();
+  }
+
+  $("btnLoopStart").addEventListener("click", onLooperStart);
+  $("btnLoopStop").addEventListener("click", onLooperStop);
+  $("btnLoopOverdub").addEventListener("click", onLooperOverdub);
+  $("btnLoopUndo").addEventListener("click", onLooperUndo);
+
+  /* ============================================================
+     BOOT
+     ============================================================ */
+  async function boot(){
+    buildPadGrid();
+    refreshNowPlaying();
+    rebuildPadIndex();
+
+    document.body.addEventListener("pointerdown", () => { ensureAudio(); }, { once:true });
+
+    await initMidi();
+
+    if(!state.padMap){
+      calScreen.classList.add("show");
+      calStart.classList.remove("hidden");
+      calNameInput.classList.add("hidden");
+      calBody.textContent = "This only needs doing once. A helper taps Start, then touches each pad in turn.";
+      calStep.textContent = "Not set up yet";
+    }else{
+      rebuildPadIndex();
+    }
+
+    checkAudioBanner();
+  }
+
+  function checkAudioBanner(){
+    const show = !Tone || Tone.context.state !== "running";
+    audioBanner.classList.toggle("hidden", !show);
+  }
+  audioBanner.addEventListener("click", () => { ensureAudio().then(checkAudioBanner); });
+
+  window.addEventListener("load", boot);
+})();
+</script>
+</body>
+</html>
