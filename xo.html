@@ -942,19 +942,52 @@
     }
     try{
       // Sample-accurate capture for the actual loop recording.
+      // AudioWorklet is the modern replacement for the (now-removed in
+      // current Chrome) createScriptProcessor API; fall back to the old
+      // API only if a worklet can't be set up for some reason.
+      await setupRecorderNode(ctx);
+    }catch(err){
+      micErrorMsg = "The microphone is connected and the waveform should work, but recording setup failed (" + (err && err.name ? err.name : "error") + "). Try reloading the page, or try a different browser (Chrome or Firefox).";
+      return false;
+    }
+    micReady = true;
+    return true;
+  }
+
+  const RECORDER_WORKLET_CODE = `
+    class SpokeRecorderProcessor extends AudioWorkletProcessor {
+      process(inputs){
+        const ch = inputs[0] && inputs[0][0];
+        if(ch && ch.length) this.port.postMessage(ch.slice(0));
+        return true;
+      }
+    }
+    registerProcessor('spoke-recorder-processor', SpokeRecorderProcessor);
+  `;
+
+  async function setupRecorderNode(ctx){
+    try{
+      const blob = new Blob([RECORDER_WORKLET_CODE], { type: "application/javascript" });
+      const url = URL.createObjectURL(blob);
+      await ctx.audioWorklet.addModule(url);
+      const workletNode = new AudioWorkletNode(ctx, "spoke-recorder-processor");
+      workletNode.port.onmessage = (ev) => { onAudioChunk(ev.data); };
+      silentGain = ctx.createGain();
+      silentGain.gain.value = 0;
+      micSource.connect(workletNode);
+      workletNode.connect(silentGain);
+      silentGain.connect(ctx.destination);
+      scriptNode = workletNode; // kept for symmetry / potential teardown later
+    }catch(workletErr){
+      // Fallback for environments without AudioWorklet support.
       scriptNode = ctx.createScriptProcessor(2048, 1, 1);
       silentGain = ctx.createGain();
       silentGain.gain.value = 0;
       micSource.connect(scriptNode);
       scriptNode.connect(silentGain);
       silentGain.connect(ctx.destination);
-      scriptNode.onaudioprocess = onAudioProcess;
-    }catch(err){
-      micErrorMsg = "The microphone is connected and the waveform should work, but recording setup failed (" + (err && err.name ? err.name : "error") + "). Try a different browser (Chrome or Firefox) or reload the page.";
-      return false;
+      scriptNode.onaudioprocess = (e) => { onAudioChunk(e.inputBuffer.getChannelData(0)); };
     }
-    micReady = true;
-    return true;
   }
 
   function startScopeLoop(){
@@ -969,8 +1002,7 @@
     tick();
   }
 
-  function onAudioProcess(e){
-    const input = e.inputBuffer.getChannelData(0);
+  function onAudioChunk(input){
     if(looperState === "recording_first"){
       firstTakeChunks.push(new Float32Array(input));
     } else if(looperState === "recording_overdub" && pendingOverdub){
