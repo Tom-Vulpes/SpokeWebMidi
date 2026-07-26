@@ -962,19 +962,18 @@
   /* ============================================================
      VOCAL LOOPER
      ============================================================ */
-  let micStream = null, micSource = null, scriptNode = null, silentGain = null;
+  let micStream = null, micSource = null;
   let analyserNode = null, scopeRAF = null;
   const scopeData = new Float32Array(1024);
-  let looperState = "empty"; // empty | recording_first | playing | paused | recording_overdub
-  let firstTakeChunks = [];
+  let looperState = "empty"; // empty | recording_first | playing | paused | recording_overdub | processing
+  let mediaRecorder = null, recordedChunks = [];
   let loopLength = 0;        // samples
   let sr = 44100;
   let layers = [];           // array of Float32Array, each length loopLength
   let loopBuffer = null;     // Float32Array mixdown
   let playbackSource = null; // AudioBufferSourceNode
   let loopStartCtxTime = 0;
-  let pendingOverdub = null;
-  let overdubWritePos = 0;
+  let overdubPhaseStart = 0;
   let micReady = false;
   let recorderKind = "none";
   let micErrorMsg = null;
@@ -1032,15 +1031,17 @@
       return false;
     }
     try{
-      // Sample-accurate capture for the actual loop recording.
-      // AudioWorklet is the modern replacement for the (now-removed in
-      // current Chrome) createScriptProcessor API; fall back to the old
-      // API only if a worklet can't be set up for some reason.
-      await setupRecorderNode(ctx);
-      log("ensureMic: recorder node ready (" + recorderKind + ").");
+      // Actual loop recording uses MediaRecorder (record -> stop -> decode),
+      // the same proven approach as the reference implementation, rather
+      // than raw sample-by-sample capture.
+      if(!window.MediaRecorder){
+        throw new Error("MediaRecorder not supported in this browser");
+      }
+      recorderKind = "MediaRecorder";
+      log("ensureMic: MediaRecorder available, ready to record.");
     }catch(err){
-      micErrorMsg = "The microphone is connected and the waveform should work, but recording setup failed (" + (err && err.name ? err.name : "error") + "). Try reloading the page, or try a different browser (Chrome or Firefox).";
-      log("ensureMic: FAILED recorder node setup: " + (err && err.message));
+      micErrorMsg = "The microphone is connected and the waveform should work, but this browser can't record audio clips (" + (err && err.message ? err.message : "error") + "). Try Chrome or Firefox.";
+      log("ensureMic: FAILED recorder support check: " + (err && err.message));
       return false;
     }
     micReady = true;
@@ -1048,54 +1049,48 @@
     return true;
   }
 
-  const RECORDER_WORKLET_CODE = `
-    class SpokeRecorderProcessor extends AudioWorkletProcessor {
-      process(inputs){
-        const ch = inputs[0] && inputs[0][0];
-        if(ch && ch.length) this.port.postMessage(ch.slice(0));
-        return true;
-      }
-    }
-    registerProcessor('spoke-recorder-processor', SpokeRecorderProcessor);
-  `;
+  // MediaRecorder-based capture: start it, stop it, decode the resulting
+  // clip into an AudioBuffer. This is the same record -> stop -> decode
+  // pattern as the reference implementation, and avoids AudioWorklet/
+  // ScriptProcessorNode entirely for the actual recording path.
+  function pickMimeType(){
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported("audio/webm")) return "audio/webm";
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported("audio/ogg")) return "audio/ogg";
+    return "";
+  }
 
-  async function setupRecorderNode(ctx){
-    try{
-      const blob = new Blob([RECORDER_WORKLET_CODE], { type: "application/javascript" });
-      const url = URL.createObjectURL(blob);
-      await ctx.audioWorklet.addModule(url);
-      const workletNode = new AudioWorkletNode(ctx, "spoke-recorder-processor");
-      let chunkCount = 0;
-      workletNode.port.onmessage = (ev) => {
-        chunkCount++;
-        if(chunkCount % 40 === 1) log("worklet: received audio chunk #" + chunkCount + " (" + ev.data.length + " samples)");
-        onAudioChunk(ev.data);
+  function startCapture(){
+    recordedChunks = [];
+    const mimeType = pickMimeType();
+    mediaRecorder = new MediaRecorder(micStream, mimeType ? { mimeType } : undefined);
+    mediaRecorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.start();
+    log("startCapture: MediaRecorder started (mimeType=" + (mimeType || "browser default") + ")");
+  }
+
+  function stopCaptureAndDecode(){
+    return new Promise((resolve, reject) => {
+      if(!mediaRecorder || mediaRecorder.state !== "recording"){
+        reject(new Error("not currently recording"));
+        return;
+      }
+      mediaRecorder.onstop = async () => {
+        try{
+          const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+          log("stopCaptureAndDecode: recorded blob = " + blob.size + " bytes");
+          if(blob.size === 0){ reject(new Error("empty recording")); return; }
+          const arrayBuffer = await blob.arrayBuffer();
+          const ctx = Tone.context.rawContext;
+          const decoded = await ctx.decodeAudioData(arrayBuffer);
+          log("stopCaptureAndDecode: decoded " + decoded.length + " samples @ " + decoded.sampleRate + "Hz (" + decoded.duration.toFixed(2) + "s)");
+          resolve(decoded);
+        }catch(err){
+          log("stopCaptureAndDecode: FAILED - " + (err && err.message));
+          reject(err);
+        }
       };
-      silentGain = ctx.createGain();
-      silentGain.gain.value = 0;
-      micSource.connect(workletNode);
-      workletNode.connect(silentGain);
-      silentGain.connect(ctx.destination);
-      scriptNode = workletNode; // kept for symmetry / potential teardown later
-      recorderKind = "AudioWorklet";
-    }catch(workletErr){
-      log("setupRecorderNode: AudioWorklet path failed (" + (workletErr && workletErr.message) + "), falling back to ScriptProcessorNode.");
-      // Fallback for environments without AudioWorklet support.
-      scriptNode = ctx.createScriptProcessor(2048, 1, 1);
-      silentGain = ctx.createGain();
-      silentGain.gain.value = 0;
-      micSource.connect(scriptNode);
-      scriptNode.connect(silentGain);
-      silentGain.connect(ctx.destination);
-      let chunkCount = 0;
-      scriptNode.onaudioprocess = (e) => {
-        chunkCount++;
-        const data = e.inputBuffer.getChannelData(0);
-        if(chunkCount % 40 === 1) log("scriptProcessor: received audio chunk #" + chunkCount + " (" + data.length + " samples)");
-        onAudioChunk(data);
-      };
-      recorderKind = "ScriptProcessorNode (fallback)";
-    }
+      mediaRecorder.stop();
+    });
   }
 
   function startScopeLoop(){
@@ -1112,17 +1107,8 @@
     tick(0);
   }
 
-  function onAudioChunk(input){
-    if(looperState === "recording_first"){
-      firstTakeChunks.push(new Float32Array(input));
-    } else if(looperState === "recording_overdub" && pendingOverdub){
-      const n = input.length;
-      for(let i=0;i<n;i++){
-        pendingOverdub[overdubWritePos] = input[i];
-        overdubWritePos = (overdubWritePos + 1) % loopLength;
-      }
-    }
-  }
+  // (sample-by-sample capture removed \u2014 recording is now handled by
+  // MediaRecorder via startCapture()/stopCaptureAndDecode() below)
 
   function drawScope(data){
     const w = scopeCanvas.width, h = scopeCanvas.height;
@@ -1150,21 +1136,22 @@
     return Math.floor((elapsed < 0 ? elapsed + dur : elapsed) * sr) % loopLength;
   }
 
-  function finalizeFirstTake(){
-    let total = firstTakeChunks.reduce((a,c)=>a+c.length,0);
-    log("finalizeFirstTake: total samples captured = " + total + " (need >= 512)");
-    firstTakeChunks = [];
-    if(total < 512){
+  async function finalizeFirstTake(){
+    let decoded;
+    try{
+      decoded = await stopCaptureAndDecode();
+    }catch(err){
+      log("finalizeFirstTake: capture/decode failed - " + (err && err.message));
       looperState = "empty";
-      looperSub.textContent = "No audio was captured. Tap the sound banner at the top of the screen once (this unlocks audio for the whole session), then try recording again.";
+      looperSub.textContent = "No usable audio was captured. Tap the sound banner at the top of the screen once (this unlocks audio for the whole session), then try recording again.";
       updateLooperUI();
       speak("No audio captured. Please enable sound first.");
       return false;
     }
-    const data = new Float32Array(total);
-    let off=0; firstTakeChunks.forEach(c=>{ data.set(c, off); off+=c.length; });
-    loopLength = total;
-    layers = [data];
+    const data = decoded.getChannelData(0);
+    loopLength = data.length;
+    sr = decoded.sampleRate;
+    layers = [new Float32Array(data)];
     try{
       remixAndSwap(true);
       log("finalizeFirstTake: loop created OK, length=" + loopLength + " samples (" + (loopLength/sr).toFixed(2) + "s)");
@@ -1212,7 +1199,7 @@
   function updateLooperUI(){
     const texts = {
       empty: "Empty", recording_first: "Recording\u2026", playing: "Looping",
-      paused: "Paused", recording_overdub: "Overdubbing\u2026"
+      paused: "Paused", recording_overdub: "Overdubbing\u2026", processing: "Processing\u2026"
     };
     looperStateText.textContent = texts[looperState] || looperState;
     const subs = {
@@ -1221,6 +1208,7 @@
       playing: "Loop is playing. Overdub to add a layer, Remove Last to undo, Record to pause, Start Fresh to clear everything.",
       paused: "Paused. Press Record to resume.",
       recording_overdub: "Recording a new layer in time with the loop. Press Overdub again to finish.",
+      processing: "Working on your recording, one moment\u2026",
     };
     looperSub.textContent = subs[looperState] || "";
     layerDotsEl.innerHTML = "";
@@ -1243,7 +1231,7 @@
     looperDebugEl.textContent = "debug \u2014 looper pads: " + (state.looperPads ? "configured" : "MISSING") +
       " | mic: " + (micErrorMsg ? ("error - " + micErrorMsg) : (micReady ? "ready (" + recorderKind + ")" : "not ready yet")) +
       " | audio: " + (window.Tone && Tone.context ? Tone.context.state : "?") +
-      " | recorded samples so far: " + firstTakeChunks.reduce((a,c)=>a+c.length,0);
+      " | recorder: " + (mediaRecorder ? mediaRecorder.state : "none");
   }
 
   async function enterLooperMode(){
@@ -1284,52 +1272,74 @@
     lines.forEach((l,i) => scopeCtx.fillText(l, w/2, startY + i*lineHeight));
   }
 
-  function onLooperRecordToggle(){
+  async function onLooperRecordToggle(){
     log("onLooperRecordToggle: called. looperState=" + looperState + " micErrorMsg=" + micErrorMsg);
     if(micErrorMsg) return;
     if(looperState==="empty"){
-      firstTakeChunks = [];
+      startCapture();
       looperState = "recording_first";
       speak("Recording");
+      updateLooperUI();
     } else if(looperState==="recording_first"){
-      const ok = finalizeFirstTake();
-      if(!ok) return; // finalizeFirstTake already updated the UI with a specific message
+      looperState = "processing";
+      updateLooperUI();
+      const ok = await finalizeFirstTake();
+      if(!ok){ updateLooperUI(); return; } // finalizeFirstTake already set a specific message
       looperState = "playing";
       speak("Loop set");
+      updateLooperUI();
     } else if(looperState==="playing"){
       stopPlayback();
       looperState = "paused";
       speak("Loop paused");
+      updateLooperUI();
     } else if(looperState==="paused"){
       swapPlaybackBuffer(true);
       looperState = "playing";
       speak("Loop playing");
+      updateLooperUI();
     } else if(looperState==="recording_overdub"){
-      pendingOverdub = null;
+      try{ await stopCaptureAndDecode(); }catch(e){ /* discard partial take */ }
       stopPlayback();
       looperState = "paused";
       speak("Loop paused");
+      updateLooperUI();
     }
-    updateLooperUI();
   }
-  function onLooperOverdub(){
+  async function onLooperOverdub(){
     if(looperState==="playing"){
-      pendingOverdub = new Float32Array(loopLength);
-      overdubWritePos = currentPhaseSample();
+      overdubPhaseStart = currentPhaseSample();
+      startCapture();
       looperState = "recording_overdub";
       speak("Overdubbing");
+      updateLooperUI();
     } else if(looperState==="recording_overdub"){
-      layers.push(pendingOverdub);
-      pendingOverdub = null;
-      remixAndSwap(false);
-      looperState = "playing";
-      speak("Layer added");
+      looperState = "processing";
+      updateLooperUI();
+      try{
+        const decoded = await stopCaptureAndDecode();
+        const data = decoded.getChannelData(0);
+        const newLayer = new Float32Array(loopLength);
+        let pos = overdubPhaseStart;
+        for(let i=0;i<data.length;i++){
+          newLayer[pos] = data[i];
+          pos = (pos + 1) % loopLength;
+        }
+        layers.push(newLayer);
+        remixAndSwap(false);
+        looperState = "playing";
+        speak("Layer added");
+      }catch(err){
+        log("onLooperOverdub: capture/decode failed - " + (err && err.message));
+        looperState = "playing"; // fall back to the loop as it was
+        looperSub.textContent = "That overdub didn't capture cleanly \u2014 try again.";
+      }
+      updateLooperUI();
     }
-    updateLooperUI();
   }
   function onLooperUndo(){
     if(layers.length===0) return;
-    if(looperState==="recording_overdub"){ pendingOverdub = null; looperState="playing"; }
+    if(looperState==="recording_overdub"){ looperState="playing"; }
     layers.pop();
     if(layers.length===0){
       stopPlayback();
@@ -1343,7 +1353,9 @@
     updateLooperUI();
   }
   function onLooperClear(){
-    pendingOverdub = null;
+    if(mediaRecorder && mediaRecorder.state === "recording"){
+      try{ mediaRecorder.stop(); }catch(e){}
+    }
     stopPlayback();
     layers = [];
     loopLength = 0;
@@ -1355,6 +1367,7 @@
   function handleLooperPad(pad){
     const lp = state.looperPads;
     if(!lp){ log("handleLooperPad: pad=" + pad + " but state.looperPads is MISSING \u2014 nothing will happen."); return; }
+    if(looperState === "processing"){ log("handleLooperPad: pad=" + pad + " ignored, still processing previous recording."); return; }
     log("handleLooperPad: pad=" + pad + " (record=" + lp.record + " overdub=" + lp.overdub + " undo=" + lp.undo + " clear=" + lp.clear + ") | looperState=" + looperState);
     if(pad === lp.record) onLooperRecordToggle();
     else if(pad === lp.overdub) onLooperOverdub();
