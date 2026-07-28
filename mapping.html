@@ -630,6 +630,42 @@ code {
 .manual-pin-btn.cfg { border-color: var(--green); color: var(--green); }
 
 /* ================================================================
+   MOUSE DIRECTION COMPASS
+================================================================ */
+.mouse-dir-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 64px);
+  grid-template-rows: repeat(3, 64px);
+  gap: 7px;
+  margin: 14px 0;
+  justify-content: start;
+}
+.mouse-dir-btn {
+  background: var(--s2);
+  border: 2px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  transition: all 0.13s;
+}
+.mouse-dir-btn:hover, .mouse-dir-btn:focus-visible {
+  border-color: var(--blue); color: var(--blue);
+  background: var(--blue-d); outline: none;
+}
+.mouse-dir-btn.sel { background: var(--blue); border-color: var(--blue); color: #000; }
+.mouse-dir-center {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--t3); font-size: 1.3rem;
+}
+@media (max-width: 640px) {
+  .mouse-dir-grid { grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); }
+}
+
+/* ================================================================
    PIANO
 ================================================================ */
 .piano-outer {
@@ -779,7 +815,7 @@ code {
       </li>
       <li style="display:flex;gap:13px;align-items:flex-start">
         <span aria-hidden="true" style="font-size:1.3rem;flex-shrink:0;line-height:1.5">✅</span>
-        <div><strong>Default firmware</strong> should be running for touch-detection to work. You can also select pins manually if needed.</div>
+        <div><strong>Already configured your board before?</strong> No problem — we'll offer to reset it to the default pin mapping first, so touch-detection works reliably.</div>
       </li>
     </ul>
   </div>
@@ -796,6 +832,16 @@ code {
   <div class="breadcrumb">Step 1 of 4 <span class="bc-sep">›</span> <span class="bc-current">Connect</span></div>
   <h2 id="h-connect">Connect Your Board</h2>
   <p>We'll connect via Web MIDI so your board can automatically detect which pin you're touching during setup.</p>
+
+  <div class="card card-accent">
+    <h3>🔄 Has this board been configured before?</h3>
+    <p style="color:var(--text)">Auto pin-detection only works while the board is running the <strong>default firmware</strong> — the one where each pin sends a known, fixed MIDI note. If this board was set up with this tool before (or with any other code), touching a pin may send a different note, an HID keypress, or nothing over MIDI at all — which breaks detection below.</p>
+    <p style="color:var(--text)">If you're not sure, it's safe to reset first. This only affects pin <em>detection</em> — whatever you assign in the next steps will overwrite it when you save at the end.</p>
+    <div class="btn-group mt">
+      <button class="btn btn-secondary" onclick="loadDefaultFirmware()" id="reset-fw-btn">↺ Reset Board to Default Mapping</button>
+    </div>
+    <div id="reset-fw-status" aria-live="polite" style="margin-top:12px"></div>
+  </div>
 
   <div class="detector" id="det-connect" role="status" aria-live="polite">
     <span class="det-icon" id="det-icon" aria-hidden="true">🎹</span>
@@ -1032,7 +1078,7 @@ code {
   <div class="breadcrumb">Pin <span id="bc-ht"></span> <span class="bc-sep">›</span> HID <span class="bc-sep">›</span> <span class="bc-current">Type</span></div>
   <h2 id="h-hid-type">What kind of input?</h2>
 
-  <div class="option-grid cols-2">
+  <div class="option-grid cols-3">
     <button class="option-card hid" onclick="pickHidType('single')">
       <span class="option-icon" aria-hidden="true">🔤</span>
       <span class="option-label">Single Key</span>
@@ -1041,17 +1087,12 @@ code {
     <button class="option-card hid" onclick="pickHidType('shortcut')">
       <span class="option-icon" aria-hidden="true">⚡</span>
       <span class="option-label">Keyboard Shortcut</span>
-      <span class="option-desc">Ctrl, Alt, Shift combos — copy, paste, undo, macros…</span>
-    </button>
-    <button class="option-card hid" onclick="pickHidType('gaming')">
-      <span class="option-icon" aria-hidden="true">🎮</span>
-      <span class="option-label">Gaming Command</span>
-      <span class="option-desc">WASD, jump, crouch, sprint, weapons and more</span>
+      <span class="option-desc">Ctrl, Alt, Shift combos — copy, paste, undo, gaming keys, macros…</span>
     </button>
     <button class="option-card hid" onclick="pickHidType('mouse')">
       <span class="option-icon" aria-hidden="true">🖱️</span>
-      <span class="option-label">Mouse Button</span>
-      <span class="option-desc">Left, right, or middle click</span>
+      <span class="option-label">Mouse</span>
+      <span class="option-desc">Click a button, or move the cursor</span>
     </button>
   </div>
 
@@ -1127,39 +1168,52 @@ code {
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════ HID GAMING -->
-<section id="screen-hid-gaming" class="screen" aria-labelledby="h-gaming">
-  <div class="breadcrumb">Pin <span id="bc-gm"></span> <span class="bc-sep">›</span> HID <span class="bc-sep">›</span> <span class="bc-current">Gaming</span></div>
-  <h2 id="h-gaming">Gaming Command</h2>
-  <div class="card">
-    <div class="option-grid cols-4" id="gaming-grid" role="group" aria-labelledby="h-gaming"></div>
-  </div>
-  <div class="btn-group">
-    <button class="btn btn-ghost" onclick="showScreen('hid-type')">← Back</button>
-  </div>
-</section>
-
 <!-- ═══════════════════════════════════════ HID MOUSE -->
 <section id="screen-hid-mouse" class="screen" aria-labelledby="h-mouse">
   <div class="breadcrumb">Pin <span id="bc-ms"></span> <span class="bc-sep">›</span> HID <span class="bc-sep">›</span> <span class="bc-current">Mouse</span></div>
-  <h2 id="h-mouse">Mouse Button</h2>
-  <div class="option-grid cols-3">
-    <button class="option-card hid" onclick="confirmMouse('left')">
-      <span class="option-icon" aria-hidden="true">🖱️</span>
-      <span class="option-label">Left Click</span>
-      <span class="option-desc">Primary button — select, click</span>
-    </button>
-    <button class="option-card hid" onclick="confirmMouse('right')">
-      <span class="option-icon" aria-hidden="true">🖱️</span>
-      <span class="option-label">Right Click</span>
-      <span class="option-desc">Context menu button</span>
-    </button>
-    <button class="option-card hid" onclick="confirmMouse('middle')">
-      <span class="option-icon" aria-hidden="true">🖱️</span>
-      <span class="option-label">Middle Click</span>
-      <span class="option-desc">Scroll wheel / open in new tab</span>
-    </button>
+  <h2 id="h-mouse">Mouse</h2>
+
+  <div class="card">
+    <h3>Click</h3>
+    <div class="option-grid cols-3">
+      <button class="option-card hid" onclick="confirmMouse('left')">
+        <span class="option-icon" aria-hidden="true">🖱️</span>
+        <span class="option-label">Left Click</span>
+        <span class="option-desc">Primary button — select, click</span>
+      </button>
+      <button class="option-card hid" onclick="confirmMouse('right')">
+        <span class="option-icon" aria-hidden="true">🖱️</span>
+        <span class="option-label">Right Click</span>
+        <span class="option-desc">Context menu button</span>
+      </button>
+      <button class="option-card hid" onclick="confirmMouse('middle')">
+        <span class="option-icon" aria-hidden="true">🖱️</span>
+        <span class="option-label">Middle Click</span>
+        <span class="option-desc">Scroll wheel / open in new tab</span>
+      </button>
+    </div>
   </div>
+
+  <div class="card">
+    <h3>Move Cursor</h3>
+    <p>Pick a direction — touching this pin will nudge the mouse cursor that way.</p>
+    <div class="mouse-dir-grid" id="mouse-dir-grid" role="group" aria-label="Cursor movement direction"></div>
+
+    <div class="form-group mt" style="max-width:260px">
+      <label for="mouse-dist">Distance per touch <span class="hint">(pixels)</span></label>
+      <input type="text" inputmode="numeric" id="mouse-dist" value="20" onchange="updateMouseMovePreview()">
+    </div>
+
+    <div id="mouse-move-preview" class="alert alert-info" style="display:none" aria-live="polite">
+      <span class="alert-icon" aria-hidden="true">🖱️</span>
+      <div>Selected: <strong id="mouse-move-preview-txt">—</strong></div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" id="conf-mouse-move-btn" onclick="confirmMouseMove()" disabled aria-disabled="true">Confirm Move →</button>
+    </div>
+  </div>
+
   <div class="btn-group">
     <button class="btn btn-ghost" onclick="showScreen('hid-type')">← Back</button>
   </div>
@@ -1382,23 +1436,17 @@ const COMMON_SHORTCUTS = [
   {l:'Task Mgr',    mods:['LEFT_CONTROL','LEFT_SHIFT'],  key:'ESCAPE'},
 ];
 
-const GAMING_CMDS = [
-  {l:'▲ Forward',  c:'W',             icon:'⬆️'},
-  {l:'◀ Left',     c:'A',             icon:'⬅️'},
-  {l:'▼ Back',     c:'S',             icon:'⬇️'},
-  {l:'▶ Right',    c:'D',             icon:'➡️'},
-  {l:'Jump',       c:'SPACEBAR',      icon:'🦘'},
-  {l:'Crouch',     c:'LEFT_CONTROL',  icon:'🧎'},
-  {l:'Sprint',     c:'LEFT_SHIFT',    icon:'🏃'},
-  {l:'Interact',   c:'E',             icon:'🤝'},
-  {l:'Reload',     c:'R',             icon:'🔄'},
-  {l:'Fire',       c:'MOUSE_LEFT',    icon:'🔫'},
-  {l:'Zoom/ADS',   c:'MOUSE_RIGHT',   icon:'🔭'},
-  {l:'Slot 1',     c:'ONE',           icon:'①'},
-  {l:'Slot 2',     c:'TWO',           icon:'②'},
-  {l:'Slot 3',     c:'THREE',         icon:'③'},
-  {l:'Map',        c:'M',             icon:'🗺️'},
-  {l:'Inventory',  c:'I',             icon:'🎒'},
+// 8-direction mouse movement compass. row/col place the button in the
+// 3x3 .mouse-dir-grid (center cell is left empty/decorative).
+const MOUSE_DIRS = [
+  {l:'Up-Left',    icon:'↖', dx:-1, dy:-1, row:1, col:1},
+  {l:'Up',         icon:'↑', dx: 0, dy:-1, row:1, col:2},
+  {l:'Up-Right',   icon:'↗', dx: 1, dy:-1, row:1, col:3},
+  {l:'Left',       icon:'←', dx:-1, dy: 0, row:2, col:1},
+  {l:'Right',      icon:'→', dx: 1, dy: 0, row:2, col:3},
+  {l:'Down-Left',  icon:'↙', dx:-1, dy: 1, row:3, col:1},
+  {l:'Down',       icon:'↓', dx: 0, dy: 1, row:3, col:2},
+  {l:'Down-Right', icon:'↘', dx: 1, dy: 1, row:3, col:3},
 ];
 
 /* ================================================================
@@ -1413,6 +1461,7 @@ let selectedChordType = null;  // key into CHORD_TYPES
 let selectedKey = null;        // HID single key code
 let selectedMods = [];         // HID shortcut modifiers
 let selectedScKey = null;      // HID shortcut main key
+let selectedMouseDir = null;   // HID mouse-move direction, from MOUSE_DIRS
 
 /* ================================================================
    SCREEN NAVIGATION
@@ -1424,6 +1473,53 @@ function showScreen(id) {
     el.classList.add('active');
     el.focus && el.focus();
     window.scrollTo({top:0, behavior:'smooth'});
+  }
+}
+
+/* ================================================================
+   DEFAULT FIRMWARE RESET
+================================================================ */
+// Builds the known-good "default" pin configuration: every pin sends
+// its fixed MIDI note from DEF_NOTES. This is what auto pin-detection
+// relies on, so writing this back to the board before connecting
+// guarantees detection will work even if the board was previously
+// configured with different notes, HID keys, or anything else.
+function buildDefaultConfigs() {
+  return DEF_NOTES.map(n => ({
+    type: 'midi', subtype: 'note',
+    midi: n, label: midiNumToName(n),
+  }));
+}
+
+async function loadDefaultFirmware() {
+  const status = document.getElementById('reset-fw-status');
+  const btn    = document.getElementById('reset-fw-btn');
+
+  if (!window.showDirectoryPicker) {
+    status.innerHTML = `<div class="alert alert-warning"><span class="alert-icon" aria-hidden="true">⚠️</span>
+      <div>File System Access API not supported in this browser. Switch to Chrome, Edge, or Opera, or manually copy a default <code>code.py</code> onto the SPOKE drive.</div></div>`;
+    return;
+  }
+
+  try {
+    btn.textContent = '⏳ Writing…';
+    btn.disabled = true;
+    const code = generateCode(buildDefaultConfigs());
+    const dir    = await window.showDirectoryPicker({ mode: 'readwrite' });
+    const file   = await dir.getFileHandle('code.py', { create: true });
+    const writer = await file.createWritable();
+    await writer.write(code);
+    await writer.close();
+    status.innerHTML = `<div class="alert alert-success"><span class="alert-icon" aria-hidden="true">✅</span>
+      <div><strong>Default mapping loaded.</strong> Give your board a few seconds to restart, then click <strong>Connect MIDI</strong> below.</div></div>`;
+    btn.textContent = '✅ Reset — ready to connect';
+  } catch(e) {
+    if (e.name !== 'AbortError') {
+      status.innerHTML = `<div class="alert alert-warning"><span class="alert-icon" aria-hidden="true">⚠️</span>
+        <div>Could not write default firmware: ${e.message}. Try again, or skip this step if the board is already running default firmware.</div></div>`;
+    }
+    btn.textContent = '↺ Reset Board to Default Mapping';
+    btn.disabled = false;
   }
 }
 
@@ -1525,7 +1621,7 @@ function openPinConfig(idx) {
   currentPinIdx = idx;
   const name = PIN_NAMES[idx];
   // Update breadcrumbs and titles for all pin screens
-  ['bc-pin-type','bc-mt','bc-mn','bc-mc','bc-ht','bc-hk','bc-sc','bc-gm','bc-ms'].forEach(id => {
+  ['bc-pin-type','bc-mt','bc-mn','bc-mc','bc-ht','bc-hk','bc-sc','bc-ms'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = name;
   });
@@ -1538,6 +1634,7 @@ function openPinConfig(idx) {
   selectedKey = null;
   selectedMods = [];
   selectedScKey = null;
+  selectedMouseDir = null;
   showScreen('pin-type');
 }
 
@@ -1971,8 +2068,7 @@ function confirmChord() {
 function pickHidType(t) {
   if (t === 'single')   { buildKeyboard(); showScreen('hid-key'); return; }
   if (t === 'shortcut') { buildShortcutScreen(); showScreen('hid-shortcut'); return; }
-  if (t === 'gaming')   { buildGaming(); showScreen('hid-gaming'); return; }
-  if (t === 'mouse')    { showScreen('hid-mouse'); return; }
+  if (t === 'mouse')    { buildMouseDirGrid(); showScreen('hid-mouse'); return; }
 }
 
 function buildKeyboard() {
@@ -2157,33 +2253,7 @@ function confirmShortcut() {
 }
 
 /* ================================================================
-   HID — GAMING
-================================================================ */
-function buildGaming() {
-  const grid = document.getElementById('gaming-grid');
-  grid.innerHTML = '';
-  GAMING_CMDS.forEach(({l,c,icon}) => {
-    const btn = document.createElement('button');
-    btn.className = 'option-card hid';
-    btn.style.minHeight = '80px';
-    btn.style.padding   = '14px 8px';
-    btn.innerHTML = `<span class="option-icon" aria-hidden="true">${icon}</span>
-                     <span class="option-label" style="font-size:0.88rem">${l}</span>`;
-    btn.onclick = () => {
-      if (c === 'MOUSE_LEFT' || c === 'MOUSE_RIGHT') {
-        const side = c === 'MOUSE_LEFT' ? 'left' : 'right';
-        confirmMouse(side);
-      } else {
-        pinConfigs[currentPinIdx] = { type:'hid', subtype:'key', code:c, label:l };
-        finishPin();
-      }
-    };
-    grid.appendChild(btn);
-  });
-}
-
-/* ================================================================
-   HID — MOUSE
+   HID — MOUSE (click)
 ================================================================ */
 function confirmMouse(btn) {
   const labels = { left:'Left Click', right:'Right Click', middle:'Middle Click' };
@@ -2192,6 +2262,72 @@ function confirmMouse(btn) {
     type: 'hid', subtype: 'mouse',
     code: codes[btn],
     label: labels[btn],
+  };
+  finishPin();
+}
+
+/* ================================================================
+   HID — MOUSE (move)
+================================================================ */
+function buildMouseDirGrid() {
+  selectedMouseDir = null;
+  setBtn('conf-mouse-move-btn', false);
+  document.getElementById('mouse-move-preview').style.display = 'none';
+  document.getElementById('mouse-dist').value = 20;
+
+  const grid = document.getElementById('mouse-dir-grid');
+  grid.innerHTML = '';
+  MOUSE_DIRS.forEach(dir => {
+    const btn = document.createElement('button');
+    btn.className = 'mouse-dir-btn';
+    btn.style.gridRow = dir.row;
+    btn.style.gridColumn = dir.col;
+    btn.textContent = dir.icon;
+    btn.setAttribute('aria-label', `Move ${dir.l}`);
+    btn.title = dir.l;
+    btn.onclick = () => selectMouseDir(btn, dir);
+    grid.appendChild(btn);
+  });
+  // Decorative, non-interactive center cell
+  const center = document.createElement('div');
+  center.className = 'mouse-dir-center';
+  center.style.gridRow = 2;
+  center.style.gridColumn = 2;
+  center.setAttribute('aria-hidden', 'true');
+  center.textContent = '•';
+  grid.appendChild(center);
+}
+
+function selectMouseDir(btn, dir) {
+  document.querySelectorAll('.mouse-dir-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  selectedMouseDir = dir;
+  setBtn('conf-mouse-move-btn', true);
+  updateMouseMovePreview();
+}
+
+function getMouseDistance() {
+  const raw = parseInt(document.getElementById('mouse-dist').value, 10);
+  if (isNaN(raw)) return 20;
+  return Math.max(1, Math.min(127, raw));
+}
+
+function updateMouseMovePreview() {
+  if (!selectedMouseDir) return;
+  const dist = getMouseDistance();
+  document.getElementById('mouse-move-preview-txt').textContent =
+    `Move ${selectedMouseDir.l} — ${dist}px per touch`;
+  document.getElementById('mouse-move-preview').style.display = 'flex';
+}
+
+function confirmMouseMove() {
+  if (!selectedMouseDir) return;
+  const dist = getMouseDistance();
+  pinConfigs[currentPinIdx] = {
+    type: 'hid', subtype: 'mouse_move',
+    dx: selectedMouseDir.dx * dist,
+    dy: selectedMouseDir.dy * dist,
+    label: `Move ${selectedMouseDir.l} (${dist}px)`,
   };
   finishPin();
 }
@@ -2254,17 +2390,18 @@ function goReview() {
 /* ================================================================
    CODE GENERATION
 ================================================================ */
-function generateCode() {
+function generateCode(configs) {
+  configs = configs || pinConfigs;
   const lines = [];
   lines.push('# SPOKE Board Configuration');
   lines.push('# Generated by SPOKE Configurator');
   lines.push('# https://spoke.music');
   lines.push('');
 
-  const needsMidi     = pinConfigs.some(c => c && c.type === 'midi');
-  const needsHid      = pinConfigs.some(c => c && c.type === 'hid' && (c.subtype === 'key' || c.subtype === 'shortcut'));
-  const needsMouse    = pinConfigs.some(c => c && c.type === 'hid' && c.subtype === 'mouse');
-  const needsConsumer = pinConfigs.some(c => c && c.type === 'hid' && c.subtype === 'consumer');
+  const needsMidi     = configs.some(c => c && c.type === 'midi');
+  const needsHid      = configs.some(c => c && c.type === 'hid' && (c.subtype === 'key' || c.subtype === 'shortcut'));
+  const needsMouse    = configs.some(c => c && c.type === 'hid' && (c.subtype === 'mouse' || c.subtype === 'mouse_move'));
+  const needsConsumer = configs.some(c => c && c.type === 'hid' && c.subtype === 'consumer');
 
   lines.push('import board');
   lines.push('import time');
@@ -2309,7 +2446,7 @@ function generateCode() {
   lines.push('# --- Touch Sensor Setup ---');
   const activePins = [];
   PIN_NAMES.forEach((name, i) => {
-    const cfg = pinConfigs[i];
+    const cfg = configs[i];
     if (cfg && !cfg.skip) {
       const varName  = `touch_${name.toLowerCase().replace(/[^a-z0-9]/g,'_')}`;
       const boardPin = name === 'VOLTAGE_MONITOR' ? 'board.VOLTAGE_MONITOR' : `board.${name}`;
@@ -2357,6 +2494,9 @@ function generateCode() {
                   : cfg.code === 'MOUSE_RIGHT'  ? 'Mouse.RIGHT_BUTTON'
                   :                               'Mouse.MIDDLE_BUTTON';
         lines.push(`        mouse.press(${btn})`);
+
+      } else if (cfg.type === 'hid' && cfg.subtype === 'mouse_move') {
+        lines.push(`        mouse.move(x=${cfg.dx}, y=${cfg.dy})`);
       }
 
       lines.push(`    if not ${varName}.value and prev_${varName}:`);
@@ -2381,6 +2521,9 @@ function generateCode() {
                   : cfg.code === 'MOUSE_RIGHT'  ? 'Mouse.RIGHT_BUTTON'
                   :                               'Mouse.MIDDLE_BUTTON';
         lines.push(`        mouse.release(${btn})`);
+
+      } else if (cfg.type === 'hid' && cfg.subtype === 'mouse_move') {
+        lines.push(`        pass  # cursor nudge is one-shot — no release needed`);
       }
 
       lines.push(`    prev_${varName} = ${varName}.value`);
