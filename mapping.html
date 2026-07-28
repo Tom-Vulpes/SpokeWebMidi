@@ -878,6 +878,8 @@ code {
     <div class="pin-grid" id="pin-grid" role="group" aria-label="27 touch sensor pins — click to configure"></div>
   </div>
 
+  <div id="omni-default-wrap"></div>
+
   <div id="midi-tour-info" class="alert alert-info" style="display:none" role="status">
     <span class="alert-icon" aria-hidden="true">🎵</span>
     <div>MIDI connected — <strong>touch any pin on your board</strong> to automatically detect and configure it.</div>
@@ -962,6 +964,16 @@ code {
       <span class="option-label">Chord</span>
       <span class="option-desc">Trigger a full chord — triads, 7ths, power chords &amp; more</span>
     </button>
+    <button class="option-card" onclick="pickMidiType('cc')">
+      <span class="option-icon" aria-hidden="true">🎚️</span>
+      <span class="option-label">CC Message</span>
+      <span class="option-desc">Mod wheel, sustain, expression, filter cutoff &amp; more</span>
+    </button>
+    <button class="option-card" onclick="pickMidiType('omni')">
+      <span class="option-icon" aria-hidden="true">🎛️</span>
+      <span class="option-label">Omnichord</span>
+      <span class="option-desc">Hold a pad to pick a chord, tap others to play its notes</span>
+    </button>
   </div>
 
   <div class="btn-group">
@@ -1032,9 +1044,9 @@ code {
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════ MIDI CHORD -->
+<!-- ═══════════════════════════════════════ MIDI CHORD (reused for Omnichord modifier & default chord) -->
 <section id="screen-midi-chord" class="screen" aria-labelledby="h-midi-chord">
-  <div class="breadcrumb">Pin <span id="bc-mc"></span> <span class="bc-sep">›</span> MIDI <span class="bc-sep">›</span> <span class="bc-current">Chord</span></div>
+  <div class="breadcrumb" id="bc-chord-wrap">Pin <span id="bc-mc"></span> <span class="bc-sep">›</span> MIDI <span class="bc-sep">›</span> <span class="bc-current">Chord</span></div>
   <h2 id="h-midi-chord">Choose a Chord</h2>
 
   <div class="card">
@@ -1069,6 +1081,65 @@ code {
 
   <div class="btn-group">
     <button class="btn btn-primary" id="conf-chord-btn" onclick="confirmChord()">Confirm Chord →</button>
+    <button class="btn btn-ghost" id="chord-back-btn" onclick="showScreen('midi-type')">← Back</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ MIDI OMNICHORD ROLE -->
+<section id="screen-midi-omni-role" class="screen" aria-labelledby="h-omni-role">
+  <div class="breadcrumb">Pin <span id="bc-or"></span> <span class="bc-sep">›</span> MIDI <span class="bc-sep">›</span> <span class="bc-current">Omnichord</span></div>
+  <h2 id="h-omni-role">What should this pad do?</h2>
+  <p>Omnichord mode splits pads into two roles: a few <strong>chord selector</strong> pads you hold, and <strong>note pads</strong> that play whatever chord is currently active.</p>
+
+  <div class="option-grid cols-2">
+    <button class="option-card" onclick="pickOmniRole('note')">
+      <span class="option-icon" aria-hidden="true">🎵</span>
+      <span class="option-label">Note Pad</span>
+      <span class="option-desc">Plays a note from whichever chord is currently active</span>
+    </button>
+    <button class="option-card" onclick="pickOmniRole('mod')">
+      <span class="option-icon" aria-hidden="true">🎛️</span>
+      <span class="option-label">Chord Selector</span>
+      <span class="option-desc">Hold this pad to switch all note pads to a different chord</span>
+    </button>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-ghost" onclick="showScreen('midi-type')">← Back</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ MIDI CC -->
+<section id="screen-midi-cc" class="screen" aria-labelledby="h-midi-cc">
+  <div class="breadcrumb">Pin <span id="bc-cc"></span> <span class="bc-sep">›</span> MIDI <span class="bc-sep">›</span> <span class="bc-current">CC</span></div>
+  <h2 id="h-midi-cc">Control Change (CC)</h2>
+  <p>Send a MIDI CC message instead of a note — useful for mod wheel, sustain, expression, or filter cutoff.</p>
+
+  <div class="card">
+    <label id="cc-preset-label">Common Controllers</label>
+    <div class="note-grid" id="cc-presets" role="listbox" aria-labelledby="cc-preset-label"></div>
+
+    <div class="form-group mt">
+      <label for="cc-num">CC Number <span class="hint">(0–127)</span></label>
+      <input type="text" inputmode="numeric" id="cc-num" value="1" onchange="refreshCC()">
+    </div>
+
+    <label id="cc-mode-label">When touched</label>
+    <div class="option-grid cols-2" id="cc-mode-grid" role="group" aria-labelledby="cc-mode-label" style="margin:10px 0 18px"></div>
+
+    <div class="form-group" id="cc-value-group">
+      <label for="cc-value">Value sent <span class="hint">(0–127)</span></label>
+      <input type="text" inputmode="numeric" id="cc-value" value="64" onchange="refreshCC()">
+    </div>
+  </div>
+
+  <div id="cc-preview" class="alert alert-info" aria-live="polite">
+    <span class="alert-icon" aria-hidden="true">🎚️</span>
+    <div>Sends: <strong id="cc-preview-txt">—</strong></div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="confirmCC()">Confirm CC →</button>
     <button class="btn btn-ghost" onclick="showScreen('midi-type')">← Back</button>
   </div>
 </section>
@@ -1332,6 +1403,17 @@ const CHORD_TYPES = {
   'Add 9':        [0,4,7,14],
 };
 
+// Common MIDI CC controller numbers, shown as quick-pick presets
+const CC_PRESETS = [
+  {l:'Mod Wheel',  n:1},
+  {l:'Volume',     n:7},
+  {l:'Pan',        n:10},
+  {l:'Expression', n:11},
+  {l:'Sustain',    n:64},
+  {l:'Resonance',  n:71},
+  {l:'Cutoff',     n:74},
+];
+
 // ── Lookup: display char / internal id → exact CircuitPython Keycode name ──
 const CP_KEYCODE = {
   // Letters
@@ -1462,6 +1544,10 @@ let selectedKey = null;        // HID single key code
 let selectedMods = [];         // HID shortcut modifiers
 let selectedScKey = null;      // HID shortcut main key
 let selectedMouseDir = null;   // HID mouse-move direction, from MOUSE_DIRS
+let selectedCCMode = 'momentary';  // MIDI CC: 'momentary' (127/0) or 'trigger' (fixed value once)
+let chordEditMode = 'normal';      // 'normal' | 'omni_modifier' | 'omni_default' — who confirmChord() saves to
+let chordEditBackScreen = 'midi-type';
+let omniDefault = null;            // {root, type, oct} — chord played when no Omnichord selector is held
 
 /* ================================================================
    SCREEN NAVIGATION
@@ -1582,6 +1668,25 @@ function buildTourScreen() {
   }
   renderPinGrid();
   updateProgress();
+  renderOmniDefaultCard();
+}
+
+function hasOmniPins() {
+  return pinConfigs.some(c => c && c.type === 'midi' && (c.subtype === 'omni_note' || c.subtype === 'omni_mod'));
+}
+
+function renderOmniDefaultCard() {
+  const wrap = document.getElementById('omni-default-wrap');
+  if (!wrap) return;
+  if (!hasOmniPins()) { wrap.innerHTML = ''; return; }
+  const d = omniDefault || { root: 'C', type: 'Major', oct: 4 };
+  wrap.innerHTML = `<div class="card card-accent">
+    <h3>🎛️ Omnichord — Default Chord</h3>
+    <p style="color:var(--text)">Plays when no chord-selector pad is held. Currently <strong>${d.root} ${d.type}</strong> (octave ${d.oct}).</p>
+    <div class="btn-group mt">
+      <button class="btn btn-secondary" onclick="openDefaultChordEditor()">Change Default Chord</button>
+    </div>
+  </div>`;
 }
 
 function renderPinGrid() {
@@ -1621,7 +1726,7 @@ function openPinConfig(idx) {
   currentPinIdx = idx;
   const name = PIN_NAMES[idx];
   // Update breadcrumbs and titles for all pin screens
-  ['bc-pin-type','bc-mt','bc-mn','bc-mc','bc-ht','bc-hk','bc-sc','bc-ms'].forEach(id => {
+  ['bc-pin-type','bc-mt','bc-mn','bc-mc','bc-ht','bc-hk','bc-sc','bc-ms','bc-or','bc-cc'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = name;
   });
@@ -1635,6 +1740,7 @@ function openPinConfig(idx) {
   selectedMods = [];
   selectedScKey = null;
   selectedMouseDir = null;
+  chordEditMode = 'normal';
   showScreen('pin-type');
 }
 
@@ -1706,12 +1812,86 @@ function pickMidiType(t) {
     selectedNote = null;
     refreshNotes();
     showScreen('midi-note');
-  } else {
+  } else if (t === 'chord') {
+    chordEditMode = 'normal';
+    chordEditBackScreen = 'midi-type';
     selectedChordType = null;
     buildChordTypes();
     refreshChord();
+    updateChordScreenChrome();
     showScreen('midi-chord');
+  } else if (t === 'cc') {
+    buildCCScreen();
+    showScreen('midi-cc');
+  } else if (t === 'omni') {
+    showScreen('midi-omni-role');
   }
+}
+
+/* ================================================================
+   MIDI — OMNICHORD
+================================================================ */
+function pickOmniRole(role) {
+  if (role === 'note') {
+    pinConfigs[currentPinIdx] = { type: 'midi', subtype: 'omni_note', label: 'Omnichord Note' };
+    finishPin();
+    return;
+  }
+  // role === 'mod' — this pad becomes a chord selector; reuse the chord picker
+  chordEditMode = 'omni_modifier';
+  chordEditBackScreen = 'midi-omni-role';
+  selectedChordType = null;
+  document.getElementById('c-root').value = 'A';
+  document.getElementById('c-oct').value = '4';
+  buildChordTypes();
+  refreshChord();
+  updateChordScreenChrome();
+  showScreen('midi-chord');
+}
+
+function openDefaultChordEditor() {
+  chordEditMode = 'omni_default';
+  chordEditBackScreen = 'tour';
+  const d = omniDefault || { root: 'C', type: 'Major', oct: 4 };
+  document.getElementById('c-root').value = d.root;
+  document.getElementById('c-oct').value = String(d.oct);
+  selectedChordType = null;
+  buildChordTypes();
+  // Pre-select the existing default chord type, if any
+  const names = Object.keys(CHORD_TYPES);
+  const idx = names.indexOf(d.type);
+  const cards = document.querySelectorAll('#chord-types .option-card');
+  if (idx >= 0 && cards[idx]) {
+    selectChordType(cards[idx], names[idx]);
+  } else {
+    refreshChord();
+  }
+  updateChordScreenChrome();
+  showScreen('midi-chord');
+}
+
+// Updates the Chord screen's breadcrumb / heading / buttons depending on
+// whether we're configuring a normal chord pin, an Omnichord selector pad,
+// or the global Omnichord default chord.
+function updateChordScreenChrome() {
+  const wrap = document.getElementById('bc-chord-wrap');
+  const heading = document.getElementById('h-midi-chord');
+  const confBtn = document.getElementById('conf-chord-btn');
+  const backBtn = document.getElementById('chord-back-btn');
+  if (chordEditMode === 'omni_modifier') {
+    wrap.innerHTML = `Pin <span id="bc-mc">${PIN_NAMES[currentPinIdx]}</span> <span class="bc-sep">›</span> Omnichord <span class="bc-sep">›</span> <span class="bc-current">Chord</span>`;
+    heading.textContent = 'Choose This Selector\u2019s Chord';
+    confBtn.textContent = 'Confirm Chord Selector →';
+  } else if (chordEditMode === 'omni_default') {
+    wrap.innerHTML = `Omnichord <span class="bc-sep">›</span> <span class="bc-current">Default Chord</span>`;
+    heading.textContent = 'Set the Default Chord';
+    confBtn.textContent = 'Save Default Chord →';
+  } else {
+    wrap.innerHTML = `Pin <span id="bc-mc">${PIN_NAMES[currentPinIdx]}</span> <span class="bc-sep">›</span> MIDI <span class="bc-sep">›</span> <span class="bc-current">Chord</span>`;
+    heading.textContent = 'Choose a Chord';
+    confBtn.textContent = 'Confirm Chord →';
+  }
+  backBtn.onclick = () => showScreen(chordEditBackScreen);
 }
 
 function midiNumToName(n) {
@@ -2051,6 +2231,25 @@ function confirmChord() {
   const rootName = document.getElementById('c-root').value;
   const rootIdx  = NNAMES.indexOf(rootName);
   const oct      = parseInt(document.getElementById('c-oct').value);
+
+  if (chordEditMode === 'omni_modifier') {
+    pinConfigs[currentPinIdx] = {
+      type: 'midi', subtype: 'omni_mod',
+      root: rootName, chordType: selectedChordType, oct,
+      label: `${rootName} ${selectedChordType} (hold)`,
+    };
+    chordEditMode = 'normal';
+    finishPin();
+    return;
+  }
+  if (chordEditMode === 'omni_default') {
+    omniDefault = { root: rootName, type: selectedChordType, oct };
+    chordEditMode = 'normal';
+    buildTourScreen();
+    showScreen('tour');
+    return;
+  }
+
   const rootMidi = (oct + 1) * 12 + rootIdx;
   const intervals = CHORD_TYPES[selectedChordType];
   const notes    = intervals.map(i => rootMidi + i);
@@ -2059,6 +2258,84 @@ function confirmChord() {
     notes,
     label: `${rootName} ${selectedChordType}`,
   };
+  finishPin();
+}
+
+/* ================================================================
+   MIDI — CC (Control Change)
+================================================================ */
+function buildCCScreen() {
+  document.getElementById('cc-num').value = '1';
+  document.getElementById('cc-value').value = '64';
+  selectedCCMode = 'momentary';
+
+  const presets = document.getElementById('cc-presets');
+  presets.innerHTML = '';
+  CC_PRESETS.forEach(p => {
+    const pill = document.createElement('button');
+    pill.className = 'note-pill';
+    pill.textContent = `${p.l} (#${p.n})`;
+    pill.onclick = () => {
+      document.getElementById('cc-num').value = p.n;
+      refreshCC();
+    };
+    presets.appendChild(pill);
+  });
+
+  const modes = document.getElementById('cc-mode-grid');
+  modes.innerHTML = '';
+  [
+    { key: 'momentary', icon: '🔛', label: 'Momentary', desc: 'Sends 127 while held, 0 on release — like a sustain pedal' },
+    { key: 'trigger',   icon: '🎯', label: 'Fixed Value', desc: 'Sends one chosen value each time you touch it' },
+  ].forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'option-card';
+    btn.innerHTML = `<span class="option-icon" aria-hidden="true">${m.icon}</span>
+                     <span class="option-label">${m.label}</span>
+                     <span class="option-desc">${m.desc}</span>`;
+    btn.onclick = () => selectCCMode(m.key, btn);
+    modes.appendChild(btn);
+  });
+  // Mark the default mode selected
+  selectCCMode('momentary', modes.children[0]);
+}
+
+function selectCCMode(mode, btn) {
+  selectedCCMode = mode;
+  document.querySelectorAll('#cc-mode-grid .option-card').forEach(b => b.classList.remove('sel'));
+  if (btn) btn.classList.add('sel');
+  document.getElementById('cc-value-group').style.display = (mode === 'trigger') ? 'block' : 'none';
+  refreshCC();
+}
+
+function getCCNum() {
+  const raw = parseInt(document.getElementById('cc-num').value, 10);
+  return isNaN(raw) ? 1 : Math.max(0, Math.min(127, raw));
+}
+function getCCValue() {
+  const raw = parseInt(document.getElementById('cc-value').value, 10);
+  return isNaN(raw) ? 64 : Math.max(0, Math.min(127, raw));
+}
+
+function refreshCC() {
+  const num = getCCNum();
+  const txt = selectedCCMode === 'momentary'
+    ? `CC #${num} — 127 on touch, 0 on release`
+    : `CC #${num} — ${getCCValue()} once per touch`;
+  document.getElementById('cc-preview-txt').textContent = txt;
+}
+
+function confirmCC() {
+  const num = getCCNum();
+  const cfg = {
+    type: 'midi', subtype: 'cc',
+    ccNum: num, mode: selectedCCMode,
+    label: selectedCCMode === 'momentary'
+      ? `CC #${num} (momentary)`
+      : `CC #${num} = ${getCCValue()}`,
+  };
+  if (selectedCCMode === 'trigger') cfg.value = getCCValue();
+  pinConfigs[currentPinIdx] = cfg;
   finishPin();
 }
 
@@ -2338,6 +2615,7 @@ function confirmMouseMove() {
 function finishPin() {
   renderPinGrid();
   updateProgress();
+  renderOmniDefaultCard();
   // Stop any MIDI listener in detect screen
   midiInputs.forEach(inp => inp.onmidimessage = null);
   if (midiConnected) setMidiStatus('connected','Connected');
@@ -2390,6 +2668,17 @@ function goReview() {
 /* ================================================================
    CODE GENERATION
 ================================================================ */
+function omniChordNotes(chordCfg, n) {
+  const rootIdx  = NNAMES.indexOf(chordCfg.root);
+  const rootMidi = (chordCfg.oct + 1) * 12 + rootIdx;
+  const iv = CHORD_TYPES[chordCfg.type] || CHORD_TYPES['Major'];
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    out.push(Math.max(0, Math.min(127, rootMidi + iv[i % iv.length] + Math.floor(i / iv.length) * 12)));
+  }
+  return out;
+}
+
 function generateCode(configs) {
   configs = configs || pinConfigs;
   const lines = [];
@@ -2399,6 +2688,7 @@ function generateCode(configs) {
   lines.push('');
 
   const needsMidi     = configs.some(c => c && c.type === 'midi');
+  const needsCC       = configs.some(c => c && c.type === 'midi' && c.subtype === 'cc');
   const needsHid      = configs.some(c => c && c.type === 'hid' && (c.subtype === 'key' || c.subtype === 'shortcut'));
   const needsMouse    = configs.some(c => c && c.type === 'hid' && (c.subtype === 'mouse' || c.subtype === 'mouse_move'));
   const needsConsumer = configs.some(c => c && c.type === 'hid' && c.subtype === 'consumer');
@@ -2411,6 +2701,9 @@ function generateCode(configs) {
     lines.push('import adafruit_midi');
     lines.push('from adafruit_midi.note_on  import NoteOn');
     lines.push('from adafruit_midi.note_off import NoteOff');
+  }
+  if (needsCC) {
+    lines.push('from adafruit_midi.control_change import ControlChange');
   }
   if (needsHid || needsMouse || needsConsumer) {
     lines.push('import usb_hid');
@@ -2462,12 +2755,60 @@ function generateCode(configs) {
     lines.push('');
   }
 
+  // Omnichord: split out chord-selector pads and note pads. Everything
+  // else (single notes, chords, CC, HID, mouse) stays in the regular
+  // per-pin press/release block below.
+  const omniModPins  = activePins.filter(p => p.cfg.subtype === 'omni_mod');
+  const omniNotePins = activePins.filter(p => p.cfg.subtype === 'omni_note');
+  const regularPins  = activePins.filter(p => p.cfg.subtype !== 'omni_mod' && p.cfg.subtype !== 'omni_note');
+  const hasOmni = omniModPins.length > 0 || omniNotePins.length > 0;
+
+  if (hasOmni) {
+    lines.push('# --- Omnichord Setup ---');
+    const defaultChord = omniDefault || { root: 'C', type: 'Major', oct: 4 };
+    const defaultNotes = omniChordNotes(defaultChord, omniNotePins.length);
+    lines.push('# note_mappings[-1] = default chord, [0] = first selector held, etc.');
+    lines.push('note_mappings = {');
+    lines.push(`    -1: [${defaultNotes.join(', ')}],  # default \u2014 ${defaultChord.root} ${defaultChord.type}`);
+    omniModPins.forEach((p, j) => {
+      const chordCfg = { root: p.cfg.root, type: p.cfg.chordType, oct: p.cfg.oct };
+      const notes = omniChordNotes(chordCfg, omniNotePins.length);
+      lines.push(`    ${j}: [${notes.join(', ')}],  # ${PIN_NAMES[p.idx]} held \u2014 ${chordCfg.root} ${chordCfg.type}`);
+    });
+    lines.push('}');
+    lines.push(`active_note_omni = [${omniNotePins.map(() => 'None').join(', ')}]`);
+    lines.push('');
+  }
+
   lines.push('# --- Main Loop ---');
   lines.push('while True:');
   if (activePins.length === 0) {
     lines.push('    pass  # No active pins configured');
   } else {
-    activePins.forEach(({varName, cfg}) => {
+    if (hasOmni) {
+      lines.push('    # Omnichord \u2014 which chord is currently active?');
+      lines.push('    active_mod = -1');
+      omniModPins.forEach((p, j) => {
+        lines.push(`    ${j === 0 ? 'if' : 'elif'} ${p.varName}.value:`);
+        lines.push(`        active_mod = ${j}`);
+      });
+      lines.push('    mapping = note_mappings.get(active_mod, note_mappings[-1])');
+      lines.push('');
+      omniNotePins.forEach((p, j) => {
+        lines.push(`    if ${p.varName}.value and not prev_${p.varName}:`);
+        lines.push(`        note = mapping[${j}] if ${j} < len(mapping) else 60`);
+        lines.push(`        midi.send(NoteOn(note, 120))`);
+        lines.push(`        active_note_omni[${j}] = note`);
+        lines.push(`    if not ${p.varName}.value and prev_${p.varName}:`);
+        lines.push(`        if active_note_omni[${j}] is not None:`);
+        lines.push(`            midi.send(NoteOff(active_note_omni[${j}], 0))`);
+        lines.push(`            active_note_omni[${j}] = None`);
+        lines.push(`    prev_${p.varName} = ${p.varName}.value`);
+        lines.push('');
+      });
+    }
+
+    regularPins.forEach(({varName, cfg}) => {
       lines.push(`    if ${varName}.value and not prev_${varName}:`);
 
       if (cfg.type === 'midi' && cfg.subtype === 'note') {
@@ -2475,6 +2816,9 @@ function generateCode(configs) {
 
       } else if (cfg.type === 'midi' && cfg.subtype === 'chord') {
         cfg.notes.forEach(n => lines.push(`        midi.send(NoteOn(${n}, 100))`));
+
+      } else if (cfg.type === 'midi' && cfg.subtype === 'cc') {
+        lines.push(`        midi.send(ControlChange(${cfg.ccNum}, ${cfg.mode === 'momentary' ? 127 : cfg.value}))`);
 
       } else if (cfg.type === 'hid' && cfg.subtype === 'key') {
         lines.push(`        keyboard.press(${hidCode(cfg.code)})`);
@@ -2506,6 +2850,13 @@ function generateCode(configs) {
 
       } else if (cfg.type === 'midi' && cfg.subtype === 'chord') {
         cfg.notes.forEach(n => lines.push(`        midi.send(NoteOff(${n}, 0))`));
+
+      } else if (cfg.type === 'midi' && cfg.subtype === 'cc') {
+        if (cfg.mode === 'momentary') {
+          lines.push(`        midi.send(ControlChange(${cfg.ccNum}, 0))`);
+        } else {
+          lines.push(`        pass  # one-shot CC value \u2014 no release needed`);
+        }
 
       } else if (cfg.type === 'hid' && cfg.subtype === 'key') {
         lines.push(`        keyboard.release_all()`);
