@@ -630,6 +630,26 @@ code {
 .manual-pin-btn.cfg { border-color: var(--green); color: var(--green); }
 
 /* ================================================================
+   LED COLOR CONTROLS
+================================================================ */
+.color-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+input[type="color"] {
+  width: 54px; height: 44px; padding: 3px;
+  background: var(--s2); border: 2px solid var(--border); border-radius: var(--r);
+  cursor: pointer; flex-shrink: 0;
+}
+input[type="checkbox"], input[type="range"] { accent-color: var(--amber); }
+.color-swatch-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.color-swatch {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid var(--border); cursor: pointer; padding: 0;
+  transition: border-color 0.13s, transform 0.1s;
+}
+.color-swatch:hover, .color-swatch:focus-visible {
+  border-color: var(--amber); outline: none; transform: scale(1.08);
+}
+
+/* ================================================================
    MOUSE DIRECTION COMPASS
 ================================================================ */
 .mouse-dir-grid {
@@ -878,6 +898,14 @@ code {
     <div class="pin-grid" id="pin-grid" role="group" aria-label="27 touch sensor pins — click to configure"></div>
   </div>
 
+  <div class="card">
+    <h3>💡 LED Behavior</h3>
+    <p style="margin-bottom:0">Customize the startup animation, idle color, and touch color for the NeoPixel under each pad.</p>
+    <div class="btn-group mt">
+      <button class="btn btn-secondary" onclick="openLEDScreen()">Configure LEDs</button>
+    </div>
+  </div>
+
   <div id="omni-default-wrap"></div>
 
   <div id="midi-tour-info" class="alert alert-info" style="display:none" role="status">
@@ -896,6 +924,57 @@ code {
   <p style="margin-top:12px">
     <button class="btn btn-ghost btn-sm" onclick="skipAllPins()">Skip all unconfigured pins</button>
   </p>
+</section>
+
+<!-- ═══════════════════════════════════════ LED BEHAVIOR -->
+<section id="screen-led" class="screen" aria-labelledby="h-led">
+  <div class="breadcrumb">Configure Pins <span class="bc-sep">›</span> <span class="bc-current">LED Behavior</span></div>
+  <h2 id="h-led">LED Behavior</h2>
+  <p>Your board has a NeoPixel under each touch pad. Set what they do on power-up, at rest, and when touched.</p>
+
+  <div class="card">
+    <label style="display:flex;align-items:center;gap:10px;margin-bottom:0;cursor:pointer">
+      <input type="checkbox" id="led-enabled" onchange="refreshLED()" checked style="width:19px;height:19px">
+      Enable LED feedback
+    </label>
+  </div>
+
+  <div id="led-options">
+    <div class="card">
+      <h3>Startup Animation</h3>
+      <div class="option-grid cols-2" id="led-startup-grid"></div>
+      <div id="led-rainbow-params" class="form-group mt" style="display:none;margin-bottom:0">
+        <label for="led-rainbow-duration">Duration <span class="hint">(seconds)</span></label>
+        <input type="text" inputmode="numeric" id="led-rainbow-duration" value="2" onchange="refreshLED()">
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Idle Color <span class="hint" style="font-weight:400;text-transform:none;letter-spacing:0">— pad not touched</span></h3>
+      <div class="color-row">
+        <input type="color" id="led-idle-color" value="#0000ff" onchange="refreshLED()">
+        <div class="color-swatch-row" id="led-idle-presets"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Touch Color <span class="hint" style="font-weight:400;text-transform:none;letter-spacing:0">— pad currently touched</span></h3>
+      <div class="color-row">
+        <input type="color" id="led-touch-color" value="#ff00ff" onchange="refreshLED()">
+        <div class="color-swatch-row" id="led-touch-presets"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Brightness</h3>
+      <input type="range" id="led-brightness" min="1" max="100" value="3" onchange="refreshLED()" oninput="refreshLED()" style="width:100%">
+      <div class="hint" id="led-brightness-val" style="margin-top:6px">3%</div>
+    </div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="refreshLED();showScreen('tour')">Done →</button>
+  </div>
 </section>
 
 <!-- ═══════════════════════════════════════ DETECT -->
@@ -1414,6 +1493,20 @@ const CC_PRESETS = [
   {l:'Cutoff',     n:74},
 ];
 
+// Quick-pick LED color swatches
+const LED_COLOR_PRESETS = [
+  {l:'Blue',   hex:'#0000ff'},
+  {l:'Purple', hex:'#8000ff'},
+  {l:'Pink',   hex:'#ff00ff'},
+  {l:'Red',    hex:'#ff0000'},
+  {l:'Orange', hex:'#ff8000'},
+  {l:'Yellow', hex:'#ffff00'},
+  {l:'Green',  hex:'#00ff00'},
+  {l:'Cyan',   hex:'#00ffff'},
+  {l:'White',  hex:'#ffffff'},
+  {l:'Off',    hex:'#000000'},
+];
+
 // ── Lookup: display char / internal id → exact CircuitPython Keycode name ──
 const CP_KEYCODE = {
   // Letters
@@ -1548,6 +1641,16 @@ let selectedCCMode = 'momentary';  // MIDI CC: 'momentary' (127/0) or 'trigger' 
 let chordEditMode = 'normal';      // 'normal' | 'omni_modifier' | 'omni_default' — who confirmChord() saves to
 let chordEditBackScreen = 'midi-type';
 let omniDefault = null;            // {root, type, oct} — chord played when no Omnichord selector is held
+
+// LED behavior — global, board-wide setting (not per-pin), persists across visits
+let ledConfig = {
+  enabled: true,
+  startup: 'rainbow',   // 'rainbow' | 'none'
+  rainbowDuration: 2,
+  idleColor: '#0000ff',
+  touchColor: '#ff00ff',
+  brightness: 3,        // percent, 1-100 → converted to 0.01-1.0 at generation time
+};
 
 /* ================================================================
    SCREEN NAVIGATION
@@ -1687,6 +1790,85 @@ function renderOmniDefaultCard() {
       <button class="btn btn-secondary" onclick="openDefaultChordEditor()">Change Default Chord</button>
     </div>
   </div>`;
+}
+
+/* ================================================================
+   LED BEHAVIOR
+================================================================ */
+function openLEDScreen() {
+  document.getElementById('led-enabled').checked = ledConfig.enabled;
+  document.getElementById('led-idle-color').value = ledConfig.idleColor;
+  document.getElementById('led-touch-color').value = ledConfig.touchColor;
+  document.getElementById('led-brightness').value = ledConfig.brightness;
+  document.getElementById('led-rainbow-duration').value = ledConfig.rainbowDuration;
+
+  const startupGrid = document.getElementById('led-startup-grid');
+  startupGrid.innerHTML = '';
+  [
+    { key: 'rainbow', icon: '🌈', label: 'Rainbow Wave', desc: 'Cycles colors across all pads on power-up' },
+    { key: 'none',    icon: '⏭️', label: 'None',         desc: 'Skip straight to the idle color' },
+  ].forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-card';
+    btn.innerHTML = `<span class="option-icon" aria-hidden="true">${opt.icon}</span>
+                     <span class="option-label">${opt.label}</span>
+                     <span class="option-desc">${opt.desc}</span>`;
+    btn.onclick = () => selectLEDStartup(opt.key, btn);
+    startupGrid.appendChild(btn);
+  });
+  selectLEDStartup(ledConfig.startup, startupGrid.children[ledConfig.startup === 'rainbow' ? 0 : 1]);
+
+  renderColorPresets('led-idle-presets', 'led-idle-color');
+  renderColorPresets('led-touch-presets', 'led-touch-color');
+
+  refreshLED();
+  showScreen('led');
+}
+
+function selectLEDStartup(key, btn) {
+  ledConfig.startup = key;
+  document.querySelectorAll('#led-startup-grid .option-card').forEach(b => b.classList.remove('sel'));
+  if (btn) btn.classList.add('sel');
+  const params = document.getElementById('led-rainbow-params');
+  if (params) params.style.display = (key === 'rainbow') ? 'block' : 'none';
+}
+
+function renderColorPresets(containerId, inputId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  LED_COLOR_PRESETS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'color-swatch';
+    btn.style.background = p.hex;
+    btn.title = p.l;
+    btn.setAttribute('aria-label', p.l);
+    btn.onclick = () => {
+      document.getElementById(inputId).value = p.hex;
+      refreshLED();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function refreshLED() {
+  ledConfig.enabled = document.getElementById('led-enabled').checked;
+  ledConfig.idleColor = document.getElementById('led-idle-color').value;
+  ledConfig.touchColor = document.getElementById('led-touch-color').value;
+  const rawB = parseInt(document.getElementById('led-brightness').value, 10);
+  ledConfig.brightness = isNaN(rawB) ? 3 : Math.max(1, Math.min(100, rawB));
+  const rawD = parseFloat(document.getElementById('led-rainbow-duration').value);
+  ledConfig.rainbowDuration = isNaN(rawD) ? 2 : Math.max(0.5, Math.min(30, rawD));
+
+  const valEl = document.getElementById('led-brightness-val');
+  if (valEl) valEl.textContent = ledConfig.brightness + '%';
+  const optsEl = document.getElementById('led-options');
+  if (optsEl) optsEl.style.display = ledConfig.enabled ? 'block' : 'none';
+}
+
+function hexToRgb(hex) {
+  const clean = (hex || '#000000').replace('#', '');
+  const num = parseInt(clean, 16) || 0;
+  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
 }
 
 function renderPinGrid() {
@@ -2692,6 +2874,8 @@ function generateCode(configs) {
   const needsHid      = configs.some(c => c && c.type === 'hid' && (c.subtype === 'key' || c.subtype === 'shortcut'));
   const needsMouse    = configs.some(c => c && c.type === 'hid' && (c.subtype === 'mouse' || c.subtype === 'mouse_move'));
   const needsConsumer = configs.some(c => c && c.type === 'hid' && c.subtype === 'consumer');
+  const nonSkipCount  = configs.filter(c => c && !c.skip).length;
+  const ledActive     = ledConfig.enabled && nonSkipCount > 0;
 
   lines.push('import board');
   lines.push('import time');
@@ -2719,6 +2903,10 @@ function generateCode(configs) {
     lines.push('from adafruit_hid.consumer_control      import ConsumerControl');
     lines.push('from adafruit_hid.consumer_control_code import ConsumerControlCode');
   }
+  if (ledActive) {
+    lines.push('import neopixel');
+    if (ledConfig.startup === 'rainbow') lines.push('from rainbowio import colorwheel');
+  }
   lines.push('');
 
   if (needsMidi) {
@@ -2733,6 +2921,10 @@ function generateCode(configs) {
   if (needsConsumer) {
     lines.push('cc = ConsumerControl(usb_hid.devices)');
   }
+  if (ledActive) {
+    const brightness = (ledConfig.brightness / 100).toFixed(2);
+    lines.push(`pixels = neopixel.NeoPixel(board.GP0, ${nonSkipCount}, brightness=${brightness}, auto_write=True)`);
+  }
   lines.push('');
 
   // Touch pin setup
@@ -2744,7 +2936,7 @@ function generateCode(configs) {
       const varName  = `touch_${name.toLowerCase().replace(/[^a-z0-9]/g,'_')}`;
       const boardPin = name === 'VOLTAGE_MONITOR' ? 'board.VOLTAGE_MONITOR' : `board.${name}`;
       lines.push(`${varName} = touchio.TouchIn(${boardPin})`);
-      activePins.push({ varName, idx: i, cfg });
+      activePins.push({ varName, idx: i, cfg, pixelIdx: activePins.length });
     }
   });
   lines.push('');
@@ -2762,6 +2954,8 @@ function generateCode(configs) {
   const omniNotePins = activePins.filter(p => p.cfg.subtype === 'omni_note');
   const regularPins  = activePins.filter(p => p.cfg.subtype !== 'omni_mod' && p.cfg.subtype !== 'omni_note');
   const hasOmni = omniModPins.length > 0 || omniNotePins.length > 0;
+  const ledTouchRGB = hexToRgb(ledConfig.touchColor);
+  const ledIdleRGB  = hexToRgb(ledConfig.idleColor);
 
   if (hasOmni) {
     lines.push('# --- Omnichord Setup ---');
@@ -2780,6 +2974,28 @@ function generateCode(configs) {
     lines.push('');
   }
 
+  if (ledActive) {
+    lines.push('# --- Startup LED Animation ---');
+    if (ledConfig.startup === 'rainbow') {
+      lines.push('def _rainbow_startup(duration, speed=0.01, step=10):');
+      lines.push('    start = time.monotonic()');
+      lines.push('    while time.monotonic() - start < duration:');
+      lines.push('        for j in range(0, 256, step):');
+      lines.push(`            for i in range(${nonSkipCount}):`);
+      lines.push(`                pixels[i] = colorwheel((i * 256 // ${nonSkipCount} + j) % 256)`);
+      lines.push('            pixels.show()');
+      lines.push('            if time.monotonic() - start >= duration:');
+      lines.push('                return');
+      lines.push('            time.sleep(speed)');
+      lines.push('');
+      lines.push(`_rainbow_startup(${ledConfig.rainbowDuration})`);
+    }
+    const idleRGB = hexToRgb(ledConfig.idleColor);
+    lines.push(`pixels.fill((${idleRGB.join(', ')}))`);
+    lines.push('pixels.show()');
+    lines.push('');
+  }
+
   lines.push('# --- Main Loop ---');
   lines.push('while True:');
   if (activePins.length === 0) {
@@ -2794,22 +3010,36 @@ function generateCode(configs) {
       });
       lines.push('    mapping = note_mappings.get(active_mod, note_mappings[-1])');
       lines.push('');
+      if (ledActive && omniModPins.length > 0) {
+        lines.push('    # Light up whichever chord-selector pad is held');
+        omniModPins.forEach(({varName, pixelIdx}) => {
+          lines.push(`    if ${varName}.value and not prev_${varName}:`);
+          lines.push(`        pixels[${pixelIdx}] = (${ledTouchRGB.join(', ')})`);
+          lines.push(`    if not ${varName}.value and prev_${varName}:`);
+          lines.push(`        pixels[${pixelIdx}] = (${ledIdleRGB.join(', ')})`);
+          lines.push(`    prev_${varName} = ${varName}.value`);
+        });
+        lines.push('');
+      }
       omniNotePins.forEach((p, j) => {
         lines.push(`    if ${p.varName}.value and not prev_${p.varName}:`);
         lines.push(`        note = mapping[${j}] if ${j} < len(mapping) else 60`);
         lines.push(`        midi.send(NoteOn(note, 120))`);
         lines.push(`        active_note_omni[${j}] = note`);
+        if (ledActive) lines.push(`        pixels[${p.pixelIdx}] = (${ledTouchRGB.join(', ')})`);
         lines.push(`    if not ${p.varName}.value and prev_${p.varName}:`);
         lines.push(`        if active_note_omni[${j}] is not None:`);
         lines.push(`            midi.send(NoteOff(active_note_omni[${j}], 0))`);
         lines.push(`            active_note_omni[${j}] = None`);
+        if (ledActive) lines.push(`        pixels[${p.pixelIdx}] = (${ledIdleRGB.join(', ')})`);
         lines.push(`    prev_${p.varName} = ${p.varName}.value`);
         lines.push('');
       });
     }
 
-    regularPins.forEach(({varName, cfg}) => {
+    regularPins.forEach(({varName, cfg, pixelIdx}) => {
       lines.push(`    if ${varName}.value and not prev_${varName}:`);
+      if (ledActive) lines.push(`        pixels[${pixelIdx}] = (${ledTouchRGB.join(', ')})`);
 
       if (cfg.type === 'midi' && cfg.subtype === 'note') {
         lines.push(`        midi.send(NoteOn(${cfg.midi}, 100))`);
@@ -2844,6 +3074,7 @@ function generateCode(configs) {
       }
 
       lines.push(`    if not ${varName}.value and prev_${varName}:`);
+      if (ledActive) lines.push(`        pixels[${pixelIdx}] = (${ledIdleRGB.join(', ')})`);
 
       if (cfg.type === 'midi' && cfg.subtype === 'note') {
         lines.push(`        midi.send(NoteOff(${cfg.midi}, 0))`);
