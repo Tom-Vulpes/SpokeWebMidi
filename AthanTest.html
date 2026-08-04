@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF2PDF Performance Data Flex</title>
+<style>
+  :root{ --bg:#14141a; --fg:#e8e8ee; --dim:#8a8a99; --accent:#7CFC98; --accent2:#ffcf5c; --panel:#1d1d26; --line:#2c2c38; }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg)}
+  header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  h1{font-size:16px;margin:0;font-weight:600}
+  .sub{color:var(--dim);font-size:12px}
+  main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 20px;max-width:1100px}
+  @media(max-width:820px){main{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 10px}
+  label{display:inline-flex;align-items:center;gap:6px;color:var(--dim);font-size:12px;margin-right:14px}
+  input[type=number]{width:70px}
+  input,select{background:#0f0f15;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit}
+  button{font:inherit;border:1px solid var(--line);background:#26263300;color:var(--fg);border-radius:8px;padding:9px 16px;cursor:pointer}
+  button.primary{background:var(--accent);color:#08210f;border-color:transparent;font-weight:700}
+  button.stop{background:#ff5c6a;color:#2a0508;border-color:transparent;font-weight:700}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .transport{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .clock{font:600 34px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em}
+  .now{font:700 40px/1 ui-monospace,Menlo,monospace;color:var(--accent)}
+  .next{color:var(--accent2);font:600 20px/1 ui-monospace,Menlo,monospace}
+  .chip{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:20px;color:var(--dim);font-size:11px}
+  /* Chord-over-lyric chart (like the source PDF) */
+  #grid{position:relative;max-height:360px;overflow:auto;padding:2px 2px 8px}
+  .sect-h{color:var(--accent2);font-size:11px;text-transform:uppercase;letter-spacing:.07em;margin:14px 0 2px;font-weight:700}
+  .sect-h:first-child{margin-top:2px}
+  .sect-body{display:flex;flex-wrap:wrap;align-items:flex-end;gap:0 2px}
+  .cu{display:inline-flex;flex-direction:column;align-items:flex-start;padding:1px 4px;border-radius:5px;border:1px solid transparent}
+  .cu-chord{font:700 13px/1.25 ui-monospace,Menlo,monospace;color:var(--accent2)}
+  .cu-lyric{font:13.5px/1.35 -apple-system,Segoe UI,Roboto,sans-serif;color:var(--fg);white-space:pre}
+  .cu.instr .cu-lyric{color:var(--dim)}
+  .cu.on{background:var(--accent)}
+  .cu.on .cu-chord,.cu.on .cu-lyric{color:#08210f}
+  #grid:not(.aligning) .cu{cursor:pointer}
+  .cu.startsel{outline:2px dashed var(--accent2);outline-offset:1px}
+  #startChip{cursor:pointer;color:var(--accent2);border-color:var(--accent2)}
+  #grid.aligning .cu{border:1px dashed var(--line);cursor:default}
+  #grid.aligning .cu-word{cursor:grab;padding:0 1px;border-radius:3px}
+  #grid.aligning .cu-word:hover{background:rgba(124,252,152,.18)}
+  #grid.aligning .cu.drop-hover{outline:2px solid var(--accent2);outline-offset:1px}
+  .cu-empty{color:var(--dim)}
+  #grid.aligning .cu-handle{display:inline-block;margin-left:5px;padding:0 6px;border-radius:4px;background:var(--line);color:var(--fg);cursor:ew-resize;font-size:11px;font-weight:600;user-select:none;touch-action:none;vertical-align:baseline}
+  #grid.aligning .cu-handle:hover{background:var(--accent2);color:#08210f}
+  #grid.aligning .cu.rz{outline:2px solid var(--accent);outline-offset:1px}
+  #log{position:relative;height:190px;overflow:auto;background:#0f0f15;border:1px solid var(--line);border-radius:8px;padding:8px;font:11px/1.45 ui-monospace,Menlo,monospace;color:#b9c}
+  .log-clk{color:#556}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .hint{color:var(--dim);font-size:11px;margin-top:8px}
+  a{color:var(--accent)}
+  #songline{font-size:16px;font-weight:600;color:var(--accent2);margin-left:auto}
+  #log div{white-space:pre}
+  .log-sys{color:var(--accent2)}
+  .log-up{color:#9aa0b8}
+  .log-past{color:#5b5b68}
+  .log-active{color:var(--accent);font-weight:700}
+  .ed-row{display:flex;gap:4px;align-items:center;margin-bottom:3px}
+  .ed-row input{background:#0f0f15;color:var(--fg);border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:12px ui-monospace,Menlo,monospace}
+  .ed-sec{width:78px} .ed-sym{width:78px} .ed-beats{width:50px} .ed-lyric{flex:1;min-width:120px;font-family:-apple-system,Segoe UI,Roboto,sans-serif}
+  .ed-row button{padding:3px 8px;font-size:12px;min-width:26px}
+</style>
+</head>
+<body>
+<header>
+  <h1>PDF2PDF Performance Data Flex</h1>
+  <span id="songline">—</span>
+</header>
+
+<main>
+  <section class="panel" style="grid-column:1/-1">
+    <div class="transport">
+      <button id="btnStart" class="primary">▶ Start &amp; Send</button>
+      <button id="btnStop" class="stop" disabled>■ Stop</button>
+      <div><div class="clock" id="clk">00:00</div><div class="sub" id="barbeat">bar 1 · beat 1</div></div>
+      <div><div class="sub">now playing</div><div class="now" id="nowChord">—</div></div>
+      <div><div class="sub">next</div><div class="next" id="nextChord">—</div></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label>BPM <input type="number" id="bpm" min="20" max="300" step="1"></label>
+      <label>Time sig <input type="number" id="bpb" min="1" max="16" step="1" style="width:46px">/<input type="number" id="tsDen" min="1" max="16" step="1" value="4" style="width:46px"></label>
+      <label>Latency ms <input type="number" id="lat" value="0" step="5"></label>
+      <label><input type="checkbox" id="sendClock" checked> send MIDI clock (24 PPQN)</label>
+      <label><input type="checkbox" id="sendNotes" checked> MIDI 1.0 notes (ch 1)</label>
+      <label>Voicing <select id="voiceMode">
+        <option value="melody">Melody (1st inv, 60–82)</option>
+        <option value="accomp">Accompaniment (Fingered, LH)</option>
+      </select></label>
+      <label>Split <input type="number" id="splitNote" value="54" min="36" max="72" step="1"></label>
+      <label>Bass vel <input type="number" id="bassVel" value="76" min="0" max="127" step="1"> <span class="sub" style="font-size:11px">(0 = off)</span></label>
+      <label>Swing <input type="number" id="swing" value="50" min="50" max="75" step="1">% <span class="sub" style="font-size:11px">(50 = straight)</span></label>
+      <label>Transpose <button id="trDown" type="button" style="padding:6px 10px">−</button> <span id="trVal" style="display:inline-block;min-width:30px;text-align:center;font:600 13px ui-monospace,Menlo,monospace">0</span> <button id="trUp" type="button" style="padding:6px 10px">+</button></label>
+      <label>Group <input type="number" id="group" value="0" min="0" max="15"></label>
+      <label>Song <select id="songSel"></select></label>
+      <label>Load .json <input type="file" id="file" accept="application/json,.json"></label>
+    </div>
+  </section>
+
+  <section class="panel" style="grid-column:1/-1">
+    <h2>MIDI output</h2>
+    <div class="row" style="margin-bottom:8px;align-items:flex-start">
+      <label style="align-items:flex-start">Web MIDI out <span id="webmidiList" style="display:inline-flex;flex-wrap:wrap;gap:4px 14px;max-width:560px"></span></label>
+      <button id="btnWebRefresh" type="button">Refresh</button>
+      <span id="webmidiStat" class="chip">off</span>
+      <span class="hint" style="margin:0">Tick one or more ports — the notes, clock &amp; bass are sent to <b>all checked ports at once</b>. No bridge; any OS in Chrome. Selection is remembered.</span>
+    </div>
+    <div class="row" style="margin-bottom:0">
+      <label>Bridge URL <input id="wsUrl" value="ws://127.0.0.1:8765" style="width:200px"></label>
+      <button id="btnConn">Connect</button>
+      <span id="wsStat" class="chip">disconnected</span>
+      <span class="hint" style="margin:0">macOS only — adds MIDI 2.0 Flex Data (chord names, tempo, lyrics) on the virtual “UG Flex Data” source. Start first: <code>python3 ug-ump-bridge.py</code>.</span>
+    </div>
+  </section>
+
+  <section class="panel" style="grid-column:1/-1">
+    <h2>SPOKE board</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button id="btnSpokePickFolder">Select CIRCUITPY drive…</button>
+      <button id="btnSpokeFlash" disabled>Write boot.py + code.py</button>
+      <span id="spokeFolderName" class="chip">no folder selected</span>
+    </div>
+    <span class="hint">One-time setup: flashes the chord-broadcast firmware onto the board. The board reboots automatically once code.py is saved — reconnect serial below afterward. Skip this if the board already has that firmware.</span>
+    <div class="row" style="margin-top:12px;margin-bottom:8px">
+      <button id="btnSpokeConn">Connect SPOKE serial…</button>
+      <span id="spokeStat" class="chip">disconnected</span>
+      <label><input type="checkbox" id="spokeRemap" checked> broadcast current chord to all pads</label>
+      <label><input type="checkbox" id="spokeMetro" checked> tempo pulse on idle pads</label>
+      <button id="btnSpokeTest" type="button">Send current chord now</button>
+    </div>
+    <span class="hint">Sends CHORD,n1,n2,... to the board's data serial channel every time the chord changes. Every pad then plays that same set of notes — touch any pad, get the current chord. USB MIDI keeps going out the board's separate MIDI interface as normal.</span>
+  </section>
+
+  <section class="panel" style="grid-column:1/-1">
+    <h2>Chart <span class="chip" id="meta"></span> <span class="chip" id="startChip" style="display:none"></span> <button id="btnEdit" type="button" style="float:right;padding:5px 12px">Edit chart</button><button id="btnDrag" type="button" style="float:right;padding:5px 12px;margin-right:6px">Drag-align</button></h2>
+    <div id="dragHint" style="display:none;margin:0 0 8px;font-size:13px;color:var(--dim)">Drag a lyric <b>word</b> onto a chord to move it under that chord. Drag the <b>⬌ beats</b> handle left/right to shorten/lengthen a chord (0.5-beat steps). Changes are live; open <b>Edit chart → Save</b> to keep them.</div>
+    <div id="grid"></div>
+    <div id="editorWrap" style="display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
+      <div class="row" style="margin-bottom:8px;align-items:center">
+        <button id="edSave" type="button">Save to browser</button>
+        <button id="edExport" type="button">Export JSON</button>
+        <button id="edRevert" type="button">Revert to built-in</button>
+        <span class="hint" style="margin:0">chord · beats · lyric per row. Type a Section name to start a new section. + inserts, × deletes.</span>
+      </div>
+      <div id="editor" style="max-height:340px;overflow:auto"></div>
+    </div>
+  </section>
+
+  <section class="panel" style="grid-column:1/-1">
+    <h2>UMP output</h2>
+    <div id="log"></div>
+    <div class="hint">One line per chord packet (hex words): <span style="color:#5b5b68">past</span> · <span style="color:var(--accent)">active</span> · <span style="color:#9aa0b8">upcoming</span>. Clock pulses are sent but not listed. <a href="#" id="clearLog">reset</a></div>
+  </section>
+</main>
+
+<script>
+/* ===== Embedded song library placeholder ===== */
+/* __LIB_START__ */
+const LIBRARY = {};
+/* __LIB_END__ */
+
+/* ==================== MIDI 2.0 Flex Data + UMP encoders ================== */
+const CFG = { group:0, addressToChannel:false, channel:0 };
+
+const NOTE_ENUM = { A:1, B:2, C:3, D:4, E:5, F:6, G:7 };
+function accToNibble(a){ if(a==='##'||a==='x')return 0x2; if(a==='#')return 0x1; if(a==='')return 0x0; if(a==='b')return 0xF; if(a==='bb')return 0xE; return 0x0; }
+function parseChordSymbol(sym){
+  if(!sym) return null;
+  const m = sym.trim().match(/^([A-G])(#{1,2}|b{1,2}|x)?(.*?)(?:\/([A-G])(#{1,2}|b{1,2})?)?$/);
+  if(!m) return null;
+  const [,note,acc='',body='',bassNote,bassAcc='']=m;
+  return { note, acc, quality:body, bass:bassNote?{note:bassNote,acc:bassAcc,quality:''}:null, raw:sym };
+}
+const CHORD_TYPE = {
+  '':0x01,'maj':0x01,'M':0x01,'6':0x02,'maj6':0x02,'maj7':0x03,'M7':0x03,'maj9':0x04,'maj11':0x05,'maj13':0x06,
+  'm':0x07,'min':0x07,'-':0x07,'m6':0x08,'m7':0x09,'min7':0x09,'m9':0x0A,'m11':0x0B,'m13':0x0C,
+  '7':0x0D,'dom7':0x0D,'9':0x0E,'11':0x0F,'13':0x10,'aug':0x11,'+':0x11,'aug7':0x12,'7#5':0x12,
+  'dim':0x13,'o':0x13,'dim7':0x14,'o7':0x14,'m7b5':0x15,'ø':0x15,'halfdim':0x15,'mM7':0x16,'minmaj7':0x16,'mmaj7':0x16,
+  '5':0x18,'power':0x18,'sus2':0x19,'sus4':0x1A,'sus':0x1A,'7sus4':0x1B
+};
+function analyzeQuality(q){
+  q=(q||'').replace(/\s+/g,'');
+  if(q in CHORD_TYPE) return {typeCode:CHORD_TYPE[q],altStr:''};
+  let best=''; for(const k in CHORD_TYPE){ if(k&&q.startsWith(k)&&k.length>best.length) best=k; }
+  if(best) return {typeCode:CHORD_TYPE[best],altStr:q.slice(best.length)};
+  return {typeCode:CHORD_TYPE[''],altStr:q};
+}
+const ALT_TYPE={ADD:0x1,SUB:0x2,RAISE:0x3,LOWER:0x4};
+function parseAlterations(s){
+  const out=[]; if(!s) return out;
+  s=s.replace(/sus(?!\d)/gi,'sus4');
+  const re=/(add|omit|no|sus)?\s*([#♯+]|b|♭|-)?\s*(\d{1,2})/gi; let m;
+  while((m=re.exec(s))!==null){
+    if(!m[0].trim()){re.lastIndex++;continue;}
+    const w=(m[1]||'').toLowerCase(),acc=m[2]||'',deg=parseInt(m[3],10);
+    if(!deg||deg>15) continue;
+    let t; if(w==='no'||w==='omit')t=ALT_TYPE.SUB;
+    else if(acc==='#'||acc==='♯'||acc==='+')t=ALT_TYPE.RAISE;
+    else if(acc==='b'||acc==='♭'||acc==='-')t=ALT_TYPE.LOWER;
+    else t=ALT_TYPE.ADD;
+    out.push({type:t,degree:deg});
+  }
+  return out;
+}
+const altByte=a=>(((a.type&0xF)<<4)|(a.degree&0xF))&0xFF;
+
+const MT_FLEX=0xD, BANK=0x00, ST_TEMPO=0x00, ST_TIMESIG=0x01, ST_KEYSIG=0x05, ST_CHORD=0x06;
+function flexHeader(status){
+  const addr=CFG.addressToChannel?0x1:0x0, ch=CFG.addressToChannel?(CFG.channel&0xF):0;
+  return (((MT_FLEX&0xF)<<28)|((CFG.group&0xF)<<24)|((0&0x3)<<22)|((addr&0x3)<<20)|((ch&0xF)<<16)|((BANK&0xFF)<<8)|(status&0xFF))>>>0;
+}
+const BANK_PERF_TEXT=0x02, ST_LYRICS=0x01;
+function flexHeaderF(bank,status,format){
+  const addr=CFG.addressToChannel?0x1:0x0, ch=CFG.addressToChannel?(CFG.channel&0xF):0;
+  return (((MT_FLEX&0xF)<<28)|((CFG.group&0xF)<<24)|((format&0x3)<<22)|((addr&0x3)<<20)|((ch&0xF)<<16)|((bank&0xFF)<<8)|(status&0xFF))>>>0;
+}
+function encodeLyric(text){
+  const bytes = new TextEncoder().encode(text||'');
+  const n = Math.max(1, Math.ceil(bytes.length/12));
+  const packets=[];
+  for(let ci=0; ci<n; ci++){
+    const chunk = bytes.slice(ci*12, ci*12+12);
+    const format = (n===1)?0x0 : (ci===0)?0x1 : (ci===n-1)?0x3 : 0x2;
+    const w=[0,0,0];
+    for(let i=0;i<chunk.length;i++){ w[i>>2] |= chunk[i] << (8*(3-(i&3))); }
+    packets.push(Uint32Array.of(flexHeaderF(BANK_PERF_TEXT, ST_LYRICS, format), w[0]>>>0, w[1]>>>0, w[2]>>>0));
+  }
+  return packets;
+}
+function encodeSetTempo(bpm){ const v=Math.round(6e9/(bpm||120))>>>0; return Uint32Array.of(flexHeader(ST_TEMPO),v,0,0); }
+function encodeSetTimeSignature(num, den, n32){
+  n32 = n32||8;
+  const w1 = (((num&0xFF)<<24)|((den&0xFF)<<16)|((n32&0xFF)<<8))>>>0;
+  return Uint32Array.of(flexHeader(ST_TIMESIG), w1, 0, 0);
+}
+function encodeSetKeySignature(tonality){
+  const p=parseChordSymbol(tonality)||{note:'C',acc:''};
+  const w1=(((accToNibble(p.acc)&0xF)<<28)|(((NOTE_ENUM[p.note]||0)&0xF)<<24))>>>0;
+  return Uint32Array.of(flexHeader(ST_KEYSIG),w1,0,0);
+}
+function encodeSetChordName(p){
+  const sf=accToNibble(p.acc), tonic=NOTE_ENUM[p.note]||0;
+  const {typeCode:type,altStr}=analyzeQuality(p.quality);
+  const alts=parseAlterations(altStr).slice(0,4).map(altByte);
+  const [a1=0,a2=0,a3=0,a4=0]=alts;
+  const w1=(((sf&0xF)<<28)|((tonic&0xF)<<24)|((type&0xFF)<<16)|((a1&0xFF)<<8)|(a2&0xFF))>>>0;
+  const w2=(((a3&0xFF)<<24)|((a4&0xFF)<<16))>>>0;
+  let w3=0;
+  if(p.bass){ const bsf=accToNibble(p.bass.acc),bn=NOTE_ENUM[p.bass.note]||0;
+    const {typeCode:bt,altStr:bAlt}=analyzeQuality(p.bass.quality||'');
+    const [b1=0,b2=0]=parseAlterations(bAlt).slice(0,2).map(altByte);
+    w3=(((bsf&0xF)<<28)|((bn&0xF)<<24)|((bt&0xFF)<<16)|((b1&0xFF)<<8)|(b2&0xFF))>>>0;
+  }
+  return Uint32Array.of(flexHeader(ST_CHORD),w1,w2,w3);
+}
+function encodeSys(status){ return Uint32Array.of((((0x1<<4|(CFG.group&0xF))<<24)|((status&0xFF)<<16))>>>0); }
+const SYS_START=0xFA, SYS_STOP=0xFC, SYS_CLOCK=0xF8;
+
+const MT_MIDI1=0x2, MIDI_CH=0, NOTE_VEL=80, NOTE_LO=60, NOTE_HI=82;
+const PC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function accSemi(a){ if(a==='#')return 1; if(a==='##'||a==='x')return 2; if(a==='b')return -1; if(a==='bb')return -2; return 0; }
+const INTERVALS={
+  '':[0,4,7],'maj':[0,4,7],'M':[0,4,7],'6':[0,4,7,9],'maj6':[0,4,7,9],
+  'maj7':[0,4,7,11],'M7':[0,4,7,11],'maj9':[0,4,7,11,14],'maj11':[0,4,7,11,17],'maj13':[0,4,7,11,21],
+  'm':[0,3,7],'min':[0,3,7],'-':[0,3,7],'m6':[0,3,7,9],'m7':[0,3,7,10],'min7':[0,3,7,10],
+  'm9':[0,3,7,10,14],'m11':[0,3,7,10,17],'m13':[0,3,7,10,21],
+  '7':[0,4,7,10],'dom7':[0,4,7,10],'9':[0,4,7,10,14],'11':[0,4,7,10,17],'13':[0,4,7,10,21],
+  'aug':[0,4,8],'+':[0,4,8],'aug7':[0,4,8,10],'7#5':[0,4,8,10],
+  'dim':[0,3,6],'o':[0,3,6],'dim7':[0,3,6,9],'o7':[0,3,6,9],
+  'm7b5':[0,3,6,10],'ø':[0,3,6,10],'halfdim':[0,3,6,10],
+  'mM7':[0,3,7,11],'minmaj7':[0,3,7,11],'mmaj7':[0,3,7,11],
+  '5':[0,7],'power':[0,7],'sus2':[0,2,7],'sus4':[0,5,7],'sus':[0,5,7],'7sus4':[0,5,7,10]
+};
+const DEG_SEMI={2:2,4:5,5:7,6:9,7:11,9:14,11:17,13:21};
+function chordIvAlt(q){
+  q=(q||'').replace(/\s+/g,'');
+  if(q in INTERVALS) return {iv:INTERVALS[q].slice(),altStr:''};
+  let best=''; for(const k in INTERVALS){ if(k&&q.startsWith(k)&&k.length>best.length) best=k; }
+  if(best) return {iv:INTERVALS[best].slice(),altStr:q.slice(best.length)};
+  return {iv:INTERVALS[''].slice(),altStr:q};
+}
+function applyAlt(iv,alts){
+  let s=iv.slice();
+  for(const a of alts){
+    const base=DEG_SEMI[a.degree]; if(base==null) continue;
+    if(a.type===ALT_TYPE.SUB){ s=s.filter(x=>x%12!==base%12); continue; }
+    const semi = a.type===ALT_TYPE.RAISE? base+1 : a.type===ALT_TYPE.LOWER? base-1 : base;
+    if(a.degree===5) s=s.filter(x=>x!==7);
+    else s=s.filter(x=>x!==base);
+    s.push(semi);
+  }
+  return Array.from(new Set(s)).sort((x,y)=>x-y);
+}
+function chordNotes(parsed){
+  if(!parsed||!parsed.note) return [];
+  const {iv,altStr}=chordIvAlt(parsed.quality);
+  const offs=applyAlt(iv,parseAlterations(altStr));
+  const rootPc=(((PC[parsed.note]||0)+accSemi(parsed.acc))%12+12)%12;
+  const seen=new Set(), pcs=[];
+  for(const o of offs){ const pc=((rootPc+o)%12+12)%12; if(!seen.has(pc)){seen.add(pc);pcs.push(pc);} }
+  if(pcs.length<2) return [];
+  const rot=pcs.slice(1).concat(pcs.slice(0,1));
+  const notes=[NOTE_LO+(((rot[0]-NOTE_LO)%12)+12)%12];
+  for(let i=1;i<rot.length;i++){
+    let c=notes[i-1]+(((rot[i]-notes[i-1])%12)+12)%12; if(c===notes[i-1]) c+=12; notes.push(c);
+  }
+  while(notes[notes.length-1]>NOTE_HI && notes[0]-12>=NOTE_LO){ for(let i=0;i<notes.length;i++) notes[i]-=12; }
+  return notes.filter(n=>n>=NOTE_LO && n<=NOTE_HI);
+}
+function accompNotes(parsed, splitTop){
+  if(!parsed||!parsed.note) return [];
+  const {iv,altStr}=chordIvAlt(parsed.quality);
+  const offs=applyAlt(iv,parseAlterations(altStr));
+  const rootPc=(((PC[parsed.note]||0)+accSemi(parsed.acc))%12+12)%12;
+  const bsrc=parsed.bass||parsed;
+  const bassPc=(((PC[bsrc.note]||0)+accSemi(bsrc.acc))%12+12)%12;
+  const seen=new Set([bassPc]), upper=[];
+  for(const o of offs){ const pc=((rootPc+o)%12+12)%12; if(!seen.has(pc)){seen.add(pc);upper.push(pc);} }
+  const up=upper.slice(0,3);
+  let notes=[36+bassPc];
+  for(const pc of up){ let c=notes[notes.length-1]+(((pc-notes[notes.length-1])%12)+12)%12; if(c===notes[notes.length-1])c+=12; notes.push(c); }
+  splitTop=splitTop||54;
+  let g=0;
+  while(Math.max(...notes)>splitTop && Math.min(...notes)-12>=24 && g++<4){ notes=notes.map(n=>n-12); }
+  return notes;
+}
+function encodeMidi1(status,d1,d2){
+  return Uint32Array.of((((MT_MIDI1&0xF)<<28)|((CFG.group&0xF)<<24)|((status&0xFF)<<16)|((d1&0x7F)<<8)|(d2&0x7F))>>>0);
+}
+let activeNotes=[];
+function notesOff(){ for(const n of activeNotes) sendUMP(encodeMidi1(0x80|MIDI_CH,n,0), null); activeNotes=[]; }
+function voiceMode(){ return document.getElementById('voiceMode').value; }
+function playChordNotes(sym){
+  notesOff();
+  if(!document.getElementById('sendNotes').checked) return;
+  const p=parseChordSymbol(sym); if(!p) return;
+  const ns = voiceMode()==='accomp'
+    ? accompNotes(p, +document.getElementById('splitNote').value||54)
+    : chordNotes(p);
+  for(const n of ns) sendUMP(encodeMidi1(0x90|MIDI_CH,n,NOTE_VEL), null);
+  activeNotes=ns;
+}
+
+const BASS_LO=43, BASS_HI=56;
+function tonicNote(parsed){
+  if(!parsed||!parsed.note) return null;
+  const src = parsed.bass || parsed;
+  const pc=(((PC[src.note]||0)+accSemi(src.acc))%12+12)%12;
+  let n = BASS_LO + (((pc-(BASS_LO%12))%12)+12)%12;
+  if(n>BASS_HI) n-=12;
+  return n;
+}
+let activeTonic=null;
+function tonicOff(){ if(activeTonic!=null){ sendUMP(encodeMidi1(0x80|MIDI_CH,activeTonic,0),null); activeTonic=null; } }
+function pulseTonic(note, scale){
+  tonicOff();
+  if(note==null) return;
+  if(voiceMode()==='accomp') return;
+  scale = (scale==null)?1:scale;
+  const vel = Math.max(0, Math.min(127, Math.round((+document.getElementById('bassVel').value||0)*scale)));
+  if(vel<=0) return;
+  sendUMP(encodeMidi1(0x90|MIDI_CH,note,vel), null);
+  activeTonic=note;
+}
+function swingFrac(){ return Math.max(0.5, Math.min(0.75, (+($('swing')||{}).value||50)/100)); }
+function beatAccent(pos, num, den){
+  if(den===8 && num%3===0) return (pos%3===0)?1.0:0.6;
+  if(pos===0) return 1.0;
+  if(num%2===0 && pos===num/2) return 0.85;
+  return 0.72;
+}
+
+let transpose=0;
+const SHARP_SP=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const FLAT_SP =['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+function pcOfNote(note,acc){ return (((PC[note]||0)+accSemi(acc))%12+12)%12; }
+function spellPc(pc, sharp){ return (sharp?SHARP_SP:FLAT_SP)[((pc%12)+12)%12]; }
+function transposeChord(sym){
+  if(!transpose || !sym) return sym;
+  const p=parseChordSymbol(sym); if(!p) return sym;
+  const sharp = transpose>0;
+  let out = spellPc(pcOfNote(p.note,p.acc)+transpose, sharp) + p.quality;
+  if(p.bass) out += '/' + spellPc(pcOfNote(p.bass.note,p.bass.acc)+transpose, sharp);
+  return out;
+}
+function transposedKey(){ return song ? transposeChord(song.key||'') : ''; }
+function refreshTranspose(){
+  const el=$('trVal'); if(el) el.textContent=(transpose>0?'+':'')+transpose;
+  if(song){
+    $('songline').textContent = `${song.title} — ${song.artist||''}  ·  key ${transposedKey()||'?'}`
+      + `${song.capo?` · capo ${song.capo}`:''}${transpose?`  (${transpose>0?'+':''}${transpose} st)`:''}`;
+    renderChart(); prepareLog(); lastCell=-1; lastLogCur=-2;
+    if(running && song.key) sendUMP(encodeSetKeySignature(transposedKey()), {keySig:transposedKey()});
+  }
+}
+function setTranspose(n){ transpose=Math.max(-11,Math.min(11,n)); refreshTranspose(); }
+
+const hex = w => [...w].map(x=>(x>>>0).toString(16).padStart(8,'0')).join(' ');
+function sendUMP(words, meta, opts){
+  opts=opts||{};
+  if(meta && !opts.clock && !opts.chord) logLine(hex(words), meta);
+  const w0=(words[0]>>>0), mt=(w0>>>28)&0xF;
+  if(webOuts.length && (mt===0x1 || mt===0x2)){
+    const b=umpToMidi1(w0);
+    if(b){ for(const o of webOuts){ try{ o.send(b); }catch(e){ console.warn('webmidi send',e); } } }
+    return;
+  }
+  try{ if(typeof window.UG_FLEX_SEND==='function') window.UG_FLEX_SEND(words, meta); }catch(e){ console.warn('UG_FLEX_SEND failed',e); }
+}
+
+/* ---- SPOKE board: firmware payloads (written via File System Access) ---- */
+const SPOKE_BOOT_PY = `# boot.py — runs once at startup, before code.py
+#
+# This opens a SECOND USB serial channel that's separate from the
+# REPL/console. This webpage talks to usb_cdc.data using its own
+# CHORD/NOTE/GET/SAVE protocol, while usb_cdc.console stays free for
+# print() debugging in Mu / Thonny / the CircuitPython serial console.
+
+import usb_cdc
+
+usb_cdc.enable(console=True, data=True)
+
+# Uncomment the two lines below if you want the "SAVE" command to persist
+# the current chord to chord.json on the board itself. This flips which
+# side owns the filesystem: your computer will then see CIRCUITPY as
+# read-only, but code.py will be able to write to it. Leave commented if
+# you'd rather always edit chord.json from your computer instead.
+#
+# import storage
+# storage.remount("/", readonly=False)
+`;
+
+
+const SPOKE_CODE_PY = `# code.py — SPOKE chord-broadcast USB MIDI firmware
+#
+# Every pad plays whatever chord was last sent from the webpage over
+# serial, instead of a fixed note per pad — touch ANY pad and get the
+# song's current chord. Releasing a pad turns off exactly the notes
+# that pad turned on, and a per-note reference count means two pads
+# sharing a note (e.g. both holding a C major chord) won't cut that
+# note off early just because one of them lifted first.
+#
+# NeoPixels: rainbow startup sweep, then idle blue. A touched pad lights
+# magenta and returns to blue on release. Untouched pads gently pulse in
+# time with the song (a soft "flash and fade" once per beat) once the
+# webpage starts sending tempo info; if no beat arrives for a couple of
+# seconds (song stopped, page closed) the pulse fades back to a plain
+# static idle color on its own — no explicit "stop" command needed.
+#
+# Serial protocol (usb_cdc.data), each command ends with "\\n":
+#   CHORD,<n1>,<n2>,...   -> set the notes every pad will play next touch.  replies OK / ERR,range
+#   NOTE,<n>              -> shorthand for CHORD,<n> (a single unison note). replies OK / ERR,range
+#   TEMPO,<bpm>            -> sets the metronome pulse speed.                replies OK / ERR,range
+#   BEAT                   -> marks "a beat just happened now" (resyncs the pulse). no reply, sent often.
+#   GET                    -> board replies CHORD,<n1>,...
+#   SAVE                   -> persist the current chord to chord.json.       replies OK / ERR,save
+#   RESET                  -> revert to the default single note (60).        replies OK
+#   PING                   -> replies PONG
+
+import json
+import time
+
+import adafruit_midi
+import board
+import neopixel
+import touchio
+import usb_cdc
+import usb_midi
+from adafruit_midi.note_off import NoteOff
+from adafruit_midi.note_on import NoteOn
+from rainbowio import colorwheel
+
+# ---- Pin layout (matches the SPOKE board's 27 pads) ----
+PIN_NAMES = [
+    "GP1", "GP2", "GP3", "GP4", "GP5", "GP6", "GP7", "GP8", "GP9", "GP10",
+    "GP11", "GP12", "GP13", "GP14", "GP15", "GP16", "GP17", "GP18", "GP19", "GP20",
+    "GP21", "GP22", "GP23", "GP24", "GP25", "GP28", "VOLTAGE_MONITOR",
+]
+
+CONFIG_FILE = "/chord.json"
+VELOCITY = 120
+DEBOUNCE = 0.01  # seconds between touch scans
+DEFAULT_CHORD = [60]  # middle C, so pads still make sound before the webpage connects
+
+TOUCH_COLOR = (255, 0, 255)
+IDLE_COLOR = (0, 0, 255)
+
+# ---- Metronome pulse tuning ----
+METRO_TIMEOUT = 2.0    # seconds without a BEAT before the pulse is considered stopped
+METRO_FADE_FLOOR = 0.25  # dimmest point of the fade (never fully off, stays "subtle")
+
+
+def load_chord():
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            data = json.load(f)
+            if isinstance(data, list) and data:
+                return [int(n) for n in data]
+    except (OSError, ValueError):
+        pass
+    return list(DEFAULT_CHORD)
+
+
+def save_chord(chord):
+    try:
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(chord, f)
+        return True
+    except OSError:
+        # Filesystem is likely still owned by the host computer.
+        # See the commented-out storage.remount() line in boot.py.
+        return False
+
+
+current_chord = load_chord()
+
+pads = []
+for name in PIN_NAMES:
+    pin = getattr(board, name)
+    pads.append(touchio.TouchIn(pin))
+
+pressed = [False] * len(pads)
+pad_notes = [[] for _ in pads]      # notes each pad is currently holding
+note_refcount = [0] * 128           # how many pads are holding each MIDI note right now
+
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+serial = usb_cdc.data
+
+# auto_write is off so a whole animation frame (all 27 pixels) goes out in
+# one burst via pixels.show(), instead of one bus transaction per pixel.
+pixels = neopixel.NeoPixel(board.GP0, len(pads), brightness=0.03, auto_write=False)
+
+metro_period = 0.5      # seconds per beat (updated by TEMPO); default ~120 bpm
+metro_last_beat = None  # time.monotonic() of the last BEAT received; None = inactive
+
+
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(len(pads)):
+                pixel_index = (i * 256 // len(pads) + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+
+def all_idle():
+    pixels.fill(IDLE_COLOR)
+    pixels.show()
+
+
+def idle_color():
+    """Static idle blue, or a soft beat-synced fade once BEATs are arriving."""
+    if metro_last_beat is None:
+        return IDLE_COLOR
+    if time.monotonic() - metro_last_beat > METRO_TIMEOUT:
+        return IDLE_COLOR
+    phase = (time.monotonic() - metro_last_beat) % metro_period
+    env = METRO_FADE_FLOOR + (1.0 - METRO_FADE_FLOOR) * max(0.0, 1.0 - phase / metro_period)
+    return tuple(int(c * env) for c in IDLE_COLOR)
+
+
+# Startup animation, same as the factory firmware.
+rainbow(0.01, 2, step_size=10)
+all_idle()
+
+rx_buffer = b""
+
+
+def reply(msg):
+    if serial is not None:
+        serial.write((msg + "\\n").encode("utf-8"))
+
+
+def handle_command(line):
+    global current_chord, metro_period, metro_last_beat
+
+    parts = line.strip().split(",")
+    if not parts or parts[0] == "":
+        return
+    cmd = parts[0]
+
+    if cmd == "CHORD" and len(parts) >= 2:
+        try:
+            new_chord = [int(n) for n in parts[1:]]
+        except ValueError:
+            reply("ERR,parse")
+            return
+        if all(0 <= n <= 127 for n in new_chord):
+            current_chord = new_chord
+            reply("OK")
+        else:
+            reply("ERR,range")
+
+    elif cmd == "NOTE" and len(parts) == 2:
+        try:
+            n = int(parts[1])
+        except ValueError:
+            reply("ERR,parse")
+            return
+        if 0 <= n <= 127:
+            current_chord = [n]
+            reply("OK")
+        else:
+            reply("ERR,range")
+
+    elif cmd == "TEMPO" and len(parts) == 2:
+        try:
+            bpm = float(parts[1])
+        except ValueError:
+            reply("ERR,parse")
+            return
+        if bpm > 0:
+            metro_period = 60.0 / bpm
+            reply("OK")
+        else:
+            reply("ERR,range")
+
+    elif cmd == "BEAT":
+        metro_last_beat = time.monotonic()
+        # no reply — this arrives every beat, so keep it lightweight
+
+    elif cmd == "GET":
+        reply("CHORD," + ",".join(str(n) for n in current_chord))
+
+    elif cmd == "SAVE":
+        reply("OK" if save_chord(current_chord) else "ERR,save")
+
+    elif cmd == "RESET":
+        current_chord = list(DEFAULT_CHORD)
+        reply("OK")
+
+    elif cmd == "PING":
+        reply("PONG")
+
+    else:
+        reply("ERR,cmd")
+
+
+while True:
+    # --- non-blocking serial command handling ---
+    if serial is not None and serial.in_waiting:
+        rx_buffer += serial.read(serial.in_waiting)
+        while b"\\n" in rx_buffer:
+            line, rx_buffer = rx_buffer.split(b"\\n", 1)
+            try:
+                handle_command(line.decode("utf-8"))
+            except Exception as e:  # keep the board alive on a bad command
+                reply("ERR," + str(e))
+
+    # --- touch scan + USB MIDI out + NeoPixel feedback ---
+    current_idle = idle_color()
+    for i, pad in enumerate(pads):
+        touched = pad.value
+        if touched and not pressed[i]:
+            pad_notes[i] = list(current_chord)   # snapshot: this pad now "owns" these notes
+            for n in pad_notes[i]:
+                note_refcount[n] += 1
+                if note_refcount[n] == 1:
+                    midi.send(NoteOn(n, VELOCITY))
+            pixels[i] = TOUCH_COLOR
+        elif not touched and pressed[i]:
+            for n in pad_notes[i]:
+                note_refcount[n] -= 1
+                if note_refcount[n] <= 0:
+                    note_refcount[n] = 0
+                    midi.send(NoteOff(n, 0))
+            pad_notes[i] = []
+            pixels[i] = current_idle
+        elif not touched:
+            pixels[i] = current_idle  # keep untouched pads live-updating for the pulse
+        pressed[i] = touched
+
+    pixels.show()
+    time.sleep(DEBOUNCE)
+`;
+
+let spokeDirHandle = null;
+
+async function pickSpokeFolder(){
+  if(!('showDirectoryPicker' in window)){ setSpokeStat('File System Access unsupported', false); return; }
+  try{
+    spokeDirHandle = await window.showDirectoryPicker();
+    $('spokeFolderName').textContent = 'Selected: ' + spokeDirHandle.name;
+    $('btnSpokeFlash').disabled = false;
+  }catch(e){ /* picker cancelled */ }
+}
+async function writeSpokeFile(name, contents){
+  const fileHandle = await spokeDirHandle.getFileHandle(name, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(contents);
+  await writable.close();
+}
+async function flashSpoke(){
+  if(!spokeDirHandle) return;
+  try{
+    await writeSpokeFile('boot.py', SPOKE_BOOT_PY);
+    await writeSpokeFile('code.py', SPOKE_CODE_PY);
+    $('spokeFolderName').textContent = 'Firmware written — board is rebooting, reconnect serial below';
+  }catch(e){
+    $('spokeFolderName').textContent = 'Write failed: ' + e.message;
+  }
+}
+
+/* ---- SPOKE board: live pad remapping over Web Serial ---- */
+let spokePort=null, spokeWriter=null, spokeReader=null, spokeBuf='';
+let lastSpokeMap=null;
+
+function setSpokeStat(txt, ok){
+  const el=$('spokeStat'); if(!el) return;
+  el.textContent=txt;
+  const c = ok ? 'var(--accent)' : 'var(--dim)';
+  el.style.color=c; el.style.borderColor=c;
+}
+
+async function connectSpoke(){
+  if(spokePort){ await disconnectSpoke(); return; }
+  if(!('serial' in navigator)){ setSpokeStat('Web Serial unsupported', false); return; }
+  try{
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    spokePort = port;
+    const dec = new TextDecoderStream();
+    port.readable.pipeTo(dec.writable);
+    spokeReader = dec.readable.getReader();
+    const enc = new TextEncoderStream();
+    enc.readable.pipeTo(port.writable);
+    spokeWriter = enc.writable.getWriter();
+    setSpokeStat('connected', true);
+    $('btnSpokeConn').textContent = 'Disconnect SPOKE';
+    spokeReadLoop();
+  }catch(e){ setSpokeStat('error: '+e.message, false); }
+}
+async function disconnectSpoke(){
+  try{ if(spokeReader) await spokeReader.cancel(); }catch(e){}
+  try{ if(spokeWriter) await spokeWriter.close(); }catch(e){}
+  try{ if(spokePort) await spokePort.close(); }catch(e){}
+  spokePort=spokeWriter=spokeReader=null;
+  setSpokeStat('disconnected', false);
+  $('btnSpokeConn').textContent = 'Connect SPOKE serial…';
+}
+async function spokeReadLoop(){
+  try{
+    while(spokeReader){
+      const {value, done} = await spokeReader.read();
+      if(done) break;
+      if(value){
+        spokeBuf += value;
+        let i;
+        while((i=spokeBuf.indexOf('\n'))>=0){ spokeBuf=spokeBuf.slice(i+1); } // drain OK/ERR/PONG silently
+      }
+    }
+  }catch(e){}
+}
+async function sendSpoke(cmd){
+  if(!spokeWriter) return;
+  try{ await spokeWriter.write(cmd+'\n'); }catch(e){}
+}
+
+// Broadcast the exact same chord voicing already computed for MIDI output
+// (playChordNotes fills `activeNotes` — call this right after it) so what
+// SPOKE plays always matches what your DAW/synth hears.
+function updateSpokePads(sym){
+  if(!$('spokeRemap').checked || !spokeWriter) return;
+  const notes = activeNotes;
+  if(!notes || !notes.length) return;
+  const key = notes.join(',');
+  if(key===lastSpokeMap) return;      // skip redundant sends
+  lastSpokeMap = key;
+  sendSpoke('CHORD,'+key);
+}
+
+// Metronome: tell the board how fast to pulse (once, or whenever bpm
+// changes), then ping it once per beat so its local fade stays locked to
+// the song. The board free-runs the fade between pings and falls back to
+// a static idle color on its own if the pings ever stop arriving.
+let lastSpokeTempo=null;
+function updateSpokeTempo(){
+  if(!$('spokeMetro').checked || !spokeWriter) return;
+  const bpm = +$('bpm').value || 120;
+  if(bpm===lastSpokeTempo) return;
+  lastSpokeTempo = bpm;
+  sendSpoke('TEMPO,'+bpm);
+}
+function pulseSpokeBeat(){
+  if(!$('spokeMetro').checked || !spokeWriter) return;
+  sendSpoke('BEAT');   // fire-and-forget; lightweight, sent every beat
+}
+
+/* ============================ Player engine ============================= */
+let song=null, events=[], running=false, timer=null, rafId=null, chordEvents=[];
+let startFromIdx=0;
+let beatBase=0, tBase=0, curSpb=0.5;
+function nowBeat(){ return beatBase + (performance.now()/1000 - tBase)/curSpb; }
+const $=id=>document.getElementById(id);
+
+function loadSong(s){
+  if(running) stop(false);
+  try{ const j=localStorage.getItem('ugflex.edit.'+((s&&s.title)||'')); if(j) s=JSON.parse(j); }catch(e){}
+  song=s; startFromIdx=0;
+  const bpm = s.bpm||120, bpb = s.beatsPerBar||4;
+  $('bpm').value=bpm; $('bpb').value=bpb;
+  $('tsDen').value = (s.timeSig && s.timeSig[1]) || 4;
+  $('meta').textContent = `${s.chords.length} chords · ${s.totalBars||'?'} bars · ${bpm} bpm`;
+  transpose=0; curSpb=secPerBeat();
+  refreshTranspose();
+  lastCell=-1;
+  $('clk').textContent='00:00'; $('barbeat').textContent='bar 1 · beat 1';
+  $('nowChord').textContent='—'; $('nextChord').textContent='—';
+}
+function renderChart(){
+  const g=$('grid'); g.innerHTML='';
+  let body=null;
+  song.chords.forEach((c,i)=>{
+    if(c.section){
+      const h=document.createElement('div'); h.className='sect-h'; h.textContent='['+c.section+']';
+      g.appendChild(h);
+      body=document.createElement('div'); body.className='sect-body'; g.appendChild(body);
+    }
+    if(!body){ body=document.createElement('div'); body.className='sect-body'; g.appendChild(body); }
+    const u=document.createElement('span'); u.className='cu'+(c.lyric?'':' instr'); u.id='cu'+i;
+    u.title = `bar ${c.bar} · ${c.beats} beats`;
+    const ch=document.createElement('span'); ch.className='cu-chord'; ch.textContent=transposeChord(c.sym);
+    const ly=document.createElement('span'); ly.className='cu-lyric';
+    if(dragAlign){
+      u.dataset.dropci=i;
+      const words=(c.lyric||'').split(/\s+/).filter(Boolean);
+      if(words.length===0){ const e=document.createElement('span'); e.className='cu-empty'; e.textContent='·'; ly.appendChild(e); }
+      else words.forEach((w,wi)=>{
+        const sp=document.createElement('span'); sp.className='cu-word'; sp.textContent=w;
+        sp.draggable=true; sp.dataset.ci=i; sp.dataset.wi=wi;
+        ly.appendChild(sp); ly.appendChild(document.createTextNode(' '));
+      });
+    } else {
+      ly.textContent = c.lyric ? (c.lyric+' ') : ' ';
+    }
+    u.appendChild(ch); u.appendChild(ly);
+    if(dragAlign){
+      const hd=document.createElement('span'); hd.className='cu-handle'; hd.dataset.hci=i;
+      hd.textContent='⬌ '+fmtBeats(c.beats); hd.title='Drag left/right to change beats';
+      u.appendChild(hd);
+    }
+    body.appendChild(u);
+  });
+  markStartSel();
+}
+function fmtBeats(b){ b=+b||0; return Number.isInteger(b)?String(b):b.toFixed(1); }
+
+function beatOfChord(idx){ let b=0; for(let k=0;k<idx && song && song.chords[k];k++) b+=(+song.chords[k].beats||0); return b; }
+function setStartFrom(idx){ startFromIdx=Math.max(0,idx|0); markStartSel(); }
+function markStartSel(){
+  document.querySelectorAll('#grid .cu.startsel').forEach(el=>el.classList.remove('startsel'));
+  if(startFromIdx>0){ const el=$('cu'+startFromIdx); if(el) el.classList.add('startsel'); }
+  const chip=$('startChip'); if(!chip) return;
+  if(startFromIdx>0 && song && song.chords[startFromIdx]){
+    const bpb=+$('bpb').value||4, bar=Math.floor(beatOfChord(startFromIdx)/bpb)+1;
+    chip.style.display='inline-block';
+    chip.textContent='▶ from bar '+bar+' · '+transposeChord(song.chords[startFromIdx].sym)+' · reset ✕';
+  } else { chip.style.display='none'; }
+}
+
+let editing=false;
+function recomputeSong(){
+  const bpb=song.beatsPerBar||4; let beat=0;
+  song.chords.forEach(c=>{ c.beats=+c.beats||0; c.startBeat=beat; c.bar=Math.floor(beat/bpb)+1; beat+=c.beats; });
+  song.totalBeats=beat; song.totalBars=Math.floor(beat/bpb);
+  $('meta').textContent = `${song.chords.length} chords · ${song.totalBars} bars · ${song.bpm||''} bpm`;
+}
+function edInput(cls,i,f,val,type){ const el=document.createElement('input'); el.className=cls; el.dataset.i=i; el.dataset.f=f; if(type)el.type=type; el.value=(val==null?'':val); return el; }
+function edBtn(i,act,label,title){ const b=document.createElement('button'); b.type='button'; b.dataset.i=i; b.dataset.act=act; b.textContent=label; b.title=title; return b; }
+function buildEditor(){
+  const box=$('editor'); box.innerHTML=''; if(!song) return;
+  song.chords.forEach((c,i)=>{
+    const row=document.createElement('div'); row.className='ed-row';
+    row.append(
+      edInput('ed-sec',i,'section',c.section||''), edInput('ed-sym',i,'sym',c.sym||''),
+      edInput('ed-beats',i,'beats',c.beats,'number'), edInput('ed-lyric',i,'lyric',c.lyric||''),
+      edBtn(i,'ins','+','insert after'), edBtn(i,'del','×','delete'),
+      edBtn(i,'up','↑','move up'), edBtn(i,'down','↓','move down'));
+    box.appendChild(row);
+  });
+}
+function editKey(t){ return 'ugflex.edit.'+((t||song.title)||'song'); }
+function saveEdit(){ try{ localStorage.setItem(editKey(), JSON.stringify(song)); $('edSave').textContent='Saved ✓'; setTimeout(()=>$('edSave').textContent='Save to browser',1200); }catch(e){ alert('Save failed: '+e); } }
+function exportSong(){ const blob=new Blob([JSON.stringify(song,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(song.title||'song').replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'.json'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800); }
+function revertEdit(){
+  try{ localStorage.removeItem(editKey()); }catch(e){}
+  const k=Object.keys(LIBRARY).find(key=>LIBRARY[key].title===song.title);
+  if(k){ loadSong(LIBRARY[k]); if(editing) buildEditor(); }
+}
+function secPerBeat(){ return 60/(+$('bpm').value||120); }
+
+function buildEvents(){
+  const bpb=+$('bpb').value||4;
+  chordEvents=[]; let beat=0;
+  song.chords.forEach((c,i)=>{ chordEvents.push({beat, sym:c.sym, idx:i}); beat+=c.beats; });
+  const totalBeats = beat;
+  const ev=[];
+  ev.push({b:0, kind:'start'});
+  chordEvents.forEach(c=> ev.push({b:c.beat, kind:'chord', sym:c.sym, idx:c.idx}));
+  {
+    const sw=swingFrac();
+    let b=0;
+    song.chords.forEach((c,ci)=>{
+      const nb=Math.max(1, Math.round(c.beats||1));
+      for(let k=0;k<nb;k++){
+        ev.push({b:b+k, kind:'beat', ci});
+        if(sw>0.5) ev.push({b:b+k+sw, kind:'beat', ci, off:true});
+      }
+      b += c.beats;
+    });
+  }
+  if($('sendClock').checked){
+    for(let k=0; k/24<=totalBeats+1e-6; k++) ev.push({b:k/24, kind:'clock'});
+  }
+  ev.push({b:totalBeats, kind:'end'});
+  const PRI={start:0,chord:1,beat:2,clock:3,end:4};
+  ev.sort((a,b)=> a.b-b.b || (PRI[a.kind]-PRI[b.kind]));
+  return {ev, totalBeats, bpb};
+}
+
+function start(){
+  if(running) return;
+  CFG.group = +$('group').value||0;
+  const {ev, totalBeats} = buildEvents();
+  running=true;
+  curSpb = secPerBeat();
+  const off = (startFromIdx>0 && song.chords[startFromIdx]) ? beatOfChord(startFromIdx) : 0;
+  beatBase = off; tBase = performance.now()/1000 + 0.06;
+  let i=0;
+  while(i<ev.length && ev[i].b < off-1e-6) i++;
+  $('btnStart').disabled=true; $('btnStop').disabled=false;
+  prepareLog();
+  if(off>0){
+    sendUMP(encodeSys(SYS_START), {msg:'Start (mid-song)'});
+    sendUMP(encodeSetTempo(+$('bpm').value), {tempo:$('bpm').value+'bpm'});
+    sendUMP(encodeSetTimeSignature(+$('bpb').value||4, +$('tsDen').value||4), {timeSig:($('bpb').value+'/'+$('tsDen').value)});
+    if(song.key) sendUMP(encodeSetKeySignature(transposedKey()), {keySig:transposedKey()});
+    lastSpokeTempo=null; updateSpokeTempo();
+  }
+
+  function pump(){
+    if(!running) return;
+    const latB = ((+$('lat').value||0)/1000)/curSpb;
+    const nb = nowBeat() + latB;
+    while(i<ev.length && ev[i].b <= nb){
+      const e=ev[i++];
+      if(e.kind==='start'){ sendUMP(encodeSys(SYS_START), {msg:'Start'}); sendUMP(encodeSetTempo(+$('bpm').value), {tempo:$('bpm').value+'bpm'}); sendUMP(encodeSetTimeSignature(+$('bpb').value||4, +$('tsDen').value||4), {timeSig:($('bpb').value+'/'+$('tsDen').value)}); if(song.key) sendUMP(encodeSetKeySignature(transposedKey()), {keySig:transposedKey()}); lastSpokeTempo=null; updateSpokeTempo(); }
+      else if(e.kind==='clock'){ sendUMP(encodeSys(SYS_CLOCK), null, {clock:true}); }
+      else if(e.kind==='chord'){ const sym=transposeChord(e.sym); const p=parseChordSymbol(sym); if(p){ sendUMP(encodeSetChordName(p), {chord:sym}, {chord:true}); playChordNotes(sym); updateSpokePads(sym); }
+        const ly = song.chords[e.idx] && song.chords[e.idx].lyric;
+        if(ly){ for(const pk of encodeLyric(ly)) sendUMP(pk, null); }
+      }
+      else if(e.kind==='beat'){ const bp=parseChordSymbol(transposeChord(song.chords[e.ci].sym));
+        const num=+$('bpb').value||4, den=+$('tsDen').value||4, pos=Math.round(e.b)%num;
+        pulseTonic(bp?tonicNote(bp):null, e.off?0.55:beatAccent(pos,num,den));
+        if(!e.off) pulseSpokeBeat();   // one pulse per real beat, not the swung subdivision
+      }
+      else if(e.kind==='end'){ stop(true); return; }
+    }
+    let delay=4;
+    if(i<ev.length){ delay = Math.max(0, (ev[i].b - (nowBeat()+latB))*curSpb*1000 - 1); if(delay>25) delay=25; }
+    timer=setTimeout(pump, delay);
+  }
+  pump();
+  drawLoop();
+}
+function onTempoChange(){
+  const newSpb = secPerBeat();
+  if(running){
+    beatBase = nowBeat();
+    tBase = performance.now()/1000;
+    curSpb = newSpb;
+    sendUMP(encodeSetTempo(+$('bpm').value), {tempo:$('bpm').value+'bpm'});
+  } else {
+    curSpb = newSpb;
+  }
+  updateSpokeTempo();
+}
+function stop(natural){
+  if(!running && !natural) return;
+  running=false; if(timer) clearTimeout(timer); timer=null;
+  if(rafId) cancelAnimationFrame(rafId); rafId=null;
+  notesOff(); tonicOff();
+  sendUMP(encodeSys(SYS_STOP), {msg:'Stop'});
+  $('btnStart').disabled=false; $('btnStop').disabled=true;
+}
+
+function fmt(t){ t=Math.max(0,t); const m=Math.floor(t/60), s=Math.floor(t%60); return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
+let lastCell=-1;
+function drawLoop(){
+  if(!running){ return; }
+  const bpb=+$('bpb').value||4;
+  const nb=nowBeat();
+  $('clk').textContent = fmt(nb*curSpb);
+  const bar = Math.floor(nb/bpb)+1, beat=Math.floor(nb%bpb)+1;
+  $('barbeat').textContent = `bar ${Math.max(1,bar)} · beat ${Math.max(1,beat)}`;
+  let cur=-1; for(let k=0;k<chordEvents.length;k++){ if(chordEvents[k].beat <= nb+1e-6) cur=k; else break; }
+  $('nowChord').textContent = cur>=0 ? transposeChord(chordEvents[cur].sym) : '—';
+  $('nextChord').textContent = (cur+1<chordEvents.length) ? transposeChord(chordEvents[cur+1].sym) : '—';
+  if(cur!==lastCell){
+    if(lastCell>=0){ const el=$('cu'+lastCell); if(el) el.classList.remove('on'); }
+    if(cur>=0){ const el=$('cu'+cur); if(el){ el.classList.add('on');
+      const g=$('grid'); g.scrollTop = Math.max(0, Math.min(el.offsetTop - g.clientHeight/2 + el.offsetHeight/2, g.scrollHeight - g.clientHeight)); } }
+    lastCell=cur;
+  }
+  updateLogHighlight(cur);
+  rafId=requestAnimationFrame(drawLoop);
+}
+
+let chordLogEls=[], logHead=null, logChords=null, lastLogCur=-2;
+function prepareLog(){
+  const el=$('log'); el.innerHTML='';
+  logHead=document.createElement('div'); logChords=document.createElement('div');
+  el.appendChild(logHead); el.appendChild(logChords);
+  chordLogEls=[]; lastLogCur=-2;
+  if(!song) return;
+  song.chords.forEach((c)=>{
+    const sym=transposeChord(c.sym);
+    const p=parseChordSymbol(sym);
+    const words=p?encodeSetChordName(p):Uint32Array.of(0);
+    const div=document.createElement('div'); div.className='log-up';
+    div.textContent = hex(words) + '   ' + sym;
+    logChords.appendChild(div); chordLogEls.push(div);
+  });
+}
+function logLine(hexStr, meta){
+  if(!logHead) prepareLog();
+  const div=document.createElement('div'); div.className='log-sys';
+  const label = meta ? (meta.msg||meta.keySig||meta.tempo||'') : '';
+  div.textContent = hexStr + (label?('   '+label):'');
+  logHead.appendChild(div);
+}
+function updateLogHighlight(cur){
+  if(cur===lastLogCur) return;
+  for(let i=0;i<chordLogEls.length;i++){
+    chordLogEls[i].className = i<cur ? 'log-past' : (i===cur ? 'log-active' : 'log-up');
+  }
+  const act=chordLogEls[cur];
+  if(act){
+    const log=$('log');
+    const target = act.offsetTop - log.clientHeight/2 + act.offsetHeight/2;
+    log.scrollTop = Math.max(0, Math.min(target, log.scrollHeight - log.clientHeight));
+  }
+  lastLogCur=cur;
+}
+
+/* ------------------------------- Wiring --------------------------------- */
+$('bpm').addEventListener('input', onTempoChange);
+function onTimeSigChange(){ if(running) sendUMP(encodeSetTimeSignature(+$('bpb').value||4, +$('tsDen').value||4), {timeSig:$('bpb').value+'/'+$('tsDen').value}); }
+$('bpb').addEventListener('change', onTimeSigChange);
+$('tsDen').addEventListener('change', onTimeSigChange);
+$('trDown').onclick=()=>setTranspose(transpose-1);
+$('trUp').onclick=()=>setTranspose(transpose+1);
+$('btnEdit').onclick=()=>{ editing=!editing; $('editorWrap').style.display=editing?'block':'none'; $('btnEdit').textContent=editing?'Close editor':'Edit chart'; if(editing) buildEditor(); };
+
+let dragAlign=false;
+$('btnDrag').onclick=()=>{
+  dragAlign=!dragAlign;
+  $('btnDrag').textContent = dragAlign ? 'Done aligning' : 'Drag-align';
+  $('dragHint').style.display = dragAlign ? 'block' : 'none';
+  $('grid').classList.toggle('aligning', dragAlign);
+  renderChart();
+};
+(function(){
+  const g=$('grid');
+  g.addEventListener('dragstart', e=>{
+    const w=e.target.closest && e.target.closest('.cu-word');
+    if(!dragAlign || !w){ return; }
+    e.dataTransfer.setData('text/plain', w.dataset.ci+':'+w.dataset.wi);
+    e.dataTransfer.effectAllowed='move';
+  });
+  g.addEventListener('dragover', e=>{
+    if(!dragAlign) return;
+    const t=e.target.closest && e.target.closest('[data-dropci]');
+    if(t){ e.preventDefault(); e.dataTransfer.dropEffect='move'; g.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover')); t.classList.add('drop-hover'); }
+  });
+  g.addEventListener('dragleave', e=>{
+    const t=e.target.closest && e.target.closest('[data-dropci]');
+    if(t) t.classList.remove('drop-hover');
+  });
+  g.addEventListener('drop', e=>{
+    if(!dragAlign) return;
+    const t=e.target.closest && e.target.closest('[data-dropci]');
+    if(!t) return;
+    e.preventDefault(); t.classList.remove('drop-hover');
+    const d=(e.dataTransfer.getData('text/plain')||'').split(':');
+    if(d.length<2) return;
+    const srcI=+d[0], wi=+d[1], tgtI=+t.dataset.dropci;
+    if(srcI===tgtI || !song.chords[srcI] || !song.chords[tgtI]) return;
+    const sw=(song.chords[srcI].lyric||'').split(/\s+/).filter(Boolean);
+    if(wi>=sw.length) return;
+    const word=sw.splice(wi,1)[0];
+    if(sw.length) song.chords[srcI].lyric=sw.join(' '); else delete song.chords[srcI].lyric;
+    const tw=(song.chords[tgtI].lyric||'').split(/\s+/).filter(Boolean);
+    if(tgtI>srcI) tw.unshift(word); else tw.push(word);
+    song.chords[tgtI].lyric=tw.join(' ');
+    renderChart(); if(editing) buildEditor();
+  });
+
+  let rz=null;
+  g.addEventListener('pointerdown', e=>{
+    if(!dragAlign) return;
+    const h=e.target.closest && e.target.closest('.cu-handle'); if(!h) return;
+    e.preventDefault();
+    const i=+h.dataset.hci, c=song.chords[i]; if(!c) return;
+    rz={c,startX:e.clientX,startBeats:+c.beats||0,h};
+    h.parentElement && h.parentElement.classList.add('rz');
+    try{ h.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  g.addEventListener('pointermove', e=>{
+    if(!rz) return;
+    const dx=e.clientX-rz.startX;
+    let b=rz.startBeats + dx/22;
+    b=Math.max(0.5, Math.round(b*2)/2);
+    if(b!==rz.c.beats){ rz.c.beats=b; rz.h.textContent='⬌ '+fmtBeats(b); recomputeSong(); }
+  });
+  const endRz=e=>{
+    if(!rz) return;
+    try{ rz.h.releasePointerCapture(e.pointerId); }catch(_){}
+    rz.h.parentElement && rz.h.parentElement.classList.remove('rz');
+    rz=null;
+    recomputeSong(); renderChart(); if(editing) buildEditor();
+  };
+  g.addEventListener('pointerup', endRz);
+  g.addEventListener('pointercancel', endRz);
+
+  g.addEventListener('click', e=>{
+    if(dragAlign) return;
+    const u=e.target.closest && e.target.closest('.cu'); if(!u || !/^cu\d+$/.test(u.id)) return;
+    setStartFrom(+u.id.slice(2));
+  });
+})();
+$('startChip').onclick=()=>setStartFrom(0);
+$('edSave').onclick=saveEdit; $('edExport').onclick=exportSong; $('edRevert').onclick=revertEdit;
+$('editor').addEventListener('input', e=>{
+  const t=e.target; if(t.dataset.i==null) return;
+  const i=+t.dataset.i, f=t.dataset.f, c=song.chords[i]; if(!c) return;
+  if(f==='sym') c.sym=t.value;
+  else if(f==='beats') c.beats=+t.value||0;
+  else if(f==='lyric'){ if(t.value) c.lyric=t.value; else delete c.lyric; }
+  else if(f==='section'){ if(t.value) c.section=t.value; else c.section=null; }
+  recomputeSong(); renderChart();
+});
+$('editor').addEventListener('click', e=>{
+  const b=e.target.closest('button'); if(!b||b.dataset.act==null) return;
+  const i=+b.dataset.i, act=b.dataset.act, arr=song.chords;
+  if(act==='del'){ if(arr.length>1) arr.splice(i,1); }
+  else if(act==='ins') arr.splice(i+1,0,{sym:arr[i].sym,beats:arr[i].beats});
+  else if(act==='up' && i>0){ const t=arr[i-1]; arr[i-1]=arr[i]; arr[i]=t; }
+  else if(act==='down' && i<arr.length-1){ const t=arr[i+1]; arr[i+1]=arr[i]; arr[i]=t; }
+  recomputeSong(); buildEditor(); renderChart(); prepareLog();
+});
+$('btnStart').onclick = start;
+$('btnStop').onclick = ()=>stop(false);
+$('clearLog').onclick = (e)=>{ e.preventDefault(); prepareLog(); };
+$('file').onchange = (e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{
+    const s=JSON.parse(r.result);
+    let title=s.title||f.name.replace(/\.json$/i,'');
+    const mk=t=>t+(s.artist?(' — '+s.artist):'');
+    if(LIBRARY[mk(title)]){ let n=2; while(LIBRARY[mk(title+' (v'+n+')')]) n++; title=title+' (v'+n+')'; }
+    s.title=title;
+    const key=mk(title);
+    LIBRARY[key]=s; populateLibrary(); $('songSel').value=key; loadSong(s);
+  }catch(err){ alert('Invalid song JSON: '+err); } }; r.readAsText(f); };
+window.addEventListener('keydown',(e)=>{ if(e.code==='Space' && !/input|select|textarea|button/i.test((e.target||{}).tagName||'')){ e.preventDefault(); running?stop(false):start(); } });
+
+let bridgeWS=null;
+function setBridge(state){
+  const el=$('wsStat'); el.textContent=state;
+  const c = state==='connected'?'var(--accent)': state==='error'?'#ff5c6a':'var(--dim)';
+  el.style.color=c; el.style.borderColor=c;
+  $('btnConn').textContent = (state==='connected')?'Disconnect':'Connect';
+}
+function connectBridge(){
+  if(bridgeWS){ try{bridgeWS.close();}catch(e){} bridgeWS=null; return; }
+  const url=$('wsUrl').value.trim();
+  setBridge('connecting…');
+  try{ bridgeWS=new WebSocket(url); }catch(e){ setBridge('error'); bridgeWS=null; return; }
+  bridgeWS.onopen =()=>setBridge('connected');
+  bridgeWS.onclose=()=>{ bridgeWS=null; setBridge('disconnected'); };
+  bridgeWS.onerror=()=>{ setBridge('error'); };
+}
+window.UG_FLEX_SEND = (words)=>{
+  if(bridgeWS && bridgeWS.readyState===1){
+    try{ bridgeWS.send(JSON.stringify(Array.from(words))); }catch(e){}
+  }
+};
+$('btnConn').onclick = connectBridge;
+setBridge('disconnected');
+
+let midiAccess=null, webOuts=[];
+let webSel = new Set();
+try{ webSel = new Set(JSON.parse(localStorage.getItem('ugflex.webmidi')||'[]')); }catch(e){}
+function saveWebSel(){ try{ localStorage.setItem('ugflex.webmidi', JSON.stringify([...webSel])); }catch(e){} }
+function midi1Len(status){ const hi=status&0xF0; if(status>=0xF8) return 1; if(hi===0xC0||hi===0xD0) return 2; if(status===0xF1||status===0xF3) return 2; if(status===0xF2) return 3; return 3; }
+function umpToMidi1(w0){ w0=w0>>>0; const mt=(w0>>>28)&0xF;
+  if(mt===0x2){ const st=(w0>>>16)&0xFF,d1=(w0>>>8)&0xFF,d2=w0&0xFF; return [st,d1,d2].slice(0,midi1Len(st)); }
+  if(mt===0x1){ return [(w0>>>16)&0xFF]; }
+  return null; }
+function setWebStat(txt,ok){ const el=$('webmidiStat'); if(!el) return; el.textContent=txt; const c=ok?'var(--accent)':'var(--dim)'; el.style.color=c; el.style.borderColor=c; }
+function rebuildWebOuts(){
+  webOuts=[]; if(midiAccess){ for(const o of midiAccess.outputs.values()){ if(webSel.has(o.name)) webOuts.push(o); } }
+  setWebStat(webOuts.length ? ('→ '+webOuts.map(o=>o.name).join(' + ')) : 'off', webOuts.length>0);
+}
+function populateWebMidi(){
+  const box=$('webmidiList'); if(!box||!midiAccess) return;
+  box.innerHTML='';
+  const outs=[...midiAccess.outputs.values()];
+  if(!outs.length){ box.innerHTML='<span style="color:var(--dim);font-size:12px">no MIDI outputs found</span>'; }
+  for(const o of outs){
+    const lab=document.createElement('label'); lab.style.margin='0'; lab.style.color='var(--fg)';
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=webSel.has(o.name);
+    cb.onchange=()=>{ if(cb.checked) webSel.add(o.name); else webSel.delete(o.name); saveWebSel(); rebuildWebOuts(); };
+    lab.appendChild(cb); lab.appendChild(document.createTextNode(' '+(o.name||o.id)));
+    box.appendChild(lab);
+  }
+  rebuildWebOuts();
+}
+function initWebMidi(){
+  if(!navigator.requestMIDIAccess){ setWebStat('not supported', false); const b=$('webmidiList'); if(b) b.innerHTML='<span style="color:var(--dim);font-size:12px">Web MIDI needs Chrome</span>'; return; }
+  navigator.requestMIDIAccess({sysex:false})
+    .then(a=>{ midiAccess=a; populateWebMidi(); a.onstatechange=populateWebMidi; })
+    .catch(e=>{ setWebStat('blocked — allow MIDI or use http://localhost', false); console.warn('Web MIDI:',e); });
+}
+$('btnWebRefresh').onclick = ()=>{ midiAccess ? populateWebMidi() : initWebMidi(); };
+initWebMidi();
+
+$('btnSpokeConn').addEventListener('click', connectSpoke);
+$('btnSpokePickFolder').addEventListener('click', pickSpokeFolder);
+$('btnSpokeFlash').addEventListener('click', flashSpoke);
+$('btnSpokeTest').addEventListener('click', ()=>{
+  const sym = ($('nowChord').textContent!=='—') ? $('nowChord').textContent
+    : (song && song.chords[0] ? transposeChord(song.chords[0].sym) : null);
+  if(!sym){ setSpokeStat('no chord to send', false); return; }
+  playChordNotes(sym);         // computes activeNotes and sounds it on connected MIDI outs too
+  lastSpokeMap=null;           // force a send even if it matches the last map
+  updateSpokePads(sym);
+});
+
+function populateLibrary(){
+  const sel=$('songSel'); sel.innerHTML='';
+  Object.keys(LIBRARY).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; sel.appendChild(o); });
+  sel.onchange=()=>loadSong(LIBRARY[sel.value]);
+}
+populateLibrary();
+loadSong(LIBRARY[Object.keys(LIBRARY)[0]]);
+</script>
+</body>
+</html>
