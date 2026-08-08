@@ -39,13 +39,40 @@
     border-color: white;
     box-shadow: 0 0 0 3px rgba(255,255,255,0.9), 0 8px 20px rgba(0,0,0,0.3);
   }
+  #hiddenTrigger {
+    position: fixed;
+    top: 0; left: 0;
+    width: 48px; height: 48px;
+    background: transparent;
+    border: none;
+    cursor: default;
+    z-index: 10;
+    padding: 0;
+  }
+  #panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  #panel.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
 </style>
 </head>
 <body>
 
 <div id="bg">
-  <div id="status">Connecting…</div>
-  <div id="swatches"></div>
+  <button id="hiddenTrigger" aria-label=""></button>
+  <div id="panel">
+    <div id="status">Connecting…</div>
+    <div id="swatches"></div>
+  </div>
 </div>
 
 <!-- Firebase SDK (compat version — simplest to drop in, no build step) -->
@@ -120,6 +147,13 @@
   });
 
   buildSwatches();
+
+  // Hidden trigger — click the invisible top-left corner to show/hide the controls
+  const triggerEl = document.getElementById("hiddenTrigger");
+  const panelEl = document.getElementById("panel");
+  triggerEl.addEventListener("click", () => {
+    panelEl.classList.toggle("visible");
+  });
 </script>
 
 </body>
