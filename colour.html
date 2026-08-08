@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shared Color</title>
+<style>
+  :root {
+    --swatch-size: 64px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    transition: background-color 0.6s ease;
+  }
+  #bg {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    transition: background-color 0.6s ease;
+  }
+  #status {
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    font-size: 14px;
+    margin-bottom: 16px;
+    letter-spacing: 0.02em;
+    min-height: 20px;
+  }
+  #swatches {
+    display: flex;
+    gap: 20px;
+    padding-bottom: 40px;
+  }
+  .swatch {
+    width: var(--swatch-size);
+    height: var(--swatch-size);
+    border-radius: 14px;
+    border: 3px solid rgba(255,255,255,0.6);
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .swatch:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
+  .swatch:active {
+    transform: translateY(0) scale(0.96);
+  }
+  .swatch.selected {
+    border-color: white;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.9), 0 8px 20px rgba(0,0,0,0.3);
+  }
+</style>
+</head>
+<body>
+
+<div id="bg">
+  <div id="status">Loading…</div>
+  <div id="swatches"></div>
+</div>
+
+<script>
+  const COLORS = [
+    { name: "Coral",   hex: "#FF6B5B" },
+    { name: "Teal",    hex: "#2EC4B6" },
+    { name: "Violet",  hex: "#7B61FF" },
+    { name: "Amber",   hex: "#FFB627" }
+  ];
+
+  const STORAGE_KEY = "shared-bg-color";
+  const bgEl = document.getElementById("bg");
+  const statusEl = document.getElementById("status");
+  const swatchesEl = document.getElementById("swatches");
+
+  let currentColor = null;
+
+  function applyColor(hex, note) {
+    currentColor = hex;
+    document.documentElement.style.backgroundColor = hex;
+    bgEl.style.backgroundColor = hex;
+    document.querySelectorAll(".swatch").forEach(s => {
+      s.classList.toggle("selected", s.dataset.hex === hex);
+    });
+    if (note) statusEl.textContent = note;
+  }
+
+  function buildSwatches() {
+    COLORS.forEach(c => {
+      const div = document.createElement("div");
+      div.className = "swatch";
+      div.style.backgroundColor = c.hex;
+      div.dataset.hex = c.hex;
+      div.title = c.name;
+      div.addEventListener("click", () => setColor(c.hex));
+      swatchesEl.appendChild(div);
+    });
+  }
+
+  async function setColor(hex) {
+    statusEl.textContent = "Updating for everyone…";
+    try {
+      const result = await window.storage.set(STORAGE_KEY, hex, true);
+      if (result) {
+        applyColor(hex, "Changed for everyone");
+      } else {
+        statusEl.textContent = "Couldn't save — try again";
+      }
+    } catch (err) {
+      console.error("Storage error:", err);
+      statusEl.textContent = "Error saving color";
+    }
+  }
+
+  async function fetchColor(isInitial) {
+    try {
+      const result = await window.storage.get(STORAGE_KEY, true);
+      const hex = result ? result.value : COLORS[0].hex;
+      if (hex !== currentColor) {
+        applyColor(hex, isInitial ? "Live" : "Someone changed the color!");
+      } else if (isInitial) {
+        applyColor(hex, "Live");
+      }
+    } catch (err) {
+      // Key doesn't exist yet — default to first color
+      applyColor(COLORS[0].hex, "Live");
+    }
+  }
+
+  buildSwatches();
+  fetchColor(true);
+  // Poll for changes from other viewers
+  setInterval(() => fetchColor(false), 2000);
+</script>
+
+</body>
+</html>
