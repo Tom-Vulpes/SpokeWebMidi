@@ -267,53 +267,28 @@
   .pad-grid{
     position:relative;
     width:100%; height:100%;
-    display:grid;
-    grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: repeat(5, 1fr);
-    gap: 6px;
   }
 
   .pad{
+    position:absolute;
+    transform: translate(-50%, -50%);
+    width: 44px; height: 44px;
     background: var(--panel-2);
     border: 1px solid var(--line);
-    border-radius: var(--radius);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
+    border-radius: 50%;
     cursor:pointer;
     user-select:none;
-    position:relative;
     transition: background .08s, border-color .08s, transform .05s;
   }
   .pad:hover{ border-color: #3a4046; }
-  .pad:active{ transform: scale(0.96); }
-  .pad .note{
-    font-family: var(--font-mono);
-    font-size: clamp(11px, 2vw, 14px);
-    color: var(--text-dim);
-  }
-  .pad .idx{
-    font-family: var(--font-mono);
-    font-size: 9px;
-    color: #4a5157;
-    position:absolute;
-    top:4px; left:6px;
-  }
-  .pad.learned{ border-color: #2a3a2a; }
-  .pad.learned::after{
-    content:'';
-    position:absolute; bottom:5px; right:6px;
-    width:5px; height:5px; border-radius:50%;
-    background: var(--green);
-  }
-  .pad.next-to-learn{ border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan) inset; }
-  .pad.next-to-learn .note{ color: var(--cyan); }
+  .pad:active{ transform: translate(-50%, -50%) scale(0.92); }
   .pad.firing{
     background: var(--amber);
     border-color: var(--amber);
   }
-  .pad.firing .note{ color: #1a0f06; font-weight:600; }
+
+  .pad-randomise{ border-color: var(--amber); background: var(--amber-dim); }
+  .pad-randomise:hover{ border-color: #ffa05f; }
 
   .stage-footer{
     display:flex;
@@ -578,7 +553,8 @@
           <button class="btn block" id="btnPreview" disabled>Preview</button>
           <button class="btn danger block" id="btnClear" disabled>Clear</button>
         </div>
-        <div class="hint" style="margin-top:10px;">Each take is fixed at 3 seconds.</div>
+        <button class="btn block" id="btnDownloadPalette" disabled style="margin-top:8px;">⬇ Download sound palette</button>
+        <div class="hint" style="margin-top:10px;">Each take is fixed at 3 seconds. A palette download bundles this clip (.wav) with its scale settings (.json).</div>
         <div class="row" style="margin-top:8px;">
           <label for="baseNote">Recorded pitch =</label>
           <select id="baseNote"></select>
@@ -653,7 +629,7 @@
           <label for="randomiseNote">Randomise = MIDI note</label>
           <input type="number" id="randomiseNote" min="0" max="127" value="36" style="max-width:90px;">
         </div>
-        <div class="hint">Pads 1–25 use the SPOKE board's default note table (98, 96, 93 … down to 40). Touch sensor 27 triggers Randomise; sensor 26 isn't currently assigned. The log below shows every note the board sends, in case your unit differs.</div>
+        <div class="hint">Pads 1–26 use the SPOKE board's default note table (98, 96, 93 … down to 38). Touch sensor 27 triggers Randomise. The log below shows every note the board sends, in case your unit differs.</div>
       </section>
 
       <!-- INSTRUCTIONS -->
@@ -772,7 +748,8 @@
   };
   const RANDOM_SCALE_POOL = ["major","naturalMinor","majorPentatonic","minorPentatonic","blues","dorian","mixolydian","wholeTone"];
   const MAX_VOICES = 16;
-  const PAD_COUNT = 25;
+  const PAD_COUNT = 26;
+  const TOTAL_PINS = 27; // 26 musical pads + pin 27 (randomise)
 
   /* ============ state ============ */
   let audioCtx = null;
@@ -787,11 +764,11 @@
   let baseNoteMidi = 48; // C3
   let trimEnabled = true;
 
-  let scaleNotes = []; // 25 target MIDI notes, index = pad index (visual order)
+  let scaleNotes = []; // target MIDI notes, index = pad index (visual order)
 
   // the SPOKE board's default firmware sends this fixed, non-sequential note
-  // per touch sensor — index 0-24 are the 25 grid pads, index 25 (sensor 26)
-  // is currently unused, index 26 (sensor 27) is the randomise trigger
+  // per touch sensor — index 0-25 are the 26 grid pads, index 26 (sensor 27)
+  // is the randomise trigger
   const SPOKE_DEFAULT_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36];
   let padNoteTable = SPOKE_DEFAULT_NOTES.slice(0, PAD_COUNT);
   let padNoteToIndex = new Map(padNoteTable.map((note, i) => [note, i]));
@@ -1148,10 +1125,8 @@
     }
     scaleNotes = notes;
 
-    // update pad labels
-    document.querySelectorAll(".pad").forEach((pad, idx) => {
-      pad.querySelector(".note").textContent = noteName(scaleNotes[idx]);
-    });
+    // pad labels stay fixed to each sensor's hardware MIDI note (set once in
+    // buildGrid) — the scale mapping is tracked separately, not shown on the pad
 
     const lo = Math.min(...scaleNotes), hi = Math.max(...scaleNotes);
     const span = shuffleMelody
@@ -1182,14 +1157,38 @@
   }
 
   /* ============ grid build ============ */
+  // pin N sits at angle -90° + (N/total)*360° so pin index 0 (pin 1) is at
+  // the top and each subsequent pin proceeds clockwise around the circle
+  function pinAngleRad(index, total){
+    return (-90 + (index / total) * 360) * (Math.PI / 180);
+  }
+
+  function pinPosition(index, total, radiusPct){
+    const angle = pinAngleRad(index, total);
+    return {
+      x: 50 + radiusPct * Math.cos(angle),
+      y: 50 + radiusPct * Math.sin(angle)
+    };
+  }
+
   function buildGrid(){
     els.padGrid.innerHTML = "";
-    for(let i = 0; i < PAD_COUNT; i++){
+    const radiusPct = 42;
+    for(let i = 0; i < TOTAL_PINS; i++){
       const pad = document.createElement("div");
-      pad.className = "pad";
-      pad.dataset.index = i;
-      pad.innerHTML = `<span class="idx">${i+1}</span><span class="note">–</span>`;
-      pad.addEventListener("pointerdown", () => onPadClicked(i));
+      const pos = pinPosition(i, TOTAL_PINS, radiusPct);
+      pad.style.left = pos.x.toFixed(2) + "%";
+      pad.style.top = pos.y.toFixed(2) + "%";
+
+      if(i < PAD_COUNT){
+        pad.className = "pad pad-musical";
+        pad.title = `Pin ${i + 1}`;
+        pad.addEventListener("pointerdown", () => onPadClicked(i));
+      } else {
+        pad.className = "pad pad-randomise";
+        pad.title = "Pin 27 — Randomise";
+        pad.addEventListener("pointerdown", randomizeScale);
+      }
       els.padGrid.appendChild(pad);
     }
     buildSpokes();
@@ -1207,12 +1206,10 @@
     svg.appendChild(hub);
 
     for(let i = 0; i < PAD_COUNT; i++){
-      const row = Math.floor(i / 5), col = i % 5;
-      const cx = (col + 0.5) / 5 * 100;
-      const cy = (row + 0.5) / 5 * 100;
+      const pos = pinPosition(i, TOTAL_PINS, 42);
       const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
       line.setAttribute("x1", "50"); line.setAttribute("y1", "50");
-      line.setAttribute("x2", cx.toFixed(2)); line.setAttribute("y2", cy.toFixed(2));
+      line.setAttribute("x2", pos.x.toFixed(2)); line.setAttribute("y2", pos.y.toFixed(2));
       line.dataset.index = i;
       svg.appendChild(line);
     }
@@ -1309,6 +1306,20 @@
     triggerPad(index, 100);
   }
 
+  // patterns checked in priority order — the CircuitPython USB MIDI device
+  // usually just calls itself "CircuitPython", so that's matched too, not
+  // only a literal "SPOKE" in the name
+  const PREFERRED_MIDI_PATTERNS = [/spoke/i, /circuitpython/i];
+  let userSelectedMidiId = null; // set once the person manually picks a device
+
+  function pickPreferredInput(inputs){
+    for(const pattern of PREFERRED_MIDI_PATTERNS){
+      const match = inputs.find(inp => pattern.test(inp.name || ""));
+      if(match) return match;
+    }
+    return inputs[0];
+  }
+
   /* ============ MIDI I/O ============ */
   function setupMIDI(){
     if(!navigator.requestMIDIAccess){
@@ -1339,18 +1350,31 @@
       opt.textContent = input.name || `Input ${i+1}`;
       els.midiDevice.appendChild(opt);
     });
-    attachMidiListener(inputs[0].id);
-    els.midiDevice.onchange = () => attachMidiListener(els.midiDevice.value);
+
+    // stick with whatever the person manually chose, as long as it's still
+    // connected — otherwise prefer the SPOKE/CircuitPython device over anything else
+    const stillPresent = userSelectedMidiId && inputs.some(inp => inp.id === userSelectedMidiId);
+    const target = stillPresent
+      ? inputs.find(inp => inp.id === userSelectedMidiId)
+      : pickPreferredInput(inputs);
+
+    els.midiDevice.value = target.id;
+    attachMidiListener(target.id, !stillPresent);
+    els.midiDevice.onchange = () => {
+      userSelectedMidiId = els.midiDevice.value;
+      attachMidiListener(els.midiDevice.value, false);
+    };
   }
 
-  function attachMidiListener(id){
+  function attachMidiListener(id, isAutoSelected){
     if(!midiAccess) return;
     midiAccess.inputs.forEach(input => { input.onmidimessage = null; });
     const input = midiAccess.inputs.get(id);
     if(!input) return;
     input.onmidimessage = onMidiMessage;
     setBadge(els.badgeMidi, true);
-    log(`Listening on "${input.name}"`, "ev");
+    const matched = isAutoSelected && PREFERRED_MIDI_PATTERNS.some(p => p.test(input.name || ""));
+    log(matched ? `Auto-connected to "${input.name}"` : `Listening on "${input.name}"`, "ev");
   }
 
   // the SPOKE board's default firmware sends a fixed, non-sequential note per
@@ -1368,10 +1392,6 @@
     if(isNoteOn){
       if(note === randomiseNote){
         randomizeScale();
-        return;
-      }
-      if(note === SPOKE_DEFAULT_NOTES[25]){
-        log(`Note ${note} received — touch sensor 26 isn't assigned to anything yet.`, "warn");
         return;
       }
       const padIndex = padNoteToIndex.get(note);
@@ -1420,6 +1440,7 @@
       els.btnRecord.classList.add("danger");
       els.btnPreview.disabled = true;
       els.btnClear.disabled = true;
+      els.btnDownloadPalette.disabled = true;
       tickTimer();
       log("Recording…", "ev");
     }catch(err){
@@ -1509,6 +1530,7 @@
       recordingBuffer = decoded;
       els.btnPreview.disabled = false;
       els.btnClear.disabled = false;
+      els.btnDownloadPalette.disabled = false;
       drawWaveform(recordingBuffer);
       log(`Recording captured — ${recordingBuffer.duration.toFixed(2)}s`, "ev");
       startSession();
@@ -1530,6 +1552,7 @@
     recordingBuffer = null;
     els.btnPreview.disabled = true;
     els.btnClear.disabled = true;
+    els.btnDownloadPalette.disabled = true;
     els.timer.textContent = "0.0s";
     drawWaveform(null);
     resetSession();
@@ -1566,8 +1589,8 @@
   }
 
   /* ============ config export / import ============ */
-  function exportConfig(){
-    const config = {
+  function buildConfigObject(){
+    return {
       version: 4,
       baseNoteMidi,
       scaleType: els.scaleType.value,
@@ -1587,13 +1610,76 @@
       timeoutMsg: els.timeoutMsgInput.value,
       trimEnabled
     };
-    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+  }
+
+  function downloadBlob(blob, filename){
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "spoke-config.json";
+    a.href = url; a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function exportConfig(){
+    const blob = new Blob([JSON.stringify(buildConfigObject(), null, 2)], { type: "application/json" });
+    downloadBlob(blob, "spoke-config.json");
     log("Config exported.");
+  }
+
+  // encodes an AudioBuffer as a standard 16-bit PCM WAV file — no library needed
+  function audioBufferToWav(buffer){
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const bytesPerSample = 2;
+    const blockAlign = numChannels * bytesPerSample;
+
+    const channelData = [];
+    for(let c = 0; c < numChannels; c++) channelData.push(buffer.getChannelData(c));
+
+    const frameCount = buffer.length;
+    const dataSize = frameCount * numChannels * bytesPerSample;
+    const arrayBuf = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(arrayBuf);
+
+    const writeString = (offset, str) => { for(let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+
+    writeString(0, "RIFF");
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);
+    writeString(36, "data");
+    view.setUint32(40, dataSize, true);
+
+    let offset = 44;
+    for(let i = 0; i < frameCount; i++){
+      for(let c = 0; c < numChannels; c++){
+        let s = Math.max(-1, Math.min(1, channelData[c][i]));
+        s = s < 0 ? s * 0x8000 : s * 0x7fff;
+        view.setInt16(offset, s, true);
+        offset += 2;
+      }
+    }
+    return new Blob([view], { type: "audio/wav" });
+  }
+
+  // a "palette" bundles the voice clip that's currently loaded with the exact
+  // scale/mapping settings it's paired with, as two downloads sharing a filename stamp
+  function downloadPalette(){
+    if(!recordingBuffer){
+      log("No recording loaded — nothing to save as a palette yet.", "warn");
+      return;
+    }
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    downloadBlob(audioBufferToWav(recordingBuffer), `spoke-palette-${stamp}.wav`);
+    downloadBlob(new Blob([JSON.stringify(buildConfigObject(), null, 2)], { type: "application/json" }), `spoke-palette-${stamp}.json`);
+    log("Palette downloaded (audio + scale settings).", "ev");
   }
 
   function importConfig(file){
@@ -1724,7 +1810,7 @@
   /* ============ wire up ============ */
   function init(){
     [
-      "waveform","timer","btnRecord","btnPreview","btnClear","baseNote","toggleTrim",
+      "waveform","timer","btnRecord","btnPreview","btnClear","btnDownloadPalette","baseNote","toggleTrim",
       "btnRandomise","scaleType","rootPc","rootOct","orient","toggleShuffle","scaleSpan",
       "midiDevice","midiChannel","toggleHold","randomiseNote",
       "masterVol","btnExport","btnImport","fileImport","btnPanic",
@@ -1754,6 +1840,7 @@
     });
     els.btnPreview.addEventListener("click", previewRecording);
     els.btnClear.addEventListener("click", clearRecording);
+    els.btnDownloadPalette.addEventListener("click", downloadPalette);
 
     els.baseNote.addEventListener("change", () => { baseNoteMidi = parseInt(els.baseNote.value, 10); });
 
