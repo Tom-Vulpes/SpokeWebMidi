@@ -628,6 +628,7 @@ code {
 }
 .manual-pin-btn:hover, .manual-pin-btn:focus-visible { border-color: var(--amber); color: var(--amber); outline: none; }
 .manual-pin-btn.cfg { border-color: var(--green); color: var(--green); }
+.manual-pin-btn.editing { outline: 3px solid var(--amber); outline-offset: 2px; }
 
 /* ================================================================
    LED COLOR CONTROLS
@@ -987,6 +988,25 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--amber); }
       <h3>Brightness</h3>
       <input type="range" id="led-brightness" min="1" max="100" value="3" onchange="refreshLED()" oninput="refreshLED()" style="width:100%">
       <div class="hint" id="led-brightness-val" style="margin-top:6px">3%</div>
+    </div>
+
+    <div class="card">
+      <h3>Per-Pad Colors <span class="hint" style="font-weight:400;text-transform:none;letter-spacing:0">— optional, e.g. color-code by function</span></h3>
+      <p>Click a pad to give it its own idle color — handy for telling movement, actions, and mouse pads apart at a glance. Pads without an override just use the Idle Color above.</p>
+      <div class="manual-pin-grid" id="led-pin-override-grid" role="group" aria-label="Pick a pad to set its LED color"></div>
+
+      <div id="led-pin-editor" style="display:none;margin-top:18px">
+        <div class="hint" id="led-pin-editor-label" style="margin-bottom:8px">Editing GP1</div>
+        <div class="color-row">
+          <input type="color" id="led-pin-color-input" value="#0000ff" oninput="setPinColorOverride(this.value)">
+          <div class="color-swatch-row" id="led-pin-color-presets"></div>
+          <button class="btn btn-ghost btn-sm" onclick="clearPinColorOverride()">Clear Override</button>
+        </div>
+      </div>
+
+      <div class="btn-group mt" style="margin-top:16px">
+        <button class="btn btn-ghost btn-sm" onclick="clearAllPinColorOverrides()">Clear All Overrides</button>
+      </div>
     </div>
   </div>
 
@@ -1694,39 +1714,51 @@ const MOUSE_DIRS = [
 
 // Bulk keyboard/mouse presets for Quick Setup — assigned starting at GP1 in
 // order. Each entry is {kind:'key', code} | {kind:'click', btn} | {kind:'move', dir}
-// (dir matches a MOUSE_DIRS label) so a preset can mix keyboard and mouse pads.
+// (dir matches a MOUSE_DIRS label). An optional `color` (hex) also sets that
+// pad's LED idle-color override, so the layout is readable at a glance —
+// same idea as color-coding a Minecraft control scheme by function.
 function keys(...codes) { return codes.map(code => ({ kind: 'key', code })); }
+function coloredKeys(color, ...codes) { return codes.map(code => ({ kind: 'key', code, color })); }
 
 const QUICK_SETUPS = [
   {
     id: 'simple_gaming',
     icon: '🎮',
     label: 'Simple Gaming',
-    desc: 'WASD movement plus Space — the basics for most games.',
-    entries: keys('W','A','S','D','SPACEBAR'),
+    desc: 'WASD movement plus Space. Also color-codes the pads (green = movement, blue = jump) — turn on LEDs to see it.',
+    entries: [
+      ...coloredKeys('#00ff00', 'W','A','S','D'),
+      ...coloredKeys('#0096ff', 'SPACEBAR'),
+    ],
   },
   {
     id: 'medium_gaming',
     icon: '⛏️',
     label: 'Medium Gaming (Minecraft-style)',
-    desc: 'Movement, jump, sneak, sprint, interact, and drop.',
-    entries: keys('W','A','S','D','SPACEBAR','LEFT_SHIFT','LEFT_CONTROL','E','Q'),
+    desc: 'Movement, jump, sneak, sprint, interact, and drop. Also color-codes the pads by function — turn on LEDs to see it.',
+    entries: [
+      ...coloredKeys('#00ff00', 'W','A','S','D'),
+      ...coloredKeys('#0096ff', 'SPACEBAR','LEFT_SHIFT','LEFT_CONTROL'),
+      ...coloredKeys('#9600ff', 'E','Q'),
+    ],
   },
   {
     id: 'full_gaming',
     icon: '🕹️',
     label: 'Full Gaming (Keyboard + Mouse)',
-    desc: 'Movement, sprint/crouch, reload/interact, weapon slots, mouse clicks, and mouse-look — a complete layout.',
+    desc: 'Movement, actions, weapon slots, mouse clicks, and mouse-look — color-coded by function so the whole layout is readable at a glance. Turn on LEDs to see it.',
     entries: [
-      ...keys('W','A','S','D','SPACEBAR','LEFT_SHIFT','LEFT_CONTROL','R','E','Q','F'),
-      { kind: 'click', btn: 'left' },
-      { kind: 'click', btn: 'right' },
-      { kind: 'click', btn: 'middle' },
-      { kind: 'move', dir: 'Up' },
-      { kind: 'move', dir: 'Down' },
-      { kind: 'move', dir: 'Left' },
-      { kind: 'move', dir: 'Right' },
-      ...keys('1','2','3','4'),
+      ...coloredKeys('#00ff00', 'W','A','S','D'),
+      ...coloredKeys('#0096ff', 'SPACEBAR','LEFT_SHIFT','LEFT_CONTROL'),
+      ...coloredKeys('#9600ff', 'R','E','Q','F'),
+      { kind: 'click', btn: 'left',   color: '#ff0000' },
+      { kind: 'click', btn: 'right',  color: '#ff0000' },
+      { kind: 'click', btn: 'middle', color: '#ff0000' },
+      { kind: 'move', dir: 'Up',    color: '#00ffff' },
+      { kind: 'move', dir: 'Down',  color: '#00ffff' },
+      { kind: 'move', dir: 'Left',  color: '#00ffff' },
+      { kind: 'move', dir: 'Right', color: '#00ffff' },
+      ...coloredKeys('#ff9600', '1','2','3','4'),
     ],
   },
   {
@@ -1764,6 +1796,12 @@ let ledConfig = {
   touchColor: '#ff00ff',
   brightness: 3,        // percent, 1-100 → converted to 0.01-1.0 at generation time
 };
+
+// Per-pad idle-color overrides — pinIdx -> hex. Pads without an entry here
+// just use ledConfig.idleColor. Set manually in the LED screen, or in bulk
+// by a color-coded Quick Setup preset.
+let ledPinColors = {};
+let selectedOverridePinIdx = null;
 
 /* ================================================================
    SCREEN NAVIGATION
@@ -1915,6 +1953,11 @@ function openLEDScreen() {
 
   renderColorPresets('led-idle-presets', 'led-idle-color');
   renderColorPresets('led-touch-presets', 'led-touch-color');
+  renderColorPresets('led-pin-color-presets', null, hex => setPinColorOverride(hex));
+
+  selectedOverridePinIdx = null;
+  document.getElementById('led-pin-editor').style.display = 'none';
+  renderLedPinOverrideGrid();
 
   refreshLED();
   showScreen('led');
@@ -1928,7 +1971,10 @@ function selectLEDStartup(key, btn) {
   if (params) params.style.display = (key === 'rainbow') ? 'block' : 'none';
 }
 
-function renderColorPresets(containerId, inputId) {
+// containerId: swatch row to fill. inputId: a <input type=color> to update
+// directly (the global idle/touch pickers). Pass null + onPick instead for
+// callers that need custom handling (the per-pad override picker).
+function renderColorPresets(containerId, inputId, onPick) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
   LED_COLOR_PRESETS.forEach(p => {
@@ -1938,8 +1984,9 @@ function renderColorPresets(containerId, inputId) {
     btn.title = p.l;
     btn.setAttribute('aria-label', p.l);
     btn.onclick = () => {
-      document.getElementById(inputId).value = p.hex;
-      refreshLED();
+      if (inputId) document.getElementById(inputId).value = p.hex;
+      if (onPick) onPick(p.hex);
+      else refreshLED();
     };
     container.appendChild(btn);
   });
@@ -1964,6 +2011,67 @@ function hexToRgb(hex) {
   const clean = (hex || '#000000').replace('#', '');
   const num = parseInt(clean, 16) || 0;
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+}
+
+// Simple luminance check so a pad's label stays readable against whatever
+// color it's set to (e.g. black text on a yellow override, white on blue).
+function isLightColor(hex) {
+  const [r, g, b] = hexToRgb(hex);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
+}
+
+/* ================================================================
+   LED — PER-PAD COLOR OVERRIDES
+================================================================ */
+function renderLedPinOverrideGrid() {
+  const grid = document.getElementById('led-pin-override-grid');
+  grid.innerHTML = '';
+  PIN_NAMES.forEach((name, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'manual-pin-btn' + (i === selectedOverridePinIdx ? ' editing' : '');
+    btn.textContent = name.replace('VOLTAGE_MONITOR', 'VM');
+    const color = ledPinColors[i];
+    if (color) {
+      btn.style.background = color;
+      btn.style.borderColor = color;
+      btn.style.color = isLightColor(color) ? '#000' : '#fff';
+    }
+    btn.setAttribute('aria-label', name + (color ? `: custom color ${color}` : ': using default idle color'));
+    btn.onclick = () => selectPinForOverride(i);
+    grid.appendChild(btn);
+  });
+}
+
+function selectPinForOverride(i) {
+  selectedOverridePinIdx = i;
+  renderLedPinOverrideGrid();
+  document.getElementById('led-pin-editor').style.display = 'block';
+  document.getElementById('led-pin-editor-label').textContent = `Editing ${PIN_NAMES[i]}`;
+  document.getElementById('led-pin-color-input').value = ledPinColors[i] || ledConfig.idleColor;
+}
+
+function setPinColorOverride(hex) {
+  if (selectedOverridePinIdx === null) return;
+  ledPinColors[selectedOverridePinIdx] = hex;
+  document.getElementById('led-pin-color-input').value = hex;
+  renderLedPinOverrideGrid();
+}
+
+function clearPinColorOverride() {
+  if (selectedOverridePinIdx === null) return;
+  delete ledPinColors[selectedOverridePinIdx];
+  document.getElementById('led-pin-color-input').value = ledConfig.idleColor;
+  renderLedPinOverrideGrid();
+}
+
+function clearAllPinColorOverrides() {
+  if (Object.keys(ledPinColors).length === 0) return;
+  const ok = confirm('Remove every per-pad color override? Pads will go back to using the global Idle Color.');
+  if (!ok) return;
+  ledPinColors = {};
+  selectedOverridePinIdx = null;
+  document.getElementById('led-pin-editor').style.display = 'none';
+  renderLedPinOverrideGrid();
 }
 
 function renderPinGrid() {
@@ -2092,7 +2200,10 @@ function openQuickSetupScreen() {
     const n = preset.entries.length;
     const lastPin = PIN_NAMES[Math.min(n, PIN_NAMES.length) - 1];
     const rangeLabel = n >= PIN_NAMES.length ? 'all 27 pads' : `GP1–${lastPin}`;
-    const chipsHtml = preset.entries.map(e => `<span class="key" style="cursor:default">${qsEntryChip(e)}</span>`).join('');
+    const chipsHtml = preset.entries.map(e => {
+      const style = e.color ? ` style="cursor:default;border-color:${e.color};color:${e.color}"` : ' style="cursor:default"';
+      return `<span class="key"${style}>${qsEntryChip(e)}</span>`;
+    }).join('');
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
@@ -2119,6 +2230,10 @@ function applyQuickSetup(id) {
   }
   preset.entries.forEach((entry, i) => {
     pinConfigs[i] = qsEntryToConfig(entry);
+    // Presets that define a category color set the pad's LED override;
+    // otherwise clear any leftover override from a previous assignment.
+    if (entry.color) ledPinColors[i] = entry.color;
+    else delete ledPinColors[i];
   });
   renderPinGrid();
   updateProgress();
@@ -3171,13 +3286,21 @@ function generateCode(configs) {
       lines.push('');
       lines.push(`_rainbow_startup(${ledConfig.rainbowDuration})`);
     }
-    // Only pads that are actually configured get the idle color — every
-    // other pixel (next to an unassigned pad) is switched off.
+    // Only pads that are actually configured get an idle color — every
+    // other pixel (next to an unassigned pad) is switched off. Pads with
+    // a per-pad color override get their own line; everyone else shares
+    // the global Idle Color via one compact loop.
     lines.push('pixels.fill((0, 0, 0))');
-    if (activePins.length > 0) {
-      lines.push(`for i in [${activePins.map(p => p.pixelIdx).join(', ')}]:`);
+    const uniformIdlePins     = activePins.filter(p => !ledPinColors[p.pixelIdx]);
+    const overriddenIdlePins  = activePins.filter(p => ledPinColors[p.pixelIdx]);
+    if (uniformIdlePins.length > 0) {
+      lines.push(`for i in [${uniformIdlePins.map(p => p.pixelIdx).join(', ')}]:`);
       lines.push(`    pixels[i] = (${ledIdleRGB.join(', ')})`);
     }
+    overriddenIdlePins.forEach(p => {
+      const rgb = hexToRgb(ledPinColors[p.pixelIdx]);
+      lines.push(`pixels[${p.pixelIdx}] = (${rgb.join(', ')})  # ${PIN_NAMES[p.idx]} custom color`);
+    });
     lines.push('pixels.show()');
     lines.push('');
   }
@@ -3224,7 +3347,10 @@ function generateCode(configs) {
       }
 
       lines.push(`    if not ${varName}.value and prev_${varName}:`);
-      if (ledActive) lines.push(`        pixels[${pixelIdx}] = (${ledIdleRGB.join(', ')})`);
+      if (ledActive) {
+        const pinIdleRGB = hexToRgb(ledPinColors[pixelIdx] || ledConfig.idleColor);
+        lines.push(`        pixels[${pixelIdx}] = (${pinIdleRGB.join(', ')})`);
+      }
 
       if (cfg.type === 'midi' && cfg.subtype === 'note') {
         lines.push(`        midi.send(NoteOff(${cfg.midi}, 0))`);
