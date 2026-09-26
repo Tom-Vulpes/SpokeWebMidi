@@ -895,6 +895,10 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--amber); }
 
   <div class="card">
     <h3>Pin map — click any pin to configure it</h3>
+    <div id="live-touch-status" class="alert alert-success" style="display:none" role="status" aria-live="polite">
+      <span class="alert-icon" aria-hidden="true">👆</span>
+      <div>Currently touching: <strong id="live-touch-names">—</strong></div>
+    </div>
     <div class="pin-grid" id="pin-grid" role="group" aria-label="27 touch sensor pins — click to configure"></div>
   </div>
 
@@ -924,7 +928,7 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--amber); }
 
   <div id="midi-tour-info" class="alert alert-info" style="display:none" role="status">
     <span class="alert-icon" aria-hidden="true">🎵</span>
-    <div>MIDI connected — <strong>touch any pin on your board</strong> to automatically detect and configure it.</div>
+    <div>MIDI connected — <strong>touching a pad highlights it above</strong>, so you can see which pin is which before configuring it. Click <strong>Touch to Detect Pin</strong> to jump straight into configuring whichever pad you touch next.</div>
   </div>
 
   <div class="btn-group">
@@ -1087,7 +1091,7 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--amber); }
   </div>
 
   <div class="btn-group">
-    <button class="btn btn-ghost" onclick="showScreen('tour')">← Cancel</button>
+    <button class="btn btn-ghost" onclick="cancelDetect()">← Cancel</button>
   </div>
 </section>
 
@@ -1741,6 +1745,8 @@ let pinConfigs = new Array(27).fill(null);   // null = not configured yet
 let currentPinIdx = -1;
 let midiConnected = false;
 let midiInputs = [];
+let liveTouchedPins = new Set();  // pin indices currently touched, live from MIDI — for the pin-map highlight
+let detectModeActive = false;     // true while "Touch to Detect Pin" is armed, waiting for the next touch
 let selectedNote = null;       // { midi, name } for single note
 let selectedChordType = null;  // key into CHORD_TYPES
 let selectedKey = null;        // HID single key code
@@ -1836,6 +1842,7 @@ async function connectMidi() {
     midiInputs = Array.from(access.inputs.values());
     if (midiInputs.length === 0) throw new Error('No MIDI inputs found');
     midiConnected = true;
+    midiInputs.forEach(inp => { inp.onmidimessage = handleMidiTouch; });
     setMidiStatus('connected', `Connected — ${midiInputs.length} input${midiInputs.length>1?'s':''}`);
     // Update connect detector
     document.getElementById('det-icon').textContent  = '✅';
@@ -1965,13 +1972,34 @@ function renderPinGrid() {
   PIN_NAMES.forEach((name, i) => {
     const cfg = pinConfigs[i];
     const btn = document.createElement('button');
-    btn.className = 'pin-dot' + (cfg ? (cfg.skip ? ' skip' : ' cfg') : '');
+    btn.className = 'pin-dot' + (cfg ? (cfg.skip ? ' skip' : ' cfg') : '') + (liveTouchedPins.has(i) ? ' cur' : '');
+    btn.dataset.pinIdx = i;
     btn.setAttribute('aria-label', name + (cfg ? ': ' + describeConfig(cfg) : ': not configured'));
     btn.setAttribute('title', name);
     btn.textContent = name.replace('GP','').replace('VOLTAGE_MONITOR','VM');
     btn.onclick = () => openPinConfig(i);
     grid.appendChild(btn);
   });
+}
+
+// Cheap incremental update for live MIDI touches — toggles the pulsing
+// "cur" highlight on the existing pin-dot buttons (no full grid rebuild,
+// so it stays smooth even with rapid touch/release) and refreshes the
+// "currently touching" status line above the pin map.
+function updateLiveTouchDisplay() {
+  document.querySelectorAll('#pin-grid .pin-dot').forEach(dot => {
+    const idx = parseInt(dot.dataset.pinIdx, 10);
+    dot.classList.toggle('cur', liveTouchedPins.has(idx));
+  });
+  const status = document.getElementById('live-touch-status');
+  if (!status) return;
+  if (liveTouchedPins.size === 0) {
+    status.style.display = 'none';
+    return;
+  }
+  const names = [...liveTouchedPins].sort((a, b) => a - b).map(i => PIN_NAMES[i]);
+  document.getElementById('live-touch-names').textContent = names.join(', ');
+  status.style.display = 'flex';
 }
 
 function updateProgress() {
@@ -2197,36 +2225,50 @@ function startDetect() {
     btn.className = 'manual-pin-btn' + (cfg ? ' cfg' : '');
     btn.textContent = name;
     btn.setAttribute('aria-label', name + (cfg ? ' (configured)' : ''));
-    btn.onclick = () => { openPinConfig(i); };
+    btn.onclick = () => { cancelDetect(false); openPinConfig(i); };
     grid.appendChild(btn);
   });
-  // Set up MIDI listener
-  if (midiConnected) {
-    setMidiStatus('listening', 'Listening…');
-    midiInputs.forEach(inp => {
-      inp.onmidimessage = handleDetectMessage;
-    });
-  }
+  // The persistent live-touch handler (attached on connect) keeps running;
+  // we just flag that the next touch should also jump into pin config.
+  detectModeActive = true;
+  if (midiConnected) setMidiStatus('listening', 'Listening…');
   showScreen('detect');
 }
 
-function handleDetectMessage(ev) {
+function cancelDetect(goToTour = true) {
+  detectModeActive = false;
+  if (midiConnected) setMidiStatus('connected', 'Connected');
+  if (goToTour) showScreen('tour');
+}
+
+// Single persistent MIDI handler, attached once on connect. It always keeps
+// the pin-map's live "currently touched" highlighting up to date; when
+// detectModeActive is set (via the "Touch to Detect Pin" button) the next
+// touch also jumps straight into that pin's configuration flow.
+function handleMidiTouch(ev) {
   const [status, note] = ev.data;
-  const isNoteOn = (status & 0xF0) === 0x90 && ev.data[2] > 0;
-  if (!isNoteOn) return;
+  const isNoteOn  = (status & 0xF0) === 0x90 && ev.data[2] > 0;
+  const isNoteOff = (status & 0xF0) === 0x80 || ((status & 0xF0) === 0x90 && ev.data[2] === 0);
+  if (!isNoteOn && !isNoteOff) return;
   const idx = N2P[note];
   if (idx === undefined) return;
-  // Stop listening
-  midiInputs.forEach(inp => inp.onmidimessage = null);
-  setMidiStatus('connected', 'Connected');
-  // Flash detection UI
-  const det = document.getElementById('det-touch');
-  document.getElementById('touch-icon').textContent  = '✅';
-  document.getElementById('touch-title').textContent = `Detected: ${PIN_NAMES[idx]}`;
-  document.getElementById('touch-sub').textContent   = `MIDI note ${note}`;
-  det.classList.remove('waiting');
-  det.classList.add('done');
-  setTimeout(() => { openPinConfig(idx); }, 700);
+
+  if (isNoteOn) liveTouchedPins.add(idx);
+  else liveTouchedPins.delete(idx);
+  updateLiveTouchDisplay();
+
+  if (detectModeActive && isNoteOn) {
+    detectModeActive = false;
+    setMidiStatus('connected', 'Connected');
+    // Flash detection UI
+    const det = document.getElementById('det-touch');
+    document.getElementById('touch-icon').textContent  = '✅';
+    document.getElementById('touch-title').textContent = `Detected: ${PIN_NAMES[idx]}`;
+    document.getElementById('touch-sub').textContent   = `MIDI note ${note}`;
+    det.classList.remove('waiting');
+    det.classList.add('done');
+    setTimeout(() => { openPinConfig(idx); }, 700);
+  }
 }
 
 /* ================================================================
@@ -2968,8 +3010,7 @@ function confirmMouseMove() {
 function finishPin() {
   renderPinGrid();
   updateProgress();
-  // Stop any MIDI listener in detect screen
-  midiInputs.forEach(inp => inp.onmidimessage = null);
+  detectModeActive = false;
   if (midiConnected) setMidiStatus('connected','Connected');
   showScreen('tour');
 }
