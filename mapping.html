@@ -906,6 +906,14 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--amber); }
     </div>
   </div>
 
+  <div class="card card-accent">
+    <h3>🎵 Music Quick Setup</h3>
+    <p style="margin-bottom:0">Fill a run of pins with the ascending notes of a scale — pick a key, a mode, and how many pads.</p>
+    <div class="btn-group mt">
+      <button class="btn btn-secondary" onclick="openQuickMusicScreen()">Assign a Scale</button>
+    </div>
+  </div>
+
   <div class="card">
     <h3>💡 LED Behavior</h3>
     <p style="margin-bottom:0">Customize the startup animation, idle color, and touch color for the NeoPixel under each pad.</p>
@@ -992,6 +1000,72 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--amber); }
   <div id="quick-setup-list"></div>
 
   <div class="btn-group">
+    <button class="btn btn-ghost" onclick="showScreen('tour')">← Back to Pin Map</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ MUSIC QUICK SETUP -->
+<section id="screen-quick-music" class="screen" aria-labelledby="h-quick-music">
+  <div class="breadcrumb">Configure Pins <span class="bc-sep">›</span> <span class="bc-current">Music Quick Setup</span></div>
+  <h2 id="h-quick-music">Assign a Scale</h2>
+  <p>Fills consecutive pins, starting at GP1, with the ascending notes of a scale — great for a quick keyboard-style run across the board.</p>
+
+  <div class="card">
+    <label id="qm-preset-label">Quick Picks</label>
+    <div class="note-grid" id="qm-presets" role="listbox" aria-labelledby="qm-preset-label"></div>
+  </div>
+
+  <div class="card">
+    <div class="grid-2">
+      <div class="form-group">
+        <label for="qm-root">Root Note</label>
+        <select id="qm-root" onchange="refreshQuickMusic()">
+          <option>C</option><option>C#</option><option>D</option><option>D#</option>
+          <option>E</option><option>F</option><option>F#</option><option>G</option>
+          <option>G#</option><option>A</option><option>A#</option><option>B</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="qm-oct">Starting Octave</label>
+        <select id="qm-oct" onchange="refreshQuickMusic()">
+          <option>2</option><option>3</option>
+          <option selected>4</option><option>5</option><option>6</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="qm-scale">Scale / Mode</label>
+      <select id="qm-scale" onchange="refreshQuickMusic()">
+        <option value="any">Chromatic (all notes)</option>
+        <option value="major" selected>Major</option>
+        <option value="minor">Minor (Natural)</option>
+        <option value="pent_maj">Pentatonic Major</option>
+        <option value="pent_min">Pentatonic Minor</option>
+        <option value="blues">Blues</option>
+        <option value="dorian">Dorian</option>
+        <option value="mixolydian">Mixolydian</option>
+        <option value="phrygian">Phrygian</option>
+        <option value="lydian">Lydian</option>
+        <option value="locrian">Locrian</option>
+        <option value="harmonic_min">Harmonic Minor</option>
+        <option value="melodic_min">Melodic Minor</option>
+        <option value="whole_tone">Whole Tone</option>
+        <option value="diminished">Diminished (octatonic)</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label for="qm-count">Number of Pins <span class="hint">(starting at GP1, max 27)</span></label>
+      <input type="text" inputmode="numeric" id="qm-count" value="8" onchange="refreshQuickMusic()">
+    </div>
+  </div>
+
+  <div id="qm-preview" class="alert alert-info" aria-live="polite">
+    <span class="alert-icon" aria-hidden="true">🎵</span>
+    <div id="qm-preview-txt">—</div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="applyQuickMusic()">Apply Scale →</button>
     <button class="btn btn-ghost" onclick="showScreen('tour')">← Back to Pin Map</button>
   </div>
 </section>
@@ -1614,28 +1688,49 @@ const MOUSE_DIRS = [
   {l:'Down-Right', icon:'↘', dx: 1, dy: 1, row:3, col:3},
 ];
 
-// Bulk keyboard presets for Quick Setup — assigned starting at GP1 in order.
+// Bulk keyboard/mouse presets for Quick Setup — assigned starting at GP1 in
+// order. Each entry is {kind:'key', code} | {kind:'click', btn} | {kind:'move', dir}
+// (dir matches a MOUSE_DIRS label) so a preset can mix keyboard and mouse pads.
+function keys(...codes) { return codes.map(code => ({ kind: 'key', code })); }
+
 const QUICK_SETUPS = [
   {
     id: 'simple_gaming',
     icon: '🎮',
     label: 'Simple Gaming',
     desc: 'WASD movement plus Space — the basics for most games.',
-    keys: ['W','A','S','D','SPACEBAR'],
+    entries: keys('W','A','S','D','SPACEBAR'),
   },
   {
     id: 'medium_gaming',
     icon: '⛏️',
     label: 'Medium Gaming (Minecraft-style)',
     desc: 'Movement, jump, sneak, sprint, interact, and drop.',
-    keys: ['W','A','S','D','SPACEBAR','LEFT_SHIFT','LEFT_CONTROL','E','Q'],
+    entries: keys('W','A','S','D','SPACEBAR','LEFT_SHIFT','LEFT_CONTROL','E','Q'),
+  },
+  {
+    id: 'full_gaming',
+    icon: '🕹️',
+    label: 'Full Gaming (Keyboard + Mouse)',
+    desc: 'Movement, sprint/crouch, reload/interact, weapon slots, mouse clicks, and mouse-look — a complete layout.',
+    entries: [
+      ...keys('W','A','S','D','SPACEBAR','LEFT_SHIFT','LEFT_CONTROL','R','E','Q','F'),
+      { kind: 'click', btn: 'left' },
+      { kind: 'click', btn: 'right' },
+      { kind: 'click', btn: 'middle' },
+      { kind: 'move', dir: 'Up' },
+      { kind: 'move', dir: 'Down' },
+      { kind: 'move', dir: 'Left' },
+      { kind: 'move', dir: 'Right' },
+      ...keys('1','2','3','4'),
+    ],
   },
   {
     id: 'full_qwerty',
     icon: '⌨️',
     label: 'Full QWERTY + Space',
     desc: 'Every letter of the alphabet plus Space — fills all 27 pads.',
-    keys: ['Q','W','E','R','T','Y','U','I','O','P','A','S','D','F','G','H','J','K','L','Z','X','C','V','B','N','M','SPACEBAR'],
+    entries: keys('Q','W','E','R','T','Y','U','I','O','P','A','S','D','F','G','H','J','K','L','Z','X','C','V','B','N','M','SPACEBAR'),
   },
 ];
 
@@ -1919,27 +2014,63 @@ function openPinConfig(idx) {
 }
 
 /* ================================================================
-   QUICK SETUP — bulk keyboard presets
+   QUICK SETUP — bulk keyboard & mouse presets
 ================================================================ */
 function qsKeyLabel(code) {
   if (code === 'SPACEBAR') return 'Space';
   return MOD_LABELS[code] || code;
 }
 
+// Short chip text for the preview row of a preset card
+function qsEntryChip(entry) {
+  if (entry.kind === 'key') return qsKeyLabel(entry.code);
+  if (entry.kind === 'click') {
+    return { left: '🖱️ L-Click', right: '🖱️ R-Click', middle: '🖱️ M-Click' }[entry.btn] || '🖱️';
+  }
+  if (entry.kind === 'move') {
+    const dir = MOUSE_DIRS.find(d => d.l === entry.dir);
+    return dir ? `${dir.icon} ${dir.l}` : '🖱️';
+  }
+  return '?';
+}
+
+// Converts one preset entry into the same pinConfigs shape the manual
+// pin-by-pin flows produce, so generateCode() needs no special-casing.
+function qsEntryToConfig(entry) {
+  if (entry.kind === 'key') {
+    return { type: 'hid', subtype: 'key', code: entry.code, label: qsKeyLabel(entry.code) };
+  }
+  if (entry.kind === 'click') {
+    const labels = { left: 'Left Click', right: 'Right Click', middle: 'Middle Click' };
+    const codes  = { left: 'MOUSE_LEFT', right: 'MOUSE_RIGHT', middle: 'MOUSE_MIDDLE' };
+    return { type: 'hid', subtype: 'mouse', code: codes[entry.btn], label: labels[entry.btn] };
+  }
+  if (entry.kind === 'move') {
+    const dir  = MOUSE_DIRS.find(d => d.l === entry.dir);
+    const dist = entry.dist || 20;
+    return {
+      type: 'hid', subtype: 'mouse_move',
+      dx: dir.dx * dist, dy: dir.dy * dist,
+      label: `Move ${dir.l} (${dist}px)`,
+    };
+  }
+  return null;
+}
+
 function openQuickSetupScreen() {
   const container = document.getElementById('quick-setup-list');
   container.innerHTML = '';
   QUICK_SETUPS.forEach(preset => {
-    const n = preset.keys.length;
+    const n = preset.entries.length;
     const lastPin = PIN_NAMES[Math.min(n, PIN_NAMES.length) - 1];
     const rangeLabel = n >= PIN_NAMES.length ? 'all 27 pads' : `GP1–${lastPin}`;
-    const keysHtml = preset.keys.map(k => `<span class="key" style="cursor:default">${qsKeyLabel(k)}</span>`).join('');
+    const chipsHtml = preset.entries.map(e => `<span class="key" style="cursor:default">${qsEntryChip(e)}</span>`).join('');
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
       <h3>${preset.icon} ${preset.label}</h3>
       <p>${preset.desc}</p>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 16px">${keysHtml}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 16px">${chipsHtml}</div>
       <div class="btn-group" style="margin-top:0">
         <button class="btn btn-secondary">Apply to ${rangeLabel}</button>
       </div>`;
@@ -1952,14 +2083,101 @@ function openQuickSetupScreen() {
 function applyQuickSetup(id) {
   const preset = QUICK_SETUPS.find(p => p.id === id);
   if (!preset) return;
-  const n = preset.keys.length;
+  const n = preset.entries.length;
   const overwritesExisting = pinConfigs.slice(0, n).some(c => c !== null);
   if (overwritesExisting) {
     const ok = confirm(`This will overwrite the current assignment on the first ${n} pin${n > 1 ? 's' : ''}. Continue?`);
     if (!ok) return;
   }
-  preset.keys.forEach((code, i) => {
-    pinConfigs[i] = { type: 'hid', subtype: 'key', code, label: qsKeyLabel(code) };
+  preset.entries.forEach((entry, i) => {
+    pinConfigs[i] = qsEntryToConfig(entry);
+  });
+  renderPinGrid();
+  updateProgress();
+  showScreen('tour');
+}
+
+/* ================================================================
+   MUSIC QUICK SETUP — bulk scale assignment
+================================================================ */
+// One-click starting points shown as pills; user can still tweak the
+// root / scale / octave / count fields afterward before applying.
+const MUSIC_PRESETS = [
+  { l: 'C Major',         root: 'C', scale: 'major',    oct: 4 },
+  { l: 'A Minor',         root: 'A', scale: 'minor',    oct: 3 },
+  { l: 'C Maj Pentatonic',root: 'C', scale: 'pent_maj', oct: 4 },
+  { l: 'A Min Pentatonic',root: 'A', scale: 'pent_min', oct: 3 },
+  { l: 'E Blues',         root: 'E', scale: 'blues',    oct: 3 },
+  { l: 'Chromatic',       root: 'C', scale: 'any',      oct: 4 },
+];
+
+// Walks up the scale degree-by-degree (wrapping into the next octave once
+// all degrees of the current octave are used), the same pattern the old
+// chord-tone extension used — just for single ascending notes here.
+function scaleNoteSequence(root, scaleKey, startOct, count) {
+  const rootIdx = NNAMES.indexOf(root);
+  const intervals = SCALES[scaleKey] || SCALES.any;
+  const notes = [];
+  for (let i = 0; i < count; i++) {
+    const octStep = Math.floor(i / intervals.length);
+    const interval = intervals[i % intervals.length];
+    const midi = (startOct + 1 + octStep) * 12 + rootIdx + interval;
+    notes.push(Math.max(0, Math.min(127, midi)));
+  }
+  return notes;
+}
+
+function getQmCount() {
+  const raw = parseInt(document.getElementById('qm-count').value, 10);
+  if (isNaN(raw)) return 8;
+  return Math.max(1, Math.min(PIN_NAMES.length, raw));
+}
+
+function openQuickMusicScreen() {
+  const presets = document.getElementById('qm-presets');
+  presets.innerHTML = '';
+  MUSIC_PRESETS.forEach(p => {
+    const pill = document.createElement('button');
+    pill.className = 'note-pill';
+    pill.textContent = p.l;
+    pill.onclick = () => {
+      document.getElementById('qm-root').value = p.root;
+      document.getElementById('qm-scale').value = p.scale;
+      document.getElementById('qm-oct').value = String(p.oct);
+      refreshQuickMusic();
+    };
+    presets.appendChild(pill);
+  });
+  refreshQuickMusic();
+  showScreen('quick-music');
+}
+
+function refreshQuickMusic() {
+  const root  = document.getElementById('qm-root').value;
+  const scale = document.getElementById('qm-scale').value;
+  const oct   = parseInt(document.getElementById('qm-oct').value);
+  const count = getQmCount();
+  const notes = scaleNoteSequence(root, scale, oct, count);
+  const lastPin = PIN_NAMES[count - 1];
+  const rangeLabel = count >= PIN_NAMES.length ? 'all 27 pads' : `GP1–${lastPin}`;
+  document.getElementById('qm-preview-txt').innerHTML =
+    `<strong>${rangeLabel}:</strong> ${notes.map(midiNumToName).join(', ')}`;
+}
+
+function applyQuickMusic() {
+  const root  = document.getElementById('qm-root').value;
+  const scale = document.getElementById('qm-scale').value;
+  const oct   = parseInt(document.getElementById('qm-oct').value);
+  const count = getQmCount();
+  const notes = scaleNoteSequence(root, scale, oct, count);
+
+  const overwritesExisting = pinConfigs.slice(0, count).some(c => c !== null);
+  if (overwritesExisting) {
+    const ok = confirm(`This will overwrite the current assignment on the first ${count} pin${count > 1 ? 's' : ''}. Continue?`);
+    if (!ok) return;
+  }
+  notes.forEach((midi, i) => {
+    pinConfigs[i] = { type: 'midi', subtype: 'note', midi, label: midiNumToName(midi) };
   });
   renderPinGrid();
   updateProgress();
