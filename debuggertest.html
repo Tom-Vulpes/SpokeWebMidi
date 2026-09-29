@@ -533,36 +533,58 @@ function buildDiagCode() {
 
 // ── Export ─────────────────────────────────────────────────────────────────
 function injectThresholds(src) {
-  const thLines = Array.from({length:N},(_,i)=>'    '+tVal(i)+',  # '+PIN_NAMES[i]+' Pad '+(i+1)+' MIDI '+MIDI_NOTES[i]).join('\n');
+  const thLines = Array.from({length:N},(_,i)=>'    '+tVal(i)+',  # '+PIN_NAMES[i]+' Pad '+(i+1)).join('\n');
   const thBlock = '# Custom thresholds — SPOKE Sensor Monitor\ntouch_thresholds = [\n'+thLines+'\n]';
+
   let out = src;
 
-  // Remove any previous injection cleanly
+  // ── Step 1: strip everything we may have injected before ──────────────────
+  // Remove thresholds list block
   out = out.replace(/# Custom thresholds[^\n]*\ntouch_thresholds\s*=\s*\[[\s\S]*?\]\n?/g, '');
-  out = out.replace(/[ \t]*sensor\.threshold\s*=\s*touch_thresholds\[i\]\n/g, '');
-  out = out.replace(/[ \t]*_s\.threshold\s*=\s*touch_thresholds\[i\]\n/g, '');
-  out = out.replace(/([ \t]*)_s = touchio\.TouchIn\(pin\)\n[ \t]*touch_sensors\.append\(_s\)/g,
+
+  // Remove any _s threshold line
+  out = out.replace(/^[ \t]*_s\.threshold\s*=\s*touch_thresholds\[i\]\n/gm, '');
+
+  // Remove any sensor threshold line
+  out = out.replace(/^[ \t]*sensor\.threshold\s*=\s*touch_thresholds\[i\]\n/gm, '');
+
+  // Undo _s wrapping — collapse back to one-liner append
+  out = out.replace(/^([ \t]*)_s = touchio\.TouchIn\(pin\)\n[ \t]*touch_sensors\.append\(_s\)/gm,
     '$1touch_sensors.append(touchio.TouchIn(pin))');
 
-  // Ensure any bare "for pin in touch_pins..." loop uses enumerate so i is defined
-  // This handles: "for pin in touch_pins:" → "for i, pin in enumerate(touch_pins):"
-  out = out.replace(/for pin in ([\w_]+)\s*:/g, 'for i, pin in enumerate($1):');
+  // Undo enumerate — revert back to plain "for pin in X:"
+  out = out.replace(/for i, pin in enumerate\(([\w_]+)\)\s*:/g, 'for pin in $1:');
 
-  // Insert thresholds block before touch_sensors = []
+  // ── Step 2: insert thresholds list before touch_sensors = [] ─────────────
   if (/touch_sensors\s*=\s*\[\]/.test(out)) {
-    out = out.replace(/(touch_sensors\s*=\s*\[\])/, thBlock+'\n$1');
+    out = out.replace(/(touch_sensors\s*=\s*\[\])/, thBlock + '\n$1');
   } else {
     out = thBlock + '\n\n' + out;
   }
 
-  // Inject threshold line after: sensor = touchio.TouchIn(pin)
-  out = out.replace(/([ \t]*)(sensor\s*=\s*touchio\.TouchIn\(pin\))\n/g,
-    '$1$2\n$1sensor.threshold = touch_thresholds[i]\n');
+  // ── Step 3: rewrite the init loop to use enumerate + set threshold ────────
+  // Pattern A: multi-line  "sensor = touchio.TouchIn(pin)"
+  out = out.replace(
+    /([ \t]*)(sensor\s*=\s*touchio\.TouchIn\(pin\))\n/g,
+    '$1$2\n$1sensor.threshold = touch_thresholds[i]\n'
+  );
 
-  // Inject threshold line for one-liner: touch_sensors.append(touchio.TouchIn(pin))
-  // This produces _s = ...; _s.threshold = ...; touch_sensors.append(_s)
-  out = out.replace(/([ \t]*)touch_sensors\.append\(touchio\.TouchIn\(pin\)\)/g,
-    '$1_s = touchio.TouchIn(pin)\n$1_s.threshold = touch_thresholds[i]\n$1touch_sensors.append(_s)');
+  // Pattern B: one-liner "touch_sensors.append(touchio.TouchIn(pin))"
+  out = out.replace(
+    /([ \t]*)touch_sensors\.append\(touchio\.TouchIn\(pin\)\)/g,
+    '$1_s = touchio.TouchIn(pin)\n$1_s.threshold = touch_thresholds[i]\n$1touch_sensors.append(_s)'
+  );
+
+  // Pattern C: "_s = touchio.TouchIn(pin)" already broken out (previous partial inject)
+  out = out.replace(
+    /([ \t]*)(_s\s*=\s*touchio\.TouchIn\(pin\))\n(?![ \t]*_s\.threshold)/g,
+    '$1$2\n$1_s.threshold = touch_thresholds[i]\n'
+  );
+
+  // ── Step 4: make sure the init loop has enumerate so 'i' exists ──────────
+  // Replace "for pin in <list>:" with "for i, pin in enumerate(<list>):"
+  // Only inside the init block — match the loop that feeds touch_sensors
+  out = out.replace(/\bfor pin in ([\w_]+)\s*:/g, 'for i, pin in enumerate($1):');
 
   return out;
 }
