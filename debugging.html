@@ -442,12 +442,23 @@ async function setupBoard() {
     if (!('showOpenFilePicker' in window)) { alert('Use Chrome, Edge or Opera.'); return; }
     const [h] = await window.showOpenFilePicker({types:[{description:'Python',accept:{'text/x-python':['.py']}}]});
     fileHandle = h;
-    // Read and store the original code
-    const file = await fileHandle.getFile();
-    originalCode = await file.text();
-    setStatus('on', 'code.py read — original mappings preserved');
     document.getElementById('uploadBtn').disabled = false;
     document.getElementById('serialBtn').disabled = false;
+    // Try to read original code — non-fatal if it fails
+    try {
+      const file = await fileHandle.getFile();
+      originalCode = await file.text();
+      // Don't store diagnostic code as original if it was previously uploaded
+      if (originalCode.includes('SPOKE Sensor Monitor') && originalCode.includes('RAW:')) {
+        originalCode = null;
+        setStatus('on', 'code.py open (diagnostic code detected — upload fresh diagnostic to begin)');
+      } else {
+        setStatus('on', 'code.py read — original mappings preserved');
+      }
+    } catch(e) {
+      originalCode = null;
+      setStatus('on', 'code.py open');
+    }
   } catch(e){ if(e.name!=='AbortError') setStatus('warn','Error: '+e.message); }
 }
 
@@ -499,6 +510,17 @@ function injectThresholds(src) {
 async function uploadDiagnostic() {
   if (!fileHandle) return;
   try {
+    // If we don't have the original yet, read it now before overwriting
+    if (!originalCode) {
+      try {
+        const file = await fileHandle.getFile();
+        const text = await file.text();
+        // Only store if it's not already a diagnostic upload
+        if (!text.includes('SPOKE Sensor Monitor') || !text.includes('RAW:')) {
+          originalCode = text;
+        }
+      } catch(e) { /* couldn't read, proceed anyway */ }
+    }
     const w = await fileHandle.createWritable();
     await w.write(buildDiagCode());
     await w.close();
