@@ -710,15 +710,18 @@ async function saveToDevice() {
 }
 
 // ── Serial ────────────────────────────────────────────────────────────────
+let rawLineCount = 0;
+
 async function connectSerial() {
   try {
     if (!('serial' in navigator)) { alert('Use Chrome/Edge/Opera for Web Serial.'); return; }
-    serialPort=await navigator.serial.requestPort();
-    await serialPort.open({baudRate:115200});
-    setStatus('on','Serial connected — touch pads to see bars update');
-    isReading=true;
+    serialPort = await navigator.serial.requestPort();
+    await serialPort.open({baudRate: 115200});
+    rawLineCount = 0;
+    setStatus('on', 'Serial connected — waiting for data...');
+    isReading = true;
     readSerial();
-  } catch(e){ setStatus('warn','Serial error: '+e.message); }
+  } catch(e) { setStatus('warn', 'Serial error: ' + e.message); }
 }
 
 async function readSerial() {
@@ -734,7 +737,11 @@ async function readSerial() {
       while ((nl = buf.indexOf('\n')) !== -1) {
         const line = buf.slice(0, nl).trim();
         buf = buf.slice(nl + 1);
-        if (line) processLine(line);
+        if (line) {
+          rawLineCount++;
+          setStatus('on', 'Serial live — ' + rawLineCount + ' lines received');
+          processLine(line);
+        }
       }
       if (buf.length > 2000) buf = buf.slice(-500);
     }
@@ -746,22 +753,28 @@ async function readSerial() {
 }
 
 function processLine(line) {
-  const m=line.match(/index\s+(\d+)\D+Raw:\s*(\d+)\D+Threshold:\s*(\d+)/);
-  if(m){
-    const idx=parseInt(m[1]),raw=parseInt(m[2]),thr=parseInt(m[3]);
-    if(idx>=0&&idx<N){
-      rawValues[idx]=raw;
-      if(!userPinned[idx])setThresholdUI(idx,thr);
+  // Match: RAW: GP5 (index 4) | Raw: 3421 | Threshold: 7000
+  const m = line.match(/index\s+(\d+)\D+Raw:\s*(\d+)\D+Threshold:\s*(\d+)/);
+  if (m) {
+    const idx = parseInt(m[1]);
+    const raw = parseInt(m[2]);
+    const thr = parseInt(m[3]);
+    if (idx >= 0 && idx < N) {
+      rawValues[idx] = raw;
+      if (!userPinned[idx]) setThresholdUI(idx, thr);
       refreshBar(idx);
+    } else {
+      // idx out of range — board/page mismatch, show warning once
+      if (idx >= N) setStatus('warn', 'Sensor index ' + idx + ' out of range (N=' + N + ') — wrong board selected?');
     }
   }
-  if(line.includes('TOUCH_ON')||line.includes('TOUCH_OFF')){
+  if (line.includes('TOUCH_ON') || line.includes('TOUCH_OFF')) {
     touchCount++;
-    document.getElementById('sTouchEvents').textContent=touchCount;
+    document.getElementById('sTouchEvents').textContent = touchCount;
   }
-  if(line.includes('MIDI: Note')){
+  if (line.includes('MIDI: Note')) {
     midiCount++;
-    document.getElementById('sMidiEvents').textContent=midiCount;
+    document.getElementById('sMidiEvents').textContent = midiCount;
   }
 }
 
