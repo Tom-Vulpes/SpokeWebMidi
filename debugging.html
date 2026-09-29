@@ -278,6 +278,8 @@ function launchApp() {
 
 function goSplash() {
   if (isReading) { isReading = false; }
+  originalCode = null;
+  fileHandle = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('splash').style.display = 'flex';
   document.getElementById('splashBtn').disabled = !selectedBoard;
@@ -433,28 +435,78 @@ function resetThresholds() {
 }
 
 // ── File + upload ─────────────────────────────────────────────────────────
+let originalCode = null; // raw text of the user's existing code.py
+
 async function setupBoard() {
   try {
     if (!('showOpenFilePicker' in window)) { alert('Use Chrome, Edge or Opera.'); return; }
     const [h] = await window.showOpenFilePicker({types:[{description:'Python',accept:{'text/x-python':['.py']}}]});
-    fileHandle=h;
-    setStatus('on','code.py open');
-    document.getElementById('uploadBtn').disabled=false;
-    document.getElementById('serialBtn').disabled=false;
-  } catch(e){if(e.name!=='AbortError')setStatus('warn','Error: '+e.message);}
+    fileHandle = h;
+    // Read and store the original code
+    const file = await fileHandle.getFile();
+    originalCode = await file.text();
+    setStatus('on', 'code.py read — original mappings preserved');
+    document.getElementById('uploadBtn').disabled = false;
+    document.getElementById('serialBtn').disabled = false;
+  } catch(e){ if(e.name!=='AbortError') setStatus('warn','Error: '+e.message); }
+}
+
+// Inject touch_thresholds list and sensor.threshold calls into the user's
+// existing code without touching anything else.
+function injectThresholds(src) {
+  const thLines = Array.from({length:N},(_,i) =>
+    '    ' + tVal(i) + ',  # ' + PIN_NAMES[i] + ' — Pad ' + (i+1) + ', MIDI ' + MIDI_NOTES[i]
+  ).join('\n');
+  const thBlock = '# Custom thresholds set with SPOKE Sensor Monitor — lower = more sensitive\ntouch_thresholds = [\n' + thLines + '\n]';
+
+  let out = src;
+
+  // 1. Remove any previously injected touch_thresholds block
+  out = out.replace(/# Custom thresholds set with SPOKE Sensor Monitor[^\n]*\ntouch_thresholds\s*=\s*\[[\s\S]*?\]\n?/g, '');
+
+  // 2. Remove previously injected threshold application lines
+  out = out.replace(/[ \t]*sensor\.threshold\s*=\s*touch_thresholds\[i\]\n/g, '');
+  out = out.replace(/[ \t]*_s\.threshold\s*=\s*touch_thresholds\[i\]\n/g, '');
+
+  // 3. Undo any previous one-liner wrapping (_s = ...; append(_s) → back to append(TouchIn(pin)))
+  out = out.replace(/([ \t]*)_s = touchio\.TouchIn\(pin\)\n[ \t]*touch_sensors\.append\(_s\)/g,
+    '$1touch_sensors.append(touchio.TouchIn(pin))');
+
+  // 4. Insert touch_thresholds list just before touch_sensors = []
+  if (/touch_sensors\s*=\s*\[\]/.test(out)) {
+    out = out.replace(/(touch_sensors\s*=\s*\[\])/, thBlock + '\n$1');
+  } else {
+    // Fallback: after touch_pins definition
+    const pinPat = /(touch_pins\s*=\s*\[[^\]]*\])/s;
+    if (pinPat.test(out)) {
+      out = out.replace(pinPat, '$1\n' + thBlock);
+    } else {
+      out = thBlock + '\n\n' + out;
+    }
+  }
+
+  // 5. Multi-line style: sensor = touchio.TouchIn(pin) → add threshold on next line
+  out = out.replace(/([ \t]*)(sensor\s*=\s*touchio\.TouchIn\(pin\))\n/g,
+    '$1$2\n$1sensor.threshold = touch_thresholds[i]\n');
+
+  // 6. One-liner style: touch_sensors.append(touchio.TouchIn(pin)) → wrap with _s
+  out = out.replace(/([ \t]*)touch_sensors\.append\(touchio\.TouchIn\(pin\)\)/g,
+    '$1_s = touchio.TouchIn(pin)\n$1_s.threshold = touch_thresholds[i]\n$1touch_sensors.append(_s)');
+
+  return out;
 }
 
 async function uploadDiagnostic() {
   if (!fileHandle) return;
   try {
-    const w=await fileHandle.createWritable();
+    const w = await fileHandle.createWritable();
     await w.write(buildDiagCode());
     await w.close();
     setStatus('on','Diagnostic uploaded — connect serial when board restarts');
-  } catch(e){setStatus('warn','Upload error: '+e.message);}
+  } catch(e){ setStatus('warn','Upload error: '+e.message); }
 }
 
-function tVal(i){ return thresholds[i]!==null?thresholds[i]:7000; }
+function tVal(i){ return thresholds[i]!==null ? thresholds[i] : 7000; }
 
 function buildDiagCode() {
   const thStr = Array.from({length:N},(_,i)=>tVal(i)).join(', ');
@@ -500,25 +552,17 @@ function buildDiagCode() {
   code += '        touch_sensors.append(None)\n\n';
 
   if (!isMini) code += 'flash_timer = [0] * len(touch_sensors)\n';
-  code += 'prev = [False] * len(touch_sensors)\n';
-  code += 'DEBOUNCE_COUNT = ' + DEBOUNCE_COUNT + '  # consecutive disagreeing reads required before flipping state, filters out noise\n';
-  code += 'touch_counter = [0] * len(touch_sensors)\n\n';
+  code += 'prev = [False] * len(touch_sensors)\n\n';
 
   code += 'while True:\n';
   code += '    for i, s in enumerate(touch_sensors):\n';
   code += '        if s is None: continue\n';
   code += '        try:\n';
-  code += '            raw     = s.raw_value\n';
-  code += '            thresh  = s.threshold\n';
-  code += '            reading = s.value\n';
+  code += '            raw    = s.raw_value\n';
+  code += '            thresh = s.threshold\n';
+  code += '            touched = raw < thresh\n';
   code += '            print(f"RAW: {pin_names[i]} (index {i}) | Raw: {raw} | Threshold: {thresh}")\n';
-  code += '            if reading != prev[i]:\n';
-  code += '                touch_counter[i] += 1\n';
-  code += '            else:\n';
-  code += '                touch_counter[i] = 0\n';
-  code += '            if touch_counter[i] >= DEBOUNCE_COUNT:\n';
-  code += '                touch_counter[i] = 0\n';
-  code += '                touched = reading\n';
+  code += '            if touched != prev[i]:\n';
   code += '                prev[i] = touched\n';
   code += '                if touched:\n';
   code += '                    midi.send(NoteOn(MIDI_NOTES[i], 100))\n';
@@ -542,7 +586,7 @@ function buildDiagCode() {
     code += '            elif flash_timer[i] > 0:\n';
     code += '                flash_timer[i] -= 1\n';
     code += '                if flash_timer[i] == 0:\n';
-    code += '                    pixels[i] = TOUCH_COLOR if prev[i] else IDLE_COLOR\n';
+    code += '                    pixels[i] = TOUCH_COLOR if touched else IDLE_COLOR\n';
   }
   code += '        except Exception:\n';
   code += '            pass\n';
@@ -552,16 +596,7 @@ function buildDiagCode() {
   return code;
 }
 
-// DEBOUNCE_COUNT: number of consecutive consistent readings required before a pad's
-// state is allowed to flip. We deliberately keep using CircuitPython's own
-// touch_sensor.value (with sensor.threshold set to your custom value) rather than
-// comparing raw_value ourselves — .value's touched/untouched direction is handled
-// correctly by the board's own driver, so this can't get inverted. A single noisy
-// sample right at the threshold boundary is what caused repeated NoteOn/NoteOff
-// while a pad was held; requiring several consecutive matching samples filters that
-// out while keeping instant, correctly-directioned response to a real touch/release.
-const DEBOUNCE_COUNT = 4; // raise this if pads still chatter, lower it if response feels laggy
-
+// ── Export modal ──────────────────────────────────────────────────────────
 function buildFinalCode() {
   const thStr = Array.from({length:N},(_,i)=>'    '+tVal(i)+',  # '+PIN_NAMES[i]+' — Pad '+(i+1)+', MIDI '+MIDI_NOTES[i]).join('\n');
   const pinListStr = board.pinList;
@@ -581,13 +616,12 @@ function buildFinalCode() {
     code += 'for i, pin in enumerate(touch_pins):\n    try:\n        sensor = touchio.TouchIn(pin)\n        sensor.threshold = touch_thresholds[i]\n        touch_sensors.append(sensor)\n    except ValueError:\n        print(f"No pulldown resistor found on pin {pin}, skipping...")\n';
     code += '# MIDI setup\nmidi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)\n';
     code += '# State tracking\nnote_played = [False] * len(touch_pins)\n';
-    code += '# Debounce: number of consecutive readings that disagree with the current state\n# before we act on it — filters out noise near the threshold so a held pad can\'t\n# fire NoteOn/NoteOff repeatedly.\nDEBOUNCE_COUNT = ' + DEBOUNCE_COUNT + '\ntouch_counter = [0] * len(touch_pins)\n';
     code += '# NeoPixel setup\nnum_pixels = len(touch_sensors)\n';
     code += 'pixels = neopixel.NeoPixel(' + board.neoPin + ', num_pixels, brightness=0.03, auto_write=True)\n';
     code += '# Startup animation\ndef rainbow(speed, duration, step_size=10):\n    start_time = time.monotonic()\n    while time.monotonic() - start_time < duration:\n        for j in range(0, 256, step_size):\n            for i in range(num_pixels):\n                pixel_index = (i * 256 // num_pixels + j) % 256\n                pixels[i] = colorwheel(pixel_index)\n            pixels.show()\n            if time.monotonic() - start_time >= duration:\n                return\n            time.sleep(speed)\n';
     code += 'def all_blue():\n    pixels.fill((0, 0, 255))\n    pixels.show()\n';
     code += 'rainbow(0.01, 2, step_size=10)\nall_blue()\n';
-    code += '# Main loop — polyphonic: each pad tracks its own note_played state independently,\n# so any combination of pads can be held/released at once.\nwhile True:\n    for i, touch_sensor in enumerate(touch_sensors):\n        touched = touch_sensor.value\n        if touched == note_played[i]:\n            touch_counter[i] = 0\n        else:\n            touch_counter[i] += 1\n            if touch_counter[i] >= DEBOUNCE_COUNT:\n                touch_counter[i] = 0\n                if touched:\n                    midi.send(NoteOn(midi_notes[i], 120))\n                    note_played[i] = True\n                    pixels[i] = (255, 0, 255)\n                else:\n                    midi.send(NoteOff(midi_notes[i], 120))\n                    note_played[i] = False\n                    pixels[i] = (0, 0, 255)\n';
+    code += '# Main loop\nwhile True:\n    for i, touch_sensor in enumerate(touch_sensors):\n        if touch_sensor.value:\n            if not note_played[i]:\n                midi.send(NoteOn(midi_notes[i], 120))\n                note_played[i] = True\n                pixels[i] = (255, 0, 255)\n        else:\n            if note_played[i]:\n                midi.send(NoteOff(midi_notes[i], 120))\n                note_played[i] = False\n                pixels[i] = (0, 0, 255)\n';
   } else {
     code += '# This is the code for USB-MIDI. In this code we assign a midi value to each pin, and when the board senses that the pin has been touched it will send a NoteOn message. When the pin is released, it sends a NoteOff message.\n';
     code += 'import time\nimport board\nimport touchio\nimport digitalio\nimport usb_midi\nimport adafruit_midi\n';
@@ -600,17 +634,26 @@ function buildFinalCode() {
     code += '# MIDI note numbers corresponding to each touch pin - change these to whatever midi note you prefer.\n';
     code += 'midi_notes = [' + midiStr + ']\n';
     code += '# State variables to track if a note has been played for each touch pin\nnote_played = [False] * len(touch_pins)\n';
-    code += '# Debounce: number of consecutive readings that disagree with the current state\n# before we act on it — filters out noise near the threshold so a held pad can\'t\n# fire NoteOn/NoteOff repeatedly.\nDEBOUNCE_COUNT = ' + DEBOUNCE_COUNT + '\ntouch_counter = [0] * len(touch_pins)\n';
     code += '# Setup LED toggling\nled = digitalio.DigitalInOut(board.LED)\nled.direction = digitalio.Direction.OUTPUT\n';
-    code += '# Main loop — polyphonic: each pad tracks its own note_played state independently,\n# so any combination of pads can be held/released at once.\nwhile True:\n    for i, touch_sensor in enumerate(touch_sensors):\n        # Capacitive touch sensing with debounce to avoid chatter\n        touched = touch_sensor.value\n        if touched == note_played[i]:\n            touch_counter[i] = 0\n        else:\n            touch_counter[i] += 1\n            if touch_counter[i] >= DEBOUNCE_COUNT:\n                touch_counter[i] = 0\n                if touched:\n                    # Send MIDI note on message when touch is detected. The Velocity is set to 120, change the value if you want to.\n                    midi.send(NoteOn(midi_notes[i], 120))\n                    led.value = True\n                    note_played[i] = True\n                else:\n                    # Send MIDI note off message once the release has been confirmed by several consistent readings\n                    midi.send(NoteOff(midi_notes[i], 120))\n                    led.value = False\n                    note_played[i] = False\n';
+    code += '# Main loop\nwhile True:\n    for i, touch_sensor in enumerate(touch_sensors):\n        # Capacitive touch sensing\n        if touch_sensor.value:\n            # Check if the note has already been played\n            if not note_played[i]:\n                # Send MIDI note on message when touch is detected. The Velocity is set to 120, change the value if you want to.\n                midi.send(NoteOn(midi_notes[i], 120))\n                led.value = True\n                note_played[i] = True  # Update state variable\n        else:\n            # Check if the note has been played and turn it off\n            if note_played[i]:\n                # Send MIDI note off message when touch is released\n                midi.send(NoteOff(midi_notes[i], 120))\n                led.value = False\n                note_played[i] = False  # Update state variable\n';
   }
   return code;
 }
 
+function getFinalCode() {
+  if (originalCode) {
+    return injectThresholds(originalCode);
+  }
+  return buildFinalCode();
+}
+
 function openModal() {
-  document.getElementById('modalLabel').textContent =
-    board.name + ' code.py with your custom thresholds baked in. Save directly to your device or copy to paste manually.';
-  document.getElementById('codeFinal').textContent = buildFinalCode();
+  const code = getFinalCode();
+  const label = originalCode
+    ? 'Your original code.py with thresholds injected — all your custom mappings are preserved.'
+    : board.name + ' default code.py with thresholds baked in.';
+  document.getElementById('modalLabel').textContent = label;
+  document.getElementById('codeFinal').textContent = code;
   document.getElementById('modalBg').classList.add('open');
 }
 function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
@@ -630,12 +673,16 @@ async function saveToDevice() {
     closeModal(); return;
   }
   try {
-    const w=await fileHandle.createWritable();
-    await w.write(buildFinalCode());
+    const code = getFinalCode();
+    const w = await fileHandle.createWritable();
+    await w.write(code);
     await w.close();
     const btn=document.getElementById('saveDeviceBtn');
     btn.textContent='Saved!';
-    setStatus('on','code.py saved to device — board will restart with new thresholds');
+    const msg = originalCode
+      ? 'Saved — your custom mappings are intact, thresholds updated'
+      : 'code.py saved to device — board will restart with new thresholds';
+    setStatus('on', msg);
     setTimeout(()=>btn.textContent='Save to device',2000);
   } catch(e){ setStatus('warn','Save error: '+e.message); }
 }
