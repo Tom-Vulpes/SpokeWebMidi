@@ -555,7 +555,7 @@ function buildDiagCode() {
     code += 'led = digitalio.DigitalInOut(board.LED)\n';
     code += 'led.direction = digitalio.Direction.OUTPUT\n';
   } else {
-    code += 'pixels = neopixel.NeoPixel(' + board.neoPin + ', ' + N + ', brightness=0.1, auto_write=False)\n';
+    code += 'pixels = neopixel.NeoPixel(' + board.neoPin + ', ' + N + ', brightness=0.03, auto_write=False)\n';
     code += 'for i in range(' + N + '): pixels[i]=(0,0,30)\n';
     code += 'pixels.show()\n';
     code += 'IDLE_COLOR  = (0, 0, 30)\n';
@@ -723,23 +723,26 @@ async function connectSerial() {
 
 async function readSerial() {
   try {
-    const dec=new TextDecoderStream();
-    serialPort.readable.pipeTo(dec.writable);
-    serialReader=dec.readable.getReader();
-    let buf='';
-    while(isReading){
-      const{value,done}=await serialReader.read();
-      if(done)break;
-      buf+=value;
+    const decoder = new TextDecoder();
+    serialReader = serialPort.readable.getReader();
+    let buf = '';
+    while (isReading) {
+      const { value, done } = await serialReader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
       let nl;
-      while((nl=buf.indexOf('\n'))!==-1){
-        const line=buf.slice(0,nl).trim();
-        buf=buf.slice(nl+1);
-        if(line)processLine(line);
+      while ((nl = buf.indexOf('\n')) !== -1) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (line) processLine(line);
       }
-      if(buf.length>2000)buf=buf.slice(-500);
+      if (buf.length > 2000) buf = buf.slice(-500);
     }
-  } catch(e){ setStatus('warn','Serial read error: '+e.message); }
+  } catch(e) {
+    setStatus('warn', 'Serial read error: ' + e.message);
+  } finally {
+    try { serialReader.releaseLock(); } catch(e) {}
+  }
 }
 
 function processLine(line) {
