@@ -544,9 +544,9 @@ function injectThresholds(src) {
   out = out.replace(/([ \t]*)_s = touchio\.TouchIn\(pin\)\n[ \t]*touch_sensors\.append\(_s\)/g,
     '$1touch_sensors.append(touchio.TouchIn(pin))');
 
-  // Ensure the init loop uses enumerate so 'i' is always available
-  // "for pin in touch_pins" → "for i, pin in enumerate(touch_pins)"
-  out = out.replace(/for pin in (touch_pins\w*)\s*:/g, 'for i, pin in enumerate($1):');
+  // Ensure any bare "for pin in touch_pins..." loop uses enumerate so i is defined
+  // This handles: "for pin in touch_pins:" → "for i, pin in enumerate(touch_pins):"
+  out = out.replace(/for pin in ([\w_]+)\s*:/g, 'for i, pin in enumerate($1):');
 
   // Insert thresholds block before touch_sensors = []
   if (/touch_sensors\s*=\s*\[\]/.test(out)) {
@@ -555,11 +555,12 @@ function injectThresholds(src) {
     out = thBlock + '\n\n' + out;
   }
 
-  // Inject threshold line after sensor = touchio.TouchIn(pin)
+  // Inject threshold line after: sensor = touchio.TouchIn(pin)
   out = out.replace(/([ \t]*)(sensor\s*=\s*touchio\.TouchIn\(pin\))\n/g,
     '$1$2\n$1sensor.threshold = touch_thresholds[i]\n');
 
-  // Inject threshold line for one-liner append style
+  // Inject threshold line for one-liner: touch_sensors.append(touchio.TouchIn(pin))
+  // This produces _s = ...; _s.threshold = ...; touch_sensors.append(_s)
   out = out.replace(/([ \t]*)touch_sensors\.append\(touchio\.TouchIn\(pin\)\)/g,
     '$1_s = touchio.TouchIn(pin)\n$1_s.threshold = touch_thresholds[i]\n$1touch_sensors.append(_s)');
 
