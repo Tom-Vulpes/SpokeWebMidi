@@ -536,20 +536,33 @@ function injectThresholds(src) {
   const thLines = Array.from({length:N},(_,i)=>'    '+tVal(i)+',  # '+PIN_NAMES[i]+' Pad '+(i+1)+' MIDI '+MIDI_NOTES[i]).join('\n');
   const thBlock = '# Custom thresholds — SPOKE Sensor Monitor\ntouch_thresholds = [\n'+thLines+'\n]';
   let out = src;
+
+  // Remove any previous injection cleanly
   out = out.replace(/# Custom thresholds[^\n]*\ntouch_thresholds\s*=\s*\[[\s\S]*?\]\n?/g, '');
   out = out.replace(/[ \t]*sensor\.threshold\s*=\s*touch_thresholds\[i\]\n/g, '');
   out = out.replace(/[ \t]*_s\.threshold\s*=\s*touch_thresholds\[i\]\n/g, '');
   out = out.replace(/([ \t]*)_s = touchio\.TouchIn\(pin\)\n[ \t]*touch_sensors\.append\(_s\)/g,
     '$1touch_sensors.append(touchio.TouchIn(pin))');
+
+  // Ensure the init loop uses enumerate so 'i' is always available
+  // "for pin in touch_pins" → "for i, pin in enumerate(touch_pins)"
+  out = out.replace(/for pin in (touch_pins\w*)\s*:/g, 'for i, pin in enumerate($1):');
+
+  // Insert thresholds block before touch_sensors = []
   if (/touch_sensors\s*=\s*\[\]/.test(out)) {
     out = out.replace(/(touch_sensors\s*=\s*\[\])/, thBlock+'\n$1');
   } else {
     out = thBlock + '\n\n' + out;
   }
+
+  // Inject threshold line after sensor = touchio.TouchIn(pin)
   out = out.replace(/([ \t]*)(sensor\s*=\s*touchio\.TouchIn\(pin\))\n/g,
     '$1$2\n$1sensor.threshold = touch_thresholds[i]\n');
+
+  // Inject threshold line for one-liner append style
   out = out.replace(/([ \t]*)touch_sensors\.append\(touchio\.TouchIn\(pin\)\)/g,
     '$1_s = touchio.TouchIn(pin)\n$1_s.threshold = touch_thresholds[i]\n$1touch_sensors.append(_s)');
+
   return out;
 }
 
