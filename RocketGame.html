@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Secret Sound Mission</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: chunky "craft table" cards on a pale periwinkle board; one step on screen at a time. */
+:root{
+  --bg:#ECEEFC;
+  --ink:#1B1B3A;
+  --card:#FFFFFF;
+  --muted:#575B84;
+  --accent:#FF5A36;
+  --go:#159A50;
+  --copper:#D9853B;
+  --soft:#DADDF7;
+  --display:"Baloo 2", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 40px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:4px solid var(--accent);outline-offset:3px}
+h1,h2,h3{font-family:var(--display);line-height:1.1;margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,5vw,48px);font-weight:800}
+h2{font-size:clamp(26px,3.6vw,38px);font-weight:800}
+h3{font-size:22px;font-weight:800}
+p{margin:0}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+section.wrap{width:100%}
+
+/* Header + stepper */
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding-top:20px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:44px;height:44px;border:3px solid var(--ink);border-radius:50%;background:var(--accent);display:grid;place-items:center;box-shadow:3px 3px 0 var(--ink)}
+.brand-mark span{width:14px;height:14px;background:var(--card);border-radius:50%;border:3px solid var(--ink)}
+nav.steps{display:flex;flex-wrap:wrap;gap:8px}
+.step-tab{display:flex;align-items:center;gap:8px;border:3px solid var(--ink);background:var(--card);border-radius:999px;padding:6px 16px 6px 6px;font-family:var(--display);font-weight:800;font-size:18px;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+.step-tab .num{width:30px;height:30px;border-radius:50%;background:var(--soft);display:grid;place-items:center;border:2px solid var(--ink)}
+.step-tab.on{background:var(--ink);color:var(--card)}
+.step-tab.on .num{background:var(--accent);color:var(--card)}
+.step-tab:disabled{cursor:not-allowed;opacity:.55;box-shadow:none}
+
+/* Generic blocks */
+.panel{background:var(--card);border:3px solid var(--ink);border-radius:22px;padding:24px;box-shadow:6px 6px 0 var(--ink)}
+.intro{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}
+.intro p{max-width:62ch;margin-top:10px;font-size:20px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:3px solid var(--ink);border-radius:16px;background:var(--card);padding:12px 22px;font-family:var(--display);font-weight:800;font-size:22px;cursor:pointer;box-shadow:4px 4px 0 var(--ink);transition:transform .08s, box-shadow .08s;user-select:none;-webkit-user-select:none;touch-action:none}
+.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:4px 4px 0 var(--ink)}
+.btn.big{font-size:26px;padding:16px 28px}
+.btn.go{background:var(--go);color:#fff}
+.btn.hot{background:var(--accent);color:#fff}
+.btn.small{font-size:17px;padding:6px 14px;border-radius:12px;box-shadow:3px 3px 0 var(--ink)}
+.note{font-size:15px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:8px;border:2px solid var(--ink);border-radius:999px;padding:4px 12px;font-weight:700;font-size:16px;background:var(--soft)}
+.chip .dot{width:12px;height:12px;border-radius:50%;background:#9AA0C8;border:2px solid var(--ink)}
+.chip.ok{background:#CFF3DD}.chip.ok .dot{background:var(--go)}
+.chip.bad{background:#FFE0D8}.chip.bad .dot{background:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+
+/* Step 1 — sounds */
+.progress-row{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.meter{flex:1 1 260px;height:26px;border:3px solid var(--ink);border-radius:999px;background:var(--card);overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--go);transition:width .3s}
+.sound-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}
+.sound{background:var(--tint);border:3px solid var(--ink);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:5px 5px 0 var(--ink);position:relative}
+.sound .top{display:flex;gap:10px;align-items:flex-start}
+.sound .n{flex:none;width:36px;height:36px;border-radius:50%;background:var(--card);border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:20px}
+.sound.done .n{background:var(--go);color:#fff}
+.sound h3{font-size:24px}
+.sound .tip{font-size:16px;min-height:48px}
+.wave{width:100%;height:64px;display:block;background:rgba(255,255,255,.75);border:2px solid var(--ink);border-radius:12px}
+.timebar{height:8px;border-radius:99px;background:rgba(27,27,58,.15);overflow:hidden}
+.timebar i{display:block;height:100%;width:0;background:var(--accent)}
+.rec-btn{width:100%;background:var(--accent);color:#fff;font-size:21px}
+.sound.recording .rec-btn{background:var(--ink);animation:pulse .8s infinite alternate}
+@keyframes pulse{to{background:#B4203F}}
+.sound .actions{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.sound .msg{font-size:15px;font-weight:700;min-height:22px}
+.finish{display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between}
+
+/* Step 2 — build */
+.reveal{background:var(--ink);color:#fff;border-radius:22px;padding:28px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--accent);overflow:hidden;position:relative}
+.reveal h2{font-size:clamp(32px,5vw,54px)}
+.reveal p{font-size:21px;max-width:56ch;margin-top:8px}
+.reveal .moon{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#F4F1E8,#BEB9AC);border:3px solid #fff;position:relative}
+.reveal .moon::before,.reveal .moon::after{content:"";position:absolute;border-radius:50%;background:rgba(0,0,0,.12)}
+.reveal .moon::before{width:26px;height:26px;left:24px;top:52px}
+.reveal .moon::after{width:16px;height:16px;left:70px;top:28px}
+.build{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:24px;align-items:start}
+.diagram{display:flex;flex-direction:column;gap:12px}
+.diagram svg{width:100%;height:auto;max-width:520px;align-self:center}
+.materials{display:flex;flex-wrap:wrap;gap:8px}
+ol.checklist{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;counter-reset:s}
+.checklist li{counter-increment:s}
+.checklist label{display:grid;grid-template-columns:44px 34px minmax(0,1fr);gap:12px;align-items:center;background:var(--card);border:3px solid var(--ink);border-radius:16px;padding:12px;cursor:pointer}
+.checklist label::before{content:counter(s);width:40px;height:40px;border-radius:50%;background:var(--soft);border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:22px}
+.checklist input{width:30px;height:30px;accent-color:var(--go);cursor:pointer}
+.checklist input:checked + span{text-decoration:line-through;text-decoration-thickness:2px;color:var(--muted)}
+.checklist b{display:block;font-size:19px}
+.warn{background:#FFF2C4;border:3px solid var(--ink);border-radius:16px;padding:14px 16px;font-weight:700}
+
+/* Step 3 — connect */
+.controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.ctrl{background:var(--card);border:3px solid var(--ink);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;box-shadow:5px 5px 0 var(--ink);transition:background .1s, transform .1s}
+.ctrl .icon{width:84px;height:84px}
+.ctrl h3{font-size:28px}
+.ctrl .pad{font-weight:700;font-size:17px}
+.ctrl.active{background:#FFD84D;transform:scale(1.04)}
+.ctrl.tested .tick{opacity:1}
+.ctrl .tick{opacity:0;color:var(--go);font-family:var(--display);font-weight:800;font-size:20px}
+.ctrl.teaching{background:#CFE8FF;animation:wobble .5s infinite alternate}
+@keyframes wobble{to{transform:rotate(1.5deg)}}
+.steps-list{margin:0;padding-left:26px;display:flex;flex-direction:column;gap:6px;font-size:19px}
+.last{font-family:var(--display);font-weight:800;font-size:20px}
+
+/* Step 4 — game */
+.game-wrap{position:relative;border:3px solid var(--ink);border-radius:22px;overflow:hidden;background:#050820;box-shadow:6px 6px 0 var(--ink)}
+.game-wrap:fullscreen{border:0;border-radius:0;box-shadow:none}
+#game{display:block;width:100%}
+.game-tools{position:absolute;right:max(12px, env(safe-area-inset-right, 0px));top:52px;display:flex;gap:8px}
+.game-tools .btn{font-size:15px;padding:4px 12px;box-shadow:2px 2px 0 var(--ink);border-width:2px}
+.uses{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.use{display:flex;gap:12px;align-items:center;background:var(--card);border:3px solid var(--ink);border-radius:16px;padding:10px 12px}
+.use .sw{flex:none;width:18px;height:46px;border-radius:8px;border:2px solid var(--ink);background:var(--tint)}
+.use div{flex:1;min-width:0}
+.use b{display:block;font-family:var(--display);font-size:19px;line-height:1.1}
+.use span{font-size:15px;color:var(--muted)}
+footer{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center;font-size:15px;color:var(--muted);border-top:3px dashed var(--soft);padding-top:16px}
+footer .btn{font-size:15px}
+.linkish{background:none;border:0;text-decoration:underline;cursor:pointer;color:var(--muted);font-size:15px;padding:0}
+
+@media (max-width:820px){
+  .intro,.reveal,.build{grid-template-columns:1fr}
+  .controls{grid-template-columns:1fr}
+  .reveal .moon{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="brand-mark"><span></span></div><h1>Secret Sound Mission</h1></div>
+    <nav class="steps" aria-label="Workshop steps">
+      <button class="step-tab" data-step="1"><span class="num">1</span><span class="st-name">Sound Lab</span></button>
+      <button class="step-tab" data-step="2"><span class="num">2</span><span class="st-name">???</span></button>
+      <button class="step-tab" data-step="3"><span class="num">3</span><span class="st-name">???</span></button>
+      <button class="step-tab" data-step="4"><span class="num">4</span><span class="st-name">???</span></button>
+    </nav>
+  </header>
+
+  <!-- STEP 1 -->
+  <section id="s1" class="wrap">
+    <div class="panel intro">
+      <div>
+        <h2>You are now a team of sound designers</h2>
+        <p>A games company needs <b>8 sound effects</b> for a brand-new game. The game is top secret, so we can't tell you what it's about yet. Make each sound as loud and fun as you can!</p>
+      </div>
+      <div class="row" style="flex-direction:column;align-items:stretch">
+        <button class="btn big go" id="micBtn">Turn on the microphone</button>
+        <span class="chip" id="micChip"><span class="dot"></span><span>Microphone is off</span></span>
+      </div>
+    </div>
+
+    <div class="panel" style="display:flex;flex-direction:column;gap:12px">
+      <h3>How to record a sound</h3>
+      <ol class="steps-list">
+        <li>Press and <b>hold</b> the red button.</li>
+        <li>Make your sound into the microphone.</li>
+        <li><b>Let go</b> when you've finished. You'll hear it straight away.</li>
+        <li>Don't like it? Hold the button again to record a new one.</li>
+      </ol>
+    </div>
+
+    <div class="progress-row">
+      <h3 id="progText">0 of 8 sounds made</h3>
+      <div class="meter"><i id="progBar"></i></div>
+    </div>
+
+    <div class="sound-grid" id="soundGrid"></div>
+
+    <div class="panel finish">
+      <div>
+        <h3 id="finishTitle">Make all 8 sounds to unlock the secret</h3>
+        <p class="note">Your recordings stay on this computer and are deleted when the page is closed.</p>
+      </div>
+      <button class="btn big hot" id="revealBtn" disabled>Reveal the secret!</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section id="s2" class="wrap" hidden>
+    <div class="reveal">
+      <div>
+        <h2>It's a SPACE game!</h2>
+        <p>Your sounds will launch a rocket from Earth all the way to the Moon, 384,400 km away. And the game needs a controller. You're going to build it, shaped like a rocket.</p>
+      </div>
+      <div class="moon" aria-hidden="true"></div>
+    </div>
+
+    <div class="build">
+      <div class="panel diagram">
+        <h3>Your rocket controller</h3>
+        <svg viewBox="0 0 520 600" role="img" aria-label="Rocket diagram: copper tape on the window for BOOST and on each fin for LEFT and RIGHT, with tape trails running to the SPOKE board">
+          <!-- fins -->
+          <path d="M200 330 L120 460 L200 438 Z" fill="#E8412C" stroke="#1B1B3A" stroke-width="5" stroke-linejoin="round"/>
+          <path d="M320 330 L400 460 L320 438 Z" fill="#E8412C" stroke="#1B1B3A" stroke-width="5" stroke-linejoin="round"/>
+          <!-- body -->
+          <rect x="200" y="140" width="120" height="310" rx="22" fill="#FFFFFF" stroke="#1B1B3A" stroke-width="5"/>
+          <!-- nose -->
+          <path d="M200 156 Q260 10 320 156 Z" fill="#E8412C" stroke="#1B1B3A" stroke-width="5" stroke-linejoin="round"/>
+          <!-- tape trails -->
+          <path d="M260 272 L260 528" stroke="#D9853B" stroke-width="12" fill="none"/>
+          <path d="M168 438 L168 528" stroke="#D9853B" stroke-width="12" fill="none"/>
+          <path d="M352 438 L352 528" stroke="#D9853B" stroke-width="12" fill="none"/>
+          <!-- tape patches -->
+          <circle cx="260" cy="232" r="42" fill="#D9853B" stroke="#1B1B3A" stroke-width="4"/>
+          <text x="260" y="239" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="20" fill="#1B1B3A">BOOST</text>
+          <path d="M190 364 L145 438 L190 428 Z" fill="#D9853B" stroke="#1B1B3A" stroke-width="3"/>
+          <path d="M330 364 L375 438 L330 428 Z" fill="#D9853B" stroke="#1B1B3A" stroke-width="3"/>
+          <!-- labels -->
+          <text x="40" y="388" font-family="Baloo 2, sans-serif" font-weight="800" font-size="22" fill="#1B1B3A">LEFT</text>
+          <text x="40" y="410" font-family="Baloo 2, sans-serif" font-weight="800" font-size="22" fill="#1B1B3A">FIN</text>
+          <text x="420" y="388" font-family="Baloo 2, sans-serif" font-weight="800" font-size="22" fill="#1B1B3A">RIGHT</text>
+          <text x="420" y="410" font-family="Baloo 2, sans-serif" font-weight="800" font-size="22" fill="#1B1B3A">FIN</text>
+          <text x="214" y="490" text-anchor="middle" font-family="Atkinson Hyperlegible, sans-serif" font-weight="700" font-size="14" fill="#575B84">gap</text>
+          <text x="306" y="490" text-anchor="middle" font-family="Atkinson Hyperlegible, sans-serif" font-weight="700" font-size="14" fill="#575B84">gap</text>
+          <!-- SPOKE board -->
+          <rect x="110" y="528" width="300" height="56" rx="10" fill="#159A50" stroke="#1B1B3A" stroke-width="5"/>
+          <text x="168" y="562" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="17" fill="#fff">Pad 1</text>
+          <text x="260" y="562" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="17" fill="#fff">Pad 11</text>
+          <text x="352" y="562" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="17" fill="#fff">Pad 26</text>
+        </svg>
+        <h3>You will need</h3>
+        <div class="materials">
+          <span class="chip">Cardboard</span><span class="chip">Scissors</span><span class="chip">Masking tape</span>
+          <span class="chip">Conductive tape</span><span class="chip">3 crocodile clip leads</span>
+          <span class="chip">SPOKE board + USB cable</span><span class="chip">Pens to decorate</span>
+        </div>
+      </div>
+
+      <div class="wrap" style="gap:14px">
+        <h2>Build your rocket</h2>
+        <ol class="checklist">
+          <li><label><input type="checkbox" id="b1"><span><b>Cut out the rocket</b>Draw a body, a pointy nose and two fins on the card, then cut them out. Ask an adult to help with thick card.</span></label></li>
+          <li><label><input type="checkbox" id="b2"><span><b>Join the pieces</b>Tape the nose and fins onto the body so the rocket lies flat on the table.</span></label></li>
+          <li><label><input type="checkbox" id="b3"><span><b>Make the BOOST button</b>Stick a big patch of conductive tape where the window goes.</span></label></li>
+          <li><label><input type="checkbox" id="b4"><span><b>Make the steering fins</b>Stick a patch of conductive tape on the left fin and on the right fin.</span></label></li>
+          <li><label><input type="checkbox" id="b5"><span><b>Lay the tape trails</b>Run one strip of tape from each patch down to the bottom of the rocket. To turn a corner, fold the tape. Don't cut it.</span></label></li>
+          <li><label><input type="checkbox" id="b6"><span><b>Check the gaps</b>The three trails must never touch each other, or the game will get confused.</span></label></li>
+          <li><label><input type="checkbox" id="b7"><span><b>Decorate</b>Draw around the tape, but don't colour on top of it.</span></label></li>
+          <li><label><input type="checkbox" id="b8"><span><b>Clip on the leads</b>Clip one crocodile lead to the end of each tape trail.</span></label></li>
+        </ol>
+        <div class="row"><button class="btn big go" id="toConnect">My rocket is built</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section id="s3" class="wrap" hidden>
+    <div class="panel intro">
+      <div>
+        <h2>Connect your rocket</h2>
+        <ol class="steps-list" style="margin-top:12px">
+          <li>Plug the SPOKE board into the computer with the USB cable.</li>
+          <li>Clip the <b>LEFT fin</b> to <b>Pad 1</b>, <b>BOOST</b> to <b>Pad 11</b> and the <b>RIGHT fin</b> to <b>Pad 26</b>.</li>
+          <li>Press <b>Connect my rocket</b>. If the computer asks, press <b>Allow</b>.</li>
+          <li>Touch each tape patch. Its box below should light up yellow and get a tick.</li>
+        </ol>
+      </div>
+      <div class="row" style="flex-direction:column;align-items:stretch">
+        <button class="btn big go" id="midiBtn">Connect my rocket</button>
+        <span class="chip" id="midiChip"><span class="dot"></span><span>Not connected yet</span></span>
+      </div>
+    </div>
+
+    <div class="controls" id="controls"></div>
+
+    <div class="panel" style="display:flex;flex-direction:column;gap:8px">
+      <p class="last" id="lastTouched">Last pad touched: none yet</p>
+      <p>Box not lighting up? Press <b>Teach it</b> on that box, then touch the tape. The game will learn whichever pad it's clipped to.</p>
+      <p class="note">No rocket yet? You can also play with the keyboard: Space to boost, arrow keys to steer.</p>
+    </div>
+
+    <div class="row"><button class="btn big hot" id="toGame">Go to the launch pad</button></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section id="s4" class="wrap" hidden>
+    <div class="game-wrap" id="gameWrap">
+      <canvas id="game" aria-label="Rocket to the Moon game"></canvas>
+      <div class="game-tools"><button class="btn" id="fsBtn">Full screen</button></div>
+    </div>
+    <div class="panel" style="display:flex;flex-direction:column;gap:14px">
+      <h3>Where did your sounds go?</h3>
+      <div class="uses" id="uses"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Works best in Google Chrome or Microsoft Edge. Recordings are never saved or uploaded.</span>
+    <span class="row">
+      <button class="linkish" id="unlockAll">Teacher: unlock all steps</button>
+      <button class="btn small" id="newGroup">New group: clear everything</button>
+    </span>
+  </footer>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const lerp = (a,b,t) => a + (b-a)*t;
+
+/* ---------- SPOKE defaults (unchanged board firmware) ---------- */
+const NOTES = [36,38,40,43,45,48,50,52,55,57,60,62,64,67,69,72,74,76,79,81,84,86,88,91,93,96];
+const PINS = [...Array(23).keys()].map(i => "GP"+i).concat(["GP26","GP27","GP28"]);
+const padName = n => { const i = NOTES.indexOf(n); return i < 0 ? "note " + n : "Pad " + (i+1) + " (" + PINS[i] + ")"; };
+const DEFAULT_CONTROLS = { left: 36, boost: 60, right: 96 };
+let controls = { ...DEFAULT_CONTROLS };
+try { const s = JSON.parse(localStorage.getItem("ssm-controls")); if (s && s.left && s.boost && s.right) controls = s; } catch(e) {}
+const saveControls = () => { try { localStorage.setItem("ssm-controls", JSON.stringify(controls)); } catch(e) {} };
+
+/* ---------- Sounds ---------- */
+const SOUNDS = [
+  { id:"go",     title:'Shout "GO!"',          tip:"As loud and excited as you can!",                      tint:"#FFD84D", use:"Lift-off",            when:"plays when the rocket leaves the launch pad" },
+  { id:"rumble", title:"A long, low rumble",    tip:"Rrrrrrrr! Like a grumpy tummy or a hairdryer.",        tint:"#FF9F6B", use:"Rocket engines",      when:"loops while you hold BOOST" },
+  { id:"beep",   title:"A robot beep",          tip:'Short and sharp: "Beep!"',                            tint:"#7FD6FF", use:"Countdown",           when:"plays on 3… 2… 1…" },
+  { id:"whoosh", title:"A big WHOOSH",          tip:"Like a gust of wind rushing past.",                    tint:"#B69CFF", use:"Steering",            when:"plays when you swerve and enter a new zone" },
+  { id:"ding",   title:'A happy "Ding!"',       tip:"Like you just found treasure.",                        tint:"#7CE0A3", use:"Catch a star",        when:"plays when you collect fuel stars" },
+  { id:"bonk",   title:"BONK!",                 tip:"The noise when you bump your head.",                   tint:"#FF8FB1", use:"Crash",               when:"plays when you hit a bird, satellite or asteroid" },
+  { id:"uhoh",   title:'"Uh-oh!"',              tip:"Say it in a really worried voice.",                    tint:"#FFC5A1", use:"Out of fuel",         when:"plays when your fuel tank is empty" },
+  { id:"cheer",  title:"A giant cheer",         tip:"Hooray! Clap and whoop too!",                          tint:"#9EE6E0", use:"Moon landing",        when:"plays when you land on the Moon" },
+];
+const buffers = {};
+
+/* ---------- Audio engine ---------- */
+let ctx = null, master = null, noise = null;
+function ac(){
+  if (!ctx){
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+  }
+  if (ctx.state === "suspended") ctx.resume();
+  return ctx;
+}
+function noiseBuf(){
+  if (noise) return noise;
+  const c = ac(); noise = c.createBuffer(1, c.sampleRate*2, c.sampleRate);
+  const d = noise.getChannelData(0); for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+  return noise;
+}
+function env(g, t, dur, peak){
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t+0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+}
+function synth(id, gain){
+  const c = ac(), t = c.currentTime, g = c.createGain(); g.connect(master);
+  if (id === "whoosh"){
+    const src = c.createBufferSource(); src.buffer = noiseBuf();
+    const f = c.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.2;
+    f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(2400, t+0.35); f.frequency.exponentialRampToValueAtTime(400, t+0.7);
+    src.connect(f); f.connect(g); env(g, t, 0.75, 0.6*gain); src.start(t); src.stop(t+0.8); return;
+  }
+  const o = c.createOscillator(); o.connect(g);
+  let dur = 0.5;
+  switch(id){
+    case "beep":  o.type="square"; o.frequency.value=880; dur=0.18; env(g,t,dur,0.18*gain); break;
+    case "go":    o.type="sawtooth"; o.frequency.setValueAtTime(260,t); o.frequency.exponentialRampToValueAtTime(880,t+0.4); dur=0.55; env(g,t,dur,0.25*gain); break;
+    case "ding":  o.type="sine"; o.frequency.setValueAtTime(1046,t); o.frequency.setValueAtTime(1568,t+0.08); dur=0.6; env(g,t,dur,0.35*gain); break;
+    case "bonk":  o.type="triangle"; o.frequency.setValueAtTime(240,t); o.frequency.exponentialRampToValueAtTime(55,t+0.3); dur=0.35; env(g,t,dur,0.6*gain); break;
+    case "uhoh":  o.type="triangle"; o.frequency.setValueAtTime(520,t); o.frequency.setValueAtTime(390,t+0.22); dur=0.6; env(g,t,dur,0.45*gain); break;
+    case "cheer": o.type="square"; [523,659,784,1047].forEach((f,i)=>o.frequency.setValueAtTime(f,t+i*0.12)); dur=0.75; env(g,t,dur,0.15*gain); break;
+    default:      o.type="sine"; o.frequency.value=440; env(g,t,dur,0.2*gain);
+  }
+  o.start(t); o.stop(t+dur+0.05);
+}
+function playSound(id, opts = {}){
+  const c = ac(); const gain = opts.gain ?? 1;
+  if (buffers[id]){
+    const src = c.createBufferSource(), g = c.createGain();
+    src.buffer = buffers[id]; src.playbackRate.value = opts.rate ?? 1; g.gain.value = gain;
+    src.connect(g); g.connect(master); src.start(); return src;
+  }
+  synth(id, gain);
+}
+let loop = null;
+function rumbleOn(rate){
+  const c = ac();
+  if (!loop){
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(buffers.rumble ? 0.9 : 1.6, c.currentTime+0.15); g.connect(master);
+    const src = c.createBufferSource(); src.loop = true;
+    if (buffers.rumble){ src.buffer = buffers.rumble; src.connect(g); }
+    else { src.buffer = noiseBuf(); const f = c.createBiquadFilter(); f.type="lowpass"; f.frequency.value=170; src.connect(f); f.connect(g); }
+    src.start(); loop = { src, g };
+  }
+  loop.src.playbackRate.setTargetAtTime(rate, c.currentTime, 0.12);
+}
+function rumbleOff(){
+  if (!loop || !ctx) return;
+  const { src, g } = loop; const t = ctx.currentTime;
+  g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(0.0001, t, 0.08); src.stop(t+0.5); loop = null;
+}
+document.addEventListener("pointerdown", () => { if (ctx && ctx.state === "suspended") ctx.resume(); });
+
+/* ---------- Microphone + recording ---------- */
+let stream = null, analyser = null, rec = null;
+const MAX_MS = 4000;
+async function enableMic(){
+  if (stream) return true;
+  if (!navigator.mediaDevices || !window.MediaRecorder){ setMic("bad","This browser can't record. Use Chrome or Edge."); return false; }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:true } });
+    const c = ac(); const src = c.createMediaStreamSource(stream);
+    analyser = c.createAnalyser(); analyser.fftSize = 1024; src.connect(analyser);
+    setMic("ok","Microphone is on"); $("#micBtn").textContent = "Microphone ready"; $("#micBtn").disabled = true;
+    return true;
+  }catch(e){
+    setMic("bad","Microphone blocked. Click the icon in the address bar and allow it.");
+    return false;
+  }
+}
+function setMic(state, text){ const ch = $("#micChip"); ch.className = "chip " + state; ch.lastElementChild.textContent = text; }
+$("#micBtn").addEventListener("click", enableMic);
+
+const grid = $("#soundGrid");
+SOUNDS.forEach((s, i) => {
+  const card = document.createElement("article");
+  card.className = "sound"; card.id = "card-" + s.id; card.style.setProperty("--tint", s.tint);
+  card.innerHTML = `
+    <div class="top"><span class="n">${i+1}</span><div><h3>${s.title}</h3></div></div>
+    <p class="tip">${s.tip}</p>
+    <canvas class="wave"></canvas>
+    <div class="timebar"><i></i></div>
+    <button class="btn rec-btn" id="rec-${s.id}">Hold to record</button>
+    <div class="actions"><span class="msg" aria-live="polite"></span><button class="btn small play" id="play-${s.id}" disabled>Play</button></div>`;
+  grid.appendChild(card);
+  const btn = card.querySelector(".rec-btn");
+  btn.addEventListener("pointerdown", e => { e.preventDefault(); try{ btn.setPointerCapture(e.pointerId); }catch(_){} startRec(s.id); });
+  ["pointerup","pointercancel","lostpointercapture"].forEach(ev => btn.addEventListener(ev, () => stopRec(s.id)));
+  btn.addEventListener("keydown", e => { if ((e.code==="Space"||e.code==="Enter") && !e.repeat){ e.preventDefault(); startRec(s.id); } });
+  btn.addEventListener("keyup", e => { if (e.code==="Space"||e.code==="Enter"){ e.preventDefault(); stopRec(s.id); } });
+  btn.addEventListener("contextmenu", e => e.preventDefault());
+  card.querySelector(".play").addEventListener("click", () => playSound(s.id));
+  drawWave(card.querySelector(".wave"), null);
+});
+const cardMsg = (id, text) => { $("#card-"+id+" .msg").textContent = text; };
+
+async function startRec(id){
+  if (rec) return;
+  if (!stream){
+    cardMsg(id, "Turning on the microphone…");
+    const ok = await enableMic();
+    cardMsg(id, ok ? "Ready! Now hold the button again." : "The microphone isn't on yet.");
+    return;
+  }
+  const mr = new MediaRecorder(stream); const chunks = [];
+  mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  const t0 = performance.now();
+  mr.onstop = () => finishRec(id, chunks, mr.mimeType, performance.now() - t0);
+  mr.start();
+  rec = { id, mr, t0, timer: setTimeout(() => stopRec(id), MAX_MS) };
+  const card = $("#card-"+id); card.classList.add("recording");
+  card.querySelector(".rec-btn").textContent = "Recording… let go to stop";
+  cardMsg(id, "");
+  liveLoop();
+}
+function stopRec(id){
+  if (!rec || rec.id !== id) return;
+  clearTimeout(rec.timer);
+  if (rec.mr.state !== "inactive") rec.mr.stop();
+  rec = null;
+  const card = $("#card-"+id); card.classList.remove("recording");
+  card.querySelector(".rec-btn").textContent = buffers[id] ? "Hold to record again" : "Hold to record";
+  card.querySelector(".timebar i").style.width = "0";
+}
+async function finishRec(id, chunks, type, dur){
+  const card = $("#card-"+id);
+  if (dur < 300 || !chunks.length){ cardMsg(id, "Keep holding the button while you make the sound."); return; }
+  try{
+    const ab = await new Blob(chunks, { type }).arrayBuffer();
+    const raw = await ac().decodeAudioData(ab);
+    const clean = tidy(raw);
+    if (!clean){ cardMsg(id, "Too quiet! Get closer to the microphone."); return; }
+    buffers[id] = clean;
+    drawWave(card.querySelector(".wave"), clean.getChannelData(0));
+    card.classList.add("done");
+    card.querySelector(".play").disabled = false;
+    card.querySelector(".rec-btn").textContent = "Hold to record again";
+    cardMsg(id, "Brilliant! Sound saved.");
+    playSound(id);
+    updateProgress();
+  }catch(e){ cardMsg(id, "That didn't work. Try again."); }
+}
+/* trim silence, normalise, soften the ends */
+function tidy(buf){
+  const c = ac(), n = buf.length, ch = buf.numberOfChannels, mono = new Float32Array(n);
+  for (let k=0;k<ch;k++){ const d = buf.getChannelData(k); for (let i=0;i<n;i++) mono[i] += d[i]/ch; }
+  let peak = 0; for (let i=0;i<n;i++) peak = Math.max(peak, Math.abs(mono[i]));
+  if (peak < 0.015) return null;
+  const thr = peak*0.1; let a = 0, b = n-1;
+  while (a < n && Math.abs(mono[a]) < thr) a++;
+  while (b > a && Math.abs(mono[b]) < thr) b--;
+  const sr = buf.sampleRate;
+  a = Math.max(0, a - Math.round(sr*0.02)); b = Math.min(n-1, b + Math.round(sr*0.12));
+  const len = b - a + 1; if (len < sr*0.05) return null;
+  const out = c.createBuffer(1, len, sr), od = out.getChannelData(0), gain = 0.92/peak, fade = Math.round(sr*0.008);
+  for (let i=0;i<len;i++){
+    let v = mono[a+i]*gain;
+    if (i < fade) v *= i/fade; else if (i > len-fade) v *= (len-i)/fade;
+    od[i] = v;
+  }
+  return out;
+}
+function sizeCanvas(cv){
+  const r = cv.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio||1);
+  const w = Math.max(1, Math.round(r.width*d)), h = Math.max(1, Math.round(r.height*d));
+  if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
+  return { w, h, d };
+}
+function drawWave(cv, data, color = "#1B1B3A"){
+  const { w, h, d } = sizeCanvas(cv); const g = cv.getContext("2d");
+  g.clearRect(0,0,w,h); g.strokeStyle = "rgba(27,27,58,.2)"; g.lineWidth = d;
+  g.beginPath(); g.moveTo(0,h/2); g.lineTo(w,h/2); g.stroke();
+  if (!data) return;
+  g.fillStyle = color; const step = data.length / w;
+  for (let x=0;x<w;x+=2*d){
+    let mx = 0; const s = Math.floor(x*step), e = Math.floor((x+2*d)*step);
+    for (let i=s;i<e && i<data.length;i++) mx = Math.max(mx, Math.abs(data[i]));
+    const bh = Math.max(d, mx*h*0.9); g.fillRect(x, (h-bh)/2, d*1.4, bh);
+  }
+}
+const live = new Float32Array(1024);
+function liveLoop(){
+  if (!rec) return;
+  const card = $("#card-"+rec.id), cv = card.querySelector(".wave");
+  const { w, h, d } = sizeCanvas(cv); const g = cv.getContext("2d");
+  analyser.getFloatTimeDomainData(live);
+  g.clearRect(0,0,w,h); g.strokeStyle = "#E8412C"; g.lineWidth = 3*d; g.beginPath();
+  for (let i=0;i<live.length;i++){ const x = i/(live.length-1)*w, y = h/2 + live[i]*h*0.9; i ? g.lineTo(x,y) : g.moveTo(x,y); }
+  g.stroke();
+  card.querySelector(".timebar i").style.width = clamp((performance.now()-rec.t0)/MAX_MS*100, 0, 100) + "%";
+  requestAnimationFrame(liveLoop);
+}
+function updateProgress(){
+  const n = SOUNDS.filter(s => buffers[s.id]).length;
+  $("#progText").textContent = `${n} of 8 sounds made`;
+  $("#progBar").style.width = (n/8*100) + "%";
+  const all = n === 8;
+  $("#revealBtn").disabled = !all;
+  $("#finishTitle").textContent = all ? "All 8 sounds done! Ready to find out the secret?" : "Make all 8 sounds to unlock the secret";
+  if (all) unlocked = Math.max(unlocked, 2), renderStepper();
+}
+
+/* ---------- Steps ---------- */
+const STEP_NAMES = ["Sound Lab","Build","Connect","Blast off"];
+let unlocked = 1, current = 1;
+function renderStepper(){
+  document.querySelectorAll(".step-tab").forEach((b, i) => {
+    const n = i+1;
+    b.disabled = n > unlocked;
+    b.querySelector(".st-name").textContent = n <= unlocked ? STEP_NAMES[i] : "???";
+    b.classList.toggle("on", n === current);
+    if (n === current) b.setAttribute("aria-current","step"); else b.removeAttribute("aria-current");
+  });
+}
+function goStep(n){
+  unlocked = Math.max(unlocked, n); current = n;
+  for (let i=1;i<=4;i++) $("#s"+i).hidden = i !== n;
+  renderStepper(); window.scrollTo({ top:0, behavior:"smooth" });
+  if (n !== 4){ rumbleOff(); }
+  else { resizeGame(); renderUses(); }
+  if (n === 3) renderControls();
+}
+document.querySelectorAll(".step-tab").forEach(b => b.addEventListener("click", () => goStep(+b.dataset.step)));
+$("#revealBtn").addEventListener("click", () => { goStep(2); playSound("cheer", { gain:0.8 }); });
+$("#toConnect").addEventListener("click", () => goStep(3));
+$("#toGame").addEventListener("click", () => goStep(4));
+$("#unlockAll").addEventListener("click", () => { unlocked = 4; renderStepper(); });
+let clearArmed = false;
+$("#newGroup").addEventListener("click", e => {
+  if (!clearArmed){ clearArmed = true; e.target.textContent = "Click again to clear all sounds"; setTimeout(() => { clearArmed = false; e.target.textContent = "New group: clear everything"; }, 3000); return; }
+  location.reload();
+});
+
+/* ---------- MIDI ---------- */
+const held = new Set(); const keys = { left:false, right:false, boost:false };
+let teaching = null; const tested = { left:false, boost:false, right:false };
+const isDown = name => held.has(controls[name]) || keys[name];
+const CTRL_INFO = {
+  left:  { title:"LEFT fin",  icon:'<svg class="icon" viewBox="0 0 84 84"><path d="M52 14 L22 42 L52 70" fill="none" stroke="#1B1B3A" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+  boost: { title:"BOOST",     icon:'<svg class="icon" viewBox="0 0 84 84"><circle cx="42" cy="42" r="32" fill="#D9853B" stroke="#1B1B3A" stroke-width="5"/><path d="M42 24 L42 60 M28 38 L42 24 L56 38" fill="none" stroke="#1B1B3A" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+  right: { title:"RIGHT fin", icon:'<svg class="icon" viewBox="0 0 84 84"><path d="M32 14 L62 42 L32 70" fill="none" stroke="#1B1B3A" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+};
+function renderControls(){
+  const box = $("#controls"); box.innerHTML = "";
+  ["left","boost","right"].forEach(k => {
+    const el = document.createElement("div"); el.className = "ctrl"; el.id = "ctrl-"+k;
+    el.innerHTML = `${CTRL_INFO[k].icon}<h3>${CTRL_INFO[k].title}</h3>
+      <span class="pad">${teaching === k ? "Touch the tape now…" : padName(controls[k])}</span>
+      <span class="tick">Working!</span>
+      <button class="btn small" id="teach-${k}">${teaching === k ? "Cancel" : "Teach it"}</button>`;
+    box.appendChild(el);
+    el.querySelector("button").addEventListener("click", () => { teaching = teaching === k ? null : k; renderControls(); });
+  });
+  renderLive();
+}
+function renderLive(){
+  ["left","boost","right"].forEach(k => {
+    const el = $("#ctrl-"+k); if (!el) return;
+    el.classList.toggle("active", isDown(k)); el.classList.toggle("tested", tested[k]); el.classList.toggle("teaching", teaching === k);
+  });
+}
+function noteDown(n){
+  held.add(n);
+  $("#lastTouched").textContent = "Last pad touched: " + padName(n);
+  if (teaching){
+    const k = teaching, other = Object.keys(controls).find(o => o !== k && controls[o] === n);
+    if (other) controls[other] = controls[k];
+    controls[k] = n; teaching = null; saveControls(); renderControls();
+  }
+  for (const k in controls) if (controls[k] === n) tested[k] = true;
+  renderLive();
+}
+function noteUp(n){ held.delete(n); renderLive(); }
+function onMidi(e){
+  const [st, n, v] = e.data; const cmd = st & 0xF0;
+  if (cmd === 0x90 && v > 0) noteDown(n);
+  else if (cmd === 0x80 || (cmd === 0x90 && v === 0)) noteUp(n);
+}
+let midi = null;
+function setMidi(state, text){ const ch = $("#midiChip"); ch.className = "chip " + state; ch.lastElementChild.textContent = text; }
+function bindInputs(){
+  const names = [];
+  midi.inputs.forEach(inp => { inp.onmidimessage = onMidi; names.push(inp.name); });
+  if (names.length){ setMidi("ok", "Connected: " + names.join(", ")); $("#midiBtn").textContent = "Rocket connected"; }
+  else { setMidi("bad", "No board found. Check the USB cable."); $("#midiBtn").textContent = "Connect my rocket"; }
+}
+$("#midiBtn").addEventListener("click", async () => {
+  ac();
+  if (!navigator.requestMIDIAccess){ setMidi("bad","This browser can't talk to the SPOKE. Use Chrome or Edge."); return; }
+  try{ midi = await navigator.requestMIDIAccess(); midi.onstatechange = bindInputs; bindInputs(); }
+  catch(e){ setMidi("bad","Access was blocked. Reload the page and press Allow."); }
+});
+const KEYMAP = { ArrowLeft:"left", KeyA:"left", ArrowRight:"right", KeyD:"right", Space:"boost", ArrowUp:"boost", KeyW:"boost" };
+window.addEventListener("keydown", e => {
+  const k = KEYMAP[e.code]; if (!k) return;
+  const onRecBtn = e.target.classList && e.target.classList.contains("rec-btn");
+  if (onRecBtn) return;
+  if (current === 4 || current === 3){ e.preventDefault(); keys[k] = true; renderLive(); }
+});
+window.addEventListener("keyup", e => { const k = KEYMAP[e.code]; if (k){ keys[k] = false; renderLive(); } });
+
+/* ---------- Where sounds go ---------- */
+function renderUses(){
+  const box = $("#uses"); box.innerHTML = "";
+  SOUNDS.forEach(s => {
+    const el = document.createElement("div"); el.className = "use"; el.style.setProperty("--tint", s.tint);
+    el.innerHTML = `<span class="sw"></span><div><b>${s.use}</b><span>${s.title.replace(/"/g,"")} ${s.when}${buffers[s.id] ? "" : " (practice sound)"}</span></div><button class="btn small">Play</button>`;
+    el.querySelector("button").addEventListener("click", () => playSound(s.id));
+    box.appendChild(el);
+  });
+}
+
+/* ---------- Game ---------- */
+const cv = $("#game"), g = cv.getContext("2d");
+let W = 800, H = 560;
+const FONT = '"Baloo 2", "Arial Rounded MT Bold", system-ui, sans-serif';
+const VMAX = 0.0135, VMIN = 0.0045, ACC = 0.007, BURN = 7, SCROLL = 60;
+const STAGES = [
+  { at:0,    title:"Lift-off!",                    sub:"Hold BOOST to fly faster" },
+  { at:0.2,  title:"100 km up: you're in SPACE!",  sub:"Watch out for satellites" },
+  { at:0.5,  title:"Asteroid field ahead!",        sub:"Steer with your fins" },
+  { at:0.85, title:"The Moon is getting closer!",  sub:"Get ready to land" },
+];
+const stageOf = p => p >= 0.85 ? 3 : p >= 0.5 ? 2 : p >= 0.2 ? 1 : 0;
+const kmAt = p => p <= 0.2 ? p/0.2*100 : 100*Math.pow(3844, (p-0.2)/0.8);
+const bgStars = Array.from({ length:140 }, () => ({ x:Math.random(), y:Math.random(), s:Math.random()*1.6+0.4, tw:Math.random()*6 }));
+const LAND = [[0.3,0.2,0.32],[-0.4,-0.1,0.28],[0.1,-0.45,0.22],[-0.15,0.5,0.25],[0.55,-0.3,0.15]];
+const CRATERS = [[-0.3,-0.2,0.18],[0.25,0.1,0.12],[0.05,0.45,0.15],[-0.45,0.3,0.08],[0.4,-0.4,0.1]];
+const G = {};
+function resetGame(){
+  Object.assign(G, { phase:"ready", p:0, v:0, x:0.5, vx:0, fuel:100, stars:0, bumps:0, objs:[], parts:[], t:0, cd:0, cdShown:4,
+    shake:0, inv:0, nextObs:0.03, nextStar:0.012, nextCloud:0, stage:-1, banner:null, warned:false, land:0, time:0,
+    groundOff:0, prevBoost:true, prevDir:0, lastWhoosh:-9, ry:null, mT:0, wonAt:0, fade:0 });
+}
+resetGame();
+
+function resizeGame(){
+  const wrap = $("#gameWrap"); const fs = document.fullscreenElement === wrap;
+  const w = wrap.clientWidth || 800;
+  const h = fs ? window.innerHeight : Math.round(Math.max(420, Math.min(window.innerHeight - 120, w*0.68)));
+  const d = Math.min(2, window.devicePixelRatio || 1);
+  cv.style.height = h + "px"; cv.width = Math.round(w*d); cv.height = Math.round(h*d);
+  W = w; H = h; g.setTransform(d,0,0,d,0,0);
+}
+window.addEventListener("resize", () => { if (current === 4) resizeGame(); });
+document.addEventListener("fullscreenchange", () => setTimeout(resizeGame, 50));
+$("#fsBtn").addEventListener("click", () => {
+  const wrap = $("#gameWrap");
+  if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  else if (wrap.requestFullscreen) wrap.requestFullscreen().catch(()=>{});
+});
+
+const rs = () => Math.min(H*0.05, W*0.06);              // rocket size
+const groundTop = () => H*0.86 + G.groundOff;
+const padY = () => groundTop() - rs()*1.1 - rs()*0.3;
+function banner(title, sub){ G.banner = { title, sub, t:0 }; }
+function puff(x, y, n, colors, spd, life, grav = 0){
+  for (let i=0;i<n;i++){
+    const a = Math.random()*Math.PI*2, v = spd*(0.3+Math.random());
+    G.parts.push({ x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v, life, max:life, c:colors[i%colors.length], s:2+Math.random()*4, grav });
+  }
+}
+
+function spawnObs(){
+  const st = stageOf(G.p), x = W*(0.1 + Math.random()*0.8);
+  if (st === 0) G.objs.push({ k:"bird", x, y:-40, r:H*0.032, vx:(Math.random()<0.5?-1:1)*W*0.07, flap:Math.random()*6 });
+  else if (st === 1) G.objs.push({ k:"sat", x, y:-60, r:H*0.045, rot:Math.random()*6, spin:(Math.random()-0.5)*1.5, vx:(Math.random()-0.5)*W*0.04 });
+  else {
+    const r = H*(0.03 + Math.random()*0.035);
+    G.objs.push({ k:"rock", x, y:-r-10, r, rot:Math.random()*6, spin:(Math.random()-0.5)*2, vx:(Math.random()-0.5)*W*0.05,
+      pts:Array.from({ length:9 }, () => 0.78 + Math.random()*0.3) });
+  }
+}
+
+function update(dt){
+  const boost = isDown("boost"), L = isDown("left"), R = isDown("right");
+  const pressed = boost && !G.prevBoost; G.prevBoost = boost;
+  G.t += dt; G.inv = Math.max(0, G.inv - dt); G.shake = Math.max(0, G.shake - dt);
+  if (G.banner){ G.banner.t += dt; if (G.banner.t > 3.2) G.banner = null; }
+  const s = rs();
+
+  if (G.phase === "ready"){
+    if (pressed){ ac(); G.phase = "countdown"; G.cd = 3; G.cdShown = 4; }
+  } else if (G.phase === "countdown"){
+    G.cd -= dt; const n = Math.ceil(G.cd);
+    if (n < G.cdShown && n > 0){ G.cdShown = n; playSound("beep"); }
+    if (Math.random() < 0.6) puff(W*G.x + (Math.random()-0.5)*s*2, padY()+s*1.3, 1, ["#DDE2F0","#C3C8DA"], 40, 1.2);
+    if (G.cd <= 0){
+      G.phase = "flying"; G.v = 0.003; G.time = 0; G.ry = padY(); G.stage = 0; playSound("go");
+      banner(STAGES[0].title, STAGES[0].sub);
+      puff(W*G.x, padY()+s*1.3, 40, ["#FFFFFF","#DDE2F0","#FFB020"], 160, 1.4);
+    }
+  } else if (G.phase === "flying"){
+    G.time += dt;
+    const thrust = boost && G.fuel > 0;
+    if (boost && G.fuel <= 0 && !G.warned){ G.warned = true; playSound("uhoh"); banner("Out of fuel!","Catch stars to fill up your tank"); }
+    if (G.fuel > 15) G.warned = false;
+    if (thrust){ G.v = Math.min(VMAX, G.v + ACC*dt); G.fuel = Math.max(0, G.fuel - BURN*dt); }
+    else G.v += (VMIN - G.v)*Math.min(1, dt*0.5);
+    if (thrust) rumbleOn(0.8 + 0.5*G.v/VMAX); else rumbleOff();
+
+    const dir = (R?1:0) - (L?1:0);
+    if (dir !== 0 && dir !== G.prevDir && G.t - G.lastWhoosh > 1){ playSound("whoosh", { gain:0.7 }); G.lastWhoosh = G.t; }
+    G.prevDir = dir;
+    G.vx += (dir*0.75 - G.vx)*Math.min(1, dt*7);
+    G.x = clamp(G.x + G.vx*dt, 0.07, 0.93);
+    G.ry += (H*0.68 - G.ry)*Math.min(1, dt*0.9);
+
+    const dp = G.v*dt; G.p = Math.min(1, G.p + dp);
+    const dy = dp*H*SCROLL; G.groundOff += dy;
+    const st = stageOf(G.p);
+    if (st !== G.stage){ G.stage = st; banner(STAGES[st].title, STAGES[st].sub); if (st > 0) playSound("whoosh"); }
+
+    if (G.p < 0.97){
+      while (G.p > G.nextObs){ spawnObs(); G.nextObs += [0.011,0.0095,0.0075,0.012][st]*(0.7+Math.random()*0.6); }
+      while (G.p > G.nextStar){ G.objs.push({ k:"star", x:W*(0.1+Math.random()*0.8), y:-30, r:H*0.03, rot:0, spin:1.5 }); G.nextStar += 0.011*(0.7+Math.random()*0.6); }
+      if (st === 0) while (G.p > G.nextCloud){ G.objs.push({ k:"cloud", x:W*Math.random(), y:-80, r:H*(0.05+Math.random()*0.05), par:0.6 }); G.nextCloud += 0.005; }
+    }
+    const rx = W*G.x, ry = G.ry;
+    for (const o of G.objs){
+      o.y += dy*(o.par || 1); o.x += (o.vx || 0)*dt; if (o.spin) o.rot += o.spin*dt; if (o.flap !== undefined) o.flap += dt*10;
+      if (o.k === "bird" && (o.x < 20 || o.x > W-20)) o.vx *= -1;
+      if (o.k === "cloud" || o.dead) continue;
+      const hit = Math.hypot(o.x - rx, o.y - ry) < o.r*0.85 + s*0.85;
+      if (!hit) continue;
+      if (o.k === "star"){
+        o.dead = true; G.stars++; G.fuel = Math.min(100, G.fuel + 22); playSound("ding");
+        puff(o.x, o.y, 14, ["#FFD84D","#FFFFFF","#FFB020"], 140, 0.6);
+      } else if (G.inv <= 0){
+        o.dead = true; G.bumps++; G.v *= 0.35; G.inv = 1.3; G.shake = 0.35; playSound("bonk");
+        puff(o.x, o.y, 18, o.k === "bird" ? ["#FFFFFF","#3A3A5A"] : ["#A79C8E","#6E665C","#FFB020"], 180, 0.8);
+      }
+    }
+    G.objs = G.objs.filter(o => !o.dead && o.y < H + 120);
+    if (thrust || Math.random() < 0.3){
+      const n = thrust ? 3 : 1;
+      for (let i=0;i<n;i++) G.parts.push({ x:rx + (Math.random()-0.5)*s*0.5, y:ry + s*1.5, vx:(Math.random()-0.5)*40, vy:120+Math.random()*120,
+        life:0.5, max:0.5, c:thrust ? (Math.random()<0.5 ? "#FFB020" : "#FF5A36") : "#C3C8DA", s:3+Math.random()*5, grav:0 });
+    }
+    if (G.p >= 1){ G.phase = "landing"; G.land = 0; rumbleOff(); G.banner = null; playSound("whoosh"); }
+  } else if (G.phase === "landing"){
+    G.land += dt; G.ry -= H*0.9*dt; G.fade = clamp(G.land/0.8, 0, 1);
+    if (G.land >= 0.9){ G.phase = "moon"; G.mT = 0; G.objs = []; G.x = 0.5; G.vx = 0; }
+  } else if (G.phase === "moon"){
+    G.mT += dt; G.fade = clamp(1 - G.mT/0.6, 0, 1);
+    const k = clamp(G.mT/3.4, 0, 1), e = 1 - Math.pow(1-k, 3);
+    const groundY = H*0.82;
+    G.ry = lerp(-H*0.15, groundY - s*1.1 - s*0.3, e);
+    if (k < 1){
+      rumbleOn(0.7);
+      G.parts.push({ x:W*0.5 + (Math.random()-0.5)*s*0.5, y:G.ry + s*1.5, vx:(Math.random()-0.5)*40, vy:160, life:0.35, max:0.35, c:Math.random()<0.5?"#FFB020":"#FF5A36", s:3+Math.random()*4, grav:0 });
+    } else {
+      rumbleOff(); G.phase = "won"; G.wonAt = G.t; playSound("cheer");
+      puff(W*0.5, groundY, 40, ["#C9C4B8","#A49F94"], 160, 1.2, 60);
+      for (let i=0;i<90;i++) G.parts.push({ x:W*Math.random(), y:-10 - Math.random()*H*0.4, vx:(Math.random()-0.5)*60, vy:60+Math.random()*80,
+        life:4, max:4, c:["#FFD84D","#FF5A36","#7FD6FF","#7CE0A3","#B69CFF","#FF8FB1"][i%6], s:5, grav:40, conf:true, rot:Math.random()*6 });
+    }
+  } else if (G.phase === "won"){
+    if (pressed && G.t - G.wonAt > 2) resetGame();
+  }
+
+  for (const q of G.parts){ q.x += q.vx*dt; q.y += q.vy*dt; q.vy += (q.grav||0)*dt; q.life -= dt; if (q.rot !== undefined) q.rot += dt*6; }
+  G.parts = G.parts.filter(q => q.life > 0);
+  if (G.phase !== "flying" && G.phase !== "moon") rumbleOff();
+}
+
+/* ---- drawing ---- */
+const hex = h => [1,3,5].map(i => parseInt(h.slice(i,i+2),16));
+const mix = (a,b,t) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v,i)=>Math.round(lerp(v,B[i],t))).join(",")})`; };
+
+function drawRocket(x, y, s, rot, flame, alpha = 1){
+  g.save(); g.globalAlpha = alpha; g.translate(x, y); g.rotate(rot);
+  const bw = s*1.1, bh = s*2.2; g.lineJoin = "round"; g.lineWidth = Math.max(2, s*0.09); g.strokeStyle = "#1B1B3A";
+  if (flame){
+    const f = s*(1.2 + Math.random()*0.7);
+    g.fillStyle = "#FF5A36"; g.beginPath(); g.moveTo(-bw*0.38, bh/2); g.quadraticCurveTo(0, bh/2 + f*1.7, bw*0.38, bh/2); g.fill();
+    g.fillStyle = "#FFD84D"; g.beginPath(); g.moveTo(-bw*0.22, bh/2); g.quadraticCurveTo(0, bh/2 + f*1.05, bw*0.22, bh/2); g.fill();
+  }
+  for (const sgn of [-1, 1]){
+    g.fillStyle = "#E8412C"; g.beginPath(); g.moveTo(sgn*bw/2, bh*0.1); g.lineTo(sgn*bw*1.1, bh/2 + s*0.3); g.lineTo(sgn*bw/2, bh/2); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = "#D9853B"; g.beginPath(); g.moveTo(sgn*bw*0.55, bh*0.24); g.lineTo(sgn*bw*0.95, bh/2 + s*0.18); g.lineTo(sgn*bw*0.55, bh/2 - s*0.05); g.closePath(); g.fill();
+  }
+  g.fillStyle = "#F4F6FF"; g.beginPath(); g.roundRect(-bw/2, -bh/2, bw, bh, s*0.25); g.fill(); g.stroke();
+  g.fillStyle = "#E8412C"; g.beginPath(); g.moveTo(-bw/2, -bh/2 + s*0.1); g.quadraticCurveTo(0, -bh/2 - s*1.5, bw/2, -bh/2 + s*0.1); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = "#D9853B"; g.beginPath(); g.arc(0, -bh*0.08, bw*0.27, 0, Math.PI*2); g.fill(); g.stroke();
+  g.fillStyle = "rgba(255,255,255,.6)"; g.beginPath(); g.arc(-bw*0.08, -bh*0.08 - bw*0.08, bw*0.08, 0, Math.PI*2); g.fill();
+  g.restore();
+}
+function drawEarth(cx, cy, R){
+  const glow = g.createRadialGradient(cx, cy, R*0.95, cx, cy, R*1.15);
+  glow.addColorStop(0, "rgba(120,190,255,.45)"); glow.addColorStop(1, "rgba(120,190,255,0)");
+  g.fillStyle = glow; g.beginPath(); g.arc(cx, cy, R*1.15, 0, Math.PI*2); g.fill();
+  g.save(); g.beginPath(); g.arc(cx, cy, R, 0, Math.PI*2); g.clip();
+  g.fillStyle = "#2F7FD8"; g.fillRect(cx-R, cy-R, R*2, R*2);
+  g.fillStyle = "#4CBF6B"; for (const [a,b,r] of LAND){ g.beginPath(); g.arc(cx + a*R, cy + b*R, r*R, 0, Math.PI*2); g.fill(); }
+  g.fillStyle = "rgba(255,255,255,.55)"; g.beginPath(); g.ellipse(cx - R*0.1, cy - R*0.62, R*0.5, R*0.08, 0.2, 0, Math.PI*2); g.fill();
+  g.fillStyle = "rgba(0,0,30,.28)"; g.beginPath(); g.arc(cx + R*0.35, cy + R*0.3, R, 0, Math.PI*2); g.fill();
+  g.restore();
+}
+function drawMoon(cx, cy, R){
+  g.save(); g.beginPath(); g.arc(cx, cy, R, 0, Math.PI*2); g.clip();
+  g.fillStyle = "#E2DED3"; g.fillRect(cx-R, cy-R, R*2, R*2);
+  g.fillStyle = "#C2BCAF"; for (const [a,b,r] of CRATERS){ g.beginPath(); g.arc(cx + a*R, cy + b*R, r*R, 0, Math.PI*2); g.fill(); }
+  g.fillStyle = "rgba(0,0,20,.25)"; g.beginPath(); g.arc(cx + R*0.3, cy + R*0.25, R, 0, Math.PI*2); g.fill();
+  g.restore();
+}
+function drawStars(alpha, drift){
+  if (alpha <= 0) return;
+  for (const st of bgStars){
+    const y = ((st.y*H + drift*st.s) % H + H) % H;
+    g.globalAlpha = alpha*(0.55 + 0.45*Math.sin(G.t*2 + st.tw)); g.fillStyle = "#FFFFFF";
+    g.fillRect(st.x*W, y, st.s, st.s);
+  }
+  g.globalAlpha = 1;
+}
+function drawObj(o){
+  g.save(); g.translate(o.x, o.y);
+  if (o.k === "cloud"){
+    g.fillStyle = "rgba(255,255,255,.85)";
+    [[0,0,1],[-0.9,0.2,0.7],[0.9,0.25,0.75],[0.3,-0.4,0.6]].forEach(([a,b,r]) => { g.beginPath(); g.arc(a*o.r, b*o.r, r*o.r, 0, Math.PI*2); g.fill(); });
+  } else if (o.k === "bird"){
+    const f = Math.sin(o.flap)*o.r*0.5; g.strokeStyle = "#1B1B3A"; g.lineWidth = Math.max(3, o.r*0.18); g.lineCap = "round";
+    g.beginPath(); g.moveTo(-o.r, -f); g.quadraticCurveTo(-o.r*0.4, -o.r*0.2, 0, o.r*0.15); g.quadraticCurveTo(o.r*0.4, -o.r*0.2, o.r, -f); g.stroke();
+  } else if (o.k === "sat"){
+    g.rotate(o.rot); const r = o.r; g.strokeStyle = "#1B1B3A"; g.lineWidth = 2;
+    g.fillStyle = "#3D6FD9"; g.fillRect(-r*1.4, -r*0.3, r*0.8, r*0.6); g.strokeRect(-r*1.4, -r*0.3, r*0.8, r*0.6);
+    g.fillRect(r*0.6, -r*0.3, r*0.8, r*0.6); g.strokeRect(r*0.6, -r*0.3, r*0.8, r*0.6);
+    g.fillStyle = "#F2C14E"; g.fillRect(-r*0.6, -r*0.45, r*1.2, r*0.9); g.strokeRect(-r*0.6, -r*0.45, r*1.2, r*0.9);
+    g.beginPath(); g.moveTo(0, -r*0.45); g.lineTo(0, -r*0.9); g.stroke(); g.beginPath(); g.arc(0, -r*0.95, r*0.12, 0, Math.PI*2); g.stroke();
+  } else if (o.k === "rock"){
+    g.rotate(o.rot); g.fillStyle = "#8C8173"; g.strokeStyle = "#1B1B3A"; g.lineWidth = 2.5; g.beginPath();
+    o.pts.forEach((m, i) => { const a = i/o.pts.length*Math.PI*2; const px = Math.cos(a)*o.r*m, py = Math.sin(a)*o.r*m; i ? g.lineTo(px,py) : g.moveTo(px,py); });
+    g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = "#6E655A"; g.beginPath(); g.arc(-o.r*0.25, -o.r*0.15, o.r*0.22, 0, Math.PI*2); g.arc(o.r*0.3, o.r*0.25, o.r*0.14, 0, Math.PI*2); g.fill();
+  } else if (o.k === "star"){
+    g.rotate(o.rot*0.3); const r = o.r*(1 + Math.sin(G.t*6)*0.08);
+    g.fillStyle = "#FFD84D"; g.strokeStyle = "#1B1B3A"; g.lineWidth = 2.5; g.beginPath();
+    for (let i=0;i<10;i++){ const a = i*Math.PI/5 - Math.PI/2, rr = i%2 ? r*0.45 : r; g.lineTo(Math.cos(a)*rr, Math.sin(a)*rr); }
+    g.closePath(); g.fill(); g.stroke();
+  }
+  g.restore();
+}
+function drawLaunchSite(){
+  const gy = groundTop(); if (gy > H + 10) return;
+  g.fillStyle = "#4CBF6B"; g.fillRect(0, gy, W, H - gy + 400);
+  g.fillStyle = "#3EA65B"; g.beginPath(); g.ellipse(W*0.15, gy + 6, W*0.25, 26, 0, Math.PI, 0); g.ellipse(W*0.85, gy + 8, W*0.3, 30, 0, Math.PI, 0); g.fill();
+  const s = rs(), px = W*0.5;
+  g.fillStyle = "#5B5F78"; g.fillRect(px - s*2.2, gy - s*0.3, s*4.4, s*0.4);
+  const tx = px - s*2.6, top = gy - s*4.6; g.strokeStyle = "#5B5F78"; g.lineWidth = 4;
+  g.strokeRect(tx - s*0.5, top, s*0.6, gy - top);
+  for (let y = top; y < gy - s*0.4; y += s*0.6){ g.beginPath(); g.moveTo(tx - s*0.5, y); g.lineTo(tx + s*0.1, y + s*0.6); g.stroke(); }
+}
+function txt(str, x, y, size, color = "#FFFFFF", align = "center", weight = 800){
+  g.font = `${weight} ${size}px ${FONT}`; g.textAlign = align; g.textBaseline = "middle"; g.fillStyle = color; g.fillText(str, x, y);
+}
+function card(x, y, w, h){
+  g.fillStyle = "rgba(27,27,58,.88)"; g.strokeStyle = "#FFFFFF"; g.lineWidth = 3;
+  g.beginPath(); g.roundRect(x, y, w, h, 18); g.fill(); g.stroke();
+}
+function drawHUD(){
+  if (!["flying","countdown","landing"].includes(G.phase)) return;
+  const x0 = 64, x1 = W - 64, y = 28;
+  g.strokeStyle = "rgba(255,255,255,.5)"; g.lineWidth = 6; g.lineCap = "round"; g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+  g.strokeStyle = "#FFD84D"; g.beginPath(); g.moveTo(x0, y); g.lineTo(lerp(x0, x1, G.p), y); g.stroke();
+  drawEarth(x0 - 24, y, 13); drawMoon(x1 + 24, y, 12);
+  drawRocket(lerp(x0, x1, G.p), y, 7, Math.PI/2, false);
+  const km = Math.round(kmAt(G.p));
+  txt(km.toLocaleString("en-GB") + " km up", 20, 64, 24, "#FFFFFF", "left");
+  // fuel
+  const fx = 20, fy = H - 44, fw = Math.min(220, W*0.35);
+  txt("FUEL", fx, fy - 18, 17, "#FFFFFF", "left");
+  g.fillStyle = "rgba(255,255,255,.25)"; g.beginPath(); g.roundRect(fx, fy, fw, 20, 10); g.fill();
+  g.fillStyle = G.fuel > 25 ? "#7CE0A3" : (Math.sin(G.t*10) > 0 ? "#FF5A36" : "#FFD84D");
+  g.beginPath(); g.roundRect(fx, fy, Math.max(0.01, fw*G.fuel/100), 20, 10); g.fill();
+  txt("Stars: " + G.stars, W - 20, H - 34, 24, "#FFD84D", "right");
+}
+function drawOverlays(){
+  if (G.phase === "ready"){
+    const w = Math.min(560, W - 40), h = 190, x = (W - w)/2, y = H*0.16;
+    card(x, y, w, h);
+    txt("Mission: fly to the Moon", W/2, y + 42, Math.min(36, w/14));
+    txt("Touch BOOST to start the countdown", W/2, y + 92, Math.min(26, w/20), "#FFD84D");
+    txt("Fins steer left and right. Catch stars for fuel!", W/2, y + 134, Math.min(20, w/26), "#FFFFFF", "center", 600);
+    txt("Keyboard: Space = boost, arrow keys = steer", W/2, y + 164, 15, "rgba(255,255,255,.7)", "center", 600);
+  }
+  if (G.phase === "countdown"){
+    const n = Math.max(1, Math.ceil(G.cd)); const k = n - G.cd;
+    txt(String(n), W/2, H*0.35, Math.min(H*0.3, 200)*(1.2 - k*0.3), "#FFFFFF");
+  }
+  if (G.banner){
+    const a = clamp(Math.min(G.banner.t/0.25, (3.2 - G.banner.t)/0.5), 0, 1); g.globalAlpha = a;
+    const w = Math.min(620, W - 40), x = (W - w)/2, y = H*0.13; card(x, y, w, 100);
+    txt(G.banner.title, W/2, y + 36, Math.min(32, w/16)); txt(G.banner.sub, W/2, y + 72, Math.min(21, w/24), "#FFD84D", "center", 600);
+    g.globalAlpha = 1;
+  }
+  if (G.fade > 0){ g.fillStyle = `rgba(2,3,12,${G.fade})`; g.fillRect(0, 0, W, H); }
+  if (G.phase === "won" && G.t - G.wonAt > 0.8){
+    const w = Math.min(560, W - 40), h = 220, x = (W - w)/2, y = H*0.1; card(x, y, w, h);
+    txt("You landed on the Moon!", W/2, y + 44, Math.min(38, w/13));
+    const m = Math.floor(G.time/60), sec = Math.round(G.time % 60);
+    txt(`Time: ${m}:${String(sec).padStart(2,"0")}    Stars: ${G.stars}    Bumps: ${G.bumps}`, W/2, y + 100, Math.min(24, w/22), "#FFD84D");
+    txt("384,400 km in one go. Amazing flying!", W/2, y + 144, Math.min(20, w/26), "#FFFFFF", "center", 600);
+    if (G.t - G.wonAt > 2) txt("Touch BOOST to fly again", W/2, y + 184, Math.min(22, w/24), "#7CE0A3");
+  }
+}
+function drawFlight(){
+  const p = G.p, t1 = clamp(p/0.2, 0, 1);
+  const top = p < 0.2 ? mix("#4FA8F0", "#050820", t1) : mix("#050820", "#02030C", clamp((p-0.2)/0.8, 0, 1));
+  const bot = p < 0.2 ? mix("#BDE6FF", "#0B1446", t1) : mix("#0B1446", "#060818", clamp((p-0.2)/0.8, 0, 1));
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, top); bg.addColorStop(1, bot);
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  drawStars(clamp((p - 0.08)/0.12, 0, 1), G.groundOff*0.05);
+  if (p > 0.16){
+    const k = clamp((p - 0.16)/0.84, 0, 1), e = Math.sqrt(k);
+    const R = lerp(W*1.1, Math.min(W,H)*0.07, e);
+    drawEarth(lerp(W*0.5, W*0.18, e), lerp(H + R*0.55, H - R*1.6, e), R);
+  }
+  if (p > 0.5){
+    const k = clamp((p - 0.5)/0.5, 0, 1), R = lerp(Math.min(W,H)*0.02, Math.min(W,H)*0.32, k*k);
+    drawMoon(W*0.7, lerp(H*0.14, R*0.35, k), R);
+  }
+  drawLaunchSite();
+  G.objs.filter(o => o.k === "cloud").forEach(drawObj);
+  G.objs.filter(o => o.k !== "cloud").forEach(drawObj);
+  drawParts();
+  const s = rs(), blink = G.inv > 0 && Math.floor(G.t*12) % 2 === 0;
+  if (G.phase === "ready" || G.phase === "countdown"){
+    const jig = G.phase === "countdown" ? (Math.random()-0.5)*2.5 : 0;
+    drawRocket(W*0.5 + jig, padY(), s, 0, false);
+  } else {
+    drawRocket(W*G.x, G.ry, s, G.vx*0.5, isDown("boost") && G.fuel > 0 && G.phase === "flying", blink ? 0.35 : 1);
+  }
+}
+function drawMoonScene(){
+  g.fillStyle = "#02030C"; g.fillRect(0, 0, W, H);
+  drawStars(1, 0);
+  drawEarth(W*0.8, H*0.2, Math.min(W,H)*0.08);
+  const gy = H*0.82;
+  g.fillStyle = "#CFCABD"; g.beginPath(); g.moveTo(0, H);
+  for (let x=0;x<=W;x+=20) g.lineTo(x, gy + Math.sin(x*0.013)*10 + Math.sin(x*0.041)*5 + (Math.abs(x - W/2) < W*0.12 ? -Math.sin(x*0.013)*10 - Math.sin(x*0.041)*5 : 0));
+  g.lineTo(W, H); g.closePath(); g.fill();
+  g.fillStyle = "#B3AD9F"; [[0.15,0.9,40],[0.78,0.93,55],[0.35,0.95,25],[0.92,0.86,22]].forEach(([a,b,r]) => { g.beginPath(); g.ellipse(W*a, H*b, r, r*0.3, 0, 0, Math.PI*2); g.fill(); });
+  drawParts();
+  drawRocket(W*0.5, G.ry, rs(), 0, G.phase === "moon" && G.mT < 3.4);
+}
+function drawParts(){
+  for (const q of G.parts){
+    g.globalAlpha = clamp(q.life/q.max, 0, 1); g.fillStyle = q.c;
+    if (q.conf){ g.save(); g.translate(q.x, q.y); g.rotate(q.rot); g.fillRect(-q.s, -q.s*0.4, q.s*2, q.s*0.8); g.restore(); }
+    else { g.beginPath(); g.arc(q.x, q.y, q.s, 0, Math.PI*2); g.fill(); }
+  }
+  g.globalAlpha = 1;
+}
+function draw(){
+  g.save();
+  if (G.shake > 0){ const m = 14*G.shake/0.35; g.translate((Math.random()-0.5)*m, (Math.random()-0.5)*m); }
+  if (G.phase === "moon" || G.phase === "won") drawMoonScene(); else drawFlight();
+  g.restore();
+  drawHUD(); drawOverlays();
+}
+
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(0.05, (now - last)/1000); last = now;
+  if (current === 4){ update(dt); draw(); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+renderStepper(); renderControls(); updateProgress();
+})();
+</script>
+</body>
+</html>
