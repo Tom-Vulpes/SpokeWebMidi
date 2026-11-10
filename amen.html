@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Amen Break Slicer</title>
-<link rel="preload" href="assets/amen.wav" as="fetch" crossorigin>
+<link rel="preload" href="assets/amen.ogg" as="fetch" crossorigin>
 <style>
 :root{--bg:#0b0b0d;--panel:#16161a;--line:#2a2a31;--dim:#4a4f5c;--text:#e8e6e1;--muted:#8a8a93;--hot:#ffb000}
 *{box-sizing:border-box}
@@ -13,7 +13,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 #intro{padding:16px 16px 12px;border-bottom:1px solid var(--line)}
 #intro h1{margin:0 0 6px;font-size:18px;letter-spacing:.02em}
 #intro h1 span{color:var(--muted);font-weight:400;font-size:13px}
-#intro p{margin:0;max-width:92ch;color:#c4c2bd;font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+#intro p{margin:0;color:#c4c2bd;font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
 #controls{background:var(--panel);border-bottom:1px solid var(--line)}
 .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px}
 #options{display:flex;flex-wrap:wrap;gap:12px 28px;padding:4px 16px 14px;border-top:1px solid var(--line)}
@@ -50,7 +50,7 @@ body.drag #stage{outline:2px dashed var(--hot);outline-offset:-8px}
 <body>
 <header id="intro">
   <h1>The Amen break <span>· The Winstons, “Amen, Brother”, 1969</span></h1>
-  <p>In 1969 the Washington, D.C. soul group The Winstons put out “Color Him Father”, with an instrumental called “Amen, Brother” on the B-side. Partway through, drummer Gregory Coleman plays a four-bar solo lasting about six seconds. In the late 1980s it was reissued on the <em>Ultimate Breaks and Beats</em> compilations and sampled by hip-hop producers. Sped up and chopped into pieces, it became the backbone of jungle and drum and bass, and it is widely thought to be one of the most sampled recordings ever made. Coleman and bandleader Richard L. Spencer, who owned the copyright, were never paid for that sampling, and Coleman died homeless in 2006. Here the break is cut into 27 pieces, one for each pad on the SPOKE board.</p>
+  <p>Gregory Coleman’s six-second drum solo on The Winstons’ 1969 B-side “Amen, Brother” became one of the most sampled recordings ever, the backbone of hip hop, jungle and drum and bass. Neither he nor the band was ever paid for it. Here it is cut into 27 pieces, one for each pad on the SPOKE board.</p>
 </header>
 <div id="controls">
   <div class="bar">
@@ -116,7 +116,7 @@ const N = 27;
 const KEYS = '1234567890qwertyuiopasdfghj'; // computer-keyboard test triggers
 const STORE = 'amen-slicer-v2';
 // The hosted recording, relative to this page. Download starts straight away.
-const DEFAULT_AUDIO = 'assets/amen.wav';
+const DEFAULT_AUDIO = 'assets/amen.ogg';
 const defaultAudio = fetch(DEFAULT_AUDIO).then(r => r.ok ? r.arrayBuffer() : Promise.reject(new Error('HTTP ' + r.status)));
 defaultAudio.catch(() => {});
 // SPOKE board default note numbers, in segment order (segment 1 = 98 … segment 27 = 36)
