@@ -1,0 +1,3458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPOKE Coding Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f0f0f;--surface:#171717;--surface2:#1f1f1f;--border:#2a2a2a;--border2:#333;
+  --text:#e8e8e8;--muted:#888;--accent:#ff6b2b;--accent2:#ff9a5c;--green:#3ddc84;
+  --red:#ff5555;--blue:#4a9eff;--warn:#ffb020;
+  --mono:'JetBrains Mono',monospace;--sans:'Space Grotesk',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+code{background:var(--surface2);border:1px solid var(--border2);padding:1px 6px;border-radius:4px;font-family:var(--mono);font-size:11px;color:var(--accent2)}
+
+/* ── buttons ── */
+.btn{padding:9px 20px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:all .2s;white-space:nowrap}
+.btn:hover{background:var(--border2);border-color:#444}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-accent:hover{background:#e85a1f;border-color:#e85a1f}
+.btn-green{background:var(--green);border-color:var(--green);color:#000}
+.btn-green:hover{background:#35c075;border-color:#35c075}
+.btn-blue{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-blue:hover{background:#3a8ae6;border-color:#3a8ae6}
+.btn-outline-green{background:transparent;border:2px solid var(--green);color:var(--green)}
+.btn-outline-green:hover{background:var(--green);color:#000}
+.btn-outline-green:disabled:hover{background:transparent;color:var(--green)}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
+.btn-lg{padding:12px 32px;font-size:15px}
+.btn-block{width:100%;margin-top:8px}
+.btn-skip{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:var(--sans)}
+.btn-skip:hover{color:var(--text)}
+
+/* ── splash ── */
+#splash{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.splash-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:36px 40px;max-width:660px;width:100%;text-align:center}
+.brand{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:10px}
+.logo{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff}
+.brand-text{font-size:24px;font-weight:700;letter-spacing:-.5px}
+.brand-text span,.topbar-name span{color:var(--accent)}
+.splash-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+.splash-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
+.splash-card{background:var(--bg);border:2px solid var(--border2);border-radius:12px;padding:24px 16px;cursor:pointer;transition:border-color .2s,transform .15s;text-align:center;font-family:var(--sans);color:var(--text)}
+.splash-card:hover{border-color:var(--accent);transform:translateY(-3px)}
+.splash-card.selected{border-color:var(--accent);background:#21140c}
+.splash-card-icon{height:52px;margin-bottom:10px;display:flex;align-items:center;justify-content:center}
+/* board icons: SPOKE = circle, Mini = white rectangle with green rectangle inside */
+.board-icon{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}
+.icon-spoke{width:26px;height:26px;border-radius:50%;background:var(--accent);box-shadow:inset 0 0 0 5px var(--accent),inset 0 0 0 7px rgba(255,255,255,.85)}
+.icon-mini{width:30px;height:20px;background:#fff;border-radius:3px}
+.icon-mini::after{content:'';width:62%;height:56%;background:#22b14c;border-radius:1px}
+.icon-spoke.lg{width:48px;height:48px;box-shadow:inset 0 0 0 9px var(--accent),inset 0 0 0 12px rgba(255,255,255,.85)}
+.icon-mini.lg{width:56px;height:36px;border-radius:4px}
+.icon-mini.xl{width:52px;height:34px;border-radius:4px}
+.splash-card-title{font-size:16px;font-weight:700;margin-bottom:6px}
+.splash-card-sub{font-size:11px;color:var(--muted);line-height:1.5}
+.splash-alt{margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}
+.splash-alt-title{font-size:13px;font-weight:600;margin-bottom:10px}
+.splash-alt-note{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6}
+.splash-alt-msg{font-size:12px;margin-top:10px;min-height:18px;line-height:1.5}
+
+/* ── mini setup wizard ── */
+#setupWizard{position:fixed;inset:0;background:var(--bg);z-index:8000;display:none;align-items:center;justify-content:center;flex-direction:column}
+.wizard-wrap{width:720px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column}
+.wizard-brand{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.wizard-progress{display:flex;gap:8px;margin-bottom:28px}
+.wizard-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:all .3s}
+.wizard-dot.active{background:var(--accent);width:24px;border-radius:4px}
+.wizard-dot.done{background:var(--green)}
+.wizard-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column}
+.wizard-card-header{padding:24px 28px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+.wizard-step-label{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.wizard-step-title{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.wizard-step-desc{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+.wizard-card-body{flex:1;overflow-y:auto;padding:24px 28px}
+.wizard-footer{padding:18px 28px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.step-list{display:flex;flex-direction:column;gap:14px}
+.step-row{display:flex;gap:14px;align-items:flex-start}
+.step-num{width:28px;height:28px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;font-family:var(--mono)}
+.step-text{font-size:14px;line-height:1.6;color:#ccc;padding-top:4px}
+.step-text strong{color:var(--text);font-weight:600}
+.step-text a{color:var(--accent2);text-decoration:none}
+.step-text a:hover{text-decoration:underline}
+.step-text code{font-size:12px}
+.step-note{background:rgba(255,107,43,.08);border:1px solid rgba(255,107,43,.25);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--accent2);margin-top:4px}
+.step-note strong{color:var(--accent)}
+.lib-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.lib-item{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px}
+.lib-icon{font-size:18px;flex-shrink:0}
+.lib-name{font-family:var(--mono);font-size:12px;color:var(--accent2);font-weight:600}
+.lib-desc{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── shared app chrome ── */
+.app{display:none;height:100vh;flex-direction:column}
+.topbar{min-height:48px;background:var(--surface);border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:6px 16px;gap:10px;flex-shrink:0;flex-wrap:wrap}
+.topbar-brand{display:flex;align-items:center;gap:8px}
+.topbar-logo{width:26px;height:26px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+.topbar-name{font-size:14px;font-weight:700;letter-spacing:-.3px}
+.board-badge{background:rgba(255,107,43,.12);border:1px solid var(--accent);color:var(--accent2);font-family:var(--sans);font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;cursor:pointer}
+.board-badge:hover{background:rgba(255,107,43,.25)}
+.topbar-divider{width:1px;height:20px;background:var(--border2);margin:0 4px}
+.topbar-actions{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.setup-again-btn{background:none;border:1px solid var(--border2);color:var(--muted);cursor:pointer;font-size:11px;font-family:var(--sans);padding:4px 10px;border-radius:6px}
+.setup-again-btn:hover{color:var(--text);border-color:#444}
+
+/* ── editor layout ── */
+.app-body{flex:1;display:flex;overflow:hidden;min-height:0}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border2);overflow-y:auto;flex-shrink:0}
+.sidebar-section-title,.rs-section-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:16px 14px 8px}
+.template-item{padding:10px 14px;cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.template-item:hover,.template-item.active{background:var(--surface2);border-left-color:var(--accent)}
+.template-name{font-size:13px;font-weight:600;margin-bottom:2px}
+.template-desc{font-size:11px;color:var(--muted)}
+.main-content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.editor-toolbar{height:38px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:6px;flex-shrink:0}
+.file-tab{display:flex;align-items:center;gap:6px;padding:0 10px;height:26px;background:var(--surface);border:1px solid var(--border2);border-radius:5px;font-size:12px;font-family:var(--mono);color:var(--muted)}
+.file-tab .dot{width:6px;height:6px;background:var(--green);border-radius:50%}
+.file-tab .dot.unsaved{background:var(--accent)}
+.toolbar-hint{font-size:11px;color:#555;margin-left:8px}
+.editor-area{flex:1;position:relative;overflow:hidden;min-height:0}
+#editor{width:100%;height:100%;font-family:var(--mono);font-size:13px;line-height:1.65;padding:16px 20px;background:#0c0c0c;color:#d4d4d4;border:none;outline:none;resize:none;tab-size:4}
+.console-panel{height:200px;background:#080808;border-top:1px solid var(--border2);display:flex;flex-direction:column;flex-shrink:0}
+.console-header{height:34px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0}
+.console-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);flex:1}
+.console-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0}
+.status-dot.connected{background:var(--green)}
+.console-output{flex:1;overflow-y:auto;padding:10px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--green)}
+.c-line{margin-bottom:1px;white-space:pre-wrap;word-break:break-all}
+.c-error{color:var(--red)}.c-info{color:var(--blue)}.c-warn{color:var(--warn)}.c-success{color:var(--green)}
+.c-ts{color:#444;margin-right:8px;user-select:none}
+.right-sidebar{width:290px;background:var(--surface);border-left:1px solid var(--border2);overflow-y:auto;flex-shrink:0}
+.rs-section{border-bottom:1px solid var(--border)}
+.rs-pad{padding:4px 14px 14px}
+.viz-header{display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+.viz-status{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.live-board{background:#0a0a0a;border:1px solid var(--border);border-radius:10px;padding:12px;margin:10px 14px 0}
+.audio-scope{width:100%;height:50px;border-radius:6px;margin-top:8px;display:block}
+.sample-status{font-size:10px;color:var(--muted);text-align:center;margin:6px 0 12px}
+.pin-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px 14px 14px}
+.pin-item{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.pin-item span{color:var(--accent2)}
+.hw-notes{padding:4px 14px 16px;font-size:12px;color:var(--muted);line-height:1.7}
+.hw-notes b,.hw-notes strong{color:var(--text);font-weight:600}
+.hw-notes ul{margin-left:16px}
+.warn-box{background:rgba(255,176,32,.08);border-left:3px solid var(--warn);padding:10px 12px;border-radius:4px;font-size:11px;line-height:1.5;color:#ccc;margin:4px 14px 14px}
+
+/* sensitivity panel */
+.sens-text{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+.sens-row{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.sens-row input[type=range]{flex:1;accent-color:var(--accent)}
+.sens-val{font-family:var(--mono);font-size:13px;color:var(--accent2);min-width:48px;text-align:right}
+.sens-scale{display:flex;justify-content:space-between;font-size:10px;color:#555;margin-bottom:6px}
+
+/* pads (live view + scale builder) */
+.pads-circle{position:relative;width:100%;max-width:210px;aspect-ratio:1/1;margin:0 auto}
+.pads-circle .pad{position:absolute;width:24px;height:24px;border-radius:50%;transform:translate(-50%,-50%)}
+.pads-circle .pads-centre{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:10px;color:#444;font-weight:700;letter-spacing:1px}
+.pads-cols{display:flex;gap:8px}
+.pads-cols .col{flex:1;display:flex;flex-direction:column;gap:3px}
+.pads-cols .pad{height:16px;border-radius:3px}
+.pad{background:var(--surface2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;color:#555;transition:all .08s;user-select:none}
+.pad.on{background:var(--accent);border-color:var(--accent2);box-shadow:0 0 8px rgba(255,107,43,.45);color:#fff}
+.pad.sel{background:var(--accent);border-color:#fff;color:#fff}
+.clickable .pad{cursor:pointer}
+.clickable .pad:hover{border-color:var(--accent);color:var(--text)}
+
+/* ── modals ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9500;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:820px;max-width:96vw;max-height:88vh;overflow:hidden;display:flex;flex-direction:column}
+.modal-head{padding:18px 24px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.modal-head-title{font-size:16px;font-weight:700}
+.modal-close-btn{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:2px 8px;border-radius:4px}
+.modal-close-btn:hover{background:var(--surface2);color:var(--text)}
+.modal-body{flex:1;overflow-y:auto;padding:18px 24px;display:flex;flex-direction:column;gap:14px}
+.modal-foot{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;flex-wrap:wrap}
+.preset-row{display:flex;flex-wrap:wrap;gap:8px}
+.preset-chip{padding:6px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text);font-family:var(--sans)}
+.preset-chip:hover{border-color:var(--accent);color:var(--accent)}
+.scale-layout{display:flex;gap:20px;align-items:flex-start}
+.scale-visual{width:240px;flex-shrink:0;background:#0a0a0a;border:1px solid var(--border);border-radius:10px;padding:14px;position:sticky;top:0}
+.scale-visual .pads-circle{max-width:212px}
+.scale-visual-hint{font-size:11px;color:var(--muted);text-align:center;margin-top:10px}
+.scale-grid{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.pad-sel{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 10px;transition:border-color .15s}
+.pad-sel.sel{border-color:var(--accent)}
+.pad-sel-label{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.note-sel{width:100%;background:var(--surface);border:1px solid var(--border2);color:var(--text);padding:6px 8px;border-radius:5px;font-size:12px;font-family:var(--mono);cursor:pointer;outline:none}
+.note-sel:focus{border-color:var(--accent)}
+.code-block{background:#0a0a0a;border:1px solid var(--border2);border-radius:8px;padding:12px;font-family:var(--mono);font-size:11px;line-height:1.7;color:#d4d4d4;white-space:pre;overflow:auto;max-height:52vh}
+.modal-label{font-size:12px;color:var(--muted)}
+
+/* ── sensor monitor ── */
+#monitorApp{overflow:hidden}
+.mon-scroll{flex:1;overflow-y:auto;padding:16px}
+.mon-container{max-width:1300px;margin:0 auto}
+.panel{background:var(--surface);border:1px solid var(--border2);border-radius:10px}
+.status-bar{padding:8px 14px;margin-bottom:12px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:10px}
+.mdot{width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0}
+.mdot.on{background:var(--green)}.mdot.warn{background:var(--warn)}
+.debug-box{background:#080808;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:#666;font-family:var(--mono);min-height:36px;display:flex;align-items:center;gap:8px}
+.debug-box span{color:var(--green);word-break:break-all}
+.guide{padding:16px 20px;margin-bottom:12px}
+.guide-title{font-size:13px;font-weight:700;color:var(--accent);display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.guide-title span{font-size:11px;color:#666;font-weight:400}
+.guide-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}
+.guide-step{background:var(--surface2);border-radius:8px;padding:12px;border:1px solid var(--border)}
+.g-num{display:inline-block;background:var(--accent);color:#fff;font-size:10px;font-weight:700;width:20px;height:20px;border-radius:50%;text-align:center;line-height:20px;margin-bottom:8px}
+.g-head{font-size:12px;font-weight:700;margin-bottom:5px}
+.g-body{font-size:11px;color:var(--muted);line-height:1.6}
+.g-body b{color:#ccc}
+.guide-collapsed .guide-steps{display:none}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.stat{padding:10px 14px}
+.stat-label{font-size:10px;color:var(--muted);margin-bottom:3px}
+.stat-val{font-size:22px;font-weight:700}
+.global-thresh{padding:14px 18px;margin-bottom:12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.global-thresh-label{font-size:12px;color:var(--accent);font-weight:700;white-space:nowrap}
+.global-thresh-hint{font-size:11px;color:#666}
+.drag-wrap{flex:1;min-width:200px;position:relative;height:26px;background:#0a0a0a;border-radius:4px;cursor:crosshair;user-select:none;touch-action:none}
+.tline{position:absolute;top:0;height:100%;width:4px;background:var(--warn);border-radius:2px;transform:translateX(-50%);cursor:ew-resize;z-index:2;pointer-events:none}
+.tline.global{background:var(--accent)}
+.tline-label{position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--warn);white-space:nowrap;font-family:var(--mono)}
+.tline.global .tline-label{color:var(--accent)}
+.sensors-panel{padding:14px}
+.sensors-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.panel-title{font-size:15px;font-weight:700;color:var(--accent)}
+.legend{font-size:10px;color:#666;line-height:1.6}
+.sensor-row{display:grid;grid-template-columns:96px 1fr 100px;align-items:center;gap:8px;padding:6px 0 4px;border-bottom:1px solid #222}
+.sensor-row:last-child{border-bottom:none}
+.sensor-label{font-size:11px;color:#ccc;line-height:1.4;font-family:var(--mono)}
+.sensor-label .sub{font-size:10px;color:#666;display:block;font-family:var(--sans)}
+.bar-fill{height:100%;border-radius:4px;background:#b85400;pointer-events:none;transition:background .08s}
+.bar-fill.active{background:#1f8a45}
+.sensor-vals{font-size:11px;display:flex;flex-direction:column;gap:1px;text-align:right;font-family:var(--mono)}
+.vr{color:var(--green)}.vt{color:var(--warn)}.vm{color:#666;font-size:9px}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#444}
+@media (max-width:1100px){.right-sidebar{width:250px}.sidebar{width:180px}}
+@media (max-width:700px){.scale-layout{flex-direction:column}.scale-visual{width:100%;position:static}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ SPLASH: choose board ═══════════ -->
+<div id="splash">
+  <div class="splash-box">
+    <div class="brand"><div class="logo">S</div><div class="brand-text">SPOKE <span>Coding Playground</span></div></div>
+    <div class="splash-sub">Code editor · templates · sensor monitor<br>Which board are you using?</div>
+    <div class="splash-cards">
+      <button class="splash-card" id="cardSpoke" onclick="selectBoard('spoke')">
+        <div class="splash-card-icon"><div class="board-icon icon-spoke lg"></div></div>
+        <div class="splash-card-title">SPOKE</div>
+        <div class="splash-card-sub">Main board · 27 touch pads · built-in RP2040 · NeoPixels</div>
+      </button>
+      <button class="splash-card" id="cardMini" onclick="selectBoard('mini')">
+        <div class="splash-card-icon"><div class="board-icon icon-mini lg"></div></div>
+        <div class="splash-card-title">SPOKE Mini</div>
+        <div class="splash-card-sub">Mini board · Raspberry Pi Pico · 26 pads · includes assembly &amp; flashing guide</div>
+      </button>
+    </div>
+    <button class="btn btn-accent btn-lg" id="splashBtn" onclick="launchBoard()" disabled>Continue →</button>
+    <div class="splash-alt">
+      <div class="splash-alt-title">Pads triggering on their own?</div>
+      <button class="btn btn-outline-green" id="quickFixBtn" onclick="quickFix('splash')" disabled>⚡ Quick fix</button>
+      <div class="splash-alt-note">Writes the factory default code.py for the board selected above with every pad's threshold set to 3000 (less sensitive).<br>Your current code.py is saved as <b>code.py.bak</b> first.</div>
+      <div class="splash-alt-msg" id="quickFixMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SPOKE MINI SETUP WIZARD ═══════════ -->
+<div id="setupWizard">
+  <div class="wizard-wrap">
+    <div class="wizard-brand">
+      <div class="board-icon icon-mini xl"></div>
+      <div class="brand-text">SPOKE <span>Mini</span></div>
+    </div>
+    <div class="wizard-progress" id="wizardProgress"></div>
+    <div class="wizard-card">
+      <div class="wizard-card-header">
+        <div class="wizard-step-label" id="stepLabel"></div>
+        <div class="wizard-step-title" id="stepTitle"></div>
+        <div class="wizard-step-desc" id="stepDesc"></div>
+      </div>
+      <div class="wizard-card-body" id="stepContent"></div>
+      <div class="wizard-footer">
+        <button class="btn-skip" onclick="finishWizard()">Skip setup →</button>
+        <div style="display:flex;gap:10px">
+          <button class="btn" id="wizBack" onclick="wizNav(-1)" style="display:none">← Back</button>
+          <button class="btn btn-accent" id="wizNext" onclick="wizNav(1)">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ EDITOR ═══════════ -->
+<div id="editorApp" class="app">
+  <div class="topbar">
+    <div class="topbar-brand"><div class="board-icon boardLogo"></div><div class="topbar-name">SPOKE <span>Coding Playground</span></div></div>
+    <button class="board-badge" onclick="goSplash()" title="Switch board"><span class="boardName">SPOKE</span> ↺</button>
+    <div class="topbar-divider"></div>
+    <button class="btn btn-sm" onclick="openFile()">📂 Open code.py</button>
+    <button class="btn btn-sm btn-accent" onclick="saveFile()">💾 Save to Board</button>
+    <div class="topbar-actions">
+      <button class="btn btn-sm btn-blue" onclick="openMonitor()">🎚 Sensor Monitor</button>
+      <button class="setup-again-btn" id="setupGuideBtn" onclick="showWizard()">⚙ Setup guide</button>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <div class="sidebar">
+      <div class="sidebar-section-title">Templates</div>
+      <div id="templateList"></div>
+      <div class="sidebar-section-title">Tools</div>
+      <div class="template-item" onclick="openMonitor()">
+        <div class="template-name">Sensor Monitor</div>
+        <div class="template-desc">Live pad readings &amp; per-pad thresholds</div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="editor-toolbar">
+        <div class="file-tab"><div class="dot" id="fileDot"></div><span id="fileName">code.py</span></div>
+        <span class="toolbar-hint" id="fileHint"></span>
+      </div>
+      <div class="editor-area"><textarea id="editor" spellcheck="false"></textarea></div>
+      <div class="console-panel">
+        <div class="console-header">
+          <div class="console-title">Serial Console</div>
+          <div class="console-status"><div class="status-dot" id="serialDot"></div><span id="serialStatusText">Disconnected</span></div>
+          <div style="display:flex;gap:6px;margin-left:12px">
+            <button class="btn btn-sm" id="serialConnBtn" onclick="toggleSerial()">Connect</button>
+            <button class="btn btn-sm" onclick="clearConsole()">Clear</button>
+          </div>
+        </div>
+        <div class="console-output" id="console"></div>
+      </div>
+    </div>
+
+    <div class="right-sidebar">
+      <div class="rs-section">
+        <div class="rs-section-title">Live View</div>
+        <div class="viz-header">
+          <div class="viz-status"><div class="status-dot" id="midiDot"></div><span id="midiStatusText">No MIDI</span></div>
+          <button class="btn btn-sm" onclick="connectMIDI()" id="midiBtn">Connect MIDI</button>
+        </div>
+        <div class="live-board">
+          <div id="livePads"></div>
+          <canvas id="audioScope" class="audio-scope" width="260" height="50"></canvas>
+        </div>
+        <div class="sample-status" id="sampleStatus">Samples load when you connect MIDI</div>
+      </div>
+
+      <div class="rs-section">
+        <div class="rs-section-title">Pad Sensitivity</div>
+        <div class="rs-pad">
+          <div class="sens-text">Pads firing on their own or too twitchy? Raise the threshold so a pad needs a firmer touch. Too high and pads stop responding.</div>
+          <div class="sens-row">
+            <input type="range" id="sensRange" min="500" max="10000" step="100" value="3000" oninput="document.getElementById('sensVal').textContent=this.value">
+            <span class="sens-val" id="sensVal">3000</span>
+          </div>
+          <div class="sens-scale"><span>more sensitive</span><span>less sensitive</span></div>
+          <button class="btn btn-sm btn-accent btn-block" onclick="applySensitivityToEditor()">Apply to code in editor</button>
+          <button class="btn btn-sm btn-outline-green btn-block" onclick="quickFix('editor')">⚡ Quick fix: write default code</button>
+          <button class="btn btn-sm btn-blue btn-block" onclick="openMonitor()">🎚 Tune each pad in Sensor Monitor →</button>
+        </div>
+      </div>
+
+      <div class="rs-section">
+        <div class="rs-section-title">Pin Mapping</div>
+        <div class="pin-grid" id="pinGrid"></div>
+      </div>
+
+      <div id="boardInfo"></div>
+
+      <div class="rs-section">
+        <div class="rs-section-title">Tips</div>
+        <div class="hw-notes"><ul>
+          <li><code>Ctrl+S</code> / <code>Cmd+S</code> saves to the board</li>
+          <li>The board restarts automatically after saving</li>
+          <li>Connect serial to see errors and print() output</li>
+          <li>Red console text = errors, blue = info</li>
+          <li>Test your code with a MIDI monitor or the Live View above</li>
+        </ul></div>
+        <div class="warn-box"><b>Browser:</b> this page uses the File System Access, Web Serial and Web MIDI APIs. Use Chrome, Edge or Opera — Firefox and Safari aren't supported.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SENSOR MONITOR ═══════════ -->
+<div id="monitorApp" class="app">
+  <div class="topbar">
+    <div class="topbar-brand"><div class="board-icon boardLogo"></div><div class="topbar-name">Sensor <span>Monitor</span></div></div>
+    <button class="board-badge" onclick="goSplash()" title="Switch board"><span class="boardName">SPOKE</span> ↺</button>
+    <div class="topbar-divider"></div>
+    <button class="btn btn-sm" onclick="leaveMonitor()">← Back to editor</button>
+    <div class="topbar-actions">
+      <button class="btn btn-sm" onclick="monitorOpenFile()">📂 Open code.py</button>
+      <button class="btn btn-sm btn-blue" onclick="uploadDiagnostic()">Upload diagnostic</button>
+      <button class="btn btn-sm btn-blue" id="monSerialBtn" onclick="toggleSerial()">Connect serial</button>
+      <button class="btn btn-sm btn-green" onclick="openThreshModal()">Download thresholds</button>
+    </div>
+  </div>
+  <div class="mon-scroll">
+    <div class="mon-container">
+      <div class="panel status-bar"><div class="mdot" id="monDot"></div><span id="monStatus">Open code.py to begin</span></div>
+      <div class="debug-box">Last serial line: <span id="debugLine">none yet</span></div>
+      <div class="panel guide" id="guide">
+        <div class="guide-title" onclick="toggleGuide()">How to use the Sensor Monitor <span id="guideToggle">click to collapse ▲</span></div>
+        <div class="guide-steps" id="guideSteps"></div>
+      </div>
+      <div class="stats-row">
+        <div class="panel stat"><div class="stat-label">Touch events</div><div class="stat-val" id="sTouchEvents">0</div></div>
+        <div class="panel stat"><div class="stat-label">MIDI events</div><div class="stat-val" id="sMidiEvents">0</div></div>
+        <div class="panel stat"><div class="stat-label">Active sensors</div><div class="stat-val" id="sActive">0</div></div>
+      </div>
+      <div class="panel global-thresh">
+        <div class="global-thresh-label">Global threshold</div>
+        <div class="drag-wrap" id="globalWrap">
+          <div class="tline global" id="globalLine" style="display:none;left:50%"><span class="tline-label" id="globalVal">--</span></div>
+        </div>
+        <div class="global-thresh-hint">Drag to set all at once, then fine-tune individually</div>
+        <button class="btn btn-sm" onclick="resetThresholds()">Reset all</button>
+      </div>
+      <div class="panel sensors-panel">
+        <div class="sensors-header">
+          <div class="panel-title">Sensors</div>
+          <div class="legend">Orange bar = raw value &nbsp;|&nbsp; Yellow marker = threshold (drag to set) &nbsp;|&nbsp; Bar turns green when triggered</div>
+        </div>
+        <div id="sensorList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SCALE BUILDER MODAL ═══════════ -->
+<div class="modal-overlay" id="scaleModal" onclick="if(event.target===this)closeScaleBuilder()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-head-title">🎹 Scale Builder — custom note per pad</div>
+      <button class="modal-close-btn" onclick="closeScaleBuilder()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="preset-row" id="presetRow"></div>
+      <div class="scale-layout">
+        <div class="scale-visual">
+          <div id="scalePads" class="clickable"></div>
+          <div class="scale-visual-hint">Click a pad to jump to its note</div>
+        </div>
+        <div class="scale-grid" id="scaleGrid"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeScaleBuilder()">Cancel</button>
+      <button class="btn btn-accent" onclick="generateScaleCode()">Generate Code</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ THRESHOLD EXPORT MODAL ═══════════ -->
+<div class="modal-overlay" id="threshModal" onclick="if(event.target===this)closeThreshModal()">
+  <div class="modal-box" style="width:720px">
+    <div class="modal-head">
+      <div class="modal-head-title">Save thresholds to device</div>
+      <button class="modal-close-btn" onclick="closeThreshModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-label" id="threshLabel"></div>
+      <pre class="code-block" id="codeFinal"></pre>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-blue" id="copyFinalBtn" onclick="copyFinal()">Copy</button>
+      <button class="btn btn-green" id="saveDeviceBtn" onclick="saveToDevice()">Save to device</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+//  CODE TEMPLATES (copied verbatim from the original pages)
+// ═══════════════════════════════════════════════════════════════════════
+const SPOKE_TEMPLATES = {
+                'basic': `# This is the default code for the main SPOKE board
+# Sets up touch pins as capacitive touch sensors and NeoPixels
+# MIDI-out is polyphonic on/off
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+import neopixel
+from rainbowio import colorwheel
+
+# MIDI note numbers corresponding to each touch pin
+midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
+
+# Define the touch pins
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,
+    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,
+    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
+    board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# State tracking
+note_played = [False] * len(touch_pins)
+
+# NeoPixel setup
+num_pixels = len(touch_sensors)
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Fill all pixels blue
+def all_blue():
+    pixels.fill((0, 0, 255))
+    pixels.show()
+
+# Start
+rainbow(0.01, 2, step_size=10)
+all_blue()
+
+# Main loop
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(midi_notes[i], 120))
+                note_played[i] = True
+                pixels[i] = (255, 0, 255)
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(midi_notes[i], 120))
+                note_played[i] = False
+                pixels[i] = (0, 0, 255)
+`,
+                
+                'neopixel': `# NeoPixel Playground - 27 Visual Effects!
+# Each pad triggers a different light show
+import time
+import board
+import touchio
+import neopixel
+from rainbowio import colorwheel
+import random
+
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,
+    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,
+    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
+    board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        pass
+
+num_pixels = len(touch_sensors)
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.15, auto_write=False)
+last_touched = [False] * num_pixels
+
+print("NeoPixel Playground! Touch pads for light shows:")
+print("1-3:Rainbow | 4-6:Waves | 7-9:Sparkle | 10-12:Pulse")
+print("13-15:Chase | 16-18:Strobe | 19-21:Fire | 22-24:Water | 25-27:Random")
+
+def sine(x):
+    x = x % 6.28
+    return x - (x**3)/6 if x < 3.14 else -(x-6.28) + ((x-6.28)**3)/6
+
+# 27 EFFECTS - One per pad!
+def rainbow_cycle(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel(int((i*256/num_pixels + time.monotonic()*50)) % 256)
+        pixels.show()
+
+def rainbow_chase(d=2.5):
+    s, o = time.monotonic(), 0
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel((i*10 + o) % 256)
+        pixels.show()
+        o = (o + 8) % 256
+        time.sleep(0.04)
+
+def rainbow_sparkle(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel(random.randint(0,255)) if random.random()>0.6 else (0,0,0)
+        pixels.show()
+        time.sleep(0.1)
+
+def red_wave(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = (int((1+sine(i*0.5+time.monotonic()*3))*100),0,0)
+        pixels.show()
+
+def blue_wave(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = (0,0,int((1+sine(i*0.5+time.monotonic()*3))*100))
+        pixels.show()
+
+def green_wave(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = (0,int((1+sine(i*0.5+time.monotonic()*3))*100),0)
+        pixels.show()
+
+def white_sparkle(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,0))
+        for _ in range(5):
+            pixels[random.randint(0,num_pixels-1)] = (200,200,200)
+        pixels.show()
+        time.sleep(0.1)
+
+def color_sparkle(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,0))
+        for _ in range(5):
+            pixels[random.randint(0,num_pixels-1)] = colorwheel(random.randint(0,255))
+        pixels.show()
+        time.sleep(0.1)
+
+def gold_sparkle(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,0))
+        for _ in range(5):
+            pixels[random.randint(0,num_pixels-1)] = (200,150,0)
+        pixels.show()
+        time.sleep(0.1)
+
+def red_pulse(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        v = int((1+sine(time.monotonic()*4))*100)
+        pixels.fill((v,0,0))
+        pixels.show()
+
+def blue_pulse(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        v = int((1+sine(time.monotonic()*4))*100)
+        pixels.fill((0,0,v))
+        pixels.show()
+
+def purple_pulse(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        v = int((1+sine(time.monotonic()*4))*100)
+        pixels.fill((v,0,v))
+        pixels.show()
+
+def red_chase(d=2.5):
+    s, p = time.monotonic(), 0
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,0))
+        for i in range(5):
+            pixels[(p+i)%num_pixels] = (200,0,0)
+        pixels.show()
+        p = (p+1) % num_pixels
+        time.sleep(0.04)
+
+def rainbow_smooth(d=2.5):
+    s, p = time.monotonic(), 0
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel((i+p)*256//num_pixels % 256)
+        pixels.show()
+        p = (p+2) % 256
+        time.sleep(0.04)
+
+def comet(d=2.5):
+    s, p = time.monotonic(), 0
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,0))
+        pixels[p] = (200,200,200)
+        pixels[(p-1)%num_pixels] = (80,80,80)
+        pixels[(p-2)%num_pixels] = (20,20,20)
+        pixels.show()
+        p = (p+1) % num_pixels
+        time.sleep(0.04)
+
+def white_strobe(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill((200,200,200))
+        pixels.show()
+        time.sleep(0.05)
+        pixels.fill((0,0,0))
+        pixels.show()
+        time.sleep(0.05)
+
+def color_strobe(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill(colorwheel(random.randint(0,255)))
+        pixels.show()
+        time.sleep(0.1)
+        pixels.fill((0,0,0))
+        pixels.show()
+        time.sleep(0.1)
+
+def alternate(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = (200,0,0) if i%2==0 else (0,0,200)
+        pixels.show()
+        time.sleep(0.1)
+        for i in range(num_pixels):
+            pixels[i] = (0,0,200) if i%2==0 else (200,0,0)
+        pixels.show()
+        time.sleep(0.1)
+
+def fire(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            f = random.randint(80,200)
+            pixels[i] = (f,int(f*0.3),0)
+        pixels.show()
+        time.sleep(0.06)
+
+def lava(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            v = int((1+sine(i*0.4+time.monotonic()*2))*80)
+            pixels[i] = (v,0,int(v*0.4))
+        pixels.show()
+
+def embers(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            v = random.randint(50,150)
+            pixels[i] = (v,int(v*0.2),0)
+        pixels.show()
+        time.sleep(0.1)
+
+def ocean(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            v = int((1+sine(i*0.3+time.monotonic()*2))*70)
+            pixels[i] = (0,v,int(v*1.5))
+        pixels.show()
+
+def bubbles(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill((0,0,40))
+        for _ in range(4):
+            pixels[random.randint(0,num_pixels-1)] = (80,150,200)
+        pixels.show()
+        time.sleep(0.15)
+
+def aqua(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = (0,200,200) if random.random()>0.7 else (0,30,60)
+        pixels.show()
+        time.sleep(0.1)
+
+def random_fill(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        pixels.fill(colorwheel(random.randint(0,255)))
+        pixels.show()
+        time.sleep(0.2)
+
+def random_all(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel(random.randint(0,255))
+        pixels.show()
+        time.sleep(0.1)
+
+def disco(d=2.5):
+    s = time.monotonic()
+    while time.monotonic() - s < d:
+        for i in range(num_pixels):
+            pixels[i] = colorwheel(random.randint(0,255)) if random.random()>0.5 else (0,0,0)
+        pixels.show()
+        time.sleep(0.05)
+
+effects = [rainbow_cycle, rainbow_chase, rainbow_sparkle, red_wave, blue_wave, green_wave,
+           white_sparkle, color_sparkle, gold_sparkle, red_pulse, blue_pulse, purple_pulse,
+           red_chase, rainbow_smooth, comet, white_strobe, color_strobe, alternate,
+           fire, lava, embers, ocean, bubbles, aqua, random_fill, random_all, disco]
+
+# Startup
+for j in range(0,256,10):
+    for i in range(num_pixels):
+        pixels[i] = colorwheel((i*256//num_pixels+j)%256)
+    pixels.show()
+pixels.fill((0,0,0))
+pixels.show()
+
+while True:
+    for i, ts in enumerate(touch_sensors):
+        if ts.value and not last_touched[i]:
+            print(f"Pad {i+1}")
+            effects[i]()
+            pixels.fill((0,0,0))
+            pixels.show()
+            last_touched[i] = True
+        elif not ts.value:
+            last_touched[i] = False
+    time.sleep(0.01)
+`,
+                
+                'drums': `# Drum Pads - 9 drum sounds with color feedback
+# Pads 10-18 trigger drum samples
+# Try it online: https://tom-vulpes.github.io/SpokeWebMidi/drums.html
+# 
+# Blue = Snares (pads 10-12)
+# Red = Bass (pads 13-16)
+# Gold = Cymbals (pads 17-18)
+import board
+import touchio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+import neopixel
+from rainbowio import colorwheel
+import time
+
+# Initialize MIDI on channel 10 (drums)
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=9)
+
+# Initialize NeoPixels
+num_pixels = 27
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# SPOKE default notes: [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, ...]
+# Drum notes are at specific positions in this sequence:
+# Pad 10 (76), Pad 11 (74), Pad 12 (72), Pad 13 (69), Pad 14 (67), Pad 15 (64), Pad 16 (62), Pad 17 (60), Pad 18 (57)
+
+# Use pads 10-18 for drums
+touch_pins = [
+    board.GP10,  # Pad 10 - Note 76 - Snare 3
+    board.GP11,  # Pad 11 - Note 74 - Snare 2
+    board.GP12,  # Pad 12 - Note 72 - Snare 1
+    board.GP13,  # Pad 13 - Note 69 - Bass 4
+    board.GP14,  # Pad 14 - Note 67 - Bass 3
+    board.GP15,  # Pad 15 - Note 64 - Bass 2
+    board.GP16,  # Pad 16 - Note 62 - Bass 1
+    board.GP17,  # Pad 17 - Note 60 - Cymbal 2
+    board.GP18   # Pad 18 - Note 57 - Cymbal 1
+]
+
+# Corresponding MIDI notes (these match SPOKE's default at these positions)
+drum_notes = [76, 74, 72, 69, 67, 64, 62, 60, 57]
+
+# Corresponding pad indices for NeoPixels (0-indexed, so pads 10-18 = indices 9-17)
+drum_pixels = [9, 10, 11, 12, 13, 14, 15, 16, 17]
+
+# Colors: Blue for snares (pads 10-12), Red for bass (pads 13-16), Gold for cymbals (pads 17-18)
+drum_colors = [
+    (102, 126, 234), # Pad 10 - Snare 3 - Blue
+    (102, 126, 234), # Pad 11 - Snare 2 - Blue
+    (102, 126, 234), # Pad 12 - Snare 1 - Blue
+    (233, 69, 96),   # Pad 13 - Bass 4 - Red
+    (233, 69, 96),   # Pad 14 - Bass 3 - Red
+    (233, 69, 96),   # Pad 15 - Bass 2 - Red
+    (233, 69, 96),   # Pad 16 - Bass 1 - Red
+    (255, 215, 0),   # Pad 17 - Cymbal 2 - Gold
+    (255, 215, 0)    # Pad 18 - Cymbal 1 - Gold
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+note_played = [False] * 9
+
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Start
+rainbow(0.01, 2, step_size=10)
+
+# Turn all LEDs off first
+pixels.fill((0, 0, 0))
+pixels.show()
+
+# Set initial colors - LEDs stay on to show which pads are drums
+for i in range(9):
+    pixels[drum_pixels[i]] = drum_colors[i]
+pixels.show()
+
+print("Drum pads ready!")
+print("Pads 10-12: Snares (Blue)")
+print("Pads 13-16: Bass (Red)")
+print("Pads 17-18: Cymbals (Gold)")
+
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(drum_notes[i], 127))
+                pixels[drum_pixels[i]] = (255, 255, 255)  # Flash white when touched
+                note_played[i] = True
+                print(f"Drum pad {drum_pixels[i] + 1}")
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(drum_notes[i], 0))
+                pixels[drum_pixels[i]] = drum_colors[i]  # Back to original color
+                note_played[i] = False
+`,
+                
+                'keyboard': `# Keyboard HID - Turn SPOKE into a USB keyboard
+# Each pad triggers a different keystroke
+# Perfect for gaming, shortcuts, or custom macros
+import time
+import board
+import touchio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+import neopixel
+from rainbowio import colorwheel
+
+# Initialize Keyboard
+kbd = Keyboard(usb_hid.devices)
+
+# Initialize NeoPixels
+num_pixels = 27
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# Define the touch pins
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7,
+    board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14,
+    board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21,
+    board.GP22, board.GP23, board.GP24, board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+# Keycode assignments for each pad - A through Z + one extra
+# First 26 pads are A-Z, pad 27 is SPACE
+# Customize these to your needs! Examples:
+# Numbers: Keycode.ONE, Keycode.TWO, etc.
+# Arrow keys: Keycode.UP_ARROW, Keycode.DOWN_ARROW, etc.
+# Modifiers: Keycode.SHIFT, Keycode.CONTROL, Keycode.ALT
+# Function keys: Keycode.F1, Keycode.F2, etc.
+# Special: Keycode.SPACE, Keycode.ENTER, Keycode.ESCAPE
+
+keycodes = [
+    Keycode.A,          # Pad 1
+    Keycode.B,          # Pad 2
+    Keycode.C,          # Pad 3
+    Keycode.D,          # Pad 4
+    Keycode.E,          # Pad 5
+    Keycode.F,          # Pad 6
+    Keycode.G,          # Pad 7
+    Keycode.H,          # Pad 8
+    Keycode.I,          # Pad 9
+    Keycode.J,          # Pad 10
+    Keycode.K,          # Pad 11
+    Keycode.L,          # Pad 12
+    Keycode.M,          # Pad 13
+    Keycode.N,          # Pad 14
+    Keycode.O,          # Pad 15
+    Keycode.P,          # Pad 16
+    Keycode.Q,          # Pad 17
+    Keycode.R,          # Pad 18
+    Keycode.S,          # Pad 19
+    Keycode.T,          # Pad 20
+    Keycode.U,          # Pad 21
+    Keycode.V,          # Pad 22
+    Keycode.W,          # Pad 23
+    Keycode.X,          # Pad 24
+    Keycode.Y,          # Pad 25
+    Keycode.Z,          # Pad 26
+    Keycode.SPACE       # Pad 27
+]
+
+# Rainbow colors for visual feedback
+pad_colors = [colorwheel(int(i * 256 / 27)) for i in range(27)]
+
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# State tracking
+key_pressed = [False] * 27
+
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Start
+rainbow(0.01, 2, step_size=10)
+pixels.fill((0, 0, 0))
+pixels.show()
+
+print("Keyboard HID ready!")
+print("Touch pads to send keystrokes")
+print("Edit keycodes array to customize keys")
+
+# Main loop
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not key_pressed[i]:
+                # Press the key
+                kbd.press(keycodes[i])
+                pixels[i] = pad_colors[i]
+                key_pressed[i] = True
+                print(f"Pad {i+1}: Key pressed")
+        else:
+            if key_pressed[i]:
+                # Release the key
+                kbd.release(keycodes[i])
+                pixels[i] = (0, 0, 0)
+                key_pressed[i] = False
+    
+    time.sleep(0.01)
+`,
+                
+                'gaming': `# Gaming Controls - Keyboard + Mouse for games
+# Minecraft-style controls with WASD movement and mouse actions
+# Perfect for gaming, includes common game keybinds
+import time
+import board
+import touchio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+from adafruit_hid.mouse import Mouse
+import neopixel
+from rainbowio import colorwheel
+
+# Initialize Keyboard and Mouse
+kbd = Keyboard(usb_hid.devices)
+mouse = Mouse(usb_hid.devices)
+
+# Initialize NeoPixels
+num_pixels = 27
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# Define the touch pins
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7,
+    board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14,
+    board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21,
+    board.GP22, board.GP23, board.GP24, board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+# Gaming controls - Minecraft/FPS style layout
+# Customize for your favorite game!
+controls = [
+    (Keycode.W, 'forward'),           # Pad 1 - Move Forward
+    (Keycode.A, 'left'),              # Pad 2 - Move Left
+    (Keycode.S, 'back'),              # Pad 3 - Move Back
+    (Keycode.D, 'right'),             # Pad 4 - Move Right
+    (Keycode.SPACE, 'jump'),          # Pad 5 - Jump/Fly Up
+    (Keycode.SHIFT, 'sneak'),         # Pad 6 - Sneak/Crouch
+    (Keycode.E, 'inventory'),         # Pad 7 - Inventory
+    (Keycode.Q, 'drop'),              # Pad 8 - Drop Item
+    (Keycode.F, 'swap'),              # Pad 9 - Swap Hands
+    (Keycode.ONE, 'slot1'),           # Pad 10 - Hotbar 1
+    (Keycode.TWO, 'slot2'),           # Pad 11 - Hotbar 2
+    (Keycode.THREE, 'slot3'),         # Pad 12 - Hotbar 3
+    (Keycode.FOUR, 'slot4'),          # Pad 13 - Hotbar 4
+    (Keycode.FIVE, 'slot5'),          # Pad 14 - Hotbar 5
+    (Keycode.SIX, 'slot6'),           # Pad 15 - Hotbar 6
+    (Keycode.SEVEN, 'slot7'),         # Pad 16 - Hotbar 7
+    (Keycode.EIGHT, 'slot8'),         # Pad 17 - Hotbar 8
+    (Keycode.NINE, 'slot9'),          # Pad 18 - Hotbar 9
+    ('LEFT_CLICK', 'attack'),         # Pad 19 - Attack/Break
+    ('RIGHT_CLICK', 'use'),           # Pad 20 - Use/Place
+    (Keycode.R, 'sprint'),            # Pad 21 - Sprint/Run
+    (Keycode.T, 'chat'),              # Pad 22 - Open Chat
+    (Keycode.ESCAPE, 'menu'),         # Pad 23 - Pause Menu
+    (Keycode.F3, 'debug'),            # Pad 24 - Debug Screen
+    (Keycode.F5, 'perspective'),      # Pad 25 - Change View
+    (Keycode.TAB, 'playerlist'),      # Pad 26 - Player List
+    (Keycode.ENTER, 'command')        # Pad 27 - Command/Chat Send
+]
+
+# Extract keycodes (already in correct format)
+keycodes = [control[0] for control in controls]
+
+# Color scheme for different control types
+# Movement (WASD) = Green, Actions = Blue, Hotbar = Orange, Mouse = Red
+control_colors = [
+    (0, 255, 0),      # Pad 1 - W (Green)
+    (0, 255, 0),      # Pad 2 - A (Green)
+    (0, 255, 0),      # Pad 3 - S (Green)
+    (0, 255, 0),      # Pad 4 - D (Green)
+    (0, 150, 255),    # Pad 5 - Space (Blue)
+    (0, 150, 255),    # Pad 6 - Shift (Blue)
+    (150, 0, 255),    # Pad 7 - E (Purple)
+    (150, 0, 255),    # Pad 8 - Q (Purple)
+    (150, 0, 255),    # Pad 9 - F (Purple)
+    (255, 150, 0),    # Pad 10 - 1 (Orange)
+    (255, 150, 0),    # Pad 11 - 2 (Orange)
+    (255, 150, 0),    # Pad 12 - 3 (Orange)
+    (255, 150, 0),    # Pad 13 - 4 (Orange)
+    (255, 150, 0),    # Pad 14 - 5 (Orange)
+    (255, 150, 0),    # Pad 15 - 6 (Orange)
+    (255, 150, 0),    # Pad 16 - 7 (Orange)
+    (255, 150, 0),    # Pad 17 - 8 (Orange)
+    (255, 150, 0),    # Pad 18 - 9 (Orange)
+    (255, 0, 0),      # Pad 19 - Left Click (Red)
+    (255, 0, 0),      # Pad 20 - Right Click (Red)
+    (0, 255, 255),    # Pad 21 - R (Cyan)
+    (255, 255, 0),    # Pad 22 - T (Yellow)
+    (255, 255, 255),  # Pad 23 - ESC (White)
+    (100, 100, 100),  # Pad 24 - F3 (Gray)
+    (100, 100, 100),  # Pad 25 - F5 (Gray)
+    (200, 200, 200),  # Pad 26 - TAB (Light Gray)
+    (255, 255, 0)     # Pad 27 - ENTER (Yellow)
+]
+
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# State tracking
+control_active = [False] * 27
+
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Start
+rainbow(0.01, 2, step_size=10)
+
+# Turn all LEDs off first
+pixels.fill((0, 0, 0))
+pixels.show()
+
+# Set control colors - LEDs stay on to show control layout
+for i in range(27):
+    pixels[i] = control_colors[i]
+pixels.show()
+
+print("Gaming Controls ready!")
+print("Green: WASD Movement")
+print("Orange: Hotbar 1-9")
+print("Red: Mouse Clicks")
+print("Blue/Purple/Cyan: Actions")
+print("")
+print("Pad layout:")
+for i, (keycode, action) in enumerate(controls):
+    # Display key name
+    if keycode == 'LEFT_CLICK':
+        key_name = 'LEFT_CLICK'
+    elif keycode == 'RIGHT_CLICK':
+        key_name = 'RIGHT_CLICK'
+    else:
+        # Get a readable name for the keycode
+        key_name = str(keycode).split('.')[-1] if hasattr(keycode, '__class__') else str(keycode)
+    print(f"Pad {i+1}: {key_name} ({action})")
+
+# Main loop
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not control_active[i]:
+                # Activate control
+                if keycodes[i] == 'LEFT_CLICK':
+                    mouse.press(Mouse.LEFT_BUTTON)
+                elif keycodes[i] == 'RIGHT_CLICK':
+                    mouse.press(Mouse.RIGHT_BUTTON)
+                else:
+                    kbd.press(keycodes[i])
+                
+                pixels[i] = (255, 255, 255)  # Flash white when pressed
+                control_active[i] = True
+                # Display readable key name
+                if keycodes[i] == 'LEFT_CLICK':
+                    key_name = 'LEFT_CLICK'
+                elif keycodes[i] == 'RIGHT_CLICK':
+                    key_name = 'RIGHT_CLICK'
+                else:
+                    key_name = str(keycodes[i]).split('.')[-1] if hasattr(keycodes[i], '__class__') else str(keycodes[i])
+                print(f"Pad {i+1}: {key_name} - {controls[i][1]}")
+        else:
+            if control_active[i]:
+                # Release control
+                if keycodes[i] == 'LEFT_CLICK':
+                    mouse.release(Mouse.LEFT_BUTTON)
+                elif keycodes[i] == 'RIGHT_CLICK':
+                    mouse.release(Mouse.RIGHT_BUTTON)
+                else:
+                    kbd.release(keycodes[i])
+                
+                pixels[i] = control_colors[i]  # Back to original color
+                control_active[i] = False
+    
+    time.sleep(0.01)
+`,
+                
+                'sequencer': `import board
+import touchio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+import neopixel
+from rainbowio import colorwheel
+import time
+
+# Initialize MIDI
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# Initialize NeoPixels
+num_pixels = 27
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# First 16 pads for 16-step sequencer
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6,
+    board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, board.GP12,
+    board.GP13, board.GP14, board.GP15, board.GP16
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# Sequencer state
+sequence = [False] * 16  # Which steps are active
+current_step = 0
+note = 60  # C4
+last_touched = [False] * 16
+
+# Colors
+COLOR_ACTIVE_STEP = (0, 100, 255)    # Blue - step is programmed
+COLOR_PLAYING = (0, 255, 0)          # Green - currently playing
+COLOR_OFF = (0, 0, 0)                # Off
+
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Start
+rainbow(0.01, 2, step_size=10)
+pixels.fill(COLOR_OFF)
+pixels.show()
+
+print("Step sequencer ready!")
+print("Touch pads to toggle steps")
+
+# Main loop
+last_step_time = time.monotonic()
+step_interval = 0.25  # 240 BPM
+
+while True:
+    # Check for pad touches to toggle steps
+    for i, touch_sensor in enumerate(touch_sensors):
+        # Detect new touch (rising edge)
+        if touch_sensor.value and not last_touched[i]:
+            sequence[i] = not sequence[i]
+            print(f"Step {i+1}: {'ON' if sequence[i] else 'OFF'}")
+            last_touched[i] = True
+        elif not touch_sensor.value:
+            last_touched[i] = False
+    
+    # Update LED display
+    for i in range(16):
+        if i == current_step:
+            pixels[i] = COLOR_PLAYING  # Current step is green
+        elif sequence[i]:
+            pixels[i] = COLOR_ACTIVE_STEP  # Programmed step is blue
+        else:
+            pixels[i] = COLOR_OFF
+    
+    pixels.show()
+    
+    # Advance sequencer
+    current_time = time.monotonic()
+    if current_time - last_step_time >= step_interval:
+        # Play current step if active
+        if sequence[current_step]:
+            midi.send(NoteOn(note, 100))
+            time.sleep(0.05)
+            midi.send(NoteOff(note, 0))
+        
+        # Advance to next step
+        current_step = (current_step + 1) % 16
+        last_step_time = current_time
+    
+    time.sleep(0.01)
+`,
+                
+                'sequences': `# Sequence Player - Looping Arpeggios
+# Hold a pad to play its arpeggio in a loop
+# Release to stop - each pad has a different sequence
+import time
+import board
+import touchio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+import neopixel
+from rainbowio import colorwheel
+
+# Define the touch pins
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7,
+    board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14,
+    board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21,
+    board.GP22, board.GP23, board.GP24, board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# NeoPixel setup
+num_pixels = len(touch_sensors)
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# Sequence configuration for each pin (up and down arpeggios)
+arpeggios = [
+    [48, 52, 55, 59, 62, 65, 62, 59],  # C major
+    [50, 53, 57, 60, 64, 67, 64, 60],  # D minor
+    [52, 55, 59, 62, 65, 69, 65, 62],  # E minor
+    [53, 57, 60, 64, 67, 71, 67, 64],  # F major
+    [55, 59, 62, 65, 69, 72, 69, 65],  # G major
+    [57, 60, 64, 67, 71, 74, 71, 67],  # A minor
+    [59, 62, 65, 69, 72, 76, 72, 69],  # B diminished
+    [60, 64, 67, 71, 74, 77, 74, 71],  # C major
+    [62, 65, 69, 72, 76, 79, 76, 72],  # D minor
+    [64, 67, 71, 74, 77, 81, 77, 74],  # E minor
+    [65, 69, 72, 76, 79, 83, 79, 76],  # F major
+    [67, 71, 74, 77, 81, 84, 81, 77],  # G major
+    [69, 72, 76, 79, 83, 86, 83, 79],  # A minor
+    [71, 74, 77, 81, 84, 88, 84, 81],  # B diminished
+    [72, 76, 79, 83, 86, 89, 86, 83],  # C major
+    [74, 77, 81, 84, 88, 91, 88, 84],  # D minor
+    [76, 79, 83, 86, 89, 93, 89, 86],  # E minor
+    [77, 81, 84, 88, 91, 95, 91, 88],  # F major
+    [79, 83, 86, 89, 93, 96, 93, 89],  # G major
+    [81, 84, 88, 91, 95, 98, 95, 91],  # A minor
+    [83, 86, 89, 93, 96, 100, 96, 93], # B diminished
+    [84, 88, 91, 95, 98, 101, 98, 95], # C major
+    [86, 89, 93, 96, 100, 103, 100, 96], # D minor
+    [88, 91, 95, 98, 101, 105, 101, 98], # E minor
+    [89, 93, 96, 100, 103, 107, 103, 100], # F major
+    [91, 95, 98, 101, 105, 108, 105, 101], # G major
+    [93, 96, 100, 103, 107, 110, 107, 103]  # A minor
+]
+
+# State tracking
+last_touched = [False] * len(touch_sensors)
+
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Start
+rainbow(0.01, 2, step_size=10)
+pixels.fill((0, 0, 255))
+pixels.show()
+
+print("Sequence Player ready!")
+print("Touch pads to play arpeggios")
+
+# Main loop
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            # Pad is held - keep looping the arpeggio
+            if not last_touched[i]:
+                print(f"Playing sequence {i+1} - hold to loop")
+                last_touched[i] = True
+            
+            # Play the arpeggio continuously while held
+            arpeggio = arpeggios[i]
+            for note_index, note in enumerate(arpeggio):
+                # Check if still holding - break if released
+                if not sensor.value:
+                    break
+                
+                # Visual feedback - pulse brightness for current note
+                brightness = int(255 * (note_index / len(arpeggio)))
+                pixels[i] = (brightness, 0, brightness)  # Purple gradient
+                    
+                midi.send(NoteOn(note, 120))
+                time.sleep(0.2)  # Delay between notes (edit this!)
+                midi.send(NoteOff(note, 0))
+        else:
+            # Pad released
+            if last_touched[i]:
+                pixels[i] = (0, 0, 255)
+                last_touched[i] = False
+    
+    time.sleep(0.01)
+`,
+                
+                'arpeggiator': `# BPM Arpeggiator
+# Hold pads to play looping notes synced to BPM
+# Each pad plays a different note in tempo
+import time
+import board
+import touchio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+import neopixel
+from rainbowio import colorwheel
+
+# ============================================
+# SETTINGS - EDIT THESE!
+# ============================================
+
+# Global BPM (beats per minute)
+# Higher = faster, Lower = slower
+# Try: 60 (slow), 120 (medium), 180 (fast)
+BPM = 120
+
+# Starting MIDI note (60 = Middle C)
+START_NOTE = 60
+
+
+# ============================================
+# CODE - Don't edit below unless you know what you're doing
+# ============================================
+
+# Function to calculate delay between notes based on BPM
+def bpm_to_delay(bpm):
+    return 60 / bpm
+
+# Define the touch pins
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7,
+    board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14,
+    board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21,
+    board.GP22, board.GP23, board.GP24, board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# NeoPixel setup
+num_pixels = len(touch_sensors)
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# State tracking
+last_touched = [False] * len(touch_sensors)
+
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Start
+rainbow(0.01, 2, step_size=10)
+pixels.fill((0, 0, 255))
+pixels.show()
+
+print(f"BPM Arpeggiator ready! BPM: {BPM}")
+print(f"Note delay: {bpm_to_delay(BPM):.3f} seconds")
+
+# Main loop
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            # Pad is held - keep playing notes in tempo
+            if not last_touched[i]:
+                note = START_NOTE + i
+                print(f"Pad {i+1}: Note {note} - hold to loop")
+                pixels[i] = (255, 0, 255)
+                last_touched[i] = True
+            
+            # Play note continuously while held
+            note = START_NOTE + i
+            midi.send(NoteOn(note, 120))
+            time.sleep(bpm_to_delay(BPM))
+            midi.send(NoteOff(note, 0))
+        else:
+            # Pad released
+            if last_touched[i]:
+                pixels[i] = (0, 0, 255)
+                last_touched[i] = False
+    
+    time.sleep(0.01)
+`,
+
+                'synth': `# SPOKE board: 27-pad capacitive touch -> lush synthio pad synth
+# -> PWM audio out (GP26), with per-pad neopixel feedback (GP0)
+#
+# No aftertouch here - this version is tuned purely for sound quality.
+# Each touch triggers a two-voice detuned "unison" (classic analog-synth
+# thickening trick), each voice with its own gentle vibrato via an LFO,
+# a warm custom waveform instead of a bare sine, a resonant low-pass for
+# character, slight stereo spread, and a slow pad-like envelope so notes
+# swell in and trail off instead of clicking on/off.
+#
+# Wiring note: GP26/GP27 are SPOKE's stemma connector pins, broken out for
+# i2c1/ADC/PWM - GP26 is used here as PWM audio out. A small RC low-pass
+# (e.g. 1k + 100nF to ground) before your speaker/amp cleans up PWM hiss.
+
+import time
+import math
+import array
+import board
+import touchio
+import audiopwmio
+import synthio
+import neopixel
+import rainbowio
+
+# --- Audio setup -------------------------------------------------------------
+# Stereo output gives us room for the unison voices to spread left/right.
+
+SAMPLE_RATE = 22050
+audio = audiopwmio.PWMAudioOut(board.GP26)
+synth = synthio.Synthesizer(sample_rate=SAMPLE_RATE, channel_count=2)
+audio.play(synth)
+
+# --- Waveform: a warm, rounded tone instead of a bare sine --------------------
+# Sum a few harmonics at decreasing amplitude for a mellow, Rhodes/pad-ish
+# character rather than the cold default sine. Precomputed once at startup.
+
+WAVE_SAMPLES = 512
+WAVE_VOLUME = 26000  # keep headroom under int16 max so summed voices don't clip
+
+
+def make_waveform(harmonics):
+    """harmonics: list of (harmonic_number, relative_amplitude)."""
+    total = sum(amp for _, amp in harmonics)
+    buf = array.array("h", [0] * WAVE_SAMPLES)
+    for i in range(WAVE_SAMPLES):
+        phase = 2 * math.pi * i / WAVE_SAMPLES
+        sample = 0.0
+        for harmonic, amp in harmonics:
+            sample += (amp / total) * math.sin(phase * harmonic)
+        buf[i] = int(sample * WAVE_VOLUME)
+    return buf
+
+
+# Warm, slightly rounded - fundamental plus a soft 2nd/3rd/5th harmonic.
+WARM_WAVE = make_waveform([(1, 1.0), (2, 0.45), (3, 0.2), (5, 0.08)])
+
+# --- Neopixel setup ------------------------------------------------------------
+
+NUM_PADS = 27
+pixels = neopixel.NeoPixel(board.GP0, NUM_PADS, brightness=0.4, auto_write=False)
+pixels.fill((0, 0, 0))
+pixels.show()
+
+# --- Pads: all 27 touch-capable pins on SPOKE ---------------------------------
+
+PAD_PINS = [getattr(board, f"GP{n}") for n in range(1, 26)]
+PAD_PINS.append(board.GP28)
+PAD_PINS.append(board.VOLTAGE_MONITOR)
+assert len(PAD_PINS) == NUM_PADS
+
+# NOTE ON PIXEL INDEX: assumes onboard neopixels follow the same order as
+# PAD_PINS (GP1 = pixel 0 ... VOLTAGE_MONITOR = pixel 26). If a touch lights
+# the wrong LED, touch each pad once, note which LED lit, and reorder PAD_PINS.
+
+# --- Scale: major scale across pads instead of raw chromatic ------------------
+# Any combination of notes from a major scale tends to sound pleasant
+# together, so chords formed by touching multiple pads at once are far more
+# likely to sound "glorious" than an arbitrary chromatic cluster would.
+
+MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11]
+BASE_MIDI_NOTE = 48  # C3
+
+scale_midi_notes = []
+octave = 0
+while len(scale_midi_notes) < NUM_PADS:
+    for step in MAJOR_STEPS:
+        scale_midi_notes.append(BASE_MIDI_NOTE + step + 12 * octave)
+        if len(scale_midi_notes) == NUM_PADS:
+            break
+    octave += 1
+
+FREQUENCIES = [440.0 * (2 ** ((m - 69) / 12)) for m in scale_midi_notes]
+
+
+def _unpack_color(packed):
+    return ((packed >> 16) & 0xFF, (packed >> 8) & 0xFF, packed & 0xFF)
+
+
+COLORS = [_unpack_color(rainbowio.colorwheel(int(i * 255 / NUM_PADS))) for i in range(NUM_PADS)]
+
+# --- Per-pad state -------------------------------------------------------------
+
+touches = [touchio.TouchIn(pin) for pin in PAD_PINS]
+# Each held pad stores a tuple of (voice_a, voice_b) - the two unison notes.
+active_voices = [None] * NUM_PADS
+
+# Give the touch pads a moment to calibrate against their resting state.
+time.sleep(0.5)
+
+# Shared pad-like envelope: slow swell in, gentle sustain, long release so
+# chords trail off nicely instead of cutting off abruptly.
+PAD_ENVELOPE = synthio.Envelope(
+    attack_time=0.08,
+    decay_time=0.15,
+    release_time=0.9,
+    attack_level=1.0,
+    sustain_level=0.75,
+)
+
+# A shared, slightly resonant low-pass for warmth/character on every voice.
+TONE_FILTER = synth.low_pass_filter(frequency=3200, Q=1.3)
+
+# Detune amount for the unison voice, in cents-ish (as an octave fraction).
+# 0.006 of an octave is roughly 7 cents - enough to sound lush/wide without
+# sounding "out of tune".
+DETUNE = 0.006
+
+
+def make_voice_pair(freq, vibrato_rate):
+    """Two detuned voices (unison) for one note, each with its own subtle
+    vibrato so the pair slowly drifts in and out of phase - this "chorus"
+    movement is a big part of what makes a pad sound alive rather than
+    static."""
+    vibrato_a = synthio.LFO(rate=vibrato_rate, scale=0.01)
+    vibrato_b = synthio.LFO(rate=vibrato_rate * 1.13, scale=0.01)
+
+    voice_a = synthio.Note(
+        frequency=freq,
+        waveform=WARM_WAVE,
+        envelope=PAD_ENVELOPE,
+        filter=TONE_FILTER,
+        amplitude=0.6,
+        panning=-0.35,
+        bend=vibrato_a,
+    )
+    voice_b = synthio.Note(
+        frequency=freq * (2 ** DETUNE),
+        waveform=WARM_WAVE,
+        envelope=PAD_ENVELOPE,
+        filter=TONE_FILTER,
+        amplitude=0.5,
+        panning=0.35,
+        bend=vibrato_b,
+    )
+    return voice_a, voice_b
+
+
+# --- Main loop -----------------------------------------------------------------
+
+while True:
+    pixels_changed = False
+
+    for i in range(NUM_PADS):
+        touched = touches[i].value
+        voices = active_voices[i]
+
+        if touched and voices is None:
+            # Slight per-pad variation in vibrato speed (4.5-6.5 Hz) so
+            # different notes don't all wobble in lockstep.
+            vibrato_rate = 4.5 + (i % 5) * 0.5
+            voices = make_voice_pair(FREQUENCIES[i], vibrato_rate)
+            synth.press(voices)
+            active_voices[i] = voices
+            pixels[i] = COLORS[i]
+            pixels_changed = True
+
+        elif not touched and voices is not None:
+            synth.release(voices)
+            active_voices[i] = None
+            pixels[i] = (0, 0, 0)
+            pixels_changed = True
+
+    if pixels_changed:
+        pixels.show()
+
+    time.sleep(0.01)  # ~100Hz poll rate, plenty responsive for touch
+`
+};
+
+const MINI_TEMPLATES = {
+basic: `# This is the code for USB-MIDI. In this code we assign a midi value to each pin, and when the board senses that the pin has been touched it will send a NoteOn message. When the pin is released, it sends a NoteOff message.
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+# Define the touch pins
+touch_pins = [board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, board.GP27, board.GP28]
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+# MIDI setup - If you want to assign the midi device to a specific channel or port then just change the values in this line.
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+# MIDI note numbers corresponding to each touch pin - change these to whatever midi note you prefer. 
+midi_notes = [36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96] 
+# State variables to track if a note has been played for each touch pin
+note_played = [False] * len(touch_pins)
+# Setup LED toggling
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+# Main loop
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        # Capacitive touch sensing
+        if touch_sensor.value:
+            # Check if the note has already been played
+            if not note_played[i]:
+                # Send MIDI note on message when touch is detected. The Velocity is set to 120, change the value if you want to.
+                midi.send(NoteOn(midi_notes[i], 120))
+                led.value = True
+                note_played[i] = True  # Update state variable
+        else:
+            # Check if the note has been played and turn it off
+            if note_played[i]:
+                # Send MIDI note off message when touch is released
+                midi.send(NoteOff(midi_notes[i], 120))
+                led.value = False
+                note_played[i] = False  # Update state variable
+`,
+
+drums: `# SPOKE Mini — Drum Pads
+# First 13 pads mapped to General MIDI drums (channel 10)
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"Skipping {pin}")
+
+# Channel 10 (index 9) for GM drums
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=9)
+
+drum_notes = [
+    36,  # Kick drum
+    38,  # Snare
+    42,  # Hi-hat closed
+    46,  # Hi-hat open
+    41,  # Tom 1
+    43,  # Tom 2
+    45,  # Tom 3
+    47,  # Tom 4
+    49,  # Crash cymbal
+    51,  # Ride cymbal
+    37,  # Side stick / Rimshot
+    39,  # Hand clap
+    54   # Tambourine
+]
+
+note_played = [False] * 13
+
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+print("Drum pads ready — 13 drums on left side")
+
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(drum_notes[i], 127))
+                led.value = True
+                note_played[i] = True
+                print(f"Drum {i+1} hit")
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(drum_notes[i], 0))
+                led.value = False
+                note_played[i] = False
+`,
+
+sensitivity: `# SPOKE Mini — Adjustable Touch Sensitivity
+# Tweak TOUCH_THRESHOLD to suit your setup
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+# ── ADJUST THIS VALUE ──────────────────────────
+# Lower  = more sensitive (easier to trigger)
+# Higher = less sensitive (harder to trigger)
+# Default auto-calibration is ~1200–1500
+TOUCH_THRESHOLD = 1400
+# ───────────────────────────────────────────────
+
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22,
+    board.GP26, board.GP27, board.GP28
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        s = touchio.TouchIn(pin)
+        s.threshold = TOUCH_THRESHOLD
+        touch_sensors.append(s)
+    except ValueError:
+        print(f"Skipping {pin}")
+
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+midi_notes = [
+    36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64,
+    67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96
+]
+
+note_played = [False] * len(touch_pins)
+
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+print(f"Touch threshold: {TOUCH_THRESHOLD}")
+print("Adjust TOUCH_THRESHOLD if pads are too sensitive or not responding")
+
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(midi_notes[i], 120))
+                led.value = True
+                note_played[i] = True
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(midi_notes[i], 0))
+                led.value = False
+                note_played[i] = False
+`,
+
+keyboard: `# SPOKE Mini — A–Z Keyboard (HID)
+# 26 pads become A–Z keyboard keys
+import time
+import board
+import touchio
+import digitalio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+
+kbd = Keyboard(usb_hid.devices)
+
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22,
+    board.GP26, board.GP27, board.GP28
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"Skipping {pin}")
+
+keycodes = [
+    Keycode.A, Keycode.B, Keycode.C, Keycode.D, Keycode.E, Keycode.F,
+    Keycode.G, Keycode.H, Keycode.I, Keycode.J, Keycode.K, Keycode.L,
+    Keycode.M, Keycode.N, Keycode.O, Keycode.P, Keycode.Q, Keycode.R,
+    Keycode.S, Keycode.T, Keycode.U, Keycode.V, Keycode.W, Keycode.X,
+    Keycode.Y, Keycode.Z
+]
+
+key_pressed = [False] * 26
+
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+print("Keyboard ready — pads 1–26 = A–Z")
+
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not key_pressed[i]:
+                kbd.press(keycodes[i])
+                led.value = True
+                key_pressed[i] = True
+        else:
+            if key_pressed[i]:
+                kbd.release(keycodes[i])
+                led.value = False
+                key_pressed[i] = False
+    time.sleep(0.01)
+`,
+
+gaming: `# SPOKE Mini — Gaming Controls (Keyboard + Mouse HID)
+# Minecraft / FPS style layout
+import time
+import board
+import touchio
+import digitalio
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+from adafruit_hid.mouse import Mouse
+
+kbd = Keyboard(usb_hid.devices)
+mouse = Mouse(usb_hid.devices)
+
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22,
+    board.GP26, board.GP27, board.GP28
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"Skipping {pin}")
+
+# (keycode_or_special, label)
+controls = [
+    (Keycode.W,       'Forward'),
+    (Keycode.A,       'Left'),
+    (Keycode.S,       'Back'),
+    (Keycode.D,       'Right'),
+    (Keycode.SPACE,   'Jump'),
+    (Keycode.SHIFT,   'Sneak'),
+    (Keycode.E,       'Inventory'),
+    (Keycode.Q,       'Drop'),
+    (Keycode.ONE,     'Slot 1'),
+    (Keycode.TWO,     'Slot 2'),
+    (Keycode.THREE,   'Slot 3'),
+    (Keycode.FOUR,    'Slot 4'),
+    (Keycode.FIVE,    'Slot 5'),
+    (Keycode.SIX,     'Slot 6'),
+    (Keycode.SEVEN,   'Slot 7'),
+    (Keycode.EIGHT,   'Slot 8'),
+    (Keycode.NINE,    'Slot 9'),
+    ('L_CLICK',       'Attack'),
+    ('R_CLICK',       'Use/Place'),
+    (Keycode.R,       'Sprint'),
+    (Keycode.T,       'Chat'),
+    (Keycode.ESCAPE,  'Menu'),
+    (Keycode.F3,      'Debug'),
+    (Keycode.F5,      'Perspective'),
+    (Keycode.TAB,     'Player List'),
+    (Keycode.ENTER,   'Send'),
+]
+
+active = [False] * 26
+
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+print("Gaming controls ready!")
+for i, (k, label) in enumerate(controls):
+    print(f"  Pad {i+1:2d}: {label}")
+
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        key, _ = controls[i]
+        if sensor.value:
+            if not active[i]:
+                if key == 'L_CLICK':   mouse.press(Mouse.LEFT_BUTTON)
+                elif key == 'R_CLICK': mouse.press(Mouse.RIGHT_BUTTON)
+                else:                  kbd.press(key)
+                led.value = True
+                active[i] = True
+        else:
+            if active[i]:
+                if key == 'L_CLICK':   mouse.release(Mouse.LEFT_BUTTON)
+                elif key == 'R_CLICK': mouse.release(Mouse.RIGHT_BUTTON)
+                else:                  kbd.release(key)
+                led.value = False
+                active[i] = False
+    time.sleep(0.01)
+`
+};
+
+const DEFAULT_CODE = {
+  spoke: `# This is the default code for the main SPOKE board. If you have the mini version or an older version with a visible Raspbery Pi Pico board attached, then use the code in the /SPOKE-mini folder on Github
+#This code sets up the touch pins as capacitive touch sensors, it also sets up the neopixels to match the touch sensor it is next to. The MIDI-out in this example os polyphonic on/off. Read through the code to see what each section does and edit the parts you need!
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+import neopixel
+from rainbowio import colorwheel
+# MIDI note numbers corresponding to each touch pin
+midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
+# Define the touch pins
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,
+    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,
+    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
+    board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+# State tracking
+note_played = [False] * len(touch_pins)
+# NeoPixel setup
+num_pixels = len(touch_sensors)
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+# Fill all pixels blue
+def all_blue():
+    pixels.fill((0, 0, 255))
+    pixels.show()
+# Start
+rainbow(0.01, 2, step_size=10)
+all_blue()
+# Main loop
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(midi_notes[i], 120))
+                note_played[i] = True
+                pixels[i] = (255, 0, 255)
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(midi_notes[i], 120))
+                note_played[i] = False
+                pixels[i] = (0, 0, 255)
+`,
+  mini: `# This is the code for USB-MIDI. In this code we assign a midi value to each pin, and when the board senses that the pin has been touched it will send a NoteOn message. When the pin is released, it sends a NoteOff message.
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+# Define the touch pins
+touch_pins = [board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, board.GP27, board.GP28]
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+# MIDI setup - If you want to assign the midi device to a specific channel or port then just change the values in this line.
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+# MIDI note numbers corresponding to each touch pin - change these to whatever midi note you prefer. 
+midi_notes = [36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96] 
+# State variables to track if a note has been played for each touch pin
+note_played = [False] * len(touch_pins)
+# Setup LED toggling
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+# Main loop
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        # Capacitive touch sensing
+        if touch_sensor.value:
+            # Check if the note has already been played
+            if not note_played[i]:
+                # Send MIDI note on message when touch is detected. The Velocity is set to 120, change the value if you want to.
+                midi.send(NoteOn(midi_notes[i], 120))
+                led.value = True
+                note_played[i] = True  # Update state variable
+        else:
+            # Check if the note has been played and turn it off
+            if note_played[i]:
+                # Send MIDI note off message when touch is released
+                midi.send(NoteOff(midi_notes[i], 120))
+                led.value = False
+                note_played[i] = False  # Update state variable
+`
+};
+
+function spokeScaleCode(notesArray) {
+            const code = `# Custom Scale - Generated by SPOKE Scale Builder
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+import neopixel
+from rainbowio import colorwheel
+
+# YOUR CUSTOM MIDI NOTES
+midi_notes = ${notesArray}
+
+# Define the touch pins
+touch_pins = [
+    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,
+    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,
+    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,
+    board.GP25, board.GP28, board.VOLTAGE_MONITOR
+]
+
+# Initialize touch sensors
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"No pulldown resistor found on pin {pin}, skipping...")
+
+# MIDI setup
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+# State tracking
+note_played = [False] * len(touch_pins)
+
+# NeoPixel setup
+num_pixels = len(touch_sensors)
+pixels = neopixel.NeoPixel(board.GP0, num_pixels, brightness=0.03, auto_write=True)
+
+# Startup animation
+def rainbow(speed, duration, step_size=10):
+    start_time = time.monotonic()
+    while time.monotonic() - start_time < duration:
+        for j in range(0, 256, step_size):
+            for i in range(num_pixels):
+                pixel_index = (i * 256 // num_pixels + j) % 256
+                pixels[i] = colorwheel(pixel_index)
+            pixels.show()
+            if time.monotonic() - start_time >= duration:
+                return
+            time.sleep(speed)
+
+# Fill all pixels blue
+def all_blue():
+    pixels.fill((0, 0, 255))
+    pixels.show()
+
+# Start
+rainbow(0.01, 2, step_size=10)
+all_blue()
+
+print("Custom scale loaded!")
+print(f"Notes: {midi_notes}")
+
+# Main loop
+while True:
+    for i, touch_sensor in enumerate(touch_sensors):
+        if touch_sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(midi_notes[i], 120))
+                note_played[i] = True
+                pixels[i] = (255, 0, 255)
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(midi_notes[i], 120))
+                note_played[i] = False
+                pixels[i] = (0, 0, 255)
+`;
+return code;
+}
+
+function miniScaleCode(scaleNotes) {
+    const code = `# SPOKE Mini — Custom Scale
+# Generated by Scale Builder
+import time
+import board
+import touchio
+import digitalio
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+touch_pins = [
+    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5,
+    board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11,
+    board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17,
+    board.GP18, board.GP19, board.GP20, board.GP21, board.GP22,
+    board.GP26, board.GP27, board.GP28
+]
+
+touch_sensors = []
+for pin in touch_pins:
+    try:
+        touch_sensors.append(touchio.TouchIn(pin))
+    except ValueError:
+        print(f"Skipping {pin}")
+
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+midi_notes = [${scaleNotes.join(', ')}]
+
+note_played = [False] * len(touch_pins)
+
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
+
+print("Custom scale loaded!")
+print("Notes:", midi_notes)
+
+while True:
+    for i, sensor in enumerate(touch_sensors):
+        if sensor.value:
+            if not note_played[i]:
+                midi.send(NoteOn(midi_notes[i], 120))
+                led.value = True
+                note_played[i] = True
+        else:
+            if note_played[i]:
+                midi.send(NoteOff(midi_notes[i], 0))
+                led.value = False
+                note_played[i] = False
+`;
+return code;
+}
+
+const WIZARD_STEPS = [
+    {
+        label: 'Step 1 of 4 — Hardware Assembly',
+        title: 'Assemble your SPOKE Mini',
+        desc: 'Before flashing firmware, make sure your board is physically ready.',
+        html: `<div class="step-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-text">Solder all <strong>26 × 1MΩ resistors</strong> into their marked positions (R1–R26) on the PCB.</div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-text">Solder your <strong>Raspberry Pi Pico</strong> into the centre of the board, making sure all pins are seated correctly.</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-text">Inspect your soldering — no bridges, no cold joints. The board is now ready to flash.</div></div>
+            <div class="step-note">⚡ <strong>Tip:</strong> Hold the board up to a light after soldering to spot any missed pads. Capacitive touch is sensitive — a bad joint on a resistor means that pad won't work.</div>
+        </div>`
+    },
+    {
+        label: 'Step 2 of 4 — Flash CircuitPython',
+        title: 'Flash the CircuitPython firmware',
+        desc: 'Install CircuitPython on your Raspberry Pi Pico.',
+        html: `<div class="step-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-text">Download the latest <strong>CircuitPython .uf2 file</strong> for Raspberry Pi Pico from <a href="https://circuitpython.org/board/raspberry_pi_pico/" target="_blank">circuitpython.org/board/raspberry_pi_pico</a></div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-text">Hold down the <strong>BOOTSEL</strong> button on your Pico while plugging in the USB cable to your computer. Keep holding until the drive appears.</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-text">A drive called <code>RPI-RP2</code> will appear. Drag and drop the downloaded <strong>.uf2 file</strong> onto it.</div></div>
+            <div class="step-row"><div class="step-num">4</div><div class="step-text">The board will flash, reboot automatically, and reappear as a drive called <code>CIRCUITPY</code>. CircuitPython is now installed!</div></div>
+            <div class="step-note">💡 <strong>Note:</strong> If the <code>RPI-RP2</code> drive doesn't appear, try a different USB cable — some cables are charge-only. You need a data cable.</div>
+        </div>`
+    },
+    {
+        label: 'Step 3 of 4 — Install Libraries',
+        title: 'Copy the required libraries',
+        desc: 'The SPOKE Mini needs two Adafruit CircuitPython libraries.',
+        html: `<div class="step-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-text">Download the <strong>CircuitPython Library Bundle</strong> (.zip) from <a href="https://circuitpython.org/libraries" target="_blank">circuitpython.org/libraries</a></div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-text">Extract the ZIP file on your computer.</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-text">Open the <code>CIRCUITPY</code> drive. Inside you'll find a folder called <code>lib/</code>. Copy these two library folders into it:</div></div>
+            <div class="lib-grid">
+                <div class="lib-item"><div class="lib-icon">🎵</div><div><div class="lib-name">adafruit_midi/</div><div class="lib-desc">For USB MIDI output</div></div></div>
+                <div class="lib-item"><div class="lib-icon">⌨️</div><div><div class="lib-name">adafruit_hid/</div><div class="lib-desc">For keyboard / mouse HID</div></div></div>
+            </div>
+            <div class="step-note">📁 <strong>Important:</strong> Copy the <em>folders</em> — not just the files inside them. Your <code>lib/</code> folder should contain <code>adafruit_midi/</code> and <code>adafruit_hid/</code> as subfolders.</div>
+        </div>`
+    },
+    {
+        label: 'Step 4 of 4 — Upload Code',
+        title: 'Upload your first code.py',
+        desc: 'Copy code to your SPOKE Mini and start making music!',
+        html: `<div class="step-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-text">Use this editor to choose or write your code. The <strong>MIDI Default</strong> template is a great starting point — it turns all 26 pads into MIDI notes.</div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-text">Click <strong>"Save to Board"</strong> in the top bar. A file picker will open — navigate to your <code>CIRCUITPY</code> drive and save the file as <code>code.py</code>.</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-text">Your SPOKE Mini will <strong>automatically restart</strong> and run the new code. The onboard LED will blink when a pad is touched.</div></div>
+            <div class="step-row"><div class="step-num">4</div><div class="step-text">Click <strong>"Connect"</strong> in the Serial Console below the editor to see real-time print output and any error messages from your code.</div></div>
+            <div class="step-note">🎉 <strong>You're all set!</strong> Touch a pad — if you see MIDI messages in your DAW or hear sound, everything is working. Happy making!</div>
+        </div>`
+    }
+];
+
+// ═══════════════════════════════════════════════════════════════════════
+//  BOARD CONFIGS
+// ═══════════════════════════════════════════════════════════════════════
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const noteName = n => `${NOTE_NAMES[n % 12]}${Math.floor(n / 12) - 1} (${n})`;
+const scaleFrom = (base, steps, len) => Array.from({length: len}, (_, i) => base + Math.floor(i / steps.length) * 12 + steps[i % steps.length]);
+
+const BOARDS = {
+  spoke: {
+    key: 'spoke', name: 'SPOKE', logo: 'S', layout: 'circle', hasWizard: false,
+    pinNames:  ['GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9','GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17','GP18','GP19','GP20','GP21','GP22','GP23','GP24','GP25','GP28','VOLTAGE_MONITOR'],
+    midiNotes: [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36],
+    neoPin: 'board.GP0',
+    pinList: '    board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8,\n    board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16,\n    board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP23, board.GP24,\n    board.GP25, board.GP28, board.VOLTAGE_MONITOR',
+    templates: [
+      ['basic', 'SPOKE Default', 'Default 27-pad MIDI'],
+      ['drums', 'Drum Pads', '9 drum sounds'],
+      ['scale', 'Scale Builder', 'Choose notes for each pad'],
+      ['arpeggiator', 'Arpeggiator', 'Loop notes in tempo'],
+      ['sequences', 'Sequencer', 'Loop arpeggios while held'],
+      ['synth', 'On-Board Synth', 'Lush synthio pad synth, no external audio needed'],
+      ['keyboard', 'Letters', 'A–Z keyboard (26 letters)'],
+      ['gaming', 'Gaming', 'Keyboard + mouse controls'],
+      ['neopixel', 'NeoPixel', '27 light effects'],
+      ['sequencer', 'Step Sequencer', '16-step loop'],
+    ],
+    scalePresets: {
+      'Chromatic':   [36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62],
+      'C Major':     [36,38,40,41,43,45,47,48,50,52,53,55,57,59,60,62,64,65,67,69,71,72,74,76,77,79,81],
+      'C Minor':     [36,38,39,41,43,44,46,48,50,51,53,55,56,58,60,62,63,65,67,68,70,72,74,75,77,79,80],
+      'Pentatonic':  [36,38,40,43,45,48,50,52,55,57,60,62,64,67,69,72,74,76,79,81,84,86,88,91,93,96,98],
+      'Blues':       [36,39,41,42,43,46,48,51,53,54,55,58,60,63,65,66,67,70,72,75,77,78,79,82,84,87,89],
+      'SPOKE Default':[98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36],
+    },
+    scaleCode: notes => spokeScaleCode('[' + notes.join(', ') + ']'),
+    guideSteps: [
+      ['Connect your SPOKE','Plug your SPOKE in via <b>data-capable USB</b>. It appears as <b>CIRCUITPY</b> in your file explorer.'],
+      ['Open code.py','If you opened code.py in the editor it\'s already linked. Otherwise click <b>Open code.py</b> and pick it from CIRCUITPY. Your existing mappings are preserved.'],
+      ['Upload diagnostic','Click <b>Upload diagnostic</b> to temporarily replace code.py with test code that streams live sensor values. The board restarts automatically.'],
+      ['Connect serial','Click <b>Connect serial</b> and pick your SPOKE from the list. Bars start moving immediately.'],
+      ['Touch pads','Touch each pad — its bar turns <b>green</b> when triggered. If a pad triggers without touching, drag its marker right.'],
+      ['Global threshold','Drag the <b>Global threshold</b> bar to set all pads at once, then fine-tune individuals.'],
+      ['Fine-tune','Drag individual markers left (more sensitive) or right (less sensitive).'],
+      ['Save to device','Click <b>Download thresholds</b> → <b>Save to device</b>. Your original code is restored with the thresholds injected.'],
+    ],
+    infoHtml: `
+      <div class="rs-section"><div class="rs-section-title">Quick Start</div><div class="hw-notes">
+        <b>1. Connect</b> — plug SPOKE in by USB; it appears as <code>CIRCUITPY</code>.<br>
+        <b>2. Open code.py</b> from the CIRCUITPY drive.<br>
+        <b>3. Connect serial</b> (optional) to see errors and print() output.<br>
+        <b>4. Edit</b> the code or pick a template.<br>
+        <b>5. Save to Board</b> — SPOKE restarts and runs your code.
+      </div></div>
+      <div class="rs-section"><div class="rs-section-title">Hardware</div><div class="hw-notes">
+        <b>Pads:</b> 27 capacitive touch pads<br>
+        <b>NeoPixels:</b> 27 RGB LEDs (one per pad) on <code>board.GP0</code> — rainbow on startup<br>
+        <b>MCU:</b> built-in RP2040<br>
+        <b>Audio:</b> GP26 PWM out (On-Board Synth template)<br>
+        <b>Default notes:</b> 98, 96, 93 … 40, 38, 36
+      </div></div>
+      <div class="rs-section"><div class="rs-section-title">Common Libraries</div><div class="hw-notes"><ul>
+        <li><b>board</b> – GPIO pins</li><li><b>touchio</b> – capacitive touch</li>
+        <li><b>usb_midi</b> / <b>adafruit_midi</b> – MIDI over USB</li>
+        <li><b>neopixel</b> – LEDs on GP0</li><li><b>rainbowio</b> – colorwheel()</li>
+        <li><b>synthio</b> – on-board synthesis</li><li><b>time</b> – delays and timing</li>
+      </ul></div></div>`,
+  },
+  mini: {
+    key: 'mini', name: 'SPOKE Mini', logo: 'SM', layout: 'cols', hasWizard: true,
+    pinNames:  ['GP0','GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9','GP10','GP11','GP12','GP13','GP14','GP15','GP16','GP17','GP18','GP19','GP20','GP21','GP22','GP26','GP27','GP28'],
+    midiNotes: [36,38,40,43,45,48,50,52,55,57,60,62,64,67,69,72,74,76,79,81,84,86,88,91,93,96],
+    neoPin: null,
+    pinList: '    board.GP0, board.GP1, board.GP2, board.GP3, board.GP4, board.GP5, board.GP6, board.GP7, board.GP8, board.GP9, board.GP10, board.GP11, board.GP12, board.GP13, board.GP14, board.GP15, board.GP16, board.GP17, board.GP18, board.GP19, board.GP20, board.GP21, board.GP22, board.GP26, board.GP27, board.GP28',
+    templates: [
+      ['basic', 'MIDI Default', '26-pad USB MIDI controller'],
+      ['drums', 'Drum Pads', '13 pads, GM drum mapping'],
+      ['scale', 'Scale Builder', 'Custom note per pad'],
+      ['sensitivity', 'Sensitivity', 'Adjustable touch threshold'],
+      ['keyboard', 'A–Z Letters', 'HID keyboard A to Z'],
+      ['gaming', 'Gaming', 'Game controls + mouse'],
+    ],
+    scalePresets: {
+      'Chromatic':  Array.from({length: 26}, (_, i) => 48 + i),
+      'C Major':    scaleFrom(48, [0,2,4,5,7,9,11], 26),
+      'A Minor':    scaleFrom(45, [0,2,3,5,7,8,10], 26),
+      'Pentatonic': scaleFrom(48, [0,2,4,7,9], 26),
+      'Blues':      scaleFrom(48, [0,3,5,6,7,10], 26),
+      'Default':    [36,38,40,43,45,48,50,52,55,57,60,62,64,67,69,72,74,76,79,81,84,86,88,91,93,96],
+    },
+    scaleCode: notes => miniScaleCode(notes),
+    guideSteps: [
+      ['Connect SPOKE Mini','Plug in via <b>data-capable USB</b>. It appears as <b>CIRCUITPY</b>.'],
+      ['Open code.py','Already linked if you opened it in the editor — otherwise click <b>Open code.py</b> on the CIRCUITPY drive.'],
+      ['Upload diagnostic','Click <b>Upload diagnostic</b>. The Pico restarts and streams sensor data.'],
+      ['Connect serial','Click <b>Connect serial</b> and pick your SPOKE Mini.'],
+      ['Touch pads','Bar turns <b>green</b> when a pad triggers. 13 pads per side.'],
+      ['Global threshold','Drag <b>Global threshold</b> to set a baseline for all pads.'],
+      ['Fine-tune','Drag individual markers to adjust sensitivity per pad.'],
+      ['Save to device','Click <b>Download thresholds</b> → <b>Save to device</b>.'],
+    ],
+    infoHtml: `
+      <div class="rs-section"><div class="rs-section-title">Hardware</div><div class="hw-notes">
+        <b>LED:</b> <code>board.LED</code> — onboard Pico LED<br>
+        <b>Pads:</b> 26 capacitive touch pads<br>
+        <b>Layout:</b> 13 pads per side<br>
+        <b>MCU:</b> Raspberry Pi Pico (RP2040)<br>
+        <b>Libraries:</b> <code>adafruit_midi</code>, <code>adafruit_hid</code><br><br>
+        <em>No NeoPixels on SPOKE Mini.</em><br>
+        New board? Use <b>⚙ Setup guide</b> for assembly and flashing.
+      </div></div>`,
+  },
+};
+BOARDS.spoke.code = SPOKE_TEMPLATES;
+BOARDS.mini.code = MINI_TEMPLATES;
+
+// ═══════════════════════════════════════════════════════════════════════
+//  STATE + HELPERS
+// ═══════════════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const MAX_RAW = 20000;
+let selectedBoard = null, board = null, N = 0;
+let fileHandle = null;      // shared by editor + monitor
+let diskText = null;        // last text read from / written to fileHandle
+let baselineText = '';      // last text put in the editor programmatically
+let currentView = 'splash';
+
+function show(view) {
+  const display = { splash: 'flex', setupWizard: 'flex', editorApp: 'flex', monitorApp: 'flex' };
+  Object.keys(display).forEach(v => $(v).style.display = 'none');
+  $(view).style.display = display[view];
+  currentView = view;
+}
+
+const isDiagCode = t => !!t && t.includes('Diagnostic') && t.includes('RAW:');
+
+async function writeHandle(h, text) {
+  const w = await h.createWritable();
+  await w.write(text);
+  await w.close();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  SPLASH
+// ═══════════════════════════════════════════════════════════════════════
+function selectBoard(type) {
+  selectedBoard = type;
+  $('cardSpoke').classList.toggle('selected', type === 'spoke');
+  $('cardMini').classList.toggle('selected', type === 'mini');
+  $('splashBtn').disabled = false;
+  $('quickFixBtn').disabled = false;
+}
+
+function launchBoard() {
+  if (!selectedBoard) return;
+  try { localStorage.setItem('spokeBoard', selectedBoard); } catch (e) {}
+  applyBoard(selectedBoard);
+  if (board.hasWizard && !board._wizardSeen) { showWizard(); }
+  else show('editorApp');
+}
+
+function goSplash() {
+  if (diagOnBoard && !confirm('The Sensor Monitor diagnostic code is still on your board.\n\nSwitch board anyway?')) return;
+  if (board) selectBoard(board.key);
+  setQuickMsg('', '');
+  show('splash');
+}
+
+function applyBoard(type) {
+  if (board && board.key === type) return;
+  const hadBoard = !!board;
+  board = BOARDS[type];
+  N = board.pinNames.length;
+  if (hadBoard) {
+    // different board → different drive; start clean
+    disconnectSerial();
+    fileHandle = null; diskText = null; originalCode = null; diagOnBoard = false;
+    clearConsole(true);
+  }
+  monitorReady = false;
+  scaleNotes = board.midiNotes.slice();
+  document.querySelectorAll('.boardName').forEach(e => e.textContent = board.name);
+  document.querySelectorAll('.boardLogo').forEach(e => e.className = 'board-icon boardLogo icon-' + board.key);
+  $('setupGuideBtn').style.display = board.hasWizard ? '' : 'none';
+  buildTemplateList();
+  buildPinGrid();
+  $('boardInfo').innerHTML = board.infoHtml;
+  renderPads($('livePads'), 'lp');
+  loadTemplate('basic', null, true);
+  log(`${board.name} selected. Open code.py from your CIRCUITPY drive, or pick a template.`, 'info');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  SPOKE MINI SETUP WIZARD
+// ═══════════════════════════════════════════════════════════════════════
+let wizStep = 0;
+function renderWizard() {
+  const s = WIZARD_STEPS[wizStep];
+  $('stepLabel').textContent = s.label;
+  $('stepTitle').textContent = s.title;
+  $('stepDesc').textContent = s.desc;
+  $('stepContent').innerHTML = s.html;
+  $('wizardProgress').innerHTML = WIZARD_STEPS.map((_, i) =>
+    `<div class="wizard-dot${i < wizStep ? ' done' : ''}${i === wizStep ? ' active' : ''}"></div>`).join('');
+  $('wizBack').style.display = wizStep > 0 ? 'inline-block' : 'none';
+  const last = wizStep === WIZARD_STEPS.length - 1;
+  $('wizNext').textContent = last ? 'Open Editor →' : 'Next →';
+  $('wizNext').className = 'btn ' + (last ? 'btn-green' : 'btn-accent');
+}
+function wizNav(dir) {
+  if (dir === 1 && wizStep === WIZARD_STEPS.length - 1) return finishWizard();
+  wizStep = Math.max(0, Math.min(WIZARD_STEPS.length - 1, wizStep + dir));
+  renderWizard();
+}
+function finishWizard() { if (board) board._wizardSeen = true; show('editorApp'); }
+function showWizard() { wizStep = 0; renderWizard(); show('setupWizard'); }
+
+// ═══════════════════════════════════════════════════════════════════════
+//  EDITOR
+// ═══════════════════════════════════════════════════════════════════════
+function buildTemplateList() {
+  $('templateList').innerHTML = board.templates.map(([key, name, desc]) =>
+    `<div class="template-item" data-key="${key}" onclick="loadTemplate('${key}', this)">
+       <div class="template-name">${name}</div><div class="template-desc">${desc}</div></div>`).join('');
+}
+
+function buildPinGrid() {
+  $('pinGrid').innerHTML = board.pinNames.map((p, i) =>
+    `<div class="pin-item">P${i + 1} → <span>${p === 'VOLTAGE_MONITOR' ? 'VOLT_MON' : p}</span></div>`).join('');
+}
+
+function setEditor(text) {
+  $('editor').value = text;
+  baselineText = text;
+  updateFileTab();
+}
+
+function updateFileTab() {
+  const synced = diskText !== null && $('editor').value === diskText;
+  $('fileName').textContent = fileHandle ? fileHandle.name : 'code.py';
+  $('fileDot').classList.toggle('unsaved', !synced);
+  $('fileHint').textContent = !fileHandle ? 'not linked to a board yet — Open code.py or Save to Board'
+    : synced ? 'matches the board' : 'unsaved changes';
+}
+
+function loadTemplate(key, el, silent) {
+  if (key === 'scale') return openScaleBuilder();
+  const code = board.code[key];
+  if (!code) return;
+  const ed = $('editor').value;
+  if (!silent && ed !== baselineText && ed !== diskText &&
+      !confirm('Replace the code in the editor with this template? Your unsaved edits will be lost.')) return;
+  setEditor(code);
+  document.querySelectorAll('#templateList .template-item').forEach(t =>
+    t.classList.toggle('active', t.dataset.key === key));
+  if (!silent) log(`Loaded template: ${board.templates.find(t => t[0] === key)[1]}. Click "Save to Board" to write it.`, 'warn');
+}
+
+async function openFile() {
+  if (!('showOpenFilePicker' in window)) {
+    log('Your browser does not support the File System Access API. Please use Chrome, Edge or Opera.', 'error');
+    alert('Browser not supported\n\nPlease use Chrome, Edge or Opera.');
+    return false;
+  }
+  try {
+    const [h] = await window.showOpenFilePicker({
+      types: [{ description: 'Python files', accept: { 'text/x-python': ['.py'] } }], multiple: false });
+    fileHandle = h;
+    await loadFromHandle();
+    return true;
+  } catch (e) {
+    if (e.name !== 'AbortError') log('Error opening file: ' + e.message, 'error');
+    return false;
+  }
+}
+
+async function loadFromHandle() {
+  const text = await (await fileHandle.getFile()).text();
+  diskText = text;
+  setEditor(text);
+  document.querySelectorAll('#templateList .template-item').forEach(t => t.classList.remove('active'));
+  log(`Opened ${fileHandle.name} (${text.length} bytes)`, 'success');
+  if (isDiagCode(text)) {
+    diagOnBoard = true;
+    log('This is the Sensor Monitor diagnostic code. Finish in the Sensor Monitor (Save to device), load a template, or use Quick fix to restore normal code.', 'warn');
+  }
+}
+
+async function saveFile() {
+  const code = $('editor').value;
+  if (!code.trim()) { alert('Editor is empty — load a template first.'); return false; }
+  try {
+    if (!fileHandle) {
+      if (!window.showSaveFilePicker) { log('File System Access API not supported. Use Chrome, Edge or Opera.', 'error'); return false; }
+      fileHandle = await window.showSaveFilePicker({
+        suggestedName: 'code.py', types: [{ description: 'Python files', accept: { 'text/x-python': ['.py'] } }] });
+    }
+    await writeHandle(fileHandle, code);
+    diskText = code; baselineText = code;
+    if (!isDiagCode(code)) { diagOnBoard = false; originalCode = code; }
+    updateFileTab();
+    log(`Saved to ${fileHandle.name} — the board restarts automatically.`, 'success');
+    return true;
+  } catch (e) {
+    if (e.name !== 'AbortError') log('Save error: ' + e.message, 'error');
+    return false;
+  }
+}
+
+$('editor').addEventListener('input', updateFileTab);
+$('editor').addEventListener('keydown', function (e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = this.selectionStart, en = this.selectionEnd;
+    this.value = this.value.slice(0, s) + '    ' + this.value.slice(en);
+    this.selectionStart = this.selectionEnd = s + 4;
+    updateFileTab();
+  }
+});
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && currentView === 'editorApp') {
+    e.preventDefault();
+    saveFile();
+  }
+});
+
+// console
+function log(msg, type = '') {
+  const c = $('console');
+  const ts = new Date().toLocaleTimeString('en-GB', { hour12: false });
+  const el = document.createElement('div');
+  el.className = 'c-line' + (type ? ' c-' + type : '');
+  const t = document.createElement('span'); t.className = 'c-ts'; t.textContent = ts;
+  el.appendChild(t);
+  el.appendChild(document.createTextNode(msg));
+  c.appendChild(el);
+  while (c.childElementCount > 1500) c.firstChild.remove();
+  c.scrollTop = c.scrollHeight;
+}
+function clearConsole(silent) {
+  $('console').innerHTML = '';
+  if (silent !== true) log('Console cleared.', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  PAD VISUALS (live view + scale builder)
+// ═══════════════════════════════════════════════════════════════════════
+function renderPads(container, prefix, onClick) {
+  container.innerHTML = '';
+  const make = i => {
+    const d = document.createElement('div');
+    d.className = 'pad'; d.id = `${prefix}-${i}`; d.textContent = i + 1;
+    d.title = `Pad ${i + 1} · ${board.pinNames[i]}`;
+    if (onClick) d.onclick = () => onClick(i);
+    return d;
+  };
+  if (board.layout === 'circle') {
+    container.className = 'pads-circle' + (onClick ? '' : '');
+    for (let i = 0; i < N; i++) {
+      const a = (i * 360 / N - 90) * Math.PI / 180;
+      const d = make(i);
+      d.style.left = (50 + 44 * Math.cos(a)) + '%';
+      d.style.top = (50 + 44 * Math.sin(a)) + '%';
+      container.appendChild(d);
+    }
+    const c = document.createElement('div'); c.className = 'pads-centre'; c.textContent = 'SPOKE';
+    container.appendChild(c);
+  } else {
+    container.className = 'pads-cols';
+    const half = Math.ceil(N / 2);
+    [0, 1].forEach(side => {
+      const col = document.createElement('div'); col.className = 'col';
+      for (let i = side * half; i < Math.min(N, (side + 1) * half); i++) col.appendChild(make(i));
+      container.appendChild(col);
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MIDI + AUDIO (Live View)
+// ═══════════════════════════════════════════════════════════════════════
+const SAMPLE_BASE = 'https://raw.githubusercontent.com/Tom-Vulpes/SpokeWebMidi/main/notes';
+let midiAccess = null, audioCtx = null, masterGain = null, analyser = null, samplesLoading = false;
+const samples = new Map(), activeSrcs = new Map();
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.8;
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  masterGain.connect(analyser);
+  analyser.connect(audioCtx.destination);
+}
+
+async function connectMIDI() {
+  if (!navigator.requestMIDIAccess) {
+    log('Web MIDI API not supported. Use Chrome, Edge or Opera.', 'error');
+    alert('Web MIDI not supported\n\nPlease use Chrome, Edge or Opera.');
+    return;
+  }
+  try {
+    initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    midiAccess = await navigator.requestMIDIAccess();
+    const attach = () => {
+      const inputs = Array.from(midiAccess.inputs.values());
+      inputs.forEach(inp => inp.onmidimessage = onMIDI);
+      $('midiDot').classList.toggle('connected', inputs.length > 0);
+      $('midiStatusText').textContent = inputs.length
+        ? (inputs.length === 1 ? inputs[0].name : `${inputs.length} devices`) : 'No MIDI devices';
+      return inputs;
+    };
+    const inputs = attach();
+    midiAccess.onstatechange = e => { if (e.port.type === 'input') attach(); };
+    if (!inputs.length) log('No MIDI input devices found. Plug in your board and click Connect MIDI again.', 'warn');
+    else inputs.forEach(i => log('Connected to MIDI: ' + i.name, 'success'));
+    $('midiBtn').textContent = 'Connected ✓';
+    loadSamples();
+  } catch (e) { log('MIDI error: ' + e.message, 'error'); }
+}
+
+function onMIDI(msg) {
+  const [status, note, vel] = msg.data;
+  const cmd = status & 0xf0;
+  const pad = $(`lp-${board.midiNotes.indexOf(note)}`);
+  if (cmd === 0x90 && vel > 0) {
+    if (pad) pad.classList.add('on');
+    playSample(note % 100, vel);
+  } else if (cmd === 0x80 || (cmd === 0x90 && vel === 0)) {
+    if (pad) pad.classList.remove('on');
+  }
+}
+
+function playSample(n, vel = 127) {
+  if (!samples.has(n)) return;
+  if (activeSrcs.has(n)) { try { activeSrcs.get(n).stop(); } catch (e) {} }
+  const src = audioCtx.createBufferSource();
+  const g = audioCtx.createGain();
+  src.buffer = samples.get(n);
+  g.gain.value = vel / 127;
+  src.connect(g); g.connect(masterGain); src.start(0);
+  activeSrcs.set(n, src);
+  src.onended = () => { if (activeSrcs.get(n) === src) activeSrcs.delete(n); };
+}
+
+async function loadSamples() {
+  if (samplesLoading) return;
+  samplesLoading = true;
+  let count = 0;
+  for (let i = 0; i < 100; i++) {
+    for (const fmt of ['wav', 'mp3']) {
+      try {
+        const r = await fetch(`${SAMPLE_BASE}/note_${String(i).padStart(3, '0')}.${fmt}`);
+        if (!r.ok) continue;
+        samples.set(i, await audioCtx.decodeAudioData(await r.arrayBuffer()));
+        count++;
+        break;
+      } catch (e) {}
+    }
+    $('sampleStatus').textContent = `Samples: ${count} / 100`;
+  }
+  log(count ? `Loaded ${count} audio samples` : 'No audio samples could be loaded', count ? 'success' : 'error');
+}
+
+(function drawScope() {
+  const canvas = $('audioScope'), ctx = canvas.getContext('2d');
+  const data = new Uint8Array(1024);
+  const frame = () => {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = 'rgba(255,107,43,0.85)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (analyser) {
+      analyser.getByteTimeDomainData(data);
+      const sw = canvas.width / data.length;
+      data.forEach((v, i) => { const y = (v / 128) * canvas.height / 2; i ? ctx.lineTo(i * sw, y) : ctx.moveTo(0, y); });
+    } else { ctx.moveTo(0, canvas.height / 2); ctx.lineTo(canvas.width, canvas.height / 2); }
+    ctx.stroke();
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+})();
+
+// ═══════════════════════════════════════════════════════════════════════
+//  SCALE BUILDER
+// ═══════════════════════════════════════════════════════════════════════
+let scaleNotes = [];
+
+function openScaleBuilder() {
+  const pr = $('presetRow');
+  pr.innerHTML = '';
+  Object.keys(board.scalePresets).forEach(name => {
+    const b = document.createElement('button');
+    b.className = 'preset-chip'; b.textContent = name;
+    b.onclick = () => applyPreset(name);
+    pr.appendChild(b);
+  });
+  renderPads($('scalePads'), 'sp', focusScalePad);
+  $('scalePads').classList.add('clickable');
+  const grid = $('scaleGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < N; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'pad-sel'; wrap.id = `psel-${i}`;
+    wrap.innerHTML = `<div class="pad-sel-label">Pad ${i + 1} · ${board.pinNames[i] === 'VOLTAGE_MONITOR' ? 'VOLT_MON' : board.pinNames[i]}</div>`;
+    const sel = document.createElement('select');
+    sel.className = 'note-sel'; sel.id = `ns-${i}`;
+    for (let n = 21; n <= 108; n++) {
+      const o = document.createElement('option');
+      o.value = n; o.textContent = noteName(n);
+      sel.appendChild(o);
+    }
+    sel.value = scaleNotes[i];
+    sel.onchange = e => scaleNotes[i] = +e.target.value;
+    sel.onfocus = () => focusScalePad(i, true);
+    wrap.appendChild(sel);
+    grid.appendChild(wrap);
+  }
+  $('scaleModal').classList.add('open');
+}
+
+function focusScalePad(i, fromSelect) {
+  document.querySelectorAll('#scalePads .pad').forEach((p, idx) => p.classList.toggle('sel', idx === i));
+  document.querySelectorAll('.pad-sel').forEach((p, idx) => p.classList.toggle('sel', idx === i));
+  if (!fromSelect) { const s = $(`ns-${i}`); s.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); s.focus(); }
+}
+
+function closeScaleBuilder() { $('scaleModal').classList.remove('open'); }
+
+function applyPreset(name) {
+  board.scalePresets[name].forEach((n, i) => {
+    scaleNotes[i] = n;
+    const s = $(`ns-${i}`); if (s) s.value = n;
+  });
+}
+
+function generateScaleCode() {
+  for (let i = 0; i < N; i++) { const s = $(`ns-${i}`); if (s) scaleNotes[i] = +s.value; }
+  const ed = $('editor').value;
+  if (ed !== baselineText && ed !== diskText &&
+      !confirm('Replace the code in the editor with the generated scale code? Your unsaved edits will be lost.')) return;
+  setEditor(board.scaleCode(scaleNotes));
+  document.querySelectorAll('#templateList .template-item').forEach(t => t.classList.toggle('active', t.dataset.key === 'scale'));
+  closeScaleBuilder();
+  log('Custom scale code generated! Click "Save to Board" to write it.', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  THRESHOLD INJECTION (from the Sensor Monitor, extended)
+// ═══════════════════════════════════════════════════════════════════════
+function injectThresholds(src, values) {
+  const thLines = values.map((v, i) => '    ' + v + ',  # ' + board.pinNames[i] + ' Pad ' + (i + 1)).join('\n');
+  const thBlock = '# Custom thresholds — SPOKE Sensor Monitor\ntouch_thresholds = [\n' + thLines + '\n]';
+  let out = src;
+
+  // Step 1: strip anything injected before
+  out = out.replace(/# Custom thresholds[^\n]*\ntouch_thresholds\s*=\s*\[[\s\S]*?\]\n{0,2}/g, '');
+  out = out.replace(/^[ \t]*\w+\.threshold\s*=\s*touch_thresholds\[i\]\n/gm, '');
+  out = out.replace(/^([ \t]*)_s = touchio\.TouchIn\(pin\)\n[ \t]*touch_sensors\.append\(_s\)/gm,
+    '$1touch_sensors.append(touchio.TouchIn(pin))');
+  out = out.replace(/for i, pin in enumerate\(([\w_]+)\)\s*:/g, 'for pin in $1:');
+
+  // Step 2: insert the thresholds list before touch_sensors = []
+  if (/touch_sensors\s*=\s*\[\]/.test(out)) out = out.replace(/(touch_sensors\s*=\s*\[\])/, thBlock + '\n$1');
+  else out = thBlock + '\n\n' + out;
+
+  // Step 3a: "<name> = touchio.TouchIn(pin)" → set threshold on the next line
+  //          (replaces an existing "<name>.threshold = ..." line straight after it)
+  out = out.replace(/^([ \t]*)(\w+)\s*=\s*touchio\.TouchIn\(pin\)\n(?:[ \t]*\2\.threshold\s*=[^\n]*\n)?/gm,
+    '$1$2 = touchio.TouchIn(pin)\n$1$2.threshold = touch_thresholds[i]\n');
+  // Step 3b: one-liner "touch_sensors.append(touchio.TouchIn(pin))"
+  out = out.replace(/^([ \t]*)touch_sensors\.append\(touchio\.TouchIn\(pin\)\)/gm,
+    '$1_s = touchio.TouchIn(pin)\n$1_s.threshold = touch_thresholds[i]\n$1touch_sensors.append(_s)');
+
+  // Step 4: make the init loop use enumerate so 'i' exists
+  out = out.replace(/\bfor pin in ([\w_]+)\s*:/g, 'for i, pin in enumerate($1):');
+  return out;
+}
+const thresholdsApplied = code => /\.threshold\s*=\s*touch_thresholds\[i\]/.test(code);
+
+// ── editor sensitivity panel ──
+function applySensitivityToEditor() {
+  const v = parseInt($('sensRange').value, 10);
+  const src = $('editor').value;
+  if (!src.trim()) { alert('Editor is empty — load a template or open code.py first.'); return; }
+  if (isDiagCode(src)) { alert('The editor contains the Sensor Monitor diagnostic code. Load your normal code first.'); return; }
+  const out = injectThresholds(src, new Array(N).fill(v));
+  $('editor').value = out;
+  updateFileTab();
+  if (thresholdsApplied(out)) log(`All ${N} pads set to threshold ${v}. Click "Save to Board" to write it.`, 'success');
+  else log('Added a threshold list, but couldn\'t find where this code creates its touch sensors (the usual "for pin in touch_pins:" loop), so it isn\'t used yet. Set .threshold on each touchio.TouchIn yourself, or use Quick fix.', 'warn');
+}
+
+// ── Quick fix: write the factory default code with thresholds straight to CIRCUITPY ──
+function setQuickMsg(text, kind) {
+  const el = $('quickFixMsg');
+  el.textContent = text;
+  el.style.color = { success: 'var(--green)', error: 'var(--red)', warn: 'var(--warn)' }[kind] || 'var(--muted)';
+}
+
+async function quickFix(where) {
+  const fromSplash = where === 'splash';
+  const type = fromSplash ? selectedBoard : board && board.key;
+  if (!type) return;
+  const b = BOARDS[type];
+  const value = fromSplash ? 3000 : parseInt($('sensRange').value, 10);
+  const say = (t, k) => fromSplash ? setQuickMsg(t, k) : log(t, k);
+  if (!('showDirectoryPicker' in window)) { say('Please use Chrome, Edge or Opera.', 'warn'); return; }
+  if (!confirm(`Quick fix will REPLACE code.py on your ${b.name} with the factory default code (all thresholds ${value}).\n\n` +
+      'Any custom mappings in the current code.py will be removed from it. A copy is saved as code.py.bak first.\n\n' +
+      'Next, choose your CIRCUITPY drive. Continue?')) return;
+  try {
+    const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+    let looksRight = true;
+    try { await dir.getFileHandle('boot_out.txt'); } catch (e) { looksRight = false; }
+    if (!looksRight && !confirm(`This folder (${dir.name}) does not look like a CIRCUITPY drive (no boot_out.txt). Write code.py here anyway?`)) {
+      say('Cancelled — nothing was written.', ''); return;
+    }
+    let hadExisting = false, fh;
+    try {
+      fh = await dir.getFileHandle('code.py');
+      const old = await (await fh.getFile()).text();
+      if (old.trim().length) {
+        hadExisting = true;
+        const bw = await (await dir.getFileHandle('code.py.bak', { create: true })).createWritable();
+        await bw.write(old); await bw.close();
+      }
+    } catch (e) {
+      if (e.name === 'NotFoundError') fh = await dir.getFileHandle('code.py', { create: true });
+      else { say('Could not back up the existing code.py, so nothing was changed: ' + e.message, 'error'); return; }
+    }
+    const savedBoard = board;
+    board = b; // injectThresholds labels pins from the active board
+    let code;
+    try { code = injectThresholds(DEFAULT_CODE[type], new Array(b.pinNames.length).fill(value)); }
+    finally { board = savedBoard; }
+    await writeHandle(fh, code);
+    say(`Done — default ${b.name} code written with thresholds at ${value}` +
+        (hadExisting ? ' (old code saved as code.py.bak)' : '') + '. The board will restart on its own.', 'success');
+    // link the editor to this code.py
+    applyBoard(type);
+    fileHandle = fh; diskText = code; diagOnBoard = false; originalCode = code;
+    setEditor(code);
+    document.querySelectorAll('#templateList .template-item').forEach(t => t.classList.remove('active'));
+    if (fromSplash) log(`Quick fix wrote default code (thresholds ${value}) to code.py — the editor is now linked to it.`, 'success');
+  } catch (e) {
+    if (e.name !== 'AbortError') say('Quick fix failed: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  SERIAL (shared by editor console + sensor monitor)
+// ═══════════════════════════════════════════════════════════════════════
+let port = null, reader = null, reading = false;
+
+function toggleSerial() { return port ? disconnectSerial(true) : connectSerial(); }
+
+async function connectSerial() {
+  if (!('serial' in navigator)) {
+    log('Web Serial not supported in this browser. Use Chrome, Edge or Opera.', 'error');
+    alert('Web Serial not supported\n\nPlease use Chrome, Edge or Opera.');
+    return;
+  }
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    reading = true;
+    updateSerialUI();
+    log(`Serial connected to ${board.name} — reading board output…`, 'success');
+    setMonStatus('on', 'Serial open — waiting for data…');
+    readLoop();
+  } catch (e) {
+    port = null; updateSerialUI();
+    if (e.name !== 'NotFoundError' && e.name !== 'AbortError') { log('Serial error: ' + e.message, 'error'); setMonStatus('warn', 'Serial error: ' + e.message); }
+  }
+}
+
+async function readLoop() {
+  const decoder = new TextDecoder();
+  let buf = '';
+  try {
+    reader = port.readable.getReader();
+    while (reading) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf('\n')) !== -1) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (line) routeSerialLine(line);
+      }
+      if (buf.length > 4000) buf = buf.slice(-500);
+    }
+  } catch (e) {
+    if (reading) { log('Serial read error: ' + e.message, 'error'); setMonStatus('warn', 'Read error: ' + e.message); }
+  } finally {
+    try { reader.releaseLock(); } catch (_) {}
+    reader = null;
+    if (reading) disconnectSerial();
+  }
+}
+
+async function disconnectSerial(announce) {
+  reading = false;
+  if (reader) { try { await reader.cancel(); } catch (e) {} }
+  if (port) { try { await port.close(); } catch (e) {} }
+  const was = !!port;
+  port = null;
+  updateSerialUI();
+  if (was && announce) log('Serial disconnected', 'info');
+}
+
+if ('serial' in navigator) navigator.serial.addEventListener('disconnect', e => {
+  if (port && e.target === port) { log('Board unplugged — serial disconnected', 'warn'); disconnectSerial(); }
+});
+
+function updateSerialUI() {
+  const on = !!port;
+  $('serialDot').classList.toggle('connected', on);
+  $('serialStatusText').textContent = on ? '115200 baud' : 'Disconnected';
+  $('serialConnBtn').textContent = on ? 'Disconnect' : 'Connect';
+  $('monSerialBtn').textContent = on ? 'Disconnect serial' : 'Connect serial';
+}
+
+function routeSerialLine(line) {
+  processMonitorLine(line);
+  if (line.startsWith('RAW:')) return; // diagnostic stream is shown in the Sensor Monitor, not the console
+  log(line, /Traceback|Error|Exception/.test(line) ? 'error' : '');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  SENSOR MONITOR
+// ═══════════════════════════════════════════════════════════════════════
+let rawValues = [], thresholds = [], userPinned = [], activeFlags = [];
+let originalCode = null, diagOnBoard = false, monitorReady = false, touchCount = 0, midiCount = 0;
+
+function initMonitor() {
+  rawValues = new Array(N).fill(0);
+  thresholds = new Array(N).fill(null);
+  userPinned = new Array(N).fill(false);
+  activeFlags = new Array(N).fill(false);
+  touchCount = 0; midiCount = 0;
+  $('sTouchEvents').textContent = '0'; $('sMidiEvents').textContent = '0'; $('sActive').textContent = '0';
+  $('guideSteps').innerHTML = board.guideSteps.map((s, i) =>
+    `<div class="guide-step"><div class="g-num">${i + 1}</div><div class="g-head">${s[0]}</div><div class="g-body">${s[1]}</div></div>`).join('');
+  buildSensorList();
+  $('globalLine').style.display = 'none';
+  $('globalVal').textContent = '--';
+  monitorReady = true;
+}
+
+async function openMonitor() {
+  if (fileHandle && diskText !== null && $('editor').value !== diskText && !isDiagCode(diskText)) {
+    if (confirm('Your editor has changes that aren\'t saved to the board.\n\nSave them to code.py first? (The Sensor Monitor restores the code.py that\'s on your board, with thresholds added.)'))
+      await saveFile();
+  }
+  if (!monitorReady) initMonitor();
+  if (fileHandle && diskText !== null && !isDiagCode(diskText)) originalCode = diskText;
+  if (!fileHandle) setMonStatus('', 'Open code.py to begin');
+  else if (diagOnBoard) setMonStatus('on', 'Diagnostic code is on the board — connect serial to see live values');
+  else setMonStatus('on', `${fileHandle.name} linked — original mappings will be preserved`);
+  show('monitorApp');
+}
+
+function leaveMonitor() {
+  if (diagOnBoard && !confirm('The diagnostic code is still on your board, so your pads won\'t do their normal job.\n\nTo restore your code with the new thresholds, use Download thresholds → Save to device.\n\nGo back to the editor anyway?')) return;
+  updateFileTab();
+  show('editorApp');
+}
+
+async function monitorOpenFile() {
+  if (!(await openFile())) return;
+  if (isDiagCode(diskText)) setMonStatus('on', 'Diagnostic code detected — upload fresh to begin');
+  else { originalCode = diskText; setMonStatus('on', 'code.py read — original mappings preserved'); }
+}
+
+function setMonStatus(s, msg) {
+  $('monDot').className = 'mdot' + (s === 'on' ? ' on' : s === 'warn' ? ' warn' : '');
+  $('monStatus').textContent = msg;
+}
+
+function toggleGuide() {
+  const g = $('guide');
+  g.classList.toggle('guide-collapsed');
+  $('guideToggle').textContent = g.classList.contains('guide-collapsed') ? 'click to expand ▼' : 'click to collapse ▲';
+}
+
+// drag helper: pointer events with capture, so no global listeners pile up
+function makeDraggable(wrap, onValue) {
+  const val = e => {
+    const r = wrap.getBoundingClientRect();
+    return Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * MAX_RAW);
+  };
+  wrap.addEventListener('pointerdown', e => { wrap.setPointerCapture(e.pointerId); onValue(val(e)); e.preventDefault(); });
+  wrap.addEventListener('pointermove', e => { if (wrap.hasPointerCapture(e.pointerId)) onValue(val(e)); });
+}
+
+makeDraggable($('globalWrap'), v => {
+  if (!monitorReady) return;
+  $('globalLine').style.left = (v / MAX_RAW * 100).toFixed(2) + '%';
+  $('globalLine').style.display = '';
+  $('globalVal').textContent = v;
+  for (let i = 0; i < N; i++) { userPinned[i] = true; setThresholdUI(i, v); refreshBar(i); }
+});
+
+function buildSensorList() {
+  const list = $('sensorList');
+  list.innerHTML = '';
+  for (let i = 0; i < N; i++) {
+    const row = document.createElement('div');
+    row.className = 'sensor-row';
+    row.innerHTML =
+      `<div class="sensor-label">${board.pinNames[i] === 'VOLTAGE_MONITOR' ? 'VOLT_MON' : board.pinNames[i]}<span class="sub">Pad ${i + 1} · Note ${board.midiNotes[i]}</span></div>
+       <div class="drag-wrap" id="bw${i}">
+         <div class="bar-fill" id="bf${i}" style="width:0%"></div>
+         <div class="tline" id="tl${i}" style="display:none;left:50%"><span class="tline-label" id="tlv${i}">--</span></div>
+       </div>
+       <div class="sensor-vals">
+         <span class="vr">Raw: <span id="rv${i}">--</span></span>
+         <span class="vt">Thr: <span id="tv${i}">--</span></span>
+         <span class="vm">MIDI ${board.midiNotes[i]}</span>
+       </div>`;
+    list.appendChild(row);
+    makeDraggable($('bw' + i), v => { userPinned[i] = true; setThresholdUI(i, v); refreshBar(i); });
+  }
+}
+
+function setThresholdUI(i, v) {
+  thresholds[i] = v;
+  const tl = $('tl' + i);
+  if (tl) { tl.style.left = (Math.min(v, MAX_RAW) / MAX_RAW * 100).toFixed(2) + '%'; tl.style.display = ''; }
+  if ($('tlv' + i)) $('tlv' + i).textContent = v;
+  if ($('tv' + i)) $('tv' + i).textContent = v;
+}
+
+function refreshBar(i) {
+  const bf = $('bf' + i), rv = $('rv' + i);
+  if (!bf || !rv) return;
+  bf.style.width = (Math.min(rawValues[i], MAX_RAW) / MAX_RAW * 100).toFixed(2) + '%';
+  rv.textContent = rawValues[i];
+  const triggered = thresholds[i] !== null && rawValues[i] > thresholds[i]; // touchio: touched when raw_value > threshold
+  bf.classList.toggle('active', triggered);
+  activeFlags[i] = triggered;
+  $('sActive').textContent = activeFlags.filter(Boolean).length;
+}
+
+function resetThresholds() {
+  for (let i = 0; i < N; i++) {
+    thresholds[i] = null; userPinned[i] = false;
+    $('tl' + i).style.display = 'none';
+    $('tlv' + i).textContent = '--';
+    $('tv' + i).textContent = '--';
+    refreshBar(i);
+  }
+  $('globalLine').style.display = 'none';
+  $('globalVal').textContent = '--';
+}
+
+const tVal = i => Number.isFinite(thresholds[i]) ? thresholds[i] : 3000;
+
+// Line format: RAW: GP1 (index 0) | Raw: 3500 | Threshold: 7000
+function processMonitorLine(line) {
+  if (!monitorReady) return;
+  $('debugLine').textContent = line;
+  const m = line.match(/\(index (\d+)\).*Raw: (\d+).*Threshold: (\d+)/);
+  if (m) {
+    const idx = parseInt(m[1], 10);
+    if (idx >= 0 && idx < N) {
+      rawValues[idx] = parseInt(m[2], 10);
+      if (!userPinned[idx]) setThresholdUI(idx, parseInt(m[3], 10));
+      refreshBar(idx);
+      setMonStatus('on', 'Serial live — receiving sensor data');
+    }
+    return;
+  }
+  if (line.includes('TOUCH_ON') || line.includes('TOUCH_OFF')) $('sTouchEvents').textContent = ++touchCount;
+  if (line.includes('MIDI:')) $('sMidiEvents').textContent = ++midiCount;
+}
+
+async function uploadDiagnostic() {
+  if (!fileHandle && !(await openFile())) return;
+  try {
+    const text = await (await fileHandle.getFile()).text();
+    if (!isDiagCode(text)) originalCode = text;
+    const diag = buildDiagCode();
+    await writeHandle(fileHandle, diag);
+    diskText = diag; diagOnBoard = true;
+    setMonStatus('on', 'Diagnostic uploaded — connect serial when the board restarts');
+    log('Sensor Monitor diagnostic code uploaded. Use Save to device in the monitor to restore your code.', 'info');
+  } catch (e) {
+    if (e.name !== 'AbortError') setMonStatus('warn', 'Upload error: ' + e.message);
+  }
+}
+
+function buildDiagCode() {
+  const thStr = Array.from({ length: N }, (_, i) => tVal(i)).join(', ');
+  const pinNamesStr = "['" + board.pinNames.join("','") + "']";
+  const midiStr = '[' + board.midiNotes.join(',') + ']';
+  const isMini = board.key === 'mini';
+  let c = '';
+  c += '# SPOKE' + (isMini ? ' Mini' : '') + ' Diagnostic\n';
+  c += 'import board, touchio, digitalio, usb_midi, adafruit_midi, time\n';
+  if (!isMini) c += 'import neopixel\n';
+  c += 'from adafruit_midi.note_on import NoteOn\n';
+  c += 'from adafruit_midi.note_off import NoteOff\n\n';
+  c += 'touch_pins_raw = [\n' + board.pinList + '\n]\n';
+  c += 'pin_names = ' + pinNamesStr + '\n';
+  c += 'MIDI_NOTES = ' + midiStr + '\n';
+  c += 'THRESHOLDS = [' + thStr + ']\n\n';
+  c += 'midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)\n';
+  if (isMini) {
+    c += 'led = digitalio.DigitalInOut(board.LED)\n';
+    c += 'led.direction = digitalio.Direction.OUTPUT\n';
+  } else {
+    c += 'pixels = neopixel.NeoPixel(' + board.neoPin + ', ' + N + ', brightness=0.03, auto_write=False)\n';
+    c += 'IDLE_COLOR  = (0, 0, 30)\n';
+    c += 'TOUCH_COLOR = (0, 220, 0)\n';
+    c += 'FLASH_COLOR = (255, 255, 255)\n';
+    c += 'for i in range(' + N + '): pixels[i] = IDLE_COLOR\n';
+    c += 'pixels.show()\n';
+    c += 'flash_timer = [0] * ' + N + '\n';
+  }
+  c += '\ntouch_sensors = []\n';
+  c += 'for i, pin in enumerate(touch_pins_raw):\n';
+  c += '    try:\n';
+  c += '        s = touchio.TouchIn(pin)\n';
+  c += '        s.threshold = THRESHOLDS[i]\n';
+  c += '        touch_sensors.append(s)\n';
+  c += '    except:\n';
+  c += '        touch_sensors.append(None)\n\n';
+  c += 'prev = [False] * len(touch_sensors)\n\n';
+  c += 'while True:\n';
+  c += '    for i, s in enumerate(touch_sensors):\n';
+  c += '        if s is None: continue\n';
+  c += '        try:\n';
+  c += '            raw = s.raw_value\n';
+  c += '            thresh = s.threshold\n';
+  c += '            touched = s.value\n';
+  c += '            print("RAW: " + pin_names[i] + " (index " + str(i) + ") | Raw: " + str(raw) + " | Threshold: " + str(thresh))\n';
+  c += '            if touched != prev[i]:\n';
+  c += '                prev[i] = touched\n';
+  c += '                if touched:\n';
+  c += '                    midi.send(NoteOn(MIDI_NOTES[i], 100))\n';
+  if (isMini) c += '                    led.value = True\n';
+  else { c += '                    pixels[i] = FLASH_COLOR\n'; c += '                    flash_timer[i] = 3\n'; }
+  c += '                    print("TOUCH_ON: " + pin_names[i] + " (index " + str(i) + ") | MIDI: " + str(MIDI_NOTES[i]))\n';
+  c += '                else:\n';
+  c += '                    midi.send(NoteOff(MIDI_NOTES[i], 0))\n';
+  if (isMini) c += '                    led.value = False\n';
+  else { c += '                    pixels[i] = IDLE_COLOR\n'; c += '                    flash_timer[i] = 0\n'; }
+  c += '                    print("TOUCH_OFF: " + pin_names[i] + " (index " + str(i) + ")")\n';
+  if (!isMini) {
+    c += '            elif flash_timer[i] > 0:\n';
+    c += '                flash_timer[i] -= 1\n';
+    c += '                if flash_timer[i] == 0:\n';
+    c += '                    pixels[i] = TOUCH_COLOR if touched else IDLE_COLOR\n';
+  }
+  c += '        except Exception as e:\n';
+  c += '            pass\n';
+  if (!isMini) c += '    pixels.show()\n';
+  c += '    time.sleep(0.05)\n';
+  return c;
+}
+
+const monitorValues = () => Array.from({ length: N }, (_, i) => tVal(i));
+const getFinalCode = () => injectThresholds(originalCode || DEFAULT_CODE[board.key], monitorValues());
+
+function openThreshModal() {
+  if (!monitorReady) initMonitor();
+  $('threshLabel').textContent = originalCode
+    ? 'Your original code.py with thresholds injected — all custom mappings preserved.'
+    : `Default ${board.name} code.py with thresholds baked in.`;
+  $('codeFinal').textContent = getFinalCode();
+  $('threshModal').classList.add('open');
+}
+function closeThreshModal() { $('threshModal').classList.remove('open'); }
+
+function copyFinal() {
+  navigator.clipboard.writeText($('codeFinal').textContent).then(() => {
+    const b = $('copyFinalBtn');
+    b.textContent = 'Copied!'; setTimeout(() => b.textContent = 'Copy', 1500);
+  });
+}
+
+async function saveToDevice() {
+  if (!fileHandle) { setMonStatus('warn', 'Open code.py first'); closeThreshModal(); return; }
+  try {
+    const code = getFinalCode();
+    await writeHandle(fileHandle, code);
+    diskText = code; originalCode = code; diagOnBoard = false;
+    setEditor(code);
+    const b = $('saveDeviceBtn');
+    b.textContent = 'Saved!';
+    setTimeout(() => b.textContent = 'Save to device', 2000);
+    setMonStatus('on', 'Saved — custom mappings intact, thresholds updated');
+    log('Thresholds saved to ' + fileHandle.name + ' — the editor now shows the updated code.', 'success');
+  } catch (e) { setMonStatus('warn', 'Save error: ' + e.message); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeScaleBuilder(); closeThreshModal(); }
+});
+window.addEventListener('beforeunload', () => { reading = false; try { if (port) port.close(); } catch (e) {} });
+try { const last = localStorage.getItem('spokeBoard'); if (last && BOARDS[last]) selectBoard(last); } catch (e) {}
+log('Ready. Connect serial to see print() output and errors from your board.', 'info');
+</script>
+</body>
+</html>
