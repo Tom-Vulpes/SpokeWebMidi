@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Amen Break Slicer</title>
+<link rel="preload" href="assets/amen.wav" as="fetch" crossorigin>
+<style>
+:root{--bg:#0b0b0d;--panel:#16161a;--line:#2a2a31;--dim:#4a4f5c;--text:#e8e6e1;--muted:#8a8a93;--hot:#ffb000}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+body{display:flex;flex-direction:column;overflow:hidden}
+#intro{padding:16px 16px 12px;border-bottom:1px solid var(--line)}
+#intro h1{margin:0 0 6px;font-size:18px;letter-spacing:.02em}
+#intro h1 span{color:var(--muted);font-weight:400;font-size:13px}
+#intro p{margin:0;max-width:92ch;color:#c4c2bd;font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+#controls{background:var(--panel);border-bottom:1px solid var(--line)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px}
+#options{display:flex;flex-wrap:wrap;gap:12px 28px;padding:4px 16px 14px;border-top:1px solid var(--line)}
+#options[hidden]{display:none}
+.group{display:flex;flex-direction:column;gap:6px}
+.group h2{margin:8px 0 0;font-size:11px;font-weight:400;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#optBtn[aria-expanded=true]{border-color:var(--hot);color:var(--hot)}
+button,select,input[type=number]{font:inherit;color:var(--text);background:#202027;border:1px solid var(--line);border-radius:4px;padding:5px 9px}
+button{cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.on{background:var(--hot);color:#000;border-color:var(--hot)}
+input[type=number]{width:62px}
+label{color:var(--muted);display:flex;gap:5px;align-items:center;cursor:pointer}
+#status{margin-left:auto;padding-left:8px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46ch}
+#monitor{color:var(--hot);min-width:12ch}
+#stage{flex:1;position:relative;min-height:140px}
+#wave{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#pads{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px;padding:10px 14px 14px}
+.pad{position:relative;border:1px solid var(--line);border-radius:6px;padding:7px 8px 6px;min-height:50px;cursor:pointer;user-select:none;
+  background:rgba(255,176,0,calc(var(--a,0) * .85))}
+.pad .num{font-size:17px;font-weight:700}
+.pad .map{color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pad .key{position:absolute;top:6px;right:8px;color:var(--dim);font-size:11px;text-transform:uppercase}
+.pad.target{outline:2px dashed var(--hot);outline-offset:2px}
+body.hide-ui #intro,body.hide-ui #controls,body.hide-ui #pads{display:none}
+body.hide-ui{cursor:none}
+body.drag #stage{outline:2px dashed var(--hot);outline-offset:-8px}
+#overlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(22,22,26,.92);border:1px solid var(--hot);color:var(--text);padding:9px 16px;border-radius:999px;font-size:13px;cursor:pointer;z-index:10;white-space:nowrap}
+#overlay[hidden]{display:none}
+@media (max-width:700px){#pads{grid-template-columns:repeat(6,minmax(0,1fr));padding:8px 10px 10px;gap:5px}.pad .key{display:none}.pad{padding:6px}#status{margin-left:0;flex-basis:100%;padding-left:0}#intro p{font-size:13px}}
+</style>
+</head>
+<body>
+<header id="intro">
+  <h1>The Amen break <span>· The Winstons, “Amen, Brother”, 1969</span></h1>
+  <p>In 1969 the Washington, D.C. soul group The Winstons put out “Color Him Father”, with an instrumental called “Amen, Brother” on the B-side. Partway through, drummer Gregory Coleman plays a four-bar solo lasting about six seconds. In the late 1980s it was reissued on the <em>Ultimate Breaks and Beats</em> compilations and sampled by hip-hop producers. Sped up and chopped into pieces, it became the backbone of jungle and drum and bass, and it is widely thought to be one of the most sampled recordings ever made. Coleman and bandleader Richard L. Spencer, who owned the copyright, were never paid for that sampling, and Coleman died homeless in 2006. Here the break is cut into 27 pieces, one for each pad on the SPOKE board.</p>
+</header>
+<div id="controls">
+  <div class="bar">
+    <button id="loadBtn" title="Slice a different recording (only in this browser)">Your own audio…</button>
+    <button id="amenBtn" hidden>Back to Amen</button>
+    <input type="file" id="file" accept="audio/*" hidden>
+    <button id="fs">Fullscreen</button>
+    <button id="optBtn" aria-expanded="false" aria-controls="options">Options ▾</button>
+    <div id="status"></div>
+  </div>
+  <div id="options" hidden>
+    <div class="group">
+      <h2>MIDI</h2>
+      <div class="row">
+        <label>Input <select id="midiIn"><option value="all">All MIDI inputs</option></select></label>
+        <label>Ch <select id="chan"></select></label>
+      </div>
+      <div class="row"><span style="color:var(--muted)">Last message</span> <span id="monitor">—</span></div>
+    </div>
+    <div class="group">
+      <h2>Pad mapping</h2>
+      <div class="row">
+        <button id="spokeMap" title="98, 96, 93 … 38, 36 → segments 1–27">SPOKE defaults</button>
+        <button id="learn" title="Click a pad, then hit a SPOKE pad to assign it. Advances automatically.">Learn</button>
+      </div>
+      <div class="row">
+        <label>Base note <input type="number" id="base" min="0" max="101"></label>
+        <button id="applyBase" title="Map 27 consecutive notes starting at the base note">Map from base</button>
+      </div>
+    </div>
+    <div class="group">
+      <h2>Playback</h2>
+      <label title="A new hit cuts off the previous one"><input type="checkbox" id="choke"> Choke</label>
+      <label title="Softer pad hits play quieter"><input type="checkbox" id="vel"> Velocity</label>
+      <label title="Stop the segment when the pad is released"><input type="checkbox" id="gate"> Stop on release</label>
+    </div>
+    <div class="group">
+      <h2>Slices</h2>
+      <div class="row">
+        <button id="edit" title="Drag the slice lines on the waveform">Edit slices</button>
+        <button id="equal">Equal</button>
+        <button id="auto">Auto (transients)</button>
+      </div>
+    </div>
+    <div class="group">
+      <h2>Setup</h2>
+      <div class="row">
+        <button id="export">Export</button>
+        <button id="import">Import</button>
+        <input type="file" id="importFile" accept=".json,application/json" hidden>
+        <button id="hide" title="Press ` (backtick) to bring everything back">Hide UI</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="stage"><canvas id="wave"></canvas><div id="overlay" hidden>Click anywhere to enable sound</div></div>
+<div id="pads"></div>
+
+<script>
+(() => {
+'use strict';
+const N = 27;
+const KEYS = '1234567890qwertyuiopasdfghj'; // computer-keyboard test triggers
+const STORE = 'amen-slicer-v2';
+// The hosted recording, relative to this page. Download starts straight away.
+const DEFAULT_AUDIO = 'assets/amen.wav';
+const defaultAudio = fetch(DEFAULT_AUDIO).then(r => r.ok ? r.arrayBuffer() : Promise.reject(new Error('HTTP ' + r.status)));
+defaultAudio.catch(() => {});
+// SPOKE board default note numbers, in segment order (segment 1 = 98 … segment 27 = 36)
+const SPOKE_NOTES = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67, 64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36];
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const $ = s => document.querySelector(s);
+
+const canvas = $('#wave'), g2 = canvas.getContext('2d');
+const padsEl = $('#pads'), statusEl = $('#status'), monitorEl = $('#monitor');
+const overlay = $('#overlay'), amenBtn = $('#amenBtn');
+const fileInput = $('#file'), inputSel = $('#midiIn');
+
+let ctx = null, master = null;
+let amenBuffer = null, currentName = '', loadFailed = false;
+let buffer = null, mono = null, peaks = null, peakW = 0, peakNorm = 1;
+let slices = [];                 // N+1 boundary times in seconds
+let map = {};                    // "n:36" | "cc:20" -> segment index
+let settings = { baseNote: 36, channel: 0, choke: true, velocity: true, gate: false, input: 'all' };
+let editMode = false, learnMode = false, learnTarget = -1, dragging = -1;
+const voices = [];
+const lastEnd = new Array(N).fill(-1e9);
+const ccState = {};
+const pads = [];
+
+// ---------- persistence ----------
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch (e) {}
+if (saved.settings) Object.assign(settings, saved.settings);
+if (saved.map && Object.keys(saved.map).length) map = saved.map; else defaultMap();
+saved.files = saved.files || {};
+if (saved.slices && !saved.files[DEFAULT_AUDIO]) saved.files[DEFAULT_AUDIO] = { duration: saved.duration, slices: saved.slices };
+
+function save() {
+  const files = saved.files || {};
+  if (buffer && currentName) files[currentName] = { duration: buffer.duration, slices };
+  saved = { settings, map, files };
+  try { localStorage.setItem(STORE, JSON.stringify(saved)); } catch (e) {}
+}
+function defaultMap() {
+  map = {};
+  for (let i = 0; i < N; i++) map['n:' + SPOKE_NOTES[i]] = i;
+}
+function baseMap() {
+  map = {};
+  for (let i = 0; i < N; i++) map['n:' + (settings.baseNote + i)] = i;
+}
+
+
+function status(t) { statusEl.textContent = t; statusEl.title = t; }
+
+// ---------- audio ----------
+function ensureCtx() {
+  if (ctx) return;
+  ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20;
+  limiter.attack.value = 0.002; limiter.release.value = 0.1;
+  master = ctx.createGain(); master.gain.value = 0.9;
+  master.connect(limiter).connect(ctx.destination);
+  ctx.onstatechange = updateOverlay;
+}
+function resume() { ensureCtx(); if (ctx.state !== 'running') ctx.resume().catch(() => {}); }
+
+async function decode(ab) { ensureCtx(); return ctx.decodeAudioData(ab); }
+function useBuffer(buf, name) {
+  buffer = buf; currentName = name; mixMono(); peaks = null;
+  const rec = saved.files[name];
+  if (rec && rec.slices && rec.slices.length === N + 1 && Math.abs((rec.duration || 0) - buf.duration) < 0.01) slices = rec.slices.slice();
+  else equalSlices();
+  amenBtn.hidden = name === DEFAULT_AUDIO || !amenBuffer;
+  status(`${name === DEFAULT_AUDIO ? 'Amen break' : name} · ${buf.duration.toFixed(3)}s · ${buf.sampleRate}Hz`);
+  save(); updateOverlay(); renderPads();
+}
+async function loadFile(f) {
+  resume();
+  try { useBuffer(await decode(await f.arrayBuffer()), f.name); }
+  catch (e) { status('Could not decode ' + f.name); }
+}
+function mixMono() {
+  const c = buffer.numberOfChannels, L = buffer.length;
+  mono = new Float32Array(L);
+  for (let ch = 0; ch < c; ch++) {
+    const d = buffer.getChannelData(ch);
+    for (let i = 0; i < L; i++) mono[i] += d[i] / c;
+  }
+}
+
+function trigger(seg, vel = 110) {
+  if (!buffer || seg < 0 || seg >= N) return;
+  resume();
+  if (settings.choke) for (const v of voices) stopVoice(v, 0.005);
+  const t0 = slices[seg], dur = slices[seg + 1] - t0;
+  if (dur <= 0.002) return;
+  const level = settings.velocity ? Math.pow(Math.max(1, vel) / 127, 1.5) : 1;
+  const now = ctx.currentTime;
+  const src = ctx.createBufferSource(); src.buffer = buffer;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(level, now);
+  if (dur > 0.012) { g.gain.setValueAtTime(level, now + dur - 0.005); g.gain.linearRampToValueAtTime(0, now + dur); }
+  src.connect(g).connect(master);
+  const v = { seg, t0, dur, start: now, src, g, done: false };
+  src.onended = () => {
+    v.done = true; lastEnd[seg] = performance.now();
+    const i = voices.indexOf(v); if (i >= 0) voices.splice(i, 1);
+  };
+  src.start(now, t0, dur);
+  voices.push(v);
+}
+function stopVoice(v, fade = 0.01) {
+  if (v.done || v.stopping) return;
+  v.stopping = true;
+  const now = ctx.currentTime;
+  try {
+    v.g.gain.cancelScheduledValues(now);
+    v.g.gain.setValueAtTime(v.g.gain.value, now);
+    v.g.gain.linearRampToValueAtTime(0, now + fade);
+    v.src.stop(now + fade + 0.002);
+  } catch (e) {}
+}
+function release(seg) { for (const v of voices) if (v.seg === seg) stopVoice(v, 0.015); }
+
+// ---------- slicing ----------
+function equalSlices() {
+  const d = buffer.duration;
+  slices = Array.from({ length: N + 1 }, (_, i) => d * i / N);
+}
+function autoSlices() {
+  if (!buffer) return;
+  const sr = buffer.sampleRate, L = mono.length;
+  // trim leading/trailing silence
+  let peak = 0; for (let i = 0; i < L; i++) peak = Math.max(peak, Math.abs(mono[i]));
+  const th = peak * 0.02;
+  let s = 0; while (s < L && Math.abs(mono[s]) < th) s++;
+  let e = L - 1; while (e > s && Math.abs(mono[e]) < th) e--;
+  const start = Math.max(0, s / sr - 0.002), end = Math.min(buffer.duration, e / sr + 0.01);
+
+  // onset strength: rise in high-passed energy over ~5ms frames
+  const hop = Math.round(sr * 0.005), win = hop * 2;
+  const F = Math.max(0, Math.floor((L - win) / hop));
+  const env = new Float32Array(F), flux = new Float32Array(F);
+  for (let f = 0; f < F; f++) {
+    let acc = 0; const a = f * hop;
+    for (let i = a + 1; i < a + win; i++) { const d = mono[i] - mono[i - 1]; acc += d * d; }
+    env[f] = Math.sqrt(acc / win);
+  }
+  for (let f = 4; f < F; f++) {
+    const prev = (env[f - 1] + env[f - 2] + env[f - 3] + env[f - 4]) / 4;
+    flux[f] = Math.max(0, env[f] - prev);
+  }
+  const cands = [];
+  for (let f = 6; f < F - 6; f++) {
+    let isMax = flux[f] > 0;
+    for (let k = -6; k <= 6 && isMax; k++) if (k && flux[f + k] > flux[f]) isMax = false;
+    const t = f * hop / sr - 0.002;
+    if (isMax && t > start + 0.04 && t < end - 0.04) cands.push({ t, v: flux[f] });
+  }
+  cands.sort((a, b) => b.v - a.v);
+  const chosen = [];
+  for (const c of cands) {
+    if (chosen.length >= N - 1) break;
+    if (chosen.every(t => Math.abs(t - c.t) > 0.06)) chosen.push(c.t);
+  }
+  chosen.sort((a, b) => a - b);
+  let b = [start, ...chosen, end];
+  while (b.length < N + 1) {          // not enough hits: split the widest gaps
+    let gi = 0, gw = 0;
+    for (let i = 0; i < b.length - 1; i++) if (b[i + 1] - b[i] > gw) { gw = b[i + 1] - b[i]; gi = i; }
+    b.splice(gi + 1, 0, b[gi] + gw / 2);
+  }
+  slices = b;
+  save();
+  status(`Auto-sliced: ${cands.length} transients found, ${chosen.length} used`);
+}
+
+// ---------- MIDI ----------
+let midi = null;
+async function initMIDI() {
+  if (!navigator.requestMIDIAccess) { status('Web MIDI not available — use Chrome or Edge'); return; }
+  try { midi = await navigator.requestMIDIAccess({ sysex: false }); }
+  catch (e) { status('MIDI access was refused'); return; }
+  midi.onstatechange = bindInputs;
+  bindInputs();
+}
+function bindInputs() {
+  if (!midi) return;
+  inputSel.innerHTML = '<option value="all">All MIDI inputs</option>';
+  let n = 0;
+  for (const inp of midi.inputs.values()) {
+    const o = document.createElement('option');
+    o.value = inp.id; o.textContent = inp.name || inp.id;
+    inputSel.appendChild(o);
+    inp.onmidimessage = onMidi; n++;
+  }
+  inputSel.value = [...inputSel.options].some(o => o.value === settings.input) ? settings.input : 'all';
+  if (!buffer) return;
+  status(n ? `${n} MIDI input${n > 1 ? 's' : ''} connected` : 'No MIDI inputs found — plug in the SPOKE');
+}
+function onMidi(e) {
+  if (inputSel.value !== 'all' && e.target.id !== inputSel.value) return;
+  const [st, d1, d2 = 0] = e.data;
+  const type = st & 0xF0, ch = (st & 0x0F) + 1;
+  if (type < 0x80 || type > 0xE0) return;
+  if (settings.channel && ch !== settings.channel) return;
+  let key, on;
+  if (type === 0x90) { key = 'n:' + d1; on = d2 > 0; }
+  else if (type === 0x80) { key = 'n:' + d1; on = false; }
+  else if (type === 0xB0) {
+    key = 'cc:' + d1;
+    const was = ccState[key] || 0; ccState[key] = d2;
+    if (d2 > 0 && was > 0) return;            // ignore continuous CC movement
+    on = d2 > 0;
+  } else return;
+  monitorEl.textContent = `${on ? '▶' : '·'} ${keyLabel(key)} ch${ch}${on ? ' v' + d2 : ''}`;
+
+  if (learnMode && on && learnTarget >= 0) {
+    for (const k of Object.keys(map)) if (map[k] === learnTarget) delete map[k];
+    map[key] = learnTarget;
+    trigger(learnTarget, d2);
+    learnTarget = (learnTarget + 1) % N;
+    save(); renderPads();
+    return;
+  }
+  const seg = map[key];
+  if (seg === undefined) return;
+  if (on) trigger(seg, d2); else if (settings.gate) release(seg);
+}
+function noteName(n) { return NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 1); }
+function keyLabel(k) {
+  const [t, n] = k.split(':');
+  return t === 'n' ? `${noteName(+n)} (${n})` : `CC${n}`;
+}
+
+// ---------- pads ----------
+function buildPads() {
+  for (let i = 0; i < N; i++) {
+    const p = document.createElement('div');
+    p.className = 'pad';
+    p.innerHTML = `<div class="num">${i + 1}</div><div class="map"></div><div class="key">${KEYS[i]}</div>`;
+    p.addEventListener('pointerdown', () => {
+      if (learnMode) { learnTarget = i; renderPads(); return; }
+      trigger(i, 110);
+    });
+    p.addEventListener('pointerup', () => { if (settings.gate && !learnMode) release(i); });
+    padsEl.appendChild(p); pads.push(p);
+  }
+}
+function renderPads() {
+  for (let i = 0; i < N; i++) {
+    const ks = Object.keys(map).filter(k => map[k] === i).map(keyLabel);
+    pads[i].querySelector('.map').textContent = ks.length ? ks.join(' ') : 'unassigned';
+    pads[i].classList.toggle('target', learnMode && learnTarget === i);
+  }
+}
+
+// ---------- drawing ----------
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
+  canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
+}
+new ResizeObserver(resize).observe($('#stage'));
+
+function computePeaks(W) {
+  peaks = new Float32Array(W * 2);
+  const L = mono.length; let m = 0;
+  for (let x = 0; x < W; x++) {
+    const a = Math.floor(x * L / W), b = Math.max(a + 1, Math.floor((x + 1) * L / W));
+    let mn = 1, mx = -1;
+    for (let i = a; i < b && i < L; i++) { const v = mono[i]; if (v < mn) mn = v; if (v > mx) mx = v; }
+    if (mn > mx) mn = mx = 0;
+    peaks[2 * x] = mn; peaks[2 * x + 1] = mx;
+    m = Math.max(m, Math.abs(mn), Math.abs(mx));
+  }
+  peakW = W; peakNorm = m > 0 ? 0.95 / m : 1;
+}
+
+function frame() {
+  requestAnimationFrame(frame);
+  const W = canvas.width, H = canvas.height;
+  if (W < 2 || H < 2) return;
+  const dpr = window.devicePixelRatio || 1;
+  g2.fillStyle = '#0b0b0d'; g2.fillRect(0, 0, W, H);
+
+  const lit = new Float32Array(N), heads = [];
+  if (buffer && ctx) {
+    const vnow = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
+    const pnow = performance.now();
+    for (const v of voices) {
+      if (v.done) continue;
+      const el = vnow - v.start;
+      if (el >= 0 && el < v.dur) { lit[v.seg] = 1; heads.push(v.t0 + el); }
+    }
+    for (let i = 0; i < N; i++) if (!lit[i]) {
+      const k = 1 - (pnow - lastEnd[i]) / 450;
+      if (k > 0) lit[i] = k * 0.6;
+    }
+  }
+  for (let i = 0; i < N; i++) pads[i].style.setProperty('--a', lit[i].toFixed(3));
+
+  if (!buffer) {
+    g2.fillStyle = '#4a4f5c'; g2.font = `${14 * dpr}px ui-monospace,Menlo,monospace`;
+    g2.textAlign = 'center'; g2.textBaseline = 'middle';
+    g2.fillText(loadFailed ? `Could not load ${DEFAULT_AUDIO} — try \u201cYour own audio\u2026\u201d` : 'Loading the Amen break\u2026', W / 2, H / 2);
+    return;
+  }
+  if (!peaks || peakW !== W) computePeaks(W);
+
+  const dur = buffer.duration, X = t => t / dur * W;
+  const top = Math.round(26 * dpr), bot = H - Math.round(8 * dpr);
+  const mid = (top + bot) / 2, amp = (bot - top) / 2 * peakNorm;
+  const drawWave = (a, b) => {
+    for (let x = Math.max(0, a); x < Math.min(W, b); x++) {
+      const y1 = mid - peaks[2 * x + 1] * amp, y2 = mid - peaks[2 * x] * amp;
+      g2.fillRect(x, y1, 1, Math.max(1, y2 - y1));
+    }
+  };
+
+  // segment bands
+  for (let i = 0; i < N; i++) {
+    const x0 = X(slices[i]), x1 = X(slices[i + 1]);
+    g2.fillStyle = i % 2 ? '#131318' : '#0f0f13'; g2.fillRect(x0, 0, x1 - x0, H);
+    if (lit[i] > 0) { g2.fillStyle = `rgba(255,176,0,${0.22 * lit[i]})`; g2.fillRect(x0, 0, x1 - x0, H); }
+  }
+  // centre line + dim waveform
+  g2.fillStyle = '#22222a'; g2.fillRect(0, Math.round(mid), W, 1);
+  g2.fillStyle = '#4a4f5c'; drawWave(0, W);
+  // lit segments in full colour
+  g2.fillStyle = '#ffb000';
+  for (let i = 0; i < N; i++) if (lit[i] > 0) {
+    g2.globalAlpha = Math.min(1, lit[i]);
+    drawWave(Math.floor(X(slices[i])), Math.ceil(X(slices[i + 1])));
+  }
+  g2.globalAlpha = 1;
+  // regions outside the first/last slice
+  g2.fillStyle = 'rgba(0,0,0,.65)';
+  g2.fillRect(0, 0, X(slices[0]), H);
+  g2.fillRect(X(slices[N]), 0, W - X(slices[N]), H);
+  // slice lines
+  for (let i = 0; i <= N; i++) {
+    const x = Math.round(X(slices[i]));
+    g2.fillStyle = editMode ? (dragging === i ? '#ffb000' : '#8a8a93') : '#2a2a31';
+    g2.fillRect(x, 0, Math.max(1, Math.round(dpr)), H);
+    if (editMode) g2.fillRect(x - 3 * dpr, top - 4 * dpr, 7 * dpr, 4 * dpr);
+  }
+  // segment numbers
+  g2.font = `${11 * dpr}px ui-monospace,Menlo,monospace`;
+  g2.textAlign = 'center'; g2.textBaseline = 'middle';
+  for (let i = 0; i < N; i++) {
+    const x0 = X(slices[i]), x1 = X(slices[i + 1]);
+    if (x1 - x0 < 14 * dpr) continue;
+    g2.fillStyle = lit[i] > 0.5 ? '#ffb000' : (learnMode && learnTarget === i ? '#e8e6e1' : '#8a8a93');
+    g2.fillText(String(i + 1), (x0 + x1) / 2, 13 * dpr);
+  }
+  // playheads
+  g2.fillStyle = '#ffffff';
+  for (const t of heads) g2.fillRect(Math.round(X(t)) - dpr, top, 2 * dpr, bot - top);
+}
+
+// ---------- waveform interaction ----------
+function timeAt(e) { return e.offsetX / canvas.clientWidth * buffer.duration; }
+function segAt(t) { for (let i = 0; i < N; i++) if (t >= slices[i] && t < slices[i + 1]) return i; return -1; }
+function boundaryNear(e) {
+  const cw = canvas.clientWidth; let best = -1, bd = 7;
+  for (let i = 0; i <= N; i++) {
+    const d = Math.abs(slices[i] / buffer.duration * cw - e.offsetX);
+    if (d < bd) { bd = d; best = i; }
+  }
+  return best;
+}
+canvas.addEventListener('pointerdown', e => {
+  if (!buffer) return;
+  resume();
+  if (editMode) {
+    const b = boundaryNear(e);
+    if (b >= 0) { dragging = b; canvas.setPointerCapture(e.pointerId); return; }
+  }
+  const seg = segAt(timeAt(e));
+  if (seg < 0) return;
+  if (learnMode) { learnTarget = seg; renderPads(); return; }
+  trigger(seg, 110);
+  canvas._held = seg;
+});
+canvas.addEventListener('pointermove', e => {
+  if (!buffer) return;
+  if (dragging >= 0) {
+    const i = dragging, dur = buffer.duration;
+    const lo = i > 0 ? slices[i - 1] + 0.005 : 0;
+    const hi = i < N ? slices[i + 1] - 0.005 : dur;
+    slices[i] = Math.min(hi, Math.max(lo, timeAt(e)));
+    return;
+  }
+  canvas.style.cursor = editMode && boundaryNear(e) >= 0 ? 'ew-resize' : 'pointer';
+});
+canvas.addEventListener('pointerup', () => {
+  if (dragging >= 0) { dragging = -1; save(); }
+  if (settings.gate && canvas._held != null) release(canvas._held);
+  canvas._held = null;
+});
+
+// ---------- controls ----------
+const chan = $('#chan');
+chan.innerHTML = '<option value="0">Omni</option>' + Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+chan.value = settings.channel;
+$('#base').value = settings.baseNote;
+$('#choke').checked = settings.choke;
+$('#vel').checked = settings.velocity;
+$('#gate').checked = settings.gate;
+
+chan.onchange = () => { settings.channel = +chan.value; save(); chan.blur(); };
+inputSel.onchange = () => { settings.input = inputSel.value; save(); inputSel.blur(); };
+$('#base').onchange = e => { settings.baseNote = Math.max(0, Math.min(101, +e.target.value || 0)); e.target.value = settings.baseNote; save(); };
+$('#spokeMap').onclick = () => { defaultMap(); save(); renderPads(); status('Pads mapped to the SPOKE default notes'); };
+$('#applyBase').onclick = () => { baseMap(); save(); renderPads(); status(`Pads mapped to notes ${settings.baseNote}–${settings.baseNote + N - 1}`); };
+$('#choke').onchange = e => { settings.choke = e.target.checked; save(); };
+$('#vel').onchange = e => { settings.velocity = e.target.checked; save(); };
+$('#gate').onchange = e => { settings.gate = e.target.checked; save(); };
+
+function setLearn(on) {
+  learnMode = on; learnTarget = on ? Math.max(0, learnTarget) : -1;
+  $('#learn').classList.toggle('on', on);
+  if (on) status('Learn: hit SPOKE pads in order — or click a slot first. Esc to finish.');
+  renderPads();
+}
+function setEdit(on) {
+  editMode = on; $('#edit').classList.toggle('on', on);
+  if (on) status('Edit: drag the slice lines. Esc to finish.');
+}
+$('#learn').onclick = () => setLearn(!learnMode);
+$('#edit').onclick = () => setEdit(!editMode);
+$('#equal').onclick = () => { if (buffer) { equalSlices(); save(); } };
+$('#auto').onclick = autoSlices;
+
+$('#loadBtn').onclick = () => fileInput.click();
+amenBtn.onclick = () => { if (amenBuffer) useBuffer(amenBuffer, DEFAULT_AUDIO); };
+fileInput.onchange = () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); fileInput.value = ''; };
+
+$('#export').onclick = () => {
+  const data = JSON.stringify({ app: 'amen-slicer', version: 1, duration: buffer ? buffer.duration : null, slices, map, settings }, null, 2);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+  a.download = 'amen-slices.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('#import').onclick = () => $('#importFile').click();
+$('#importFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (d.settings) Object.assign(settings, d.settings);
+    if (d.map) map = d.map;
+    if (Array.isArray(d.slices) && d.slices.length === N + 1) {
+      slices = buffer ? d.slices.map(t => Math.min(buffer.duration, Math.max(0, t))) : d.slices;
+    }
+    chan.value = settings.channel; $('#base').value = settings.baseNote;
+    $('#choke').checked = settings.choke; $('#vel').checked = settings.velocity; $('#gate').checked = settings.gate;
+    save(); renderPads(); bindInputs(); status('Settings imported');
+  } catch (err) { status('That file is not a valid settings export'); }
+};
+
+function toggleFS() {
+  if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {});
+}
+$('#fs').onclick = toggleFS;
+const optBtn = $('#optBtn'), optPanel = $('#options');
+function setOptions(open) {
+  optPanel.hidden = !open;
+  optBtn.setAttribute('aria-expanded', String(open));
+  optBtn.textContent = open ? 'Options ▴' : 'Options ▾';
+  try { localStorage.setItem(STORE + '-options', open ? '1' : '0'); } catch (e) {}
+}
+optBtn.onclick = () => setOptions(optPanel.hidden);
+try { setOptions(localStorage.getItem(STORE + '-options') === '1'); } catch (e) { setOptions(false); }
+$('#hide').onclick = () => document.body.classList.add('hide-ui');
+
+addEventListener('keydown', e => {
+  if (e.target.matches('input[type=number]')) return;
+  if (e.repeat) return;
+  if (e.key === '`') { document.body.classList.toggle('hide-ui'); return; }
+  if (e.key === 'Escape') { setLearn(false); setEdit(false); return; }
+  if (e.key === 'F' && e.shiftKey) { toggleFS(); return; }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const i = KEYS.indexOf(e.key.toLowerCase());
+  if (i >= 0) { e.preventDefault(); learnMode ? (learnTarget = i, renderPads()) : trigger(i, 110); }
+});
+addEventListener('keyup', e => {
+  const i = KEYS.indexOf(e.key.toLowerCase());
+  if (i >= 0 && settings.gate) release(i);
+});
+
+// drag & drop audio
+addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('drag'); });
+addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('drag'); });
+addEventListener('drop', e => {
+  e.preventDefault(); document.body.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+
+// browsers need one click/key press before audio can play
+function updateOverlay() {
+  overlay.hidden = !buffer || (ctx && ctx.state === 'running');
+}
+function unlock() { resume(); }
+addEventListener('pointerdown', unlock, true);
+addEventListener('keydown', unlock, true);
+
+// ---------- boot ----------
+async function boot() {
+  buildPads(); renderPads(); resize();
+  ensureCtx();
+  requestAnimationFrame(frame);
+  try {
+    amenBuffer = await decode(await defaultAudio);
+    if (!buffer) useBuffer(amenBuffer, DEFAULT_AUDIO); else amenBtn.hidden = false;
+  } catch (e) {
+    loadFailed = true;
+    status(`Could not load ${DEFAULT_AUDIO} — check it is uploaded`);
+  }
+  updateOverlay();
+  initMIDI();
+}
+boot();
+})();
+</script>
+</body>
+</html>
