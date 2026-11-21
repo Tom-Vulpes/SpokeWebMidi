@@ -539,6 +539,16 @@ input[type=range].vol-slider::-moz-range-thumb{
       </div>
       <div style="margin-top:10px;">
         <button class="btn g" id="midiBtn" style="width:100%;">Connect MIDI</button>
+        <div style="display:grid;grid-template-columns:1fr 92px;gap:8px;margin-top:8px;">
+          <div>
+            <label class="field-label" for="midiInSel" style="margin-bottom:4px;">MIDI input</label>
+            <select id="midiInSel" disabled style="padding:6px 9px;font-size:11px;"><option value="">All devices</option></select>
+          </div>
+          <div>
+            <label class="field-label" for="midiChSel" style="margin-bottom:4px;">Channel</label>
+            <select id="midiChSel" style="padding:6px 9px;font-size:11px;"></select>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1494,22 +1504,59 @@ document.querySelectorAll('.mode-btn').forEach(btn=>{
   });
 });
 
+// ── MIDI input + channel selection ──
+const midiInSel=document.getElementById('midiInSel');
+const midiChSel=document.getElementById('midiChSel');
+let midiChannel=0;        // 0 = all channels, 1–16 = only that channel
+let midiInputId='';       // '' = all devices
+
+(function buildChannelList(){
+  midiChSel.innerHTML='<option value="0">All</option>'+Array.from({length:16},(_,i)=>`<option value="${i+1}">Ch ${i+1}</option>`).join('');
+  try{
+    const c=localStorage.getItem('spokeMidiCh'); if(c!==null&&/^(?:\d|1[0-6])$/.test(c)){midiChannel=+c;midiChSel.value=c;}
+  }catch(e){}
+})();
+
+function releaseMidiHeld(){ // avoid stuck gate notes when the filter changes
+  heldPads.forEach(i=>{ if(padEffectiveMode(i)==='gate') stopPad(i); }); heldPads.clear();
+}
+midiChSel.addEventListener('change',()=>{
+  midiChannel=parseInt(midiChSel.value); releaseMidiHeld();
+  try{localStorage.setItem('spokeMidiCh',String(midiChannel));}catch(e){}
+});
+midiInSel.addEventListener('change',()=>{ midiInputId=midiInSel.value; releaseMidiHeld(); });
+
+function handleMidi(e,portId){
+  if(midiInputId&&portId!==midiInputId) return;          // wrong device
+  const[st,note,vel]=e.data, cmd=st&0xf0;
+  if(cmd!==0x80&&cmd!==0x90) return;                      // notes only
+  if(midiChannel&&((st&0x0f)+1)!==midiChannel) return;    // wrong channel
+  const idx=NOTES.indexOf(note); if(idx===-1) return;
+  if(cmd===0x90&&vel>0){
+    if(pads[idx])pads[idx].fire();
+    midiPlay(idx,vel);
+    if(padEffectiveMode(idx)==='gate') heldPads.add(idx);
+  } else {
+    heldPads.delete(idx);
+    if(padEffectiveMode(idx)==='gate') stopPad(idx);
+  }
+}
+function refreshMidiInputs(){
+  if(!midi) return;
+  const inputs=Array.from(midi.inputs.values());
+  inputs.forEach(inp=>{ inp.onmidimessage=e=>handleMidi(e,inp.id); });   // (re)bind, incl. newly plugged devices
+  const prev=midiInputId;
+  midiInSel.innerHTML='<option value="">All devices ('+inputs.length+')</option>'+
+    inputs.map(inp=>`<option value="${inp.id}">${(inp.name||'Unnamed device').replace(/</g,'&lt;')}</option>`).join('');
+  if(prev&&inputs.some(i=>i.id===prev)) midiInSel.value=prev; else { midiInputId=''; midiInSel.value=''; }
+  midiInSel.disabled=false;
+}
+
 document.getElementById('midiBtn').addEventListener('click',async()=>{
   try{
     midi=await navigator.requestMIDIAccess();
-    Array.from(midi.inputs.values()).forEach(inp=>inp.onmidimessage=m=>{
-      const[st,note,vel]=m.data,cmd=st&0xf0,idx=NOTES.indexOf(note);
-      if(idx===-1)return;
-      if(cmd===0x90&&vel>0){
-        if(pads[idx])pads[idx].fire();
-        midiPlay(idx,vel);
-        if(padEffectiveMode(idx)==='gate') heldPads.add(idx);
-      }
-      if(cmd===0x80||(cmd===0x90&&vel===0)){
-        heldPads.delete(idx);
-        if(padEffectiveMode(idx)==='gate') stopPad(idx);
-      }
-    });
+    midi.onstatechange=refreshMidiInputs;       // hot-plug: devices connected/disconnected later
+    refreshMidiInputs();
     document.getElementById('midiBtn').textContent='MIDI ✓';
     document.getElementById('midiBtn').classList.add('g');
     document.getElementById('hMidi').style.display='';
