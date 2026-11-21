@@ -1,940 +1,474 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SPOKE — Video Player</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg:        #090b0e;
-      --panel:     #0e1217;
-      --border:    #1e2530;
-      --amber:     #f5a623;
-      --amber-dim: #7a5010;
-      --amber-glow:#f5a62320;
-      --cyan:      #00d4ff;
-      --red:       #ff3b3b;
-      --text:      #c8d0dc;
-      --text-dim:  #4a5568;
-      --active-bg: #1a2a1a;
-      --active-border: #00ff88;
-      --mono: 'IBM Plex Mono', monospace;
-      --sans: 'IBM Plex Sans Condensed', sans-serif;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Video Player</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        #videoContainer {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+        }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--mono);
-      height: 100vh;
-      display: grid;
-      grid-template-rows: 48px 1fr 44px;
-      grid-template-columns: 1fr;
-      overflow: hidden;
-    }
+        video {
+            position: absolute;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            display: none;
+            border: none;
+            outline: none;
+        }
 
-    /* ── HEADER ── */
-    header {
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      border-bottom: 1px solid var(--border);
-      gap: 16px;
-      background: var(--panel);
-    }
-    .logo {
-      font-family: var(--sans);
-      font-weight: 700;
-      font-size: 20px;
-      letter-spacing: 4px;
-      color: var(--amber);
-      text-transform: uppercase;
-    }
-    .logo span { color: var(--text-dim); font-weight: 300; }
-    header .spacer { flex: 1; }
-    .midi-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      color: var(--text-dim);
-    }
-    .midi-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--red);
-      transition: background 0.2s, box-shadow 0.2s;
-    }
-    .midi-dot.connected { background: #00ff88; box-shadow: 0 0 8px #00ff88; }
-    #midiDeviceSelect {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 2px 6px;
-      cursor: pointer;
-      outline: none;
-    }
-    #midiDeviceSelect option { background: var(--panel); }
+        video.playing {
+            display: block;
+        }
 
-    /* ── MAIN ── */
-    main {
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      overflow: hidden;
-    }
+        /* ---------- Settings panel (hidden until you press M) ---------- */
+        #settings {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.92);
+            color: #eee;
+            overflow-y: auto;
+            padding: 24px;
+            box-sizing: border-box;
+            cursor: default;
+        }
 
-    /* ── VIDEO PANEL ── */
-    .video-panel {
-      display: flex;
-      flex-direction: column;
-      border-right: 1px solid var(--border);
-      overflow: hidden;
-      background: #000;
-      position: relative;
-    }
-    #videoEl {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: block;
-    }
-    .video-overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-      transition: opacity 0.3s;
-    }
-    .video-overlay.hidden { opacity: 0; }
-    .no-video-msg {
-      text-align: center;
-      color: var(--text-dim);
-      font-size: 13px;
-      line-height: 2;
-    }
-    .no-video-msg big {
-      display: block;
-      font-family: var(--sans);
-      font-size: 28px;
-      font-weight: 300;
-      letter-spacing: 6px;
-      color: var(--border);
-      margin-bottom: 8px;
-    }
-    .now-playing-bar {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      padding: 8px 14px;
-      background: linear-gradient(transparent, rgba(0,0,0,0.85));
-      font-size: 11px;
-      color: var(--amber);
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .now-playing-bar.visible { opacity: 1; }
-    .now-playing-bar .nfn {
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .playstate-badge {
-      padding: 1px 6px;
-      border: 1px solid var(--amber-dim);
-      font-size: 10px;
-      letter-spacing: 1px;
-    }
+        #settings.open {
+            display: block;
+        }
 
-    /* ── SIDEBAR ── */
-    .sidebar {
-      display: flex;
-      flex-direction: column;
-      background: var(--panel);
-      overflow: hidden;
-    }
+        #settings h2 {
+            margin: 0 0 4px;
+            font-size: 22px;
+        }
 
-    /* Mode selector */
-    .mode-strip {
-      display: flex;
-      border-bottom: 1px solid var(--border);
-    }
-    .mode-btn {
-      flex: 1;
-      padding: 10px 4px;
-      background: transparent;
-      border: none;
-      border-right: 1px solid var(--border);
-      color: var(--text-dim);
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 1px;
-      cursor: pointer;
-      text-transform: uppercase;
-      transition: all 0.15s;
-      line-height: 1.4;
-    }
-    .mode-btn:last-child { border-right: none; }
-    .mode-btn:hover { color: var(--text); background: var(--border); }
-    .mode-btn.active {
-      background: var(--amber-glow);
-      color: var(--amber);
-      border-bottom: 2px solid var(--amber);
-    }
-    .mode-btn .mode-icon { font-size: 16px; display: block; }
+        #settings .hint {
+            color: #999;
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
 
-    /* Pad grid */
-    .pads-header {
-      padding: 8px 12px 4px;
-      font-size: 10px;
-      color: var(--text-dim);
-      letter-spacing: 2px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .pads-count { color: var(--amber); }
+        .row {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
 
-    .pads-grid {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 5px;
-      align-content: start;
-    }
-    .pads-grid::-webkit-scrollbar { width: 4px; }
-    .pads-grid::-webkit-scrollbar-track { background: transparent; }
-    .pads-grid::-webkit-scrollbar-thumb { background: var(--border); }
+        #monitor {
+            font-family: monospace;
+            background: #222;
+            padding: 6px 10px;
+            border-radius: 4px;
+            color: #ffd93d;
+        }
 
-    .pad {
-      border: 1px solid var(--border);
-      background: var(--bg);
-      padding: 6px 5px;
-      cursor: default;
-      transition: all 0.1s;
-      position: relative;
-      min-height: 62px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .pad.has-video { border-color: #2a3a2a; }
-    .pad.active {
-      background: var(--active-bg) !important;
-      border-color: var(--active-border) !important;
-      box-shadow: 0 0 12px #00ff8820;
-    }
-    .pad-num {
-      font-size: 9px;
-      color: var(--text-dim);
-    }
-    .pad-note {
-      font-size: 13px;
-      color: var(--amber);
-      font-weight: bold;
-    }
-    .pad.has-video .pad-note { color: #00d4ff; }
-    .pad.active .pad-note { color: var(--active-border); }
-    .pad-filename {
-      font-size: 9px;
-      color: var(--text-dim);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-top: auto;
-    }
-    .pad.has-video .pad-filename { color: var(--text); }
-    .pad-indicator {
-      position: absolute;
-      top: 4px; right: 4px;
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: var(--border);
-    }
-    .pad.has-video .pad-indicator { background: #2a6a3a; }
-    .pad.active .pad-indicator { background: var(--active-border); box-shadow: 0 0 6px var(--active-border); }
+        #triggerGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 8px;
+            margin-bottom: 20px;
+        }
 
-    /* ── FOOTER ── */
-    footer {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0 14px;
-      border-top: 1px solid var(--border);
-      background: var(--panel);
-    }
-    #openFolderBtn {
-      background: var(--amber);
-      color: #000;
-      border: none;
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: bold;
-      letter-spacing: 1px;
-      padding: 6px 14px;
-      cursor: pointer;
-      text-transform: uppercase;
-      transition: all 0.15s;
-      flex-shrink: 0;
-    }
-    #openFolderBtn:hover { background: #ffc04a; }
-    #openFolderBtn:active { transform: scale(0.97); }
-    #statusBar {
-      flex: 1;
-      font-size: 11px;
-      color: var(--text-dim);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    #statusBar .ok  { color: #00ff88; }
-    #statusBar .err { color: var(--red); }
-    #statusBar .info { color: var(--amber); }
+        .trigger {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1b1b1b;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 6px 8px;
+        }
 
-    .midi-flash {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--amber);
-      box-shadow: 0 0 8px var(--amber);
-      opacity: 0;
-      transition: opacity 0.05s;
-      flex-shrink: 0;
-    }
-    .midi-flash.on { opacity: 1; }
+        .trigger.duplicate {
+            border-color: #ff6b6b;
+        }
 
-    /* ── FULLSCREEN ── */
-    .video-panel:-webkit-full-screen { background: #000; }
-    .video-panel:fullscreen { background: #000; }
-    #fsBtn {
-      position: absolute;
-      top: 10px; right: 10px;
-      background: rgba(0,0,0,0.55);
-      border: 1px solid rgba(255,255,255,0.15);
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 5px 10px;
-      cursor: pointer;
-      letter-spacing: 1px;
-      transition: all 0.15s;
-      z-index: 10;
-      backdrop-filter: blur(4px);
-    }
-    #fsBtn:hover { background: rgba(245,166,35,0.25); border-color: var(--amber); color: var(--amber); }
-    :fullscreen #fsBtn { top: 16px; right: 16px; }
+        .trigger.learning {
+            border-color: #51cf66;
+            background: #1d2b1f;
+        }
 
-    /* fullscreen hides now-playing bar until hover */
-    :fullscreen .now-playing-bar { opacity: 0; }
-    :fullscreen .video-panel:hover .now-playing-bar.visible { opacity: 1; }
+        .trigger label {
+            width: 64px;
+            font-size: 14px;
+        }
 
-    /* ── PAD CLICK-TO-MAP ── */
-    .pad {
-      cursor: pointer;
-    }
-    .pad:hover {
-      border-color: var(--amber-dim) !important;
-      background: #13191f !important;
-    }
-    .pad:hover .pad-note { color: var(--amber) !important; }
-    .pad.has-video:hover { border-color: var(--amber) !important; }
+        .trigger input {
+            width: 60px;
+        }
 
-    /* clear button on mapped pads */
-    .pad-clear {
-      position: absolute;
-      bottom: 3px; right: 3px;
-      background: transparent;
-      border: none;
-      color: var(--text-dim);
-      font-size: 10px;
-      cursor: pointer;
-      line-height: 1;
-      padding: 1px 3px;
-      display: none;
-      z-index: 2;
-    }
-    .pad.has-video .pad-clear { display: block; }
-    .pad-clear:hover { color: var(--red); }
+        .trigger .noteName {
+            width: 36px;
+            font-size: 12px;
+            color: #888;
+        }
 
-    /* hint text on empty pads */
-    .pad-hint {
-      font-size: 8px;
-      color: var(--text-dim);
-      margin-top: auto;
-      opacity: 0;
-      transition: opacity 0.1s;
-      letter-spacing: 0.5px;
-    }
-    .pad:hover .pad-hint { opacity: 1; }
-    .pad.has-video .pad-hint { display: none; }
+        input, select, button {
+            font-size: 14px;
+            padding: 5px 8px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background: #2a2a2a;
+            color: #eee;
+        }
 
-    /* scrollbar global */
-    * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+        button {
+            cursor: pointer;
+        }
 
-    /* ── PRIVACY MODAL ── */
-    .modal-backdrop {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.75);
-      backdrop-filter: blur(3px);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 100;
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.2s;
-    }
-    .modal-backdrop.open { opacity: 1; pointer-events: all; }
-    .modal {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      max-width: 440px; width: 90%;
-      padding: 28px 28px 22px;
-      box-shadow: 0 0 40px rgba(0,0,0,0.8);
-      transform: translateY(8px);
-      transition: transform 0.2s;
-    }
-    .modal-backdrop.open .modal { transform: translateY(0); }
-    .modal-icon { font-size: 28px; margin-bottom: 10px; }
-    .modal h2 {
-      font-family: var(--sans);
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--amber);
-      margin-bottom: 16px;
-    }
-    .modal-body {
-      font-size: 12px;
-      color: var(--text);
-      line-height: 1.8;
-      margin-bottom: 20px;
-    }
-    .modal-body strong { color: #fff; }
-    .privacy-points {
-      list-style: none;
-      margin: 12px 0;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .privacy-points li {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-    }
-    .privacy-points li .tick {
-      color: #00ff88;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-    .modal-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
-    .btn-cancel {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-dim);
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 7px 16px;
-      cursor: pointer;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .btn-cancel:hover { border-color: var(--text-dim); color: var(--text); }
-    .btn-confirm {
-      background: var(--amber);
-      border: none;
-      color: #000;
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: bold;
-      padding: 7px 18px;
-      cursor: pointer;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .btn-confirm:hover { background: #ffc04a; }
+        button:hover {
+            background: #3a3a3a;
+        }
 
-    /* privacy badge in footer */
-    .privacy-badge {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 10px;
-      color: var(--text-dim);
-      flex-shrink: 0;
-      border: 1px solid var(--border);
-      padding: 2px 7px;
-      letter-spacing: 0.5px;
-    }
-    .privacy-badge .lock { color: #00ff88; font-size: 11px; }
-  </style>
+        button.primary {
+            background: #2f6fdb;
+            border-color: #2f6fdb;
+        }
+
+        #saveMsg {
+            color: #51cf66;
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body>
+    <div id="videoContainer"></div>
 
-<header>
-  <div class="logo">SPOKE <span>// VIDEO</span></div>
-  <div class="spacer"></div>
-  <div class="midi-status">
-    <div class="midi-dot" id="midiDot"></div>
-    <select id="midiDeviceSelect"><option>— no MIDI devices —</option></select>
-  </div>
-</header>
+    <div id="settings">
+        <h2>MIDI Settings</h2>
+        <div class="hint">
+            Press <b>M</b> to open/close this panel. Click <b>Learn</b> on a trigger, then hit the sensor / key on your MIDI device to assign it.
+            Red outline = the same note is used by more than one trigger.
+        </div>
 
-<main>
-  <!-- VIDEO PANEL -->
-  <div class="video-panel">
-    <video id="videoEl" playsinline></video>
-    <button id="fsBtn" onclick="toggleFullscreen()" title="Fullscreen (F)">⛶ FULLSCREEN</button>
+        <div class="row">
+            <label for="channelSelect"><b>MIDI channel:</b></label>
+            <select id="channelSelect"></select>
+            <span>Last received:</span>
+            <span id="monitor">nothing yet</span>
+        </div>
 
-    <div class="video-overlay" id="videoOverlay">
-      <div class="no-video-msg">
-        <big>NO SIGNAL</big>
-        Open a folder below and touch a pad on SPOKE<br>
-        to load and play a video
-      </div>
+        <div id="triggerGrid"></div>
+
+        <div class="row">
+            <button class="primary" id="saveBtn">Save</button>
+            <button id="resetBtn">Reset to defaults</button>
+            <button id="closeBtn">Close</button>
+            <span id="saveMsg"></span>
+        </div>
     </div>
 
-    <div class="now-playing-bar" id="nowPlayingBar">
-      <div class="nfn" id="npFilename">—</div>
-      <div class="playstate-badge" id="npState">STOPPED</div>
-    </div>
-  </div>
+    <script>
+        // ================= CONFIG =================
+        const VIDEO_COUNT = 28;
+        const STORAGE_KEY = 'midiVideoPlayerSettings';
+        const DEFAULT_FIRST_NOTE = 60;   // video 1 = note 60 (middle C), video 2 = 61, ... video 28 = 87
+        const DEFAULT_CHANNEL = 0;       // 0 = Omni (all channels), 1-16 = specific channel
+        const SETTINGS_KEY = 'm';        // key that opens/closes the settings panel
 
-  <!-- SIDEBAR -->
-  <div class="sidebar">
+        // ================= SETTINGS =================
+        function defaultSettings() {
+            const notes = [];
+            for (let i = 0; i < VIDEO_COUNT; i++) notes.push(DEFAULT_FIRST_NOTE + i);
+            return { channel: DEFAULT_CHANNEL, notes: notes };
+        }
 
-    <!-- Mode buttons -->
-    <div class="mode-strip">
-      <button class="mode-btn active" id="modeToggle" onclick="setMode('toggle')">
-        <span class="mode-icon">⏯</span>Toggle
-      </button>
-      <button class="mode-btn" id="modePlaythrough" onclick="setMode('playthrough')">
-        <span class="mode-icon">▶</span>Play Thru
-      </button>
-      <button class="mode-btn" id="modeHold" onclick="setMode('hold')">
-        <span class="mode-icon">✋</span>Hold
-      </button>
-    </div>
+        function loadSettings() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                if (saved && Array.isArray(saved.notes) && saved.notes.length === VIDEO_COUNT) {
+                    return saved;
+                }
+            } catch (e) {
+                console.warn('Could not load saved settings, using defaults', e);
+            }
+            return defaultSettings();
+        }
 
-    <div class="pads-header">
-      <span>PADS — MIDI NOTES</span>
-      <span class="pads-count" id="mappedCount">0 / 27</span>
-    </div>
+        function saveSettings() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+                return true;
+            } catch (e) {
+                console.error('Could not save settings', e);
+                return false;
+            }
+        }
 
-    <!-- Pad grid -->
-    <div class="pads-grid" id="padGrid"></div>
+        let settings = loadSettings();
 
-  </div>
-</main>
+        // ================= VIDEOS =================
+        const container = document.getElementById('videoContainer');
+        for (let i = 1; i <= VIDEO_COUNT; i++) {
+            const video = document.createElement('video');
+            video.id = `video${i}`;
+            video.preload = 'auto';
+            video.playsInline = true;
+            const source = document.createElement('source');
+            source.src = `${i}.mp4`;
+            source.type = 'video/mp4';
+            video.appendChild(source);
+            container.appendChild(video);
+        }
 
-<!-- Privacy confirmation modal -->
-<div class="modal-backdrop" id="privacyModal">
-  <div class="modal">
-    <div class="modal-icon">🔒</div>
-    <h2>Your videos stay on your device</h2>
-    <div class="modal-body">
-      Before you select a folder, here's what this app does — and doesn't — do with your files:
-      <ul class="privacy-points">
-        <li><span class="tick">✓</span><span><strong>No uploads, ever.</strong> Your videos are never sent to any server, cloud service, or third party.</span></li>
-        <li><span class="tick">✓</span><span><strong>No copies made.</strong> The app reads your video files directly from your hard drive using a temporary browser reference. Nothing is duplicated or written anywhere.</span></li>
-        <li><span class="tick">✓</span><span><strong>No internet required.</strong> Playback is handled entirely by your browser, offline, on your own machine.</span></li>
-        <li><span class="tick">✓</span><span><strong>Memory only.</strong> The browser holds a short-lived link to each file while the page is open. Close or refresh the tab and all references are gone.</span></li>
-      </ul>
-      This app runs 100% locally. Select your folder and your videos will never leave your computer.
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closePrivacyModal()">Cancel</button>
-      <button class="btn-confirm" onclick="confirmAndOpenFolder()">Got it — Open Folder</button>
-    </div>
-  </div>
-</div>
+        let currentlyPlayingVideo = null;
 
-<footer>
-  <button id="openFolderBtn" onclick="showPrivacyModal()">▶ Open Folder</button>
-  <div class="midi-flash" id="midiFlash"></div>
-  <div id="statusBar"><span class="info">Ready — connect SPOKE via USB, then open a video folder</span></div>
-  <div class="privacy-badge"><span class="lock">⬤</span> 100% LOCAL</div>
-</footer>
+        function playVideo(videoNumber) {
+            if (videoNumber < 1 || videoNumber > VIDEO_COUNT) return;
 
-<script>
-  // ── SPOKE default MIDI notes, pad 1→27 ──
-  const SPOKE_NOTES = [98,96,93,91,88,86,84,81,79,76,74,72,69,67,64,62,60,57,55,52,50,48,45,43,40,38,36];
-  const NOTE_TO_PAD = {}; // midiNote → padIndex
-  SPOKE_NOTES.forEach((n, i) => NOTE_TO_PAD[n] = i);
+            // Stop any currently playing video
+            if (currentlyPlayingVideo) {
+                currentlyPlayingVideo.pause();
+                currentlyPlayingVideo.currentTime = 0;
+                currentlyPlayingVideo.classList.remove('playing');
+            }
 
-  // ── State ──
-  let mode = 'toggle';           // toggle | playthrough | hold
-  let videos = [];               // Array[27] of {name, objectUrl} or null
-  let activePadIdx = -1;         // which pad is currently "displayed"
-  let heldNotes = new Set();     // for hold mode
-  let midiAccess = null;
-  let selectedInput = null;
+            const video = document.getElementById(`video${videoNumber}`);
+            if (!video) return;
 
-  const videoEl    = document.getElementById('videoEl');
-  const videoOverlay = document.getElementById('videoOverlay');
-  const nowPlayingBar = document.getElementById('nowPlayingBar');
-  const npFilename = document.getElementById('npFilename');
-  const npState    = document.getElementById('npState');
-  const padGrid    = document.getElementById('padGrid');
-  const midiDot    = document.getElementById('midiDot');
-  const midiFlash  = document.getElementById('midiFlash');
-  const statusBar  = document.getElementById('statusBar');
-  const midiSelect = document.getElementById('midiDeviceSelect');
-  const mappedCount= document.getElementById('mappedCount');
+            currentlyPlayingVideo = video;
+            video.currentTime = 0;
+            video.classList.add('playing');
 
-  // ── Build pad grid ──
-  function buildPadGrid() {
-    padGrid.innerHTML = '';
-    SPOKE_NOTES.forEach((note, i) => {
-      const div = document.createElement('div');
-      div.className = 'pad';
-      div.id = `pad-${i}`;
-      div.innerHTML = `
-        <div class="pad-num">PAD ${String(i+1).padStart(2,'0')}</div>
-        <div class="pad-note">${note}</div>
-        <div class="pad-filename" id="pf-${i}">—</div>
-        <div class="pad-hint">+ click to assign</div>
-        <div class="pad-indicator"></div>
-        <button class="pad-clear" title="Remove video" onclick="clearPad(event,${i})">✕</button>
-      `;
-      div.addEventListener('click', () => pickVideoForPad(i));
-      padGrid.appendChild(div);
-    });
-  }
-  buildPadGrid();
+            video.play().then(() => {
+                console.log(`Playing video ${videoNumber}`);
+            }).catch(error => {
+                console.error(`Error playing video ${videoNumber}:`, error);
+            });
 
-  // ── Update pad UI after loading videos ──
-  function refreshPads() {
-    let count = 0;
-    videos.forEach((v, i) => {
-      const pad = document.getElementById(`pad-${i}`);
-      const pf  = document.getElementById(`pf-${i}`);
-      if (!pad) return;
-      if (v) {
-        pad.classList.add('has-video');
-        pf.textContent = v.name.replace(/\.[^.]+$/, ''); // strip extension
-        count++;
-      } else {
-        pad.classList.remove('has-video');
-        pf.textContent = '—';
-      }
-    });
-    mappedCount.textContent = `${count} / 27`;
-  }
+            // When video ends, go back to black
+            video.onended = function () {
+                video.classList.remove('playing');
+                currentlyPlayingVideo = null;
+            };
+        }
 
-  // ── Privacy modal ──
-  function showPrivacyModal() {
-    document.getElementById('privacyModal').classList.add('open');
-  }
-  function closePrivacyModal() {
-    document.getElementById('privacyModal').classList.remove('open');
-  }
-  function confirmAndOpenFolder() {
-    closePrivacyModal();
-    openFolder();
-  }
-  document.getElementById('privacyModal').addEventListener('click', function(e) {
-    if (e.target === this) closePrivacyModal();
-  });
+        // Find which video (1-28) is assigned to a MIDI note
+        function videoForNote(note) {
+            const index = settings.notes.indexOf(note);
+            return index === -1 ? null : index + 1;
+        }
 
-  // ── Open folder ──
-  async function openFolder() {
-    if (!('showDirectoryPicker' in window)) {
-      setStatus('<span class="err">File System Access API not supported — use Chrome or Edge</span>');
-      return;
-    }
-    try {
-      const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
-      const exts = ['mp4','webm','mov','avi','mkv','m4v','ogg'];
-      const found = [];
+        // ================= MIDI =================
+        let learningIndex = null;   // which trigger is waiting for "Learn"
 
-      for await (const [name, handle] of dirHandle.entries()) {
-        if (handle.kind !== 'file') continue;
-        const ext = name.split('.').pop().toLowerCase();
-        if (exts.includes(ext)) found.push({ name, handle });
-      }
+        if (navigator.requestMIDIAccess) {
+            navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+        } else {
+            console.error('Web MIDI not supported in this browser');
+        }
 
-      found.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+        function onMIDISuccess(midiAccess) {
+            for (const input of midiAccess.inputs.values()) {
+                input.onmidimessage = handleMIDIMessage;
+                console.log('Connected to MIDI input:', input.name);
+            }
 
-      // Revoke old object URLs
-      videos.forEach(v => { if (v && v.objectUrl) URL.revokeObjectURL(v.objectUrl); });
-      videos = new Array(27).fill(null);
+            // Pick up devices plugged in later
+            midiAccess.onstatechange = function (e) {
+                if (e.port.type === 'input' && e.port.state === 'connected') {
+                    e.port.onmidimessage = handleMIDIMessage;
+                    console.log('MIDI device connected:', e.port.name);
+                }
+            };
+        }
 
-      const limit = Math.min(found.length, 27);
-      for (let i = 0; i < limit; i++) {
-        const file = await found[i].handle.getFile();
-        const objectUrl = URL.createObjectURL(file);
-        videos[i] = { name: found[i].name, objectUrl };
-      }
+        function onMIDIFailure(msg) {
+            console.error('Failed to get MIDI access:', msg);
+        }
 
-      refreshPads();
-      setStatus(`<span class="ok">✓ Loaded ${limit} video${limit!==1?'s':''} from "${dirHandle.name}"${found.length>27?' (first 27 mapped)':''}</span>`);
+        function handleMIDIMessage(message) {
+            const [status, note, velocity] = message.data;
+            const command = status & 0xF0;          // 0x90 = Note On
+            const channel = (status & 0x0F) + 1;    // 1-16
 
-      if (limit === 0) {
-        setStatus(`<span class="err">No video files found in that folder</span>`);
-      }
+            if (command !== 0x90 || velocity === 0) return;   // only Note On
 
-    } catch (e) {
-      if (e.name !== 'AbortError') {
-        setStatus(`<span class="err">Error: ${e.message}</span>`);
-      }
-    }
-  }
+            console.log(`Note On: note ${note}, channel ${channel}, velocity ${velocity}`);
+            updateMonitor(note, channel);
 
-  // ── MIDI note actions ──
-  function onNoteOn(noteNum) {
-    const padIdx = NOTE_TO_PAD[noteNum];
-    if (padIdx === undefined) return; // not a SPOKE note
+            // "Learn" mode: assign this note to the selected trigger (ignores channel filter)
+            if (learningIndex !== null) {
+                settings.notes[learningIndex] = note;
+                learningIndex = null;
+                renderTriggers();
+                return;
+            }
 
-    flashMidi();
-    const v = videos[padIdx];
-    if (!v) {
-      setStatus(`<span class="info">PAD ${padIdx+1} (note ${noteNum}) — no video mapped</span>`);
-      return;
-    }
+            // Don't fire videos while the settings panel is open
+            if (settingsPanel.classList.contains('open')) return;
 
-    if (mode === 'toggle') {
-      if (activePadIdx === padIdx) {
-        // Same pad — toggle play/pause
-        if (videoEl.paused) { videoEl.play(); } else { videoEl.pause(); }
-      } else {
-        loadAndPlay(padIdx);
-      }
-    } else if (mode === 'playthrough') {
-      loadAndPlay(padIdx);
-    } else if (mode === 'hold') {
-      heldNotes.add(noteNum);
-      if (activePadIdx !== padIdx) {
-        loadAndPlay(padIdx);
-      } else if (videoEl.paused) {
-        videoEl.play();
-      }
-    }
-  }
+            // Channel filter (0 = Omni / listen to all)
+            if (settings.channel !== 0 && channel !== settings.channel) return;
 
-  function onNoteOff(noteNum) {
-    if (mode !== 'hold') return;
-    heldNotes.delete(noteNum);
-    const padIdx = NOTE_TO_PAD[noteNum];
-    if (padIdx === activePadIdx && heldNotes.size === 0) {
-      videoEl.pause();
-      updateNowPlaying();
-    }
-  }
+            const videoNumber = videoForNote(note);
+            if (videoNumber !== null) playVideo(videoNumber);
+        }
 
-  function loadAndPlay(padIdx) {
-    const v = videos[padIdx];
-    if (!v) return;
+        // ================= SETTINGS PANEL =================
+        const settingsPanel = document.getElementById('settings');
+        const channelSelect = document.getElementById('channelSelect');
+        const triggerGrid = document.getElementById('triggerGrid');
+        const monitor = document.getElementById('monitor');
+        const saveMsg = document.getElementById('saveMsg');
 
-    // Deactivate old pad
-    if (activePadIdx >= 0) {
-      document.getElementById(`pad-${activePadIdx}`)?.classList.remove('active');
-    }
+        const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        function noteName(n) {
+            if (!Number.isInteger(n) || n < 0 || n > 127) return '';
+            return NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 1);
+        }
 
-    activePadIdx = padIdx;
-    document.getElementById(`pad-${padIdx}`)?.classList.add('active');
+        function updateMonitor(note, channel) {
+            monitor.textContent = `note ${note} (${noteName(note)}) on ch ${channel}`;
+        }
 
-    if (videoEl.src !== v.objectUrl) {
-      videoEl.src = v.objectUrl;
-    }
-    videoEl.currentTime = 0;
-    videoEl.play().catch(()=>{});
-    videoOverlay.classList.add('hidden');
-    updateNowPlaying();
-    setStatus(`<span class="ok">▶ PAD ${padIdx+1} — ${v.name}</span>`);
-  }
+        // Channel dropdown
+        const omni = document.createElement('option');
+        omni.value = 0;
+        omni.textContent = 'Omni (all channels)';
+        channelSelect.appendChild(omni);
+        for (let c = 1; c <= 16; c++) {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = `Channel ${c}`;
+            channelSelect.appendChild(opt);
+        }
+        channelSelect.addEventListener('change', () => {
+            settings.channel = parseInt(channelSelect.value, 10);
+        });
 
-  function updateNowPlaying() {
-    if (activePadIdx < 0 || !videos[activePadIdx]) {
-      nowPlayingBar.classList.remove('visible');
-      return;
-    }
-    nowPlayingBar.classList.add('visible');
-    npFilename.textContent = videos[activePadIdx].name;
-    npState.textContent = videoEl.paused ? 'PAUSED' : 'PLAYING';
-  }
+        function renderTriggers() {
+            channelSelect.value = settings.channel;
+            triggerGrid.innerHTML = '';
 
-  videoEl.addEventListener('play',  updateNowPlaying);
-  videoEl.addEventListener('pause', updateNowPlaying);
-  videoEl.addEventListener('ended', () => {
-    if (mode === 'playthrough' || mode === 'hold') {
-      if (activePadIdx >= 0) {
-        document.getElementById(`pad-${activePadIdx}`)?.classList.remove('active');
-      }
-      activePadIdx = -1;
-    }
-    updateNowPlaying();
-  });
+            // Count note usage to highlight duplicates
+            const counts = {};
+            settings.notes.forEach(n => { counts[n] = (counts[n] || 0) + 1; });
 
-  // ── Mode selector ──
-  function setMode(m) {
-    mode = m;
-    ['toggle','playthrough','hold'].forEach(id => {
-      document.getElementById(`mode${id.charAt(0).toUpperCase()+id.slice(1)}`)?.classList.remove('active');
-    });
-    const ids = { toggle:'modeToggle', playthrough:'modePlaythrough', hold:'modeHold' };
-    document.getElementById(ids[m])?.classList.add('active');
+            settings.notes.forEach((note, i) => {
+                const row = document.createElement('div');
+                row.className = 'trigger';
+                if (counts[note] > 1) row.classList.add('duplicate');
+                if (learningIndex === i) row.classList.add('learning');
 
-    // Stop on mode switch
-    if (!videoEl.paused) videoEl.pause();
-    heldNotes.clear();
-    setStatus(`<span class="info">Mode → ${m.toUpperCase()}</span>`);
-  }
+                const label = document.createElement('label');
+                label.textContent = `Video ${i + 1}`;
 
-  // ── MIDI setup ──
-  async function initMidi() {
-    if (!navigator.requestMIDIAccess) {
-      setStatus('<span class="err">Web MIDI not supported — use Chrome or Edge</span>');
-      return;
-    }
-    try {
-      midiAccess = await navigator.requestMIDIAccess();
-      populateMidiDevices();
-      midiAccess.onstatechange = () => populateMidiDevices();
-    } catch(e) {
-      setStatus(`<span class="err">MIDI access denied: ${e.message}</span>`);
-    }
-  }
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = 0;
+                input.max = 127;
+                input.value = note;
 
-  function populateMidiDevices() {
-    const inputs = [...midiAccess.inputs.values()];
-    midiSelect.innerHTML = '';
-    if (inputs.length === 0) {
-      midiSelect.innerHTML = '<option>— no MIDI devices —</option>';
-      midiDot.classList.remove('connected');
-      selectedInput = null;
-      return;
-    }
-    inputs.forEach(input => {
-      const opt = document.createElement('option');
-      opt.value = input.id;
-      opt.textContent = input.name;
-      midiSelect.appendChild(opt);
-    });
-    midiDot.classList.add('connected');
-    bindMidiInput(inputs[0]);
-    setStatus(`<span class="ok">MIDI connected: ${inputs[0].name}</span>`);
-  }
+                const name = document.createElement('span');
+                name.className = 'noteName';
+                name.textContent = noteName(note);
 
-  midiSelect.addEventListener('change', () => {
-    const input = [...midiAccess.inputs.values()].find(i => i.id === midiSelect.value);
-    if (input) { bindMidiInput(input); setStatus(`<span class="ok">MIDI → ${input.name}</span>`); }
-  });
+                input.addEventListener('change', () => {
+                    let v = parseInt(input.value, 10);
+                    if (isNaN(v)) v = 0;
+                    v = Math.max(0, Math.min(127, v));
+                    settings.notes[i] = v;
+                    renderTriggers();
+                });
 
-  function bindMidiInput(input) {
-    if (selectedInput) selectedInput.onmidimessage = null;
-    selectedInput = input;
-    input.onmidimessage = onMidiMessage;
-  }
+                const learn = document.createElement('button');
+                learn.textContent = learningIndex === i ? 'Waiting…' : 'Learn';
+                learn.addEventListener('click', () => {
+                    learningIndex = (learningIndex === i) ? null : i;
+                    renderTriggers();
+                });
 
-  function onMidiMessage(e) {
-    const [status, note, velocity] = e.data;
-    const type = status & 0xf0;
-    if (type === 0x90 && velocity > 0) { onNoteOn(note); }
-    else if (type === 0x80 || (type === 0x90 && velocity === 0)) { onNoteOff(note); }
-  }
+                const test = document.createElement('button');
+                test.textContent = '▶';
+                test.title = 'Test this video';
+                test.addEventListener('click', () => {
+                    closeSettings();
+                    playVideo(i + 1);
+                });
 
-  // ── Fullscreen ──
-  function toggleFullscreen() {
-    const panel = document.querySelector('.video-panel');
-    const btn   = document.getElementById('fsBtn');
-    if (!document.fullscreenElement) {
-      panel.requestFullscreen().catch(()=>{});
-    } else {
-      document.exitFullscreen();
-    }
-  }
-  document.addEventListener('fullscreenchange', () => {
-    const btn = document.getElementById('fsBtn');
-    if (document.fullscreenElement) {
-      btn.textContent = '✕ EXIT FULL';
-    } else {
-      btn.textContent = '⛶ FULLSCREEN';
-    }
-  });
-  // F key shortcut
-  document.addEventListener('keydown', e => {
-    if (e.key === 'f' || e.key === 'F') toggleFullscreen();
-  });
+                row.append(label, input, name, learn, test);
+                triggerGrid.appendChild(row);
+            });
+        }
 
-  // ── Pick a single video file for a specific pad ──
-  async function pickVideoForPad(padIdx) {
-    // If pad has video and user didn't click the clear btn, open picker
-    if (!('showOpenFilePicker' in window)) {
-      setStatus('<span class="err">File picker not supported — use Chrome or Edge</span>');
-      return;
-    }
-    try {
-      const [fileHandle] = await window.showOpenFilePicker({
-        types: [{
-          description: 'Video files',
-          accept: { 'video/*': ['.mp4','.webm','.mov','.avi','.mkv','.m4v','.ogg'] }
-        }],
-        multiple: false
-      });
-      const file = await fileHandle.getFile();
-      // Revoke old URL for this pad if any
-      if (videos[padIdx] && videos[padIdx].objectUrl) {
-        URL.revokeObjectURL(videos[padIdx].objectUrl);
-      }
-      const objectUrl = URL.createObjectURL(file);
-      videos[padIdx] = { name: file.name, objectUrl };
-      refreshPads();
-      setStatus(`<span class="ok">✓ PAD ${padIdx+1} → ${file.name}</span>`);
-    } catch(e) {
-      if (e.name !== 'AbortError') {
-        setStatus(`<span class="err">Error: ${e.message}</span>`);
-      }
-    }
-  }
+        function openSettings() {
+            settings = loadSettings();   // discard unsaved edits from last time
+            learningIndex = null;
+            saveMsg.textContent = '';
+            renderTriggers();
+            settingsPanel.classList.add('open');
+        }
 
-  // ── Clear a pad mapping ──
-  function clearPad(e, padIdx) {
-    e.stopPropagation(); // don't trigger pad click
-    if (videos[padIdx] && videos[padIdx].objectUrl) {
-      URL.revokeObjectURL(videos[padIdx].objectUrl);
-    }
-    videos[padIdx] = null;
-    // If this was the active pad, stop playback
-    if (activePadIdx === padIdx) {
-      videoEl.pause();
-      videoEl.removeAttribute('src');
-      videoOverlay.classList.remove('hidden');
-      activePadIdx = -1;
-      nowPlayingBar.classList.remove('visible');
-    }
-    refreshPads();
-    setStatus(`<span class="info">PAD ${padIdx+1} cleared</span>`);
-  }
+        function closeSettings() {
+            learningIndex = null;
+            settingsPanel.classList.remove('open');
+        }
 
-  // ── Utilities ──
-  function flashMidi() {
-    midiFlash.classList.add('on');
-    clearTimeout(flashMidi._t);
-    flashMidi._t = setTimeout(() => midiFlash.classList.remove('on'), 80);
-  }
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            saveMsg.textContent = saveSettings() ? 'Saved ✓' : 'Could not save (storage blocked)';
+        });
 
-  function setStatus(html) {
-    statusBar.innerHTML = html;
-  }
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            settings = defaultSettings();
+            learningIndex = null;
+            renderTriggers();
+            saveMsg.textContent = 'Defaults loaded – press Save to keep them';
+        });
 
-  // ── Init ──
-  initMidi();
-</script>
+        document.getElementById('closeBtn').addEventListener('click', closeSettings);
+
+        // ================= KEYBOARD =================
+        // M toggles the settings panel.
+        // Keyboard test keys play videos directly (for testing without MIDI):
+        // 1-0 = videos 1-10, q-p = 11-20, a-k = 21-28
+        const keyMap = {
+            '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6,
+            '7': 7, '8': 8, '9': 9, '0': 10,
+            'q': 11, 'w': 12, 'e': 13, 'r': 14, 't': 15, 'y': 16, 'u': 17, 'i': 18,
+            'o': 19, 'p': 20, 'a': 21, 's': 22, 'd': 23, 'f': 24, 'g': 25, 'h': 26,
+            'j': 27, 'k': 28
+        };
+
+        document.addEventListener('keydown', function (e) {
+            // Ignore typing inside the settings inputs
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+            const key = e.key.toLowerCase();
+
+            if (key === SETTINGS_KEY) {
+                settingsPanel.classList.contains('open') ? closeSettings() : openSettings();
+                return;
+            }
+
+            if (settingsPanel.classList.contains('open')) return;
+
+            if (keyMap[key]) {
+                console.log('Keyboard test - playing video', keyMap[key]);
+                playVideo(keyMap[key]);
+            }
+        });
+    </script>
 </body>
 </html>
