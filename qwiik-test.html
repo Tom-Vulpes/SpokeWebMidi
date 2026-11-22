@@ -1,0 +1,1097 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>SPOKE STEMMA Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column (≈68ch) with an interactive board diagram up top;
+   wide figures and code break out to the full content width. Copper = accent;
+   the four STEMMA QT wire colours are semantic and used only for the wires. */
+:root {
+  --bg: #F2F4F1;
+  --surface: #FFFFFF;
+  --sunk: #E7EBE6;
+  --fg: #15211B;
+  --muted: #56645C;
+  --line: #CDD6CF;
+  --accent: #A9561E;       /* copper pad */
+  --accent-soft: #F3E2D4;
+  --gnd: #23292A;
+  --vplus: #CC342B;
+  --sda: #2565CF;
+  --scl: #C99A07;
+  --warn: #B4361F;
+  --ok: #2E7D4F;
+  --code-bg: #14201A;
+  --code-fg: #DCE6DF;
+  --c-key: #F0A46B; --c-str: #9FD49B; --c-com: #7E9187; --c-num: #E6C86A;
+  --font-display: "Unbounded", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1411; --surface: #141E19; --sunk: #1A2620; --fg: #E4ECE6; --muted: #98A89F; --line: #2A3A32;
+    --accent: #E28C50; --accent-soft: #3A2618; --gnd: #B9C4BE; --vplus: #F0594F; --sda: #5C93F0; --scl: #EDC23A;
+    --warn: #F27A5E; --ok: #63C38A; --code-bg: #0A110D; --code-fg: #DCE6DF; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1411; --surface: #141E19; --sunk: #1A2620; --fg: #E4ECE6; --muted: #98A89F; --line: #2A3A32;
+  --accent: #E28C50; --accent-soft: #3A2618; --gnd: #B9C4BE; --vplus: #F0594F; --sda: #5C93F0; --scl: #EDC23A;
+  --warn: #F27A5E; --ok: #63C38A; --code-bg: #0A110D; --code-fg: #DCE6DF; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 40px 80px; display: grid; gap: 72px; }
+.prose { max-width: 68ch; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(1.9rem, 4.5vw, 3rem); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.35rem, 2.6vw, 1.75rem); font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 500; }
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--font-mono); font-size: 0.88em; background: var(--sunk); padding: 0.1em 0.35em; border-radius: 4px; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+section { display: grid; gap: 22px; }
+.section-head { display: grid; gap: 10px; }
+.lede { color: var(--muted); font-size: 1.05rem; }
+
+/* Hero */
+header.hero { display: grid; gap: 18px; }
+.hero p.lede { max-width: 60ch; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fact { font-family: var(--font-mono); font-size: 0.8rem; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; color: var(--muted); }
+.fact b { color: var(--fg); font-weight: 500; }
+
+/* Explorer */
+.explorer { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
+.explorer > * { min-width: 0; }
+.diagram { padding: 18px; border-right: 1px solid var(--line); display: grid; gap: 14px; align-content: start; }
+.diagram-scroll { overflow-x: auto; }
+.diagram svg { width: 100%; min-width: 560px; height: auto; display: block; }
+.modes { display: flex; flex-wrap: wrap; gap: 6px; }
+.modes-label { font-size: 0.8rem; color: var(--muted); width: 100%; }
+.chip-btn { font: 500 0.82rem var(--font-body); border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.chip-btn:hover { border-color: var(--accent); }
+.chip-btn[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.panel { padding: 20px; display: grid; gap: 14px; align-content: start; }
+.panel h3 { display: flex; align-items: center; gap: 10px; }
+.swatch { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.9rem; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-family: var(--font-mono); font-size: 0.85rem; }
+.fn-list { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 0; }
+.fn-list li { font-family: var(--font-mono); font-size: 0.75rem; background: var(--sunk); border-radius: 4px; padding: 3px 8px; }
+.fn-list li.on { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.panel .note { font-size: 0.9rem; color: var(--muted); }
+.wire-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.wire-tab { font: 500 0.78rem var(--font-mono); border: 1px solid var(--line); background: transparent; color: var(--fg); padding: 7px 4px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.wire-tab[aria-selected="true"] { border-color: var(--fg); background: var(--sunk); }
+svg text { font-family: var(--font-mono); }
+.wire { transition: opacity .2s; cursor: pointer; }
+.dim .wire:not(.sel) { opacity: 0.22; }
+
+/* Alt use table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.9rem; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-mono); font-weight: 500; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: var(--sunk); }
+tr:last-child td { border-bottom: none; }
+td .pin { font-family: var(--font-mono); font-size: 0.8rem; white-space: nowrap; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+
+/* Device grid */
+.filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.search { font: 0.9rem var(--font-body); padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--fg); min-width: 0; flex: 1 1 180px; max-width: 280px; }
+.devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.dev { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; }
+.dev-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.dev h3 { font-family: var(--font-body); font-weight: 600; font-size: 0.98rem; }
+.addr { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent); white-space: nowrap; }
+.dev p { font-size: 0.88rem; color: var(--muted); }
+.dev .lib { font-family: var(--font-mono); font-size: 0.75rem; color: var(--fg); }
+.tag { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: var(--sunk); color: var(--muted); justify-self: start; }
+.empty { color: var(--muted); font-size: 0.9rem; }
+
+/* Code */
+.code-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.codebox { position: relative; background: var(--code-bg); border-radius: 12px; overflow: hidden; }
+.codebox-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #ffffff14; color: var(--c-com); font: 0.78rem var(--font-mono); }
+.copy { font: 500 0.75rem var(--font-mono); background: #ffffff12; color: var(--code-fg); border: 1px solid #ffffff22; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.copy:hover { background: #ffffff22; }
+pre { margin: 0; padding: 16px; overflow-x: auto; font: 0.82rem/1.6 var(--font-mono); color: var(--code-fg); tab-size: 4; }
+pre code { background: none; padding: 0; font-size: inherit; }
+.k { color: var(--c-key); } .s { color: var(--c-str); } .c { color: var(--c-com); font-style: italic; } .n { color: var(--c-num); }
+.code-desc { font-size: 0.92rem; color: var(--muted); max-width: 68ch; }
+.libs-needed { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.82rem; color: var(--muted); }
+.libs-needed span { font-family: var(--font-mono); font-size: 0.75rem; background: var(--sunk); color: var(--fg); padding: 2px 8px; border-radius: 4px; }
+
+/* Audio */
+.two-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.two-col > * { min-width: 0; }
+.figure { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; }
+.figure svg { width: 100%; height: auto; display: block; }
+.figcap { font-size: 0.82rem; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+
+/* Explainer */
+.callout { border: 1px solid var(--line); border-left: 4px solid var(--warn); background: var(--surface); border-radius: 10px; padding: 16px 18px; display: grid; gap: 8px; max-width: 76ch; }
+.callout.power { border-left-color: var(--vplus); }
+.callout.disclaimer { border-left-color: var(--muted); }
+.callout h3 { font-family: var(--font-body); font-weight: 600; font-size: 1rem; }
+.steps { display: grid; gap: 14px; counter-reset: s; max-width: 72ch; }
+.step { display: grid; grid-template-columns: 34px 1fr; gap: 12px; }
+.step::before { counter-increment: s; content: counter(s); font: 700 0.85rem var(--font-display); width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--accent); color: var(--accent); display: grid; place-items: center; }
+.step > div { display: grid; gap: 4px; min-width: 0; }
+.step b { font-weight: 600; }
+.sim { display: grid; gap: 10px; }
+.sim-controls { display: flex; flex-wrap: wrap; gap: 6px; }
+.readout { font-family: var(--font-mono); font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.readout .bad { color: var(--warn); font-weight: 500; }
+.readout .good { color: var(--ok); font-weight: 500; }
+
+.links { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.links a { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-decoration: none; color: var(--fg); }
+.links a:hover { border-color: var(--accent); }
+.links a small { color: var(--muted); font-size: 0.8rem; }
+.links a span { font-weight: 600; font-size: 0.92rem; }
+footer { color: var(--muted); font-size: 0.82rem; border-top: 1px solid var(--line); padding-top: 18px; }
+
+@media (max-width: 820px) {
+  .explorer { grid-template-columns: 1fr; }
+  .diagram { border-right: none; border-bottom: 1px solid var(--line); }
+  .two-col { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">SPOKE · Expansion port</span>
+  <h1>The STEMMA QT port, wire by wire</h1>
+  <p class="lede">SPOKE has a 4‑pin JST‑SH connector (STEMMA QT / Qwiic compatible). It carries ground, 5 V from USB, and two RP2040 GPIO pins, GP26 and GP27. Use them as an I2C bus for sensors and screens, or for audio, buttons and LED strips.</p>
+  <div class="facts">
+    <span class="fact">V+ <b>5 V (USB VBUS)</b></span>
+    <span class="fact">SDA <b>GP26</b></span>
+    <span class="fact">SCL <b>GP27</b></span>
+    <span class="fact">Code <b>busio.I2C(scl=board.GP27, sda=board.GP26)</b></span>
+  </div>
+  <div class="callout disclaimer">
+    <h3>Experimental: use at your own discretion</h3>
+    <p>The STEMMA QT connector is an advanced, experimental feature. Anything you connect to it, and any code on this page, is used at your own discretion and risk. Check each device’s voltage and wiring before plugging it in; damage from connected hardware isn’t covered.</p>
+  </div>
+  <div class="callout power">
+    <h3>The red wire is 5 V, not 3.3 V</h3>
+    <p>V+ on SPOKE’s connector comes straight from USB (VBUS). Any I2C device you plug in must accept 5 V power, or go through a 5 V → 3.3 V step‑down converter. Most Adafruit STEMMA QT boards have a regulator and are fine; many SparkFun Qwiic boards are 3.3 V only.</p>
+    <p>The data wires are different: GP26 and GP27 are 3.3 V pins and must never see 5 V. Never connect the red wire to either of them.</p>
+  </div>
+</header>
+
+<!-- ============ EXPLORER ============ -->
+<section id="explore" aria-labelledby="explore-h">
+  <div class="section-head">
+    <span class="eyebrow">Interactive</span>
+    <h2 id="explore-h">Where each wire goes</h2>
+    <p class="lede prose">Pick what you’re plugging in, then tap a wire to see its chip pin and everything else that pin can do.</p>
+  </div>
+
+  <div class="explorer">
+    <div class="diagram">
+      <div class="modes" role="group" aria-label="What is plugged in">
+        <span class="modes-label">What’s on the cable?</span>
+      </div>
+      <div class="diagram-scroll">
+        <svg id="board-svg" viewBox="0 0 760 330" role="img" aria-labelledby="svg-title">
+          <title id="svg-title">STEMMA QT connector wires routed to RP2040 pins 38 and 39, with touch pads GP28 and GP29 on the neighbouring pins 40 and 41</title>
+          <!-- chip -->
+          <rect x="520" y="22" width="200" height="290" rx="10" fill="var(--sunk)" stroke="var(--line)" stroke-width="1.5"/>
+          <text x="620" y="150" text-anchor="middle" font-size="18" font-weight="500" fill="var(--fg)">RP2040</text>
+          <text x="620" y="172" text-anchor="middle" font-size="11" fill="var(--muted)">QFN‑56 · ADC corner</text>
+          <circle cx="702" cy="40" r="5" fill="var(--line)"/>
+          <g id="chip-pins"></g>
+          <!-- labels: GND / 3V3 -->
+          <g font-size="12">
+            <text x="268" y="44" fill="var(--muted)">GND plane</text>
+            <text x="268" y="86" fill="var(--muted)">USB VBUS · 5 V</text>
+          </g>
+          <!-- touch pad traces -->
+          <g id="pads">
+            <path d="M 312 262 C 400 262, 430 222, 508 222" fill="none" stroke="var(--accent)" stroke-width="3"/>
+            <path d="M 312 296 C 410 296, 440 252, 508 252" fill="none" stroke="var(--accent)" stroke-width="3"/>
+            <circle cx="300" cy="262" r="12" fill="var(--accent)" opacity="0.9"/>
+            <circle cx="300" cy="296" r="12" fill="var(--accent)" opacity="0.9"/>
+            <text x="278" y="266" text-anchor="end" font-size="12" fill="var(--fg)">touch pad · GP28</text>
+            <text x="278" y="300" text-anchor="end" font-size="12" fill="var(--fg)">touch pad · GP29</text>
+          </g>
+          <!-- coupling zone -->
+          <rect id="couple" x="420" y="146" width="84" height="116" rx="8" fill="none" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="5 4" opacity="0"/>
+          <!-- connector -->
+          <rect x="28" y="118" width="70" height="130" rx="6" fill="var(--surface)" stroke="var(--fg)" stroke-width="1.5"/>
+          <text x="63" y="110" text-anchor="middle" font-size="11" fill="var(--muted)">JST‑SH 4p</text>
+          <g id="wires"></g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="panel" aria-live="polite">
+      <div class="wire-tabs" role="tablist" aria-label="Wires"></div>
+      <h3 id="p-title"><span class="swatch" id="p-swatch"></span><span id="p-name"></span></h3>
+      <dl class="kv" id="p-kv"></dl>
+      <div>
+        <div class="note" style="margin-bottom:6px">Pin functions on the RP2040 (highlighted = used in this mode)</div>
+        <ul class="fn-list" id="p-fns"></ul>
+      </div>
+      <p id="p-mode-note"></p>
+      <div class="codebox">
+        <div class="codebox-head"><span id="p-snip-title">snippet</span><button class="copy" type="button" data-copy="p-snip">Copy</button></div>
+        <pre><code class="lang-py" id="p-snip"></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ALT USES ============ -->
+<section id="alt" aria-labelledby="alt-h">
+  <div class="section-head">
+    <span class="eyebrow">Beyond I2C</span>
+    <h2 id="alt-h">Other jobs for GP26 and GP27</h2>
+    <p class="lede prose">When nothing I2C is attached, the two signal wires are ordinary RP2040 GPIO with some extras: both are ADC inputs, they share one PWM slice (handy for stereo), and they sit next to each other (needed for <code>rotaryio</code>). Everything below is built into CircuitPython unless a library is named.</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Use</th><th>Wires</th><th>CircuitPython</th><th>Notes</th></tr></thead>
+      <tbody id="alt-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ DEVICES ============ -->
+<section id="devices" aria-labelledby="dev-h">
+  <div class="section-head">
+    <span class="eyebrow">Plug and play</span>
+    <h2 id="dev-h">I2C devices that work with SPOKE</h2>
+    <p class="lede prose">Any STEMMA QT or Qwiic breakout plugs straight in, and you can daisy‑chain several as long as their addresses differ. The hex number is the device’s default I2C address; run the scanner example to see what’s on your bus.</p>
+  </div>
+  <div class="filters" role="group" aria-label="Filter devices">
+    <input class="search" id="dev-search" type="search" placeholder="Search devices or libraries" aria-label="Search devices">
+  </div>
+  <div class="devices" id="dev-grid"></div>
+  <p class="empty" id="dev-empty" hidden>No devices match that search.</p>
+</section>
+
+<!-- ============ CODE ============ -->
+<section id="code" aria-labelledby="code-h">
+  <div class="section-head">
+    <span class="eyebrow">Code examples</span>
+    <h2 id="code-h">Copy‑paste starting points</h2>
+    <p class="lede prose">Each example is a complete <code>code.py</code>. Copy the libraries listed under it from the CircuitPython bundle into the <code>lib</code> folder on your CIRCUITPY drive.</p>
+  </div>
+  <div class="code-tabs" role="tablist" aria-label="Examples" id="code-tabs"></div>
+  <p class="code-desc" id="code-desc"></p>
+  <div class="libs-needed" id="code-libs"></div>
+  <div class="codebox">
+    <div class="codebox-head"><span id="code-file">code.py</span><button class="copy" type="button" data-copy="code-body">Copy</button></div>
+    <pre><code class="lang-py" id="code-body"></code></pre>
+  </div>
+</section>
+
+<!-- ============ AUDIO ============ -->
+<section id="audio" aria-labelledby="audio-h">
+  <div class="section-head">
+    <span class="eyebrow">Sound out</span>
+    <h2 id="audio-h">A synth on the STEMMA port</h2>
+    <p class="lede prose">The RP2040 has no DAC, but CircuitPython can play audio as fast PWM on any pin. <code>synthio</code> turns SPOKE into a standalone polyphonic synth: every pad plays a note out of GP26 (the blue SDA wire) with no computer needed. Both <code>synthio</code> and <code>audiopwmio</code> are built into CircuitPython, so there’s nothing extra to download for the sound.</p>
+  </div>
+  <div class="two-col">
+    <div class="figure">
+      <svg viewBox="0 0 420 200" role="img" aria-labelledby="rc-title">
+        <title id="rc-title">Filter circuit: GP26 through a 1 kilohm resistor, 10 nanofarad capacitor to ground, then a 10 microfarad coupling capacitor to an amplifier input</title>
+        <g fill="none" stroke="var(--fg)" stroke-width="2">
+          <path d="M 20 70 H 90"/>
+          <rect x="90" y="60" width="60" height="20" fill="var(--surface)"/>
+          <path d="M 150 70 H 260"/>
+          <path d="M 200 70 V 112"/>
+          <path d="M 184 112 H 216 M 184 122 H 216"/>
+          <path d="M 200 122 V 150 M 188 150 H 212 M 193 156 H 207 M 198 162 H 202"/>
+          <path d="M 260 58 V 82 M 270 58 V 82"/>
+          <path d="M 270 70 H 330"/>
+          <path d="M 330 50 L 380 70 L 330 90 Z" fill="var(--surface)"/>
+        </g>
+        <circle cx="20" cy="70" r="5" fill="var(--sda)"/>
+        <g font-size="12" fill="var(--fg)">
+          <text x="20" y="50">GP26</text>
+          <text x="120" y="50" text-anchor="middle">1 kΩ</text>
+          <text x="226" y="121">10 nF</text>
+          <text x="265" y="48" text-anchor="middle">10 µF</text>
+          <text x="355" y="110" text-anchor="middle">amp in</text>
+          <text x="20" y="190" fill="var(--muted)" font-size="11">Black wire (GND) goes to the amp’s ground</text>
+        </g>
+      </svg>
+      <p class="figcap">The 1 kΩ + 10 nF low‑pass rolls off around 16 kHz and removes most PWM hiss. The 10 µF capacitor blocks the 1.65 V DC offset. Feed a powered speaker, a line input, or a small 5 V amp board such as a PAM8302, which can run from the red wire. Never wire a bare speaker straight to the pin.</p>
+    </div>
+    <div class="figure">
+      <h3>Good to know</h3>
+      <ul class="plain">
+        <li>Audio and I2C can’t share the port. GP26 is either SDA or an audio pin.</li>
+        <li><b>Stereo</b>: GP26 and GP27 are channels A and B of PWM slice 5, which <code>audiopwmio</code> needs for stereo. Use <code>PWMAudioOut(board.GP26, right_channel=board.GP27)</code> and <code>Synthesizer(channel_count=2)</code>.</li>
+        <li>Keep <code>sample_rate</code> at 22050 or lower; scanning 27 pads keeps the RP2040 busy.</li>
+        <li>USB‑MIDI still works alongside, so SPOKE can play sound and send notes to a DAW at once.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="codebox">
+    <div class="codebox-head"><span>code.py · 27‑pad synthio synth</span><button class="copy" type="button" data-copy="synth-code">Copy</button></div>
+<pre><code class="lang-py" id="synth-code"># SPOKE as a standalone synth: touch a pad, hear a note from GP26.
+# Built-in modules only (synthio, audiopwmio). Needs neopixel.mpy in /lib.
+import math
+import array
+import board
+import touchio
+import audiopwmio
+import synthio
+import neopixel
+
+# Same note layout as the default SPOKE MIDI code (GP1 ... GP29)
+midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67,
+              64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
+
+touch_pins = [getattr(board, "GP%d" % n) for n in range(1, 26)]
+touch_pins += [board.GP28, board.VOLTAGE_MONITOR]   # GP29 is named VOLTAGE_MONITOR
+
+# --- audio out on the blue (SDA) wire ---
+audio = audiopwmio.PWMAudioOut(board.GP26)
+# For stereo: audiopwmio.PWMAudioOut(board.GP26, right_channel=board.GP27)
+
+# A soft sine wave sounds far nicer than the default square wave
+SAMPLES = 256
+sine = array.array("h", [int(math.sin(2 * math.pi * i / SAMPLES) * 20000)
+                         for i in range(SAMPLES)])
+
+envelope = synthio.Envelope(attack_time=0.02, decay_time=0.15,
+                            release_time=0.5, attack_level=1.0,
+                            sustain_level=0.7)
+
+synth = synthio.Synthesizer(sample_rate=22050, waveform=sine,
+                            envelope=envelope)
+audio.play(synth)
+
+pads = [touchio.TouchIn(p) for p in touch_pins]
+pixels = neopixel.NeoPixel(board.GP0, len(pads), brightness=0.05)
+pixels.fill((0, 0, 255))
+
+held = [None] * len(pads)
+
+while True:
+    for i, pad in enumerate(pads):
+        touched = pad.value
+        if touched and held[i] is None:
+            note = synthio.Note(synthio.midi_to_hz(midi_notes[i]))
+            synth.press(note)
+            held[i] = note
+            pixels[i] = (255, 0, 255)
+        elif not touched and held[i] is not None:
+            synth.release(held[i])
+            held[i] = None
+            pixels[i] = (0, 0, 255)</code></pre>
+  </div>
+  <p class="code-desc">For a richer pad sound with detuned voices, vibrato and a filter, load the “synth” template in the <a href="https://tom-vulpes.github.io/SpokeWebMidi/playground.html" target="_blank" rel="noopener">SPOKE Code Playground</a>.</p>
+</section>
+
+<!-- ============ CHAIN ============ -->
+<section id="chain" aria-labelledby="chain-h">
+  <div class="section-head">
+    <span class="eyebrow">Experimental · Two boards</span>
+    <h2 id="chain-h">Chain two SPOKEs together</h2>
+    <p class="lede prose">Connect two boards with a STEMMA QT cable and you get 54 pads on one USB connection. The second board runs as an I2C <em>target</em> using CircuitPython’s built‑in <code>i2ctarget</code> module and reports which of its pads are touched. The main board reads that and sends the notes over USB‑MIDI on channel 2, so you can route the extra pads to a different instrument.</p>
+  </div>
+  <div class="steps">
+    <div class="step"><div><b>Load the second board first.</b><p>Plug the second SPOKE into your computer on its own and save the “Second board” code below as its <code>code.py</code>. Unplug it.</p></div></div>
+    <div class="step"><div><b>Load the main board.</b><p>Save the “Main board” code as the main SPOKE’s <code>code.py</code>.</p></div></div>
+    <div class="step"><div><b>Connect them and plug in only the main board.</b><p>The red wire joins both boards’ USB 5 V, so the second board is powered through the cable. Never plug both into USB while the cable is connected. Unplug the cable before editing the second board’s code again.</p></div></div>
+  </div>
+  <div class="callout">
+    <h3>Why the bus is slow</h3>
+    <p>I2C needs pull‑up resistors, and neither SPOKE has them on GP26/GP27. The second board turns on the RP2040’s weak internal pull‑ups, which is enough at a gentle 10 kHz clock. That’s still about 100 reads a second, plenty for touch. If the main board can’t find the bus it waits and retries, so boot order doesn’t matter.</p>
+  </div>
+  <div class="codebox">
+    <div class="codebox-head"><span>Second board · code.py (I2C target at 0x42)</span><button class="copy" type="button" data-copy="chain-target">Copy</button></div>
+<pre><code class="lang-py" id="chain-target"># SECOND SPOKE: reports its 27 pads to the main board over I2C.
+# Built-in modules only, plus neopixel.mpy in /lib.
+import board
+import touchio
+import neopixel
+from i2ctarget import I2CTarget
+
+ADDRESS = 0x42
+
+# Start the I2C target first: it switches on the internal pull-ups
+# and lets the pads calibrate with the bus already live.
+target = I2CTarget(board.GP27, board.GP26, (ADDRESS,))
+
+touch_pins = [getattr(board, "GP%d" % n) for n in range(1, 26)]
+touch_pins += [board.GP28, board.VOLTAGE_MONITOR]
+pads = [touchio.TouchIn(p) for p in touch_pins]
+
+# Powered through the cable, so keep the LEDs dim
+pixels = neopixel.NeoPixel(board.GP0, len(pads), brightness=0.03)
+pixels.fill((0, 255, 120))
+
+state = bytearray(4)      # 27 pads packed into 32 bits
+last_bits = 0
+
+while True:
+    bits = 0
+    for i, pad in enumerate(pads):
+        if pad.value:
+            bits |= 1 &lt;&lt; i
+
+    if bits != last_bits:
+        for i in range(len(pads)):
+            on = bits &amp; (1 &lt;&lt; i)
+            pixels[i] = (255, 0, 255) if on else (0, 255, 120)
+        state[:] = bits.to_bytes(4, "little")
+        last_bits = bits
+
+    # Answer the main board if it is asking (timeout=-1 = check once)
+    request = target.request(timeout=-1)
+    if request:
+        with request:
+            if request.is_read:
+                request.write(state)
+            else:
+                request.read()</code></pre>
+  </div>
+  <div class="codebox">
+    <div class="codebox-head"><span>Main board · code.py (54 pads, two MIDI channels)</span><button class="copy" type="button" data-copy="chain-main">Copy</button></div>
+<pre><code class="lang-py" id="chain-main"># MAIN SPOKE: plays its own pads on MIDI channel 1 and the
+# second SPOKE's pads on channel 2. Needs adafruit_midi and neopixel in /lib.
+import time
+import board
+import busio
+import touchio
+import neopixel
+import usb_midi
+import adafruit_midi
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+SECOND = 0x42
+
+# --- I2C first; wait until the second board's pull-ups appear ---
+i2c = None
+while i2c is None:
+    try:
+        i2c = busio.I2C(scl=board.GP27, sda=board.GP26, frequency=10_000)
+    except RuntimeError:
+        print("Waiting for the second SPOKE...")
+        time.sleep(0.5)
+
+midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67,
+              64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
+
+touch_pins = [getattr(board, "GP%d" % n) for n in range(1, 26)]
+touch_pins += [board.GP28, board.VOLTAGE_MONITOR]
+pads = [touchio.TouchIn(p) for p in touch_pins]
+
+pixels = neopixel.NeoPixel(board.GP0, len(pads), brightness=0.03)
+pixels.fill((0, 0, 255))
+
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+local_held = [False] * 27
+remote_held = [False] * 27
+buf = bytearray(4)
+
+
+def read_second_board():
+    """Return the second board's pads as a 27-bit number, or None."""
+    while not i2c.try_lock():
+        pass
+    try:
+        i2c.readfrom_into(SECOND, buf)
+        return int.from_bytes(buf, "little")
+    except OSError:
+        return None          # not answering right now, try next loop
+    finally:
+        i2c.unlock()
+
+
+while True:
+    # --- this board: channel 1 ---
+    for i, pad in enumerate(pads):
+        touched = pad.value
+        if touched and not local_held[i]:
+            midi.send(NoteOn(midi_notes[i], 110))
+            local_held[i] = True
+            pixels[i] = (255, 0, 255)
+        elif not touched and local_held[i]:
+            midi.send(NoteOff(midi_notes[i], 0))
+            local_held[i] = False
+            pixels[i] = (0, 0, 255)
+
+    # --- second board: channel 2 ---
+    bits = read_second_board()
+    if bits is not None:
+        for i in range(27):
+            touched = bool(bits &amp; (1 &lt;&lt; i))
+            if touched and not remote_held[i]:
+                midi.send(NoteOn(midi_notes[i], 110), channel=1)
+                remote_held[i] = True
+            elif not touched and remote_held[i]:
+                midi.send(NoteOff(midi_notes[i], 0), channel=1)
+                remote_held[i] = False
+
+    time.sleep(0.005)</code></pre>
+  </div>
+  <p class="code-desc">To chain a third board, give it a different <code>ADDRESS</code> (e.g. 0x43) and read it the same way. Power gets tight quickly though, since every board runs from one USB port.</p>
+</section>
+
+<!-- ============ WHY PADS DROP OUT ============ -->
+<section id="pads-dropout" aria-labelledby="why-h">
+  <div class="section-head">
+    <span class="eyebrow">Troubleshooting</span>
+    <h2 id="why-h">Why two touch pads stop working when I2C is on</h2>
+    <p class="lede prose">Plug in an I2C device and the pads on GP28 and GP29 (the last two in <code>touch_pins</code>) can read as permanently touched, flicker, or disappear. The cause is physical: those two pins are next‑door neighbours to SDA and SCL, and SPOKE’s touch sensing is sensitive enough to notice.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step"><div>
+      <b>Touch sensing is done in software, and calibrated once.</b>
+      <p>The RP2040 has no touch hardware, so <code>touchio</code> charges each pad, lets go, and times how long it takes to drain through SPOKE’s 1 MΩ resistor. A finger slows the drain. At startup each pad sets <code>threshold = reading × 1.05 + 100</code>, so anything that adds about 5% afterwards looks like a finger. It’s the same reason the FAQ says to press Reset after clipping on fruit.</p>
+    </div></div>
+    <div class="step"><div>
+      <b>GP26–GP29 are four consecutive pins on the chip.</b>
+      <p>They’re pins 38, 39, 40 and 41 on the RP2040 package, the corner that holds all four ADC inputs, and their traces run side by side to the connector and pads. Every pair of neighbouring conductors has a little capacitance between them.</p>
+    </div></div>
+    <div class="step"><div>
+      <b>Turning I2C on changes what the pads “see”.</b>
+      <p>Before I2C, GP26 and GP27 float, so the coupling to them hardly counts. Once a breakout is attached its pull‑up resistors tie SDA and SCL firmly high, and the I2C controller drives them. That neighbouring capacitance now loads GP28 and GP29 for real, the drain takes longer, and the pad crosses its startup threshold without a finger. Clock edges during a reading add random kicks on top. In the default code, a pad that fails its startup check is skipped by the <code>try/except</code>, so it silently vanishes.</p>
+    </div></div>
+  </div>
+
+  <div class="figure sim">
+    <h3>See it on the drain curve</h3>
+    <svg id="decay-svg" viewBox="0 0 640 230" role="img" aria-labelledby="decay-title">
+      <title id="decay-title">Pad voltage draining from 3.3 volts. A higher load makes the curve cross the logic threshold later, past the trigger time set at startup.</title>
+    </svg>
+    <div class="sim-controls" role="group" aria-label="Pad conditions">
+      <button class="chip-btn" type="button" data-sim="idle" aria-pressed="true">Idle pad</button>
+      <button class="chip-btn" type="button" data-sim="finger" aria-pressed="false">Finger on pad</button>
+      <button class="chip-btn" type="button" data-sim="i2c" aria-pressed="false">I2C attached</button>
+      <button class="chip-btn" type="button" data-sim="recal" aria-pressed="false">I2C + recalibrated</button>
+    </div>
+    <div class="readout" id="sim-readout"></div>
+    <p class="figcap">Illustrative values for a ~12 pF pad on a 1 MΩ pull‑down. The dashed line is the trigger point calibrated at startup.</p>
+  </div>
+
+  <div class="section-head" style="margin-top:8px">
+    <h3>Fixes, easiest first</h3>
+  </div>
+  <div class="steps">
+    <div class="step"><div><b>Start I2C before the touch pads.</b><p>Create <code>busio.I2C(...)</code> first, then the <code>TouchIn</code> objects, so their startup reading already includes the I2C device.</p></div></div>
+    <div class="step"><div><b>Recalibrate with a little more margin</b> for GP28 and GP29 once everything is running (code below).</div></div>
+    <div class="step"><div><b>Slow the bus and keep the cable short.</b><p>Add <code>frequency=100_000</code> to <code>busio.I2C</code>, and keep the STEMMA cable away from the GP28/GP29 pads.</p></div></div>
+  </div>
+
+  <div class="codebox">
+    <div class="codebox-head"><span>pad recalibration helper</span><button class="copy" type="button" data-copy="recal-code">Copy</button></div>
+<pre><code class="lang-py" id="recal-code">import time
+import board
+import busio
+import touchio
+
+# 1. I2C first, so the pads calibrate with it attached
+i2c = busio.I2C(scl=board.GP27, sda=board.GP26, frequency=100_000)
+
+touch_pins = [getattr(board, "GP%d" % n) for n in range(1, 26)]
+touch_pins += [board.GP28, board.VOLTAGE_MONITOR]
+pads = [touchio.TouchIn(p) for p in touch_pins]
+
+# 2. Re-measure every pad and set a fresh threshold
+def recalibrate(pads, margin=1.05, extra=100, samples=8):
+    for i, pad in enumerate(pads):
+        base = sum(pad.raw_value for _ in range(samples)) // samples
+        if i >= 25:                 # GP28 and GP29 sit next to SDA/SCL
+            pad.threshold = int(base * (margin + 0.05) + extra + 100)
+        else:
+            pad.threshold = int(base * margin + extra)
+
+time.sleep(0.2)     # let the I2C device power up
+recalibrate(pads)
+
+# 3. Debug: watch the two neighbour pads while you poke the I2C device
+for _ in range(20):
+    print(pads[25].raw_value, pads[25].threshold,
+          pads[26].raw_value, pads[26].threshold)
+    time.sleep(0.1)</code></pre>
+  </div>
+
+  <div class="callout">
+    <h3>How to tell which effect you’re seeing</h3>
+    <p>Print <code>raw_value</code> for GP28 and GP29 three ways: with no device plugged in, with the device plugged in but no I2C traffic, and while reading the device in a loop. If the number jumps as soon as the device is attached, it’s the extra load and recalibrating fixes it. If it only wanders while data is moving, it’s clock edges, and a slower bus or short cable helps most.</p>
+  </div>
+</section>
+
+<!-- ============ LIBRARIES ============ -->
+<section id="libs" aria-labelledby="libs-h">
+  <div class="section-head">
+    <span class="eyebrow">Libraries</span>
+    <h2 id="libs-h">Getting the libraries</h2>
+    <p class="lede prose">Download the Adafruit CircuitPython Library Bundle whose number matches your CircuitPython version (a 9.x board needs the 9.x bundle, 10.x needs 10.x). Copy only the folders and <code>.mpy</code> files you need into <code>CIRCUITPY/lib</code>. Most I2C drivers also need <code>adafruit_bus_device</code>, and many need <code>adafruit_register</code>.</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Built into CircuitPython (no download)</th><th>From the bundle</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>busio</code> <code>touchio</code> <code>synthio</code> <code>audiopwmio</code> <code>pwmio</code> <code>rotaryio</code> <code>digitalio</code> <code>displayio</code> <code>i2cdisplaybus</code> <code>usb_midi</code></td>
+          <td><code>adafruit_bus_device</code> <code>adafruit_register</code> <code>adafruit_midi</code> <code>neopixel</code> <code>adafruit_seesaw</code> <code>adafruit_mpr121</code> <code>adafruit_vl53l1x</code> <code>adafruit_displayio_ssd1306</code> <code>adafruit_ssd1327</code> <code>adafruit_display_text</code> …</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="code-desc">Display note: from CircuitPython 9 the I2C display bus is <code>i2cdisplaybus.I2CDisplayBus</code>. The older <code>displayio.I2CDisplay</code> used in some SPOKE OLED examples was removed in CircuitPython 10.</p>
+  <div class="links">
+    <a href="https://circuitpython.org/libraries" target="_blank" rel="noopener"><small>circuitpython.org</small><span>Library bundle downloads</span></a>
+    <a href="https://github.com/Tom-Vulpes/Spoke/tree/main/I2C" target="_blank" rel="noopener"><small>GitHub · Tom-Vulpes/Spoke</small><span>SPOKE I2C examples</span></a>
+    <a href="https://tom-vulpes.github.io/SpokeWebMidi/playground.html" target="_blank" rel="noopener"><small>spokeboard tools</small><span>SPOKE Code Playground</span></a>
+    <a href="https://docs.circuitpython.org/en/latest/shared-bindings/synthio/index.html" target="_blank" rel="noopener"><small>docs.circuitpython.org</small><span>synthio reference</span></a>
+    <a href="https://docs.circuitpython.org/en/latest/shared-bindings/audiopwmio/index.html" target="_blank" rel="noopener"><small>docs.circuitpython.org</small><span>audiopwmio reference</span></a>
+    <a href="https://learn.adafruit.com/introducing-adafruit-stemma-qt" target="_blank" rel="noopener"><small>learn.adafruit.com</small><span>Introducing STEMMA QT</span></a>
+  </div>
+</section>
+
+<footer>Everything connected to the STEMMA QT port is experimental and at your own discretion. SPOKE runs the Raspberry Pi Pico build of CircuitPython. GP29 is named <code>board.VOLTAGE_MONITOR</code> (or <code>board.A3</code>) in that build. Pin numbers refer to the RP2040 QFN‑56 package.</footer>
+</div>
+
+<script>
+(function () {
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  /* ---------- Python highlighter ---------- */
+  const KW = /\b(import|from|as|def|return|for|in|while|if|elif|else|True|False|None|and|or|not|try|except|with|lambda|is|break|continue|pass|class|global)\b/;
+  function highlight(src) {
+    const re = /(#[^\n]*)|("""[\s\S]*?"""|"[^"\n]*"|'[^'\n]*')|\b(\d[\d_]*\.?\d*|0x[0-9A-Fa-f]+)\b|\b([A-Za-z_]\w*)\b/g;
+    let out = "", last = 0, m;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      if (m[1]) out += '<span class="c">' + esc(m[1]) + "</span>";
+      else if (m[2]) out += '<span class="s">' + esc(m[2]) + "</span>";
+      else if (m[3]) out += '<span class="n">' + esc(m[3]) + "</span>";
+      else if (m[4]) out += KW.test(m[4]) && m[4].match(KW)[0] === m[4] ? '<span class="k">' + m[4] + "</span>" : esc(m[4]);
+      last = re.lastIndex;
+    }
+    return out + esc(src.slice(last));
+  }
+  function setCode(el, src) { el.dataset.raw = src; el.innerHTML = highlight(src); }
+  document.querySelectorAll("code.lang-py").forEach(el => { if (el.textContent.trim()) setCode(el, el.textContent); });
+
+  /* ---------- Copy buttons ---------- */
+  document.addEventListener("click", e => {
+    const b = e.target.closest(".copy"); if (!b) return;
+    const el = document.getElementById(b.dataset.copy);
+    const text = el.dataset.raw || el.textContent;
+    const done = () => { b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1400); };
+    try {
+      navigator.clipboard.writeText(text).then(done, () => selectText(el));
+    } catch (err) { selectText(el); }
+  });
+  function selectText(el) { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+  /* ---------- Explorer data ---------- */
+  const WIRES = {
+    gnd: { name: "GND", color: "var(--gnd)", jst: "Pin 1 · black", gpio: "—", chip: "Ground plane", fns: ["Ground"],
+      note: "Common ground for anything you plug in. Every device on the cable must share it, including amps and LED strips with their own power." },
+    vp:  { name: "V+ (5 V)", color: "var(--vplus)", jst: "Pin 2 · red", gpio: "—", chip: "Not the chip: USB VBUS", fns: ["5 V from USB"],
+      note: "5 V straight from USB, shared with the board itself. I2C devices must accept 5 V or use a step-down converter. Never connect it to GP26 or GP27." },
+    sda: { name: "SDA · GP26", color: "var(--sda)", jst: "Pin 3 · blue", gpio: "GP26 (board.GP26 / board.A0)", chip: "Pin 38 · GPIO26 / ADC0",
+      fns: ["I2C1 SDA", "ADC0", "PWM5 A", "SPI1 SCK", "UART1 CTS", "PIO0/1", "Digital I/O"] },
+    scl: { name: "SCL · GP27", color: "var(--scl)", jst: "Pin 4 · yellow", gpio: "GP27 (board.GP27 / board.A1)", chip: "Pin 39 · GPIO27 / ADC1",
+      fns: ["I2C1 SCL", "ADC1", "PWM5 B", "SPI1 TX", "UART1 RTS", "PIO0/1", "Digital I/O"] }
+  };
+
+  const MODES = [
+    { id: "i2c", label: "I2C device", sda: "SDA", scl: "SCL", on: { sda: "I2C1 SDA", scl: "I2C1 SCL" },
+      note: "The default. Both wires form one I2C bus; daisy-chain breakouts with different addresses. Each one must run on 5 V (or sit behind a step-down converter).",
+      snipTitle: "open the bus",
+      snip: 'import board\nimport busio\n\ni2c = busio.I2C(scl=board.GP27, sda=board.GP26)\n# hand "i2c" to any driver, e.g. adafruit_vl53l1x.VL53L1X(i2c)' },
+    { id: "audio", label: "PWM audio", sda: "Audio L", scl: "Audio R", on: { sda: "PWM5 A", scl: "PWM5 B" },
+      note: "Fast PWM audio. GP26 alone gives mono; add GP27 for stereo, since both are on PWM slice 5. Add an RC filter before any amp.",
+      snipTitle: "stereo synth out",
+      snip: 'import board, audiopwmio, synthio\n\naudio = audiopwmio.PWMAudioOut(board.GP26, right_channel=board.GP27)\nsynth = synthio.Synthesizer(sample_rate=22050, channel_count=2)\naudio.play(synth)\nsynth.press(60)   # middle C' },
+    { id: "enc", label: "Rotary encoder", sda: "Enc A", scl: "Enc B", on: { sda: "PIO0/1", scl: "PIO0/1" },
+      note: "rotaryio on the RP2040 needs two consecutive pins, which GP26/GP27 are. Common goes to GND. Great for scrolling scales, octaves or presets.",
+      snipTitle: "read an encoder",
+      snip: 'import board, rotaryio\n\nenc = rotaryio.IncrementalEncoder(board.GP26, board.GP27)\nlast = enc.position\nwhile True:\n    if enc.position != last:\n        print("octave shift:", enc.position)\n        last = enc.position' },
+    { id: "leds", label: "LED strip", sda: "Data", scl: "(spare)", on: { sda: "PIO0/1", scl: "" },
+      note: "Drive an external NeoPixel strip from GP26. The red 5 V wire can power a short strip at low brightness; it shares USB’s limited current with SPOKE, so use a separate supply for longer strips.",
+      snipTitle: "external NeoPixels",
+      snip: 'import board, neopixel\n\nstrip = neopixel.NeoPixel(board.GP26, 30, brightness=0.2)\nstrip.fill((255, 0, 128))' },
+    { id: "touch", label: "Two more pads", sda: "Pad 28", scl: "Pad 29", on: { sda: "Digital I/O", scl: "Digital I/O" },
+      note: "Add a 1 MΩ resistor from each wire to GND (the black wire) and touchio works on them too, taking SPOKE to 29 pads.",
+      snipTitle: "extra touch inputs",
+      snip: 'import board, touchio\n\nextra = [touchio.TouchIn(board.GP26), touchio.TouchIn(board.GP27)]\nwhile True:\n    print([p.value for p in extra])' }
+  ];
+
+  let mode = MODES[0], wire = "sda";
+
+  /* ---------- Build SVG ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  const mk = (tag, attrs, parent) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); if (parent) parent.appendChild(el); return el; };
+
+  const pinG = $("#chip-pins");
+  const PINS = [[35, "GPIO23"], [36, "GPIO24"], [37, "GPIO25"], [38, "GPIO26 · ADC0"], [39, "GPIO27 · ADC1"], [40, "GPIO28 · ADC2"], [41, "GPIO29 · ADC3"], [42, "IOVDD"]];
+  PINS.forEach(([n, label], i) => {
+    const y = 72 + i * 30 + (i > 2 ? 0 : 0);
+    const yy = [42, 72, 102, 162, 192, 222, 252, 282][i];
+    const hot = n >= 38 && n <= 41;
+    mk("rect", { x: 508, y: yy - 5, width: 14, height: 10, rx: 2, fill: hot ? "var(--fg)" : "var(--line)" }, pinG);
+    const t = mk("text", { x: 530, y: yy + 4, "font-size": 11, fill: hot ? "var(--fg)" : "var(--muted)" }, pinG);
+    t.textContent = n + " " + label;
+  });
+
+  const wiresG = $("#wires");
+  const conY = { gnd: 140, vp: 168, sda: 196, scl: 224 };
+  const paths = {
+    gnd: "M 98 140 C 170 140, 180 40, 262 40",
+    vp:  "M 98 168 C 180 168, 190 82, 262 82",
+    sda: "M 98 196 C 250 196, 330 162, 508 162",
+    scl: "M 98 224 C 260 224, 340 192, 508 192"
+  };
+  const tagPos = { sda: [300, 150], scl: [300, 226] };
+  const wireEls = {}, tagEls = {};
+  Object.keys(paths).forEach(k => {
+    const g = mk("g", { class: "wire", "data-w": k, tabindex: 0, role: "button", "aria-label": WIRES[k].name }, wiresG);
+    mk("path", { d: paths[k], fill: "none", stroke: "transparent", "stroke-width": 22 }, g);
+    mk("path", { d: paths[k], fill: "none", stroke: WIRES[k].color, "stroke-width": 6, "stroke-linecap": "round" }, g);
+    mk("circle", { cx: 98, cy: conY[k], r: 6, fill: WIRES[k].color }, g);
+    const lt = mk("text", { x: 40, y: conY[k] + 4, "font-size": 11, fill: "var(--fg)" }, g);
+    lt.textContent = { gnd: "GND", vp: "V+", sda: "SDA", scl: "SCL" }[k];
+    if (tagPos[k]) {
+      const tg = mk("g", {}, g);
+      const r = mk("rect", { x: tagPos[k][0] - 4, y: tagPos[k][1] - 13, height: 18, rx: 9, fill: "var(--surface)", stroke: WIRES[k].color, "stroke-width": 1.5 }, tg);
+      const tx = mk("text", { x: tagPos[k][0] + 6, y: tagPos[k][1], "font-size": 11, fill: "var(--fg)" }, tg);
+      tagEls[k] = { r, tx };
+    }
+    wireEls[k] = g;
+    g.addEventListener("click", () => selectWire(k));
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectWire(k); } });
+  });
+
+  /* ---------- Mode buttons ---------- */
+  const modesEl = $(".modes");
+  MODES.forEach(m => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip-btn"; b.textContent = m.label; b.dataset.mode = m.id;
+    b.setAttribute("aria-pressed", m === mode);
+    b.addEventListener("click", () => { mode = m; render(); });
+    modesEl.appendChild(b);
+  });
+
+  /* ---------- Wire tabs ---------- */
+  const tabsEl = $(".wire-tabs");
+  ["gnd", "vp", "sda", "scl"].forEach(k => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "wire-tab"; b.setAttribute("role", "tab"); b.dataset.w = k;
+    b.innerHTML = '<span class="swatch" style="background:' + WIRES[k].color + '"></span>' + { gnd: "GND", vp: "V+", sda: "SDA", scl: "SCL" }[k];
+    b.addEventListener("click", () => selectWire(k));
+    tabsEl.appendChild(b);
+  });
+
+  function selectWire(k) { wire = k; render(); }
+
+  function render() {
+    modesEl.querySelectorAll(".chip-btn").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === mode.id));
+    tabsEl.querySelectorAll(".wire-tab").forEach(b => b.setAttribute("aria-selected", b.dataset.w === wire));
+    $("#board-svg").classList.add("dim");
+    Object.entries(wireEls).forEach(([k, g]) => g.classList.toggle("sel", k === wire));
+    ["sda", "scl"].forEach(k => {
+      const label = mode[k];
+      tagEls[k].tx.textContent = label;
+      const w = Math.max(48, label.length * 7.2 + 20);
+      tagEls[k].r.setAttribute("width", w);
+    });
+    $("#couple").setAttribute("opacity", mode.id === "i2c" ? 1 : 0);
+
+    const W = WIRES[wire];
+    $("#p-swatch").style.background = W.color;
+    $("#p-name").textContent = W.name;
+    const role = wire === "sda" || wire === "scl" ? mode[wire] : (wire === "gnd" ? "Ground" : "Power");
+    $("#p-kv").innerHTML =
+      "<dt>Connector</dt><dd>" + W.jst + "</dd>" +
+      "<dt>RP2040</dt><dd>" + W.chip + "</dd>" +
+      "<dt>CircuitPython</dt><dd>" + esc(W.gpio) + "</dd>" +
+      "<dt>In this mode</dt><dd>" + esc(role) + "</dd>";
+    const on = mode.on[wire] || "";
+    $("#p-fns").innerHTML = W.fns.map(f => '<li class="' + (f === on ? "on" : "") + '">' + f + "</li>").join("");
+    $("#p-mode-note").textContent = W.note || mode.note;
+    $("#p-snip-title").textContent = mode.snipTitle;
+    setCode($("#p-snip"), mode.snip);
+  }
+  render();
+
+  /* ---------- Alt uses table ---------- */
+  const ALT = [
+    ["PWM audio, mono or stereo", "GP26 (+ GP27)", "audiopwmio + synthio", "Both pins share PWM slice 5, so stereo works. Filter before an amp."],
+    ["Buttons or a sustain pedal", "GP26 and/or GP27", "digitalio (Pull.UP)", "Switch between the pin and GND. No power wire needed."],
+    ["Rotary encoder", "GP26 + GP27", "rotaryio.IncrementalEncoder", "Common pin to GND. Needs consecutive pins, which these are."],
+    ["NeoPixel strip", "GP26", "neopixel", "Short strips can run from the red 5 V wire at low brightness."],
+    ["Two extra touch pads", "GP26 + GP27", "touchio", "Add 1 MΩ from each pin to GND first."]
+  ];
+  $("#alt-body").innerHTML = ALT.map(r => {
+    const dots = (r[1].includes("GP26") ? '<span class="dot" style="background:var(--sda)"></span>' : "") + (r[1].includes("GP27") ? '<span class="dot" style="background:var(--scl)"></span>' : "");
+    return "<tr><td><b>" + r[0] + '</b></td><td><span class="pin">' + dots + r[1] + "</span></td><td><code>" + r[2] + "</code></td><td>" + r[3] + "</td></tr>";
+  }).join("");
+
+  /* ---------- Devices ---------- */
+  const DEV = [
+    ["VL53L1X time‑of‑flight", "0x29", "Input", "Distance up to ~4 m. Wave a hand above SPOKE for a theremin or filter sweep.", "adafruit_vl53l1x"],
+    ["APDS9960 gesture / colour", "0x39", "Input", "Swipe gestures change scales; colour sensing picks notes from objects.", "adafruit_apds9960"],
+    ["MPR121 12‑key touch", "0x5A", "Input", "Twelve more capacitive pads. Chain up to four for 48 extra inputs.", "adafruit_mpr121"],
+    ["NeoSlider", "0x30", "Input", "Slide potentiometer with LEDs. Velocity or CC control (SPOKE example on GitHub).", "adafruit_seesaw"],
+    ["I2C rotary encoder", "0x36", "Input", "Encoder with push switch and an RGB LED. Preset and octave selection.", "adafruit_seesaw"],
+    ["LIS3DH accelerometer", "0x18", "Input", "Tilt and tap. Shake to trigger, tilt to bend pitch.", "adafruit_lis3dh"],
+    ["SSD1306 OLED 128×32/64", "0x3C", "Output", "Show the current note, scale or mode.", "adafruit_displayio_ssd1306"],
+    ["SSD1327 OLED 128×128", "0x3D", "Output", "Grayscale screen used in the SPOKE OLED example.", "adafruit_ssd1327"],
+    ["MCP4728 4‑ch DAC", "0x60", "Output", "Four control voltages. Pads drive a modular synth as CV.", "adafruit_mcp4728"],
+    ["PCA9685 16‑ch PWM", "0x40", "Output", "Sixteen servos or LEDs. Kinetic sculptures played by touch.", "adafruit_pca9685"]
+  ];
+  const CATS = ["All", "Input", "Output"];
+  let cat = "All", q = "";
+  const filt = $(".filters");
+  CATS.forEach(c => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip-btn"; b.textContent = c; b.dataset.cat = c;
+    b.setAttribute("aria-pressed", c === cat);
+    b.addEventListener("click", () => { cat = c; drawDev(); });
+    filt.insertBefore(b, $("#dev-search"));
+  });
+  $("#dev-search").addEventListener("input", e => { q = e.target.value.toLowerCase(); drawDev(); });
+  function drawDev() {
+    filt.querySelectorAll(".chip-btn").forEach(b => b.setAttribute("aria-pressed", b.dataset.cat === cat));
+    const list = DEV.filter(d => (cat === "All" || d[2] === cat) && (!q || d.join(" ").toLowerCase().includes(q)));
+    $("#dev-grid").innerHTML = list.map(d =>
+      '<article class="dev"><div class="dev-top"><h3>' + d[0] + '</h3><span class="addr">' + d[1] + '</span></div>' +
+      '<span class="tag">' + d[2] + "</span><p>" + d[3] + '</p><span class="lib">lib: ' + d[4] + "</span></article>").join("");
+    $("#dev-empty").hidden = list.length > 0;
+  }
+  drawDev();
+
+  /* ---------- Code examples ---------- */
+  const EX = [
+    { t: "Scan the bus", d: "Run this first. It lists every I2C address it finds, so you can check the cable and wiring before writing anything else.", libs: [],
+      c: `# Find out what's plugged into SPOKE's STEMMA QT port
+import time
+import board
+import busio
+
+i2c = busio.I2C(scl=board.GP27, sda=board.GP26)
+
+while not i2c.try_lock():
+    pass
+
+try:
+    while True:
+        found = [hex(a) for a in i2c.scan()]
+        print("I2C devices:", found if found else "none - check the cable")
+        time.sleep(2)
+finally:
+    i2c.unlock()` },
+    { t: "Distance → pitch bend", d: "A VL53L1X distance sensor bends the pitch of whatever you're playing as your hand moves between 5 and 40 cm above it. The 27 pads still send notes as normal.", libs: ["adafruit_vl53l1x", "adafruit_midi"],
+      c: `import time
+import board
+import busio
+import touchio
+import usb_midi
+import adafruit_midi
+import adafruit_vl53l1x
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+from adafruit_midi.pitch_bend import PitchBend
+
+# I2C first, then the pads (keeps GP28/GP29 calibrated correctly)
+i2c = busio.I2C(scl=board.GP27, sda=board.GP26)
+tof = adafruit_vl53l1x.VL53L1X(i2c)
+tof.distance_mode = 1        # 1 = short range, more responsive
+tof.timing_budget = 50       # ms per reading
+tof.start_ranging()
+
+midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67,
+              64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
+touch_pins = [getattr(board, "GP%d" % n) for n in range(1, 26)]
+touch_pins += [board.GP28, board.VOLTAGE_MONITOR]
+pads = [touchio.TouchIn(p) for p in touch_pins]
+held = [False] * len(pads)
+
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+last_bend = 8192
+
+while True:
+    # --- distance sensor -> pitch bend (8192 = centre) ---
+    if tof.data_ready:
+        cm = tof.distance          # None when nothing is in range
+        tof.clear_interrupt()
+        if cm is None:
+            bend = 8192
+        else:
+            cm = max(5, min(40, cm))
+            bend = 8192 + int((40 - cm) / 35 * 8191)
+        if abs(bend - last_bend) > 40:
+            midi.send(PitchBend(bend))
+            last_bend = bend
+
+    # --- pads -> notes ---
+    for i, pad in enumerate(pads):
+        if pad.value and not held[i]:
+            midi.send(NoteOn(midi_notes[i], 110))
+            held[i] = True
+        elif not pad.value and held[i]:
+            midi.send(NoteOff(midi_notes[i], 0))
+            held[i] = False
+
+    time.sleep(0.005)` },
+    { t: "12 extra pads (MPR121)", d: "An MPR121 breakout adds twelve more capacitive inputs on the I2C bus. Here they play a chromatic octave on MIDI channel 2 so you can route them separately in your DAW.", libs: ["adafruit_mpr121", "adafruit_bus_device", "adafruit_midi"],
+      c: `import time
+import board
+import busio
+import usb_midi
+import adafruit_midi
+import adafruit_mpr121
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+i2c = busio.I2C(scl=board.GP27, sda=board.GP26)
+mpr = adafruit_mpr121.MPR121(i2c)          # default address 0x5A
+
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=1)
+notes = [48 + i for i in range(12)]          # C3 to B3
+held = [False] * 12
+
+while True:
+    for i in range(12):
+        touched = mpr[i].value
+        if touched and not held[i]:
+            midi.send(NoteOn(notes[i], 100))
+            held[i] = True
+        elif not touched and held[i]:
+            midi.send(NoteOff(notes[i], 0))
+            held[i] = False
+    time.sleep(0.01)` },
+    { t: "OLED note display", d: "Shows the last note played on a 128×32 SSD1306 OLED. Uses i2cdisplaybus, which is the current API on CircuitPython 9 and 10.", libs: ["adafruit_displayio_ssd1306", "adafruit_display_text", "adafruit_midi"],
+      c: `import board
+import busio
+import displayio
+import i2cdisplaybus
+import terminalio
+import touchio
+import usb_midi
+import adafruit_midi
+import adafruit_displayio_ssd1306
+from adafruit_display_text import label
+from adafruit_midi.note_on import NoteOn
+from adafruit_midi.note_off import NoteOff
+
+displayio.release_displays()
+i2c = busio.I2C(scl=board.GP27, sda=board.GP26)
+bus = i2cdisplaybus.I2CDisplayBus(i2c, device_address=0x3C)
+display = adafruit_displayio_ssd1306.SSD1306(bus, width=128, height=32)
+# 128x128 SSD1327 instead: adafruit_ssd1327.SSD1327(bus, width=128, height=128), address 0x3D
+
+screen = displayio.Group()
+text = label.Label(terminalio.FONT, text="SPOKE ready", x=4, y=14, scale=2)
+screen.append(text)
+display.root_group = screen
+
+NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+def note_name(n):
+    return NAMES[n % 12] + str(n // 12 - 1)
+
+midi_notes = [98, 96, 93, 91, 88, 86, 84, 81, 79, 76, 74, 72, 69, 67,
+              64, 62, 60, 57, 55, 52, 50, 48, 45, 43, 40, 38, 36]
+touch_pins = [getattr(board, "GP%d" % n) for n in range(1, 26)]
+touch_pins += [board.GP28, board.VOLTAGE_MONITOR]
+pads = [touchio.TouchIn(p) for p in touch_pins]
+held = [False] * len(pads)
+midi = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+
+while True:
+    for i, pad in enumerate(pads):
+        if pad.value and not held[i]:
+            midi.send(NoteOn(midi_notes[i], 110))
+            text.text = note_name(midi_notes[i])
+            held[i] = True
+        elif not pad.value and held[i]:
+            midi.send(NoteOff(midi_notes[i], 0))
+            held[i] = False` }
+  ];
+  const tabs = $("#code-tabs");
+  let ex = 0;
+  EX.forEach((e, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip-btn"; b.textContent = e.t; b.setAttribute("role", "tab");
+    b.addEventListener("click", () => { ex = i; drawEx(); });
+    tabs.appendChild(b);
+  });
+  function drawEx() {
+    tabs.querySelectorAll(".chip-btn").forEach((b, i) => { b.setAttribute("aria-pressed", i === ex); b.setAttribute("aria-selected", i === ex); });
+    const e = EX[ex];
+    $("#code-desc").textContent = e.d;
+    $("#code-libs").innerHTML = e.libs.length ? "Copy to /lib: " + e.libs.map(l => "<span>" + l + "</span>").join("") : "No extra libraries needed.";
+    $("#code-file").textContent = "code.py · " + e.t;
+    setCode($("#code-body"), e.c);
+  }
+  drawEx();
+
+  /* ---------- Decay simulator ---------- */
+  const svg = $("#decay-svg");
+  const X0 = 60, X1 = 620, Y0 = 20, Y1 = 190, TMAX = 40;   // µs
+  const VMAX = 3.3, VIL = 1.0;
+  const xs = t => X0 + (t / TMAX) * (X1 - X0);
+  const ys = v => Y1 - (v / VMAX) * (Y1 - Y0);
+  const R = 1e6;
+  const SC = {
+    idle:   { c: 12e-12, cal: 12e-12, label: "Idle pad" },
+    finger: { c: 15e-12, cal: 12e-12, label: "Finger" },
+    i2c:    { c: 13.5e-12, cal: 12e-12, label: "I2C attached" },
+    recal:  { c: 13.5e-12, cal: 13.5e-12, label: "I2C, recalibrated" }
+  };
+  const tCross = c => R * c * Math.log(VMAX / VIL) * 1e6;  // µs
+  function drawSim(key) {
+    const s = SC[key];
+    let h = "";
+    for (let v = 0; v <= 3; v += 1) h += '<line x1="' + X0 + '" x2="' + X1 + '" y1="' + ys(v) + '" y2="' + ys(v) + '" stroke="var(--line)" stroke-width="1"/><text x="' + (X0 - 8) + '" y="' + (ys(v) + 4) + '" text-anchor="end" font-size="11" fill="var(--muted)">' + v + ' V</text>';
+    for (let t = 0; t <= 40; t += 10) h += '<text x="' + xs(t) + '" y="' + (Y1 + 18) + '" text-anchor="middle" font-size="11" fill="var(--muted)">' + t + ' µs</text>';
+    h += '<line x1="' + X0 + '" x2="' + X1 + '" y1="' + ys(VIL) + '" y2="' + ys(VIL) + '" stroke="var(--muted)" stroke-width="1"/><text x="' + (X1) + '" y="' + (ys(VIL) - 6) + '" text-anchor="end" font-size="11" fill="var(--muted)">pin reads LOW below here</text>';
+    const thrT = tCross(s.cal) * 1.05 + 1.2;
+    h += '<line x1="' + xs(thrT) + '" x2="' + xs(thrT) + '" y1="' + Y0 + '" y2="' + Y1 + '" stroke="var(--accent)" stroke-dasharray="5 4" stroke-width="1.5"/><text x="' + (xs(thrT) + 6) + '" y="' + (Y0 + 12) + '" font-size="11" fill="var(--accent)">trigger point</text>';
+    const curve = c => { let d = ""; for (let t = 0; t <= TMAX; t += 0.4) { const v = VMAX * Math.exp(-t * 1e-6 / (R * c)); d += (t ? " L " : "M ") + xs(t).toFixed(1) + " " + ys(v).toFixed(1); } return d; };
+    h += '<path d="' + curve(12e-12) + '" fill="none" stroke="var(--muted)" stroke-width="1.5" opacity="0.45"/>';
+    const tc = tCross(s.c), trig = tc > thrT;
+    h += '<path d="' + curve(s.c) + '" fill="none" stroke="' + (trig ? "var(--warn)" : "var(--ok)") + '" stroke-width="3"/>';
+    h += '<circle cx="' + xs(tc) + '" cy="' + ys(VIL) + '" r="5" fill="' + (trig ? "var(--warn)" : "var(--ok)") + '"/>';
+    svg.innerHTML = h;
+    const touched = trig;
+    $("#sim-readout").innerHTML =
+      "<span>Pad load ≈ " + (s.c * 1e12).toFixed(1) + " pF</span>" +
+      "<span>Drains in " + tc.toFixed(1) + " µs</span>" +
+      "<span>Trigger at " + thrT.toFixed(1) + " µs</span>" +
+      '<span class="' + (key === "finger" ? (touched ? "good" : "bad") : (touched ? "bad" : "good")) + '">pad.value = ' + (touched ? "True" : "False") +
+      (key === "i2c" ? " (false touch)" : key === "finger" ? " (real touch)" : "") + "</span>";
+    document.querySelectorAll("[data-sim]").forEach(b => b.setAttribute("aria-pressed", b.dataset.sim === key));
+  }
+  document.querySelectorAll("[data-sim]").forEach(b => b.addEventListener("click", () => drawSim(b.dataset.sim)));
+  drawSim("idle");
+})();
+</script>
+
+</body></html>
