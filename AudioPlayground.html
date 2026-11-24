@@ -1588,16 +1588,24 @@ async function loadSoundToPad(url,name,id,padIdx){
   let idx=padIdx;
   if(idx===-1){
     for(let i=0;i<PAD_COUNT;i++){if(!sounds.has(i)){idx=i;break;}}
-    if(idx===-1){alert(`Board full (${PAD_COUNT} max). Right-click a pad to clear it.`);return;}
+    if(idx===-1){alert(`Board full (${PAD_COUNT} max). Right-click a pad to clear it.`);return -1;}
   }
   try{
     initAC();
     if(sources.has(idx)){try{sources.get(idx).src.stop();}catch(e){}sources.delete(idx);}
-    const ab=await(await fetch(url)).arrayBuffer();
-    const buf=await AC.decodeAudioData(ab);
+    // Decode once per URL; the same AudioBuffer can safely back several pads
+    // (trimming creates a new buffer, it never modifies the shared one).
+    let buf=decodedCache.get(url);
+    if(!buf){
+      const ab=await(await fetch(url)).arrayBuffer();
+      buf=await AC.decodeAudioData(ab);
+      decodedCache.set(url,buf);
+    }
     sounds.set(idx,{buffer:buf,url,name,id,originalBuffer:buf}); afterLoad();
-  }catch(e){console.error(e);alert('Load failed: '+e.message);}
+    return idx;
+  }catch(e){console.error(e);alert('Load failed: '+e.message);return -1;}
 }
+const decodedCache=new Map();
 
 function clearPad(i){
   if(!sounds.has(i))return;
@@ -1796,10 +1804,15 @@ function mkRow(s){
   });
   const loadBtn=d.querySelector('[data-load]');
   const assignSel=d.querySelector('[data-assign]');
-  loadBtn.addEventListener('click',()=>{
+  // The button stays usable after a load, so the same sample can go onto as many pads as you like.
+  loadBtn.addEventListener('click',async()=>{
+    if(loadBtn.disabled) return;
     const padIdx=assignSel.value===''?-1:parseInt(assignSel.value);
-    loadSoundToPad(s.previews['preview-hq-mp3'],s.name,s.id,padIdx);
-    loadBtn.textContent='✓'; loadBtn.disabled=true;
+    loadBtn.disabled=true; loadBtn.textContent='Loading…';
+    const placed=await loadSoundToPad(s.previews['preview-hq-mp3'],s.name,s.id,padIdx);
+    loadBtn.textContent=placed>=0?`✓ Pad ${placed+1}`:'+ Load';
+    assignSel.innerHTML=buildPadOptions();   // refresh labels; resets to "Next free pad"
+    setTimeout(()=>{loadBtn.textContent='+ Load'; loadBtn.disabled=false;},placed>=0?1400:0);
   });
   assignSel.addEventListener('mousedown',()=>{assignSel.innerHTML=buildPadOptions();});
   return d;
